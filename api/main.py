@@ -1,0 +1,387 @@
+import os
+import sys
+import json
+import datetime as dt
+import urllib.request
+import pandas as pd
+
+# Add the directory containing this file to sys.path to allow local imports
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+from dotenv import load_dotenv
+# Explicitly load .env from the root directory
+base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+load_dotenv(os.path.join(base_dir, ".env"))
+load_dotenv(os.path.join(base_dir, "web", ".env.local"), override=True)
+
+print(f"DEBUG: EODHD_API_KEY loaded: {'Yes' if os.getenv('EODHD_API_KEY') else 'No'}")
+print(f"DEBUG: SYMBOLS_DATA_DIR: {os.getenv('SYMBOLS_DATA_DIR')}")
+
+from fastapi import FastAPI, HTTPException, Request
+from fastapi import Query
+from fastapi.middleware.cors import CORSMiddleware
+from typing import Any, Dict, Optional, List, Literal
+
+from fastapi.responses import JSONResponse
+
+from pydantic import BaseModel, Field
+
+import yfinance as yf
+
+from stock_ai import run_pipeline
+from symbols_local import list_countries, search_symbols
+from routers import scan_ai, scan_tech, admin
+
+load_dotenv()
+
+app = FastAPI(title="AI Stocks API", version="1.0.0")
+
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception):
+    if isinstance(exc, HTTPException):
+        return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
+    print(f"Unhandled exception for {request.method} {request.url.path}: {exc}")
+    return JSONResponse(status_code=500, content={"detail": "Internal server error"})
+
+app.include_router(scan_ai.router)
+app.include_router(scan_tech.router)
+app.include_router(admin.router)
+
+CONFIG_FILE = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "admin_config.json"))
+
+
+def _load_admin_config():
+    if os.path.exists(CONFIG_FILE):
+        try:
+            with open(CONFIG_FILE, "r") as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return {"source": "eodhd"}
+
+
+def _normalize_yahoo_ticker(ticker: str) -> str:
+    t = ticker.strip().upper()
+    if t.endswith(".US"):
+        return t.replace(".US", "")
+    if t.endswith(".EGX"):
+        return t.replace(".EGX", ".CA")
+    return t
+
+
+def _fetch_price_yahoo(ticker: str) -> float:
+    yf_ticker = _normalize_yahoo_ticker(ticker)
+    t = yf.Ticker(yf_ticker)
+
+    try:
+        fi = getattr(t, "fast_info", None)
+        if fi:
+            last = fi.get("last_price")
+            if last is not None:
+                return float(last)
+    except Exception:
+        pass
+
+    try:
+        hist = t.history(period="1d")
+        if hist is not None and not hist.empty and "Close" in hist.columns:
+            return float(hist["Close"].iloc[-1])
+    except Exception:
+        pass
+
+    raise ValueError("Yahoo price unavailable")
+
+
+def _fetch_price_eodhd(ticker: str, api_key: str) -> float:
+    url = f"https://eodhd.com/api/real-time/{ticker}?api_token={api_key}&fmt=json"
+    with urllib.request.urlopen(url, timeout=20) as resp:
+        raw = resp.read().decode("utf-8")
+    payload = json.loads(raw)
+
+    if not isinstance(payload, dict):
+        raise ValueError("Invalid EODHD response")
+
+    for k in ("close", "price", "last", "last_close"):
+        v = payload.get(k)
+        if v is None:
+            continue
+        try:
+            return float(v)
+        except Exception:
+            continue
+
+    raise ValueError("EODHD price unavailable")
+
+web_origin = os.getenv("WEB_ORIGIN", "*")
+allow_origins = [web_origin] if web_origin != "*" else ["*"]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=allow_origins,
+    allow_credentials=False,
+    allow_methods=["GET", "POST"],
+    allow_headers=["*"]
+)
+
+
+class PredictRequest(BaseModel):
+    ticker: str = Field(..., min_length=1, max_length=24, pattern=r"^[A-Za-z0-9.\-]{1,24}$")
+    exchange: Optional[str] = Field(default=None)
+    from_date: str = Field(default="2020-01-01")
+    include_fundamentals: bool = Field(default=True)
+    rf_preset: Optional[str] = Field(default=None)
+    rf_params: Optional[Dict[str, Any]] = Field(default=None)
+
+
+class EvaluatePositionIn(BaseModel):
+    id: str
+    symbol: str
+    entry_at: Optional[str] = Field(default=None, description="ISO timestamp")
+    added_at: Optional[str] = Field(default=None, description="ISO timestamp")
+    target_price: Optional[float] = None
+    stop_price: Optional[float] = None
+
+
+class EvaluatePositionsRequest(BaseModel):
+    positions: List[EvaluatePositionIn]
+
+
+class EvaluatePositionOut(BaseModel):
+    id: str
+    symbol: str
+    status: Literal["open", "hit_target", "hit_stop"]
+    as_of: Optional[str] = None
+    price: Optional[float] = None
+    reason: Optional[str] = None
+
+
+def _parse_iso_date(value: Optional[str]) -> Optional[str]:
+    if not value:
+        return None
+    v = value.strip()
+    if not v:
+        return None
+    try:
+        if v.endswith("Z"):
+            v = v[:-1] + "+00:00"
+        d = dt.datetime.fromisoformat(v)
+        return d.date().isoformat()
+    except Exception:
+        try:
+            return dt.date.fromisoformat(v[:10]).isoformat()
+        except Exception:
+            return None
+
+
+def _fetch_eod_history_eodhd(ticker: str, api_key: str, from_date: str, to_date: str) -> List[Dict[str, Any]]:
+    url = (
+        f"https://eodhd.com/api/eod/{ticker}"
+        f"?api_token={api_key}&fmt=json&period=d&order=a&from={from_date}&to={to_date}"
+    )
+    with urllib.request.urlopen(url, timeout=25) as resp:
+        raw = resp.read().decode("utf-8")
+    payload = json.loads(raw)
+    if not isinstance(payload, list):
+        raise ValueError("Invalid EODHD EOD response")
+    return payload
+
+
+@app.post("/positions/evaluate_open_history", response_model=List[EvaluatePositionOut])
+def evaluate_open_positions_history(req: EvaluatePositionsRequest):
+    from tradingview_integration import fetch_tradingview_prices, get_tradingview_exchange
+    from stock_ai import _candidate_cache_paths, _preferred_cache_path, _safe_mkdir
+    
+    api_key = os.getenv("EODHD_API_KEY")
+    cache_dir = os.getenv("CACHE_DIR", "data_cache")
+    today = dt.datetime.utcnow().date().isoformat()
+    out: List[EvaluatePositionOut] = []
+
+    for p in req.positions:
+        start_date = _parse_iso_date(p.entry_at) or _parse_iso_date(p.added_at)
+        if not start_date:
+            out.append(EvaluatePositionOut(id=p.id, symbol=p.symbol, status="open", reason="missing_start_date"))
+            continue
+
+        if p.target_price is None and p.stop_price is None:
+            out.append(EvaluatePositionOut(id=p.id, symbol=p.symbol, status="open", reason="missing_target_stop"))
+            continue
+
+        symbol = p.symbol.strip().upper()
+        # Standardize symbol/exchange inference
+        from stock_ai import _infer_symbol_exchange, get_stock_data_eodhd, _finite_float
+        from eodhd import APIClient
+
+        s, e = _infer_symbol_exchange(symbol)
+        full_symbol = f"{s}.{e}"
+        
+        # Try to update from TradingView first (free)
+        try:
+            fetch_tradingview_prices(full_symbol, cache_dir=cache_dir, max_days=500)
+        except Exception as ex:
+            print(f"TradingView update failed for {full_symbol}: {ex}")
+        
+        # Use centralized get_stock_data_eodhd which handles Supabase -> Local -> API
+        df_loaded = None
+        try:
+            api_client = APIClient(api_key) if api_key else None
+            df_loaded = get_stock_data_eodhd(
+                api=api_client,
+                ticker=full_symbol,
+                from_date=start_date,
+                cache_dir=cache_dir,
+                exchange=e
+            )
+        except Exception as ex:
+            print(f"Data fetch error for {full_symbol}: {ex}")
+            # If no data and we have no API key, it's a real failure
+            if not api_key:
+                out.append(EvaluatePositionOut(id=p.id, symbol=p.symbol, status="open", reason="no_data_source"))
+                continue
+            out.append(EvaluatePositionOut(id=p.id, symbol=p.symbol, status="open", reason=f"fetch_error:{ex}"))
+            continue
+
+        if df_loaded is None or df_loaded.empty:
+            out.append(EvaluatePositionOut(id=p.id, symbol=p.symbol, status="open", reason="no_data"))
+            continue
+        
+        # We have the dataframe, ensure it's sorted and has a proper index
+        if not isinstance(df_loaded.index, pd.DatetimeIndex):
+            df_loaded.index = pd.to_datetime(df_loaded.index)
+        
+        df_filtered = df_loaded[df_loaded.index >= pd.to_datetime(start_date)].sort_index()
+        
+        if df_filtered.empty:
+            out.append(EvaluatePositionOut(id=p.id, symbol=p.symbol, status="open", reason="no_data_in_range"))
+            continue
+        
+        # Evaluate hits
+        hit: Optional[EvaluatePositionOut] = None
+        for timestamp, row in df_filtered.iterrows():
+            try:
+                # timestamp is a pd.Timestamp here
+                d = timestamp.strftime('%Y-%m-%d')
+                # EODHD/Supabase use lowercase column names
+                high_v = _finite_float(row.get('high', row.get('High')))
+                low_v = _finite_float(row.get('low', row.get('Low')))
+            except Exception:
+                continue
+            
+            hit_target = bool(p.target_price is not None and high_v is not None and high_v >= float(p.target_price))
+            hit_stop = bool(p.stop_price is not None and low_v is not None and low_v <= float(p.stop_price))
+            
+            if hit_target and hit_stop:
+                hit = EvaluatePositionOut(
+                    id=p.id, symbol=p.symbol, status="hit_stop",
+                    as_of=d, price=float(p.stop_price) if p.stop_price else None,
+                    reason="both_crossed_same_day"
+                )
+                break
+            
+            if hit_stop:
+                hit = EvaluatePositionOut(
+                    id=p.id, symbol=p.symbol, status="hit_stop",
+                    as_of=d, price=float(p.stop_price) if p.stop_price else None,
+                    reason="low<=stop"
+                )
+                break
+            
+            if hit_target:
+                hit = EvaluatePositionOut(
+                    id=p.id, symbol=p.symbol, status="hit_target",
+                    as_of=d, price=float(p.target_price) if p.target_price else None,
+                    reason="high>=target"
+                )
+                break
+        
+        if hit is None:
+            out.append(EvaluatePositionOut(id=p.id, symbol=p.symbol, status="open", reason="no_hit"))
+        else:
+            out.append(hit)
+
+    return out
+
+
+@app.get("/health")
+def health():
+    return {"ok": True}
+
+
+@app.get("/symbols/countries")
+def symbols_countries():
+    symbols_dir = os.getenv("SYMBOLS_DATA_DIR")
+    try:
+        return {"countries": list_countries(symbols_dir)}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/symbols/search")
+def symbols_search(
+    q: str = Query(default="", max_length=64),
+    country: str | None = Query(default=None, max_length=64),
+    exchange: str | None = Query(default=None, max_length=24),
+    limit: int = Query(default=25, ge=1, le=100000),
+):
+    symbols_dir = os.getenv("SYMBOLS_DATA_DIR")
+    try:
+        results = search_symbols(q=q, country=country, exchange=exchange, limit=limit, symbols_dir=symbols_dir)
+        return {"results": results}
+    except FileNotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/predict")
+def predict(req: PredictRequest):
+    api_key = os.getenv("EODHD_API_KEY")
+    if not api_key:
+        raise HTTPException(status_code=500, detail="EODHD_API_KEY is not configured")
+
+    cache_dir = os.getenv("CACHE_DIR", "data_cache")
+
+    try:
+        payload = run_pipeline(
+            api_key=api_key,
+            ticker=req.ticker.strip().upper(),
+            from_date=req.from_date,
+            cache_dir=cache_dir,
+            include_fundamentals=req.include_fundamentals,
+            exchange=req.exchange,
+            rf_preset=req.rf_preset,
+            rf_params=req.rf_params,
+        )
+        return payload
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        print(f"Internal error in /predict: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@app.get("/price")
+def get_price(
+    ticker: str = Query(default="", min_length=1, max_length=24, pattern=r"^[A-Za-z0-9.\-]{1,24}$"),
+):
+    t = ticker.strip().upper()
+    cfg = _load_admin_config()
+    source = (cfg.get("source") or "eodhd").lower()
+
+    api_key = os.getenv("EODHD_API_KEY")
+    as_of = dt.datetime.utcnow().replace(tzinfo=dt.timezone.utc).isoformat()
+
+    try:
+        if source == "eodhd" and api_key:
+            price = _fetch_price_eodhd(t, api_key)
+            return {"ticker": t, "price": price, "source": "eodhd", "asOf": as_of}
+
+        price = _fetch_price_yahoo(t)
+        return {"ticker": t, "price": price, "source": "yahoo", "asOf": as_of}
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        print(f"Internal error in /price: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")

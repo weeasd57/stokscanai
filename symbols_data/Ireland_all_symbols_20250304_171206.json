@@ -1,0 +1,338 @@
+[
+  {
+    "Symbol": "0P00001BHH",
+    "Exchange": "IR",
+    "Name": "KLP AksjeGlobal Indeks IV A ",
+    "Country": "Ireland"
+  },
+  {
+    "Symbol": "0P0000G0PE",
+    "Exchange": "IR",
+    "Name": "Nordea North American Div A NOK growth",
+    "Country": "Ireland"
+  },
+  {
+    "Symbol": "0P0000HNUP",
+    "Exchange": "IR",
+    "Name": "KLP AksjeNorge Indeks II",
+    "Country": "Ireland"
+  },
+  {
+    "Symbol": "0P0000PS3V",
+    "Exchange": "IR",
+    "Name": "DNB Global Indeks A",
+    "Country": "Ireland"
+  },
+  {
+    "Symbol": "0P0000TJ5D",
+    "Exchange": "IR",
+    "Name": "KLP Aksje Fremvoksende Markeder Indeks II",
+    "Country": "Ireland"
+  },
+  {
+    "Symbol": "0P0000YK6S",
+    "Exchange": "IR",
+    "Name": "Nordea 1 - Global Climate and Environment Fund BP NOK",
+    "Country": "Ireland"
+  },
+  {
+    "Symbol": "0P0000YK7J",
+    "Exchange": "IR",
+    "Name": "Nordea 1 - Emerging Stars Equity Fund BP NOK",
+    "Country": "Ireland"
+  },
+  {
+    "Symbol": "0P0000YK8F",
+    "Exchange": "IR",
+    "Name": "Nordea 1 - Global Real Estate Fund BP NOK",
+    "Country": "Ireland"
+  },
+  {
+    "Symbol": "0P00012DQC",
+    "Exchange": "IR",
+    "Name": "KLP AksjeGlobal Flerfaktor II",
+    "Country": "Ireland"
+  },
+  {
+    "Symbol": "0P00012E9V",
+    "Exchange": "IR",
+    "Name": "Nordea 1 - Global Small Cap Fund BP NOK",
+    "Country": "Ireland"
+  },
+  {
+    "Symbol": "0P00016TMM",
+    "Exchange": "IR",
+    "Name": "KLP AksjeEuropa Indeks IV",
+    "Country": "Ireland"
+  },
+  {
+    "Symbol": "0P00018J0P",
+    "Exchange": "IR",
+    "Name": "KLP AksjeUSA Indeks IV",
+    "Country": "Ireland"
+  },
+  {
+    "Symbol": "0P00018V9L",
+    "Exchange": "IR",
+    "Name": "KLP AksjeGlobal Indeks V",
+    "Country": "Ireland"
+  },
+  {
+    "Symbol": "0P00019ADK",
+    "Exchange": "IR",
+    "Name": "KLP Framtid",
+    "Country": "Ireland"
+  },
+  {
+    "Symbol": "0P0001EC8K",
+    "Exchange": "IR",
+    "Name": "Storebrand Global Solutions N",
+    "Country": "Ireland"
+  },
+  {
+    "Symbol": "0P0001EFNG",
+    "Exchange": "IR",
+    "Name": "DNB Norge Selektiv A",
+    "Country": "Ireland"
+  },
+  {
+    "Symbol": "0P0001EIH6",
+    "Exchange": "IR",
+    "Name": "KLP Aksje Fremvoksende Markeder Flerfaktor",
+    "Country": "Ireland"
+  },
+  {
+    "Symbol": "0P0001F3XI",
+    "Exchange": "IR",
+    "Name": "Handelsbanken Emerging Markets Index",
+    "Country": "Ireland"
+  },
+  {
+    "Symbol": "0P0001H55I",
+    "Exchange": "IR",
+    "Name": "Nordea 2 - Global Opportunity Equity Fund - NOK Hedged BP NOK",
+    "Country": "Ireland"
+  },
+  {
+    "Symbol": "0P0001IIFG",
+    "Exchange": "IR",
+    "Name": "Nordea Norwegian Stars A NOK",
+    "Country": "Ireland"
+  },
+  {
+    "Symbol": "0P0001M5YQ",
+    "Exchange": "IR",
+    "Name": "Nordnet Teknologi Indeks NOK",
+    "Country": "Ireland"
+  },
+  {
+    "Symbol": "0P0001MLUK",
+    "Exchange": "IR",
+    "Name": "SpareBank 1 Norge Verdi U",
+    "Country": "Ireland"
+  },
+  {
+    "Symbol": "0P0001OPC5",
+    "Exchange": "IR",
+    "Name": "KLP AksjeVerden Indeks N",
+    "Country": "Ireland"
+  },
+  {
+    "Symbol": "0P0001PDHZ",
+    "Exchange": "IR",
+    "Name": "Nordnet One Forsiktig NOK",
+    "Country": "Ireland"
+  },
+  {
+    "Symbol": "0P0001PDI0",
+    "Exchange": "IR",
+    "Name": "Nordnet One Balansert NOK",
+    "Country": "Ireland"
+  },
+  {
+    "Symbol": "0P0001UBHD",
+    "Exchange": "IR",
+    "Name": "DNB Kjernekraft A",
+    "Country": "Ireland"
+  },
+  {
+    "Symbol": "8GW",
+    "Exchange": "IR",
+    "Name": "Great Western Mining Corp Plc",
+    "Country": "Ireland"
+  },
+  {
+    "Symbol": "A5G",
+    "Exchange": "IR",
+    "Name": "AIB Group PLC",
+    "Country": "Ireland"
+  },
+  {
+    "Symbol": "BIRG",
+    "Exchange": "IR",
+    "Name": "Bank of Ireland Group PLC",
+    "Country": "Ireland"
+  },
+  {
+    "Symbol": "C5H",
+    "Exchange": "IR",
+    "Name": "Cairn Homes PLC",
+    "Country": "Ireland"
+  },
+  {
+    "Symbol": "CORRE",
+    "Exchange": "IR",
+    "Name": "Corre Energy BV",
+    "Country": "Ireland"
+  },
+  {
+    "Symbol": "DHG",
+    "Exchange": "IR",
+    "Name": "Dalata Hotel Group Plc",
+    "Country": "Ireland"
+  },
+  {
+    "Symbol": "DLE",
+    "Exchange": "IR",
+    "Name": "Datalex",
+    "Country": "Ireland"
+  },
+  {
+    "Symbol": "DQ7A",
+    "Exchange": "IR",
+    "Name": "Donegal Investment Group PLC",
+    "Country": "Ireland"
+  },
+  {
+    "Symbol": "EG7",
+    "Exchange": "IR",
+    "Name": "FBD Holdings PLC",
+    "Country": "Ireland"
+  },
+  {
+    "Symbol": "GL9",
+    "Exchange": "IR",
+    "Name": "Glanbia PLC",
+    "Country": "Ireland"
+  },
+  {
+    "Symbol": "GRP",
+    "Exchange": "IR",
+    "Name": "Greencoat Renewables PLC",
+    "Country": "Ireland"
+  },
+  {
+    "Symbol": "GRW",
+    "Exchange": "IR",
+    "Name": "Draper Esprit plc",
+    "Country": "Ireland"
+  },
+  {
+    "Symbol": "GVR",
+    "Exchange": "IR",
+    "Name": "Glenveagh Properties PLC",
+    "Country": "Ireland"
+  },
+  {
+    "Symbol": "GYQ",
+    "Exchange": "IR",
+    "Name": "FD Technologies PLC",
+    "Country": "Ireland"
+  },
+  {
+    "Symbol": "HSW",
+    "Exchange": "IR",
+    "Name": "Hostelworld Group PLC",
+    "Country": "Ireland"
+  },
+  {
+    "Symbol": "IE0032578035",
+    "Exchange": "IR",
+    "Name": "Franklin Floating Rate Fund PLC A(dis)",
+    "Country": "Ireland"
+  },
+  {
+    "Symbol": "IE00B000C709",
+    "Exchange": "IR",
+    "Name": "Franklin Floating Rate Fund PLC A(acc)",
+    "Country": "Ireland"
+  },
+  {
+    "Symbol": "IE00B065CV35",
+    "Exchange": "IR",
+    "Name": "Franklin Floating Rate Fund PLC N",
+    "Country": "Ireland"
+  },
+  {
+    "Symbol": "IR5B",
+    "Exchange": "IR",
+    "Name": "Irish Continental Group PLC",
+    "Country": "Ireland"
+  },
+  {
+    "Symbol": "IRES",
+    "Exchange": "IR",
+    "Name": "Irish Residential Properties",
+    "Country": "Ireland"
+  },
+  {
+    "Symbol": "KMR",
+    "Exchange": "IR",
+    "Name": "Kenmare Resources PLC",
+    "Country": "Ireland"
+  },
+  {
+    "Symbol": "KRX",
+    "Exchange": "IR",
+    "Name": "Kingspan Group plc",
+    "Country": "Ireland"
+  },
+  {
+    "Symbol": "KRZ",
+    "Exchange": "IR",
+    "Name": "Kerry Group",
+    "Country": "Ireland"
+  },
+  {
+    "Symbol": "MIO",
+    "Exchange": "IR",
+    "Name": "Mincon Group plc",
+    "Country": "Ireland"
+  },
+  {
+    "Symbol": "MLC",
+    "Exchange": "IR",
+    "Name": "Malin Corporation plc",
+    "Country": "Ireland"
+  },
+  {
+    "Symbol": "OIZ",
+    "Exchange": "IR",
+    "Name": "Origin Enterprises Plc",
+    "Country": "Ireland"
+  },
+  {
+    "Symbol": "OVXA",
+    "Exchange": "IR",
+    "Name": "Ovoca Gold PLC",
+    "Country": "Ireland"
+  },
+  {
+    "Symbol": "PTSB",
+    "Exchange": "IR",
+    "Name": "PERMANENT TSB GROUP HOLDINGS PLC",
+    "Country": "Ireland"
+  },
+  {
+    "Symbol": "RYA",
+    "Exchange": "IR",
+    "Name": "Ryanair Holdings plc",
+    "Country": "Ireland"
+  },
+  {
+    "Symbol": "UPR",
+    "Exchange": "IR",
+    "Name": "Uniphar Group PLC",
+    "Country": "Ireland"
+  }
+]

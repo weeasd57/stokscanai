@@ -1,0 +1,3830 @@
+[
+  {
+    "Symbol": "06N",
+    "Exchange": "WAR",
+    "Name": "Magna Polonia SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "08N",
+    "Exchange": "WAR",
+    "Name": "NFI Octava SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "11B",
+    "Exchange": "WAR",
+    "Name": "11 bit studios S.A",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "1AT",
+    "Exchange": "WAR",
+    "Name": "Atal SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "3RG",
+    "Exchange": "WAR",
+    "Name": "3R Games SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "4MB",
+    "Exchange": "WAR",
+    "Name": "4Mobility SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "4MS",
+    "Exchange": "WAR",
+    "Name": "4Mass SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "7FT",
+    "Exchange": "WAR",
+    "Name": "7Fit SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "7LV",
+    "Exchange": "WAR",
+    "Name": "7Levels SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "AAT",
+    "Exchange": "WAR",
+    "Name": "Alta S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "ABE",
+    "Exchange": "WAR",
+    "Name": "AB S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "ABK",
+    "Exchange": "WAR",
+    "Name": "Abak SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "ABS",
+    "Exchange": "WAR",
+    "Name": "Asseco Business Solutions S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "ACG",
+    "Exchange": "WAR",
+    "Name": "AC S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "ACP",
+    "Exchange": "WAR",
+    "Name": "Asseco Poland S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "ACT",
+    "Exchange": "WAR",
+    "Name": "Action SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "ADV",
+    "Exchange": "WAR",
+    "Name": "Adiuvo Investment SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "ADX",
+    "Exchange": "WAR",
+    "Name": "ADX",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "AGL",
+    "Exchange": "WAR",
+    "Name": "Agroliga Group PLC",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "AGO",
+    "Exchange": "WAR",
+    "Name": "Agora S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "AGT",
+    "Exchange": "WAR",
+    "Name": "Agroton Public Ltd.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "AIT",
+    "Exchange": "WAR",
+    "Name": "Aiton",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "ALE",
+    "Exchange": "WAR",
+    "Name": "Allegro.eu S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "ALG",
+    "Exchange": "WAR",
+    "Name": "All In! Games S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "ALI",
+    "Exchange": "WAR",
+    "Name": "Altustfi",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "ALL",
+    "Exchange": "WAR",
+    "Name": "Ailleron S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "ALR",
+    "Exchange": "WAR",
+    "Name": "Alior Bank S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "AMB",
+    "Exchange": "WAR",
+    "Name": "Ambra SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "AMC",
+    "Exchange": "WAR",
+    "Name": "Amica S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "ANR",
+    "Exchange": "WAR",
+    "Name": "Answear.com S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "AOL",
+    "Exchange": "WAR",
+    "Name": "AOL",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "APE",
+    "Exchange": "WAR",
+    "Name": "APS Energia S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "APL",
+    "Exchange": "WAR",
+    "Name": "Ampli SA w upadlosci ukladowej",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "APN",
+    "Exchange": "WAR",
+    "Name": "Aplisens SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "APR",
+    "Exchange": "WAR",
+    "Name": "Auto Partner SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "APS",
+    "Exchange": "WAR",
+    "Name": "Automatyka Pomiary Sterowanie SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "APT",
+    "Exchange": "WAR",
+    "Name": "Apator S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "AQA",
+    "Exchange": "WAR",
+    "Name": "AQA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "AQT",
+    "Exchange": "WAR",
+    "Name": "AQT Water SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "AQU",
+    "Exchange": "WAR",
+    "Name": "Aquabb",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "ARH",
+    "Exchange": "WAR",
+    "Name": "Archicom S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "ART",
+    "Exchange": "WAR",
+    "Name": "Artifex Mundi SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "ASB",
+    "Exchange": "WAR",
+    "Name": "ASBISc Enterprises PLC",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "ASE",
+    "Exchange": "WAR",
+    "Name": "Asseco South Eastern Europe S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "ASR",
+    "Exchange": "WAR",
+    "Name": "ASR",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "AST",
+    "Exchange": "WAR",
+    "Name": "Astarta Holding N.V.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "ATA",
+    "Exchange": "WAR",
+    "Name": "ATA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "ATC",
+    "Exchange": "WAR",
+    "Name": "Arctic Paper SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "ATD",
+    "Exchange": "WAR",
+    "Name": "Atende S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "ATG",
+    "Exchange": "WAR",
+    "Name": "ATM Grupa S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "ATJ",
+    "Exchange": "WAR",
+    "Name": "Atomic Jelly S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "ATP",
+    "Exchange": "WAR",
+    "Name": "Atlanta Poland SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "ATR",
+    "Exchange": "WAR",
+    "Name": "Atrem S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "ATS",
+    "Exchange": "WAR",
+    "Name": "Atlantis S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "ATT",
+    "Exchange": "WAR",
+    "Name": "Grupa Azoty SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "AUX",
+    "Exchange": "WAR",
+    "Name": "Auxilia SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "AWM",
+    "Exchange": "WAR",
+    "Name": "Airway",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "AZC",
+    "Exchange": "WAR",
+    "Name": "Aztec",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "B24",
+    "Exchange": "WAR",
+    "Name": "Brand 24 SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "BBD",
+    "Exchange": "WAR",
+    "Name": "BBI Development SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "BBT",
+    "Exchange": "WAR",
+    "Name": "BoomBit S.A",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "BCM",
+    "Exchange": "WAR",
+    "Name": "Betacom S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "BCS",
+    "Exchange": "WAR",
+    "Name": "Big Cheese Studio S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "BCX",
+    "Exchange": "WAR",
+    "Name": "Bioceltix S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "BDX",
+    "Exchange": "WAR",
+    "Name": "Budimex S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "BDZ",
+    "Exchange": "WAR",
+    "Name": "Elektrocieplownia Bedzin",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "BEE",
+    "Exchange": "WAR",
+    "Name": "BeeIN S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "BEP",
+    "Exchange": "WAR",
+    "Name": "Biomass",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "BFT",
+    "Exchange": "WAR",
+    "Name": "Benefit Systems SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "BGD",
+    "Exchange": "WAR",
+    "Name": "BGD",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "BHW",
+    "Exchange": "WAR",
+    "Name": "Bank Handlowy w Warszawie SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "BHX",
+    "Exchange": "WAR",
+    "Name": "Binary Helix SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "BIO",
+    "Exchange": "WAR",
+    "Name": "Bioton S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "BIP",
+    "Exchange": "WAR",
+    "Name": "Bio Planet SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "BKD",
+    "Exchange": "WAR",
+    "Name": "Baked Games S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "BLO",
+    "Exchange": "WAR",
+    "Name": "Bloober Team SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "BLT",
+    "Exchange": "WAR",
+    "Name": "Balticon",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "BMC",
+    "Exchange": "WAR",
+    "Name": "Bumech S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "BMX",
+    "Exchange": "WAR",
+    "Name": "Biomaxima",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "BNP",
+    "Exchange": "WAR",
+    "Name": "BNP Paribas Bank Polska S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "BOS",
+    "Exchange": "WAR",
+    "Name": "Bank Ochrony \u015arodowiska SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "BOW",
+    "Exchange": "WAR",
+    "Name": "Bowim S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "BPC",
+    "Exchange": "WAR",
+    "Name": "Black Pearl SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "BPN",
+    "Exchange": "WAR",
+    "Name": "Blackpoin",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "BRA",
+    "Exchange": "WAR",
+    "Name": "Braster S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "BRO",
+    "Exchange": "WAR",
+    "Name": "Browar Czarnkow SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "BRP",
+    "Exchange": "WAR",
+    "Name": "Black Rose Projects S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "BRS",
+    "Exchange": "WAR",
+    "Name": "Boryszew SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "BSH",
+    "Exchange": "WAR",
+    "Name": "Bridge Solutions Hub S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "BST",
+    "Exchange": "WAR",
+    "Name": "Best SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "BTK",
+    "Exchange": "WAR",
+    "Name": "Biztech Konsulting SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "CAI",
+    "Exchange": "WAR",
+    "Name": "Carlson Investments SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "CAR",
+    "Exchange": "WAR",
+    "Name": "Inter Cars S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "CAV",
+    "Exchange": "WAR",
+    "Name": "Cavatina Holding S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "CBD",
+    "Exchange": "WAR",
+    "Name": "Cannabis Poland S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "CBF",
+    "Exchange": "WAR",
+    "Name": "Cyber_Folks S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "CCC",
+    "Exchange": "WAR",
+    "Name": "CCC S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "CCE",
+    "Exchange": "WAR",
+    "Name": "Clean & Carbon Energy S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "CCS",
+    "Exchange": "WAR",
+    "Name": "Ccs",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "CDA",
+    "Exchange": "WAR",
+    "Name": "CDA SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "CDL",
+    "Exchange": "WAR",
+    "Name": "CDRL SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "CDR",
+    "Exchange": "WAR",
+    "Name": "CD PROJEKT SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "CEZ",
+    "Exchange": "WAR",
+    "Name": "CEZ as",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "CFG",
+    "Exchange": "WAR",
+    "Name": "Creativeforge Games SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "CFI",
+    "Exchange": "WAR",
+    "Name": "CFI Holding SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "CFS",
+    "Exchange": "WAR",
+    "Name": "Centrum Finansowe Banku BPS SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "CHP",
+    "Exchange": "WAR",
+    "Name": "CHP",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "CIG",
+    "Exchange": "WAR",
+    "Name": "CI Games SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "CLA",
+    "Exchange": "WAR",
+    "Name": "Console Labs S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "CLC",
+    "Exchange": "WAR",
+    "Name": "Columbus",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "CLD",
+    "Exchange": "WAR",
+    "Name": "Cloud Technologies S.A",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "CLE",
+    "Exchange": "WAR",
+    "Name": "Coal Energy S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "CLN",
+    "Exchange": "WAR",
+    "Name": "Celon Pharma SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "CMP",
+    "Exchange": "WAR",
+    "Name": "Comp SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "CMR",
+    "Exchange": "WAR",
+    "Name": "Comarch SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "COG",
+    "Exchange": "WAR",
+    "Name": "Cognor S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "COS",
+    "Exchange": "WAR",
+    "Name": "Cosma Group S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "CPA",
+    "Exchange": "WAR",
+    "Name": "Capital Partners S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "CPD",
+    "Exchange": "WAR",
+    "Name": "CPD SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "CPL",
+    "Exchange": "WAR",
+    "Name": "Comperia.pl S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "CPR",
+    "Exchange": "WAR",
+    "Name": "Compremum S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "CPS",
+    "Exchange": "WAR",
+    "Name": "Cyfrowy Polsat SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "CRB",
+    "Exchange": "WAR",
+    "Name": "Carbon Studio S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "CRI",
+    "Exchange": "WAR",
+    "Name": "Creotech Instruments S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "CRJ",
+    "Exchange": "WAR",
+    "Name": "Creepy Jar SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "CRM",
+    "Exchange": "WAR",
+    "Name": "PZ Cormay SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "CSR",
+    "Exchange": "WAR",
+    "Name": "Caspar",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "CTS",
+    "Exchange": "WAR",
+    "Name": "City Service SE",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "CTX",
+    "Exchange": "WAR",
+    "Name": "Captor Therapeutics S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "CZT",
+    "Exchange": "WAR",
+    "Name": "Czerwona Torebka",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "DAD",
+    "Exchange": "WAR",
+    "Name": "Dadelo S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "DAT",
+    "Exchange": "WAR",
+    "Name": "Datawalk SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "DBC",
+    "Exchange": "WAR",
+    "Name": "Firma Oponiarska D\u0118BICA SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "DBE",
+    "Exchange": "WAR",
+    "Name": "DB Energy S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "DCR",
+    "Exchange": "WAR",
+    "Name": "Decora SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "DDI",
+    "Exchange": "WAR",
+    "Name": "Draw Distance SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "DEG",
+    "Exchange": "WAR",
+    "Name": "Detalion Games S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "DEK",
+    "Exchange": "WAR",
+    "Name": "Dekpol SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "DEL",
+    "Exchange": "WAR",
+    "Name": "Delko S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "DGA",
+    "Exchange": "WAR",
+    "Name": "DGA Sp\u00f3lka Akcyjna",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "DGE",
+    "Exchange": "WAR",
+    "Name": "Drago entertainment S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "DGN",
+    "Exchange": "WAR",
+    "Name": "DG-Net S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "DIA",
+    "Exchange": "WAR",
+    "Name": "Diagnostyka S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "DIG",
+    "Exchange": "WAR",
+    "Name": "Digital Network S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "DKR",
+    "Exchange": "WAR",
+    "Name": "Dektra SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "DNP",
+    "Exchange": "WAR",
+    "Name": "Dino Polska SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "DOM",
+    "Exchange": "WAR",
+    "Name": "Dom Development S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "DPL",
+    "Exchange": "WAR",
+    "Name": "Drozapol-Profil SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "DRF",
+    "Exchange": "WAR",
+    "Name": "Dr.Finance SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "DRG",
+    "Exchange": "WAR",
+    "Name": "Drageus Games S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "DTR",
+    "Exchange": "WAR",
+    "Name": "Digitree Group S.A",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "DTX",
+    "Exchange": "WAR",
+    "Name": "Ditix SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "DUA",
+    "Exchange": "WAR",
+    "Name": "Duality SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "DVL",
+    "Exchange": "WAR",
+    "Name": "Develia S.A",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "EAH",
+    "Exchange": "WAR",
+    "Name": "Esotiq & Henderson S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "EAT",
+    "Exchange": "WAR",
+    "Name": "AmRest Holdings SE",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "EBX",
+    "Exchange": "WAR",
+    "Name": "Ekobox",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "ECC",
+    "Exchange": "WAR",
+    "Name": "ECC Games SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "ECH",
+    "Exchange": "WAR",
+    "Name": "Echo Investment SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "ECK",
+    "Exchange": "WAR",
+    "Name": "Eurosnack",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "ECL",
+    "Exchange": "WAR",
+    "Name": "Easycall",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "ECT",
+    "Exchange": "WAR",
+    "Name": "eco5tech S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "EDI",
+    "Exchange": "WAR",
+    "Name": "ED Invest S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "EEE",
+    "Exchange": "WAR",
+    "Name": "Ekipa Holding S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "EEX",
+    "Exchange": "WAR",
+    "Name": "Eko Export SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "EFK",
+    "Exchange": "WAR",
+    "Name": "Korporacja Gospodarcza efekt S.A",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "EGH",
+    "Exchange": "WAR",
+    "Name": "Ekopol",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "EHG",
+    "Exchange": "WAR",
+    "Name": "EuroHold Bulgaria AD",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "EKP",
+    "Exchange": "WAR",
+    "Name": "Elkop SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "EKS",
+    "Exchange": "WAR",
+    "Name": "Ekiosk",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "ELQ",
+    "Exchange": "WAR",
+    "Name": "ELQ SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "ELT",
+    "Exchange": "WAR",
+    "Name": "Elektrotim SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "EMC",
+    "Exchange": "WAR",
+    "Name": "EMC Instytut Medyczny SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "EMP",
+    "Exchange": "WAR",
+    "Name": "Emplocity S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "ENA",
+    "Exchange": "WAR",
+    "Name": "Enea S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "ENE",
+    "Exchange": "WAR",
+    "Name": "Centrum Medyczne ENEL-MED SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "ENG",
+    "Exchange": "WAR",
+    "Name": "Energa S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "ENI",
+    "Exchange": "WAR",
+    "Name": "Energoinstal S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "ENP",
+    "Exchange": "WAR",
+    "Name": "Energoaparatura S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "ENT",
+    "Exchange": "WAR",
+    "Name": "Enter Air S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "EON",
+    "Exchange": "WAR",
+    "Name": "Eonet",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "EPR",
+    "Exchange": "WAR",
+    "Name": "Przedsiebiorstwo Robot Instalacyjnych Ekopark SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "ERB",
+    "Exchange": "WAR",
+    "Name": "Erbud SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "ERG",
+    "Exchange": "WAR",
+    "Name": "ERG S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "ESG",
+    "Exchange": "WAR",
+    "Name": "E-shopping Group S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "ETCGLDRMAU",
+    "Exchange": "WAR",
+    "Name": "The Royal Mint Physical Gold ETC Securities",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "ETFBCASH",
+    "Exchange": "WAR",
+    "Name": "Beta ETF Obligacji 6M",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "ETFBM40TR",
+    "Exchange": "WAR",
+    "Name": "Beta mWIG40TR Portfelowy FIZ",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "ETFBNDXPL",
+    "Exchange": "WAR",
+    "Name": "Beta ETF Nasdaq-100 PLN-Hedged Portfelowy Fundusz Inwestycyjny Zamkniety",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "ETFBNQ2ST",
+    "Exchange": "WAR",
+    "Name": "Beta ETF Nasdaq-100 2 X Short PCIF - Investment Certifications ETF",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "ETFBNQ3LV",
+    "Exchange": "WAR",
+    "Name": "Beta ETF Nasdaq-100 3x Lev",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "ETFBS80TR",
+    "Exchange": "WAR",
+    "Name": "Beta ETF sWIG80TR Portfelowy FIZ",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "ETFBSPXPL",
+    "Exchange": "WAR",
+    "Name": "Beta ETF S&P 500 PLN-Hedged Portfelowy Fundusz Inwestycyjny Zamkniety",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "ETFBTBSP",
+    "Exchange": "WAR",
+    "Name": "BETA ETF WIG20SHORT PCIF - BETA ETF TBSP PCIF",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "ETFBW20LV",
+    "Exchange": "WAR",
+    "Name": "Beta ETF WIG20lev Potrfelowy Fundusz Inwestycyjny Zamkniety",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "ETFBW20ST",
+    "Exchange": "WAR",
+    "Name": "Beta ETF WIG20Short PCIF - Investment Certificates ETF",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "ETFBW20TR",
+    "Exchange": "WAR",
+    "Name": "Beta WIG20TR Portfelowy FIZ",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "ETFDAX",
+    "Exchange": "WAR",
+    "Name": "MULTI-UNITS LUXEMBOURG - Lyxor DAX (DR) UCITS ETF",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "ETFSP500",
+    "Exchange": "WAR",
+    "Name": "Lyxor S&P 500 UCITS ETF - D-EUR",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "ETL",
+    "Exchange": "WAR",
+    "Name": "Eurotel SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "ETX",
+    "Exchange": "WAR",
+    "Name": "Euro-Tax.pl S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "EUC",
+    "Exchange": "WAR",
+    "Name": "Europejskie Centrum Odszkodowa\u0144 SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "EUR",
+    "Exchange": "WAR",
+    "Name": "Eurocash S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "EXA",
+    "Exchange": "WAR",
+    "Name": "Examobile SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "EXC",
+    "Exchange": "WAR",
+    "Name": "EXC",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "EXM",
+    "Exchange": "WAR",
+    "Name": "E Xim IT S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "F51",
+    "Exchange": "WAR",
+    "Name": "Farm51",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "FAB",
+    "Exchange": "WAR",
+    "Name": "Fabrity Holding S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "FEE",
+    "Exchange": "WAR",
+    "Name": "Feerum S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "FEM",
+    "Exchange": "WAR",
+    "Name": "Femion Technology S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "FFI",
+    "Exchange": "WAR",
+    "Name": "Fast Finance SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "FHD",
+    "Exchange": "WAR",
+    "Name": "Fundusz Hipoteczny Dom SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "FMG",
+    "Exchange": "WAR",
+    "Name": "One SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "FON",
+    "Exchange": "WAR",
+    "Name": "Fon SE",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "FOR",
+    "Exchange": "WAR",
+    "Name": "Foreveren",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "FRO",
+    "Exchange": "WAR",
+    "Name": "Ferro S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "FRW",
+    "Exchange": "WAR",
+    "Name": "Frozen Way S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "FSG",
+    "Exchange": "WAR",
+    "Name": "FASING SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "FTE",
+    "Exchange": "WAR",
+    "Name": "Fabryki Mebli Forte S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "FTH",
+    "Exchange": "WAR",
+    "Name": "Fintech SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "FVE",
+    "Exchange": "WAR",
+    "Name": "FVE",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "GAL",
+    "Exchange": "WAR",
+    "Name": "Galvo",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "GDC",
+    "Exchange": "WAR",
+    "Name": "Gamedust S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "GEA",
+    "Exchange": "WAR",
+    "Name": "Grenevia S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "GEN",
+    "Exchange": "WAR",
+    "Name": "Genomed S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "GIF",
+    "Exchange": "WAR",
+    "Name": "Gaming Factory S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "GIG",
+    "Exchange": "WAR",
+    "Name": "GI Group Poland S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "GKI",
+    "Exchange": "WAR",
+    "Name": "Immobile",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "GMB",
+    "Exchange": "WAR",
+    "Name": "Games Box S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "GME",
+    "Exchange": "WAR",
+    "Name": "Gremi Media S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "GMT",
+    "Exchange": "WAR",
+    "Name": "Genomtec S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "GMV",
+    "Exchange": "WAR",
+    "Name": "Gamivo S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "GMZ",
+    "Exchange": "WAR",
+    "Name": "Grupa Modne Zakupy S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "GOB",
+    "Exchange": "WAR",
+    "Name": "Gobarto S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "GOP",
+    "Exchange": "WAR",
+    "Name": "Games Operators SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "GPP",
+    "Exchange": "WAR",
+    "Name": "Grupa Pracuj S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "GPW",
+    "Exchange": "WAR",
+    "Name": "Gielda Papierow Wartosciowych w Warszawie SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "GRC",
+    "Exchange": "WAR",
+    "Name": "Grupa Recykl SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "GRM",
+    "Exchange": "WAR",
+    "Name": "Grempco",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "GRN",
+    "Exchange": "WAR",
+    "Name": "Grodno S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "GRX",
+    "Exchange": "WAR",
+    "Name": "GreenX Metals Ltd.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "GTC",
+    "Exchange": "WAR",
+    "Name": "Globe Trade Centre S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "GTN",
+    "Exchange": "WAR",
+    "Name": "Getin Holding SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "GTS",
+    "Exchange": "WAR",
+    "Name": "Geotrans SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "GX1",
+    "Exchange": "WAR",
+    "Name": "Genxone SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "HDR",
+    "Exchange": "WAR",
+    "Name": "HYDROTOR SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "HEL",
+    "Exchange": "WAR",
+    "Name": "Helio SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "HMI",
+    "Exchange": "WAR",
+    "Name": "HM Inwest S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "HMP",
+    "Exchange": "WAR",
+    "Name": "HMP",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "HOR",
+    "Exchange": "WAR",
+    "Name": "Hortico S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "HPM",
+    "Exchange": "WAR",
+    "Name": "HiProMine S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "HPS",
+    "Exchange": "WAR",
+    "Name": "Hydrapres",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "HRC",
+    "Exchange": "WAR",
+    "Name": "Grupa HRC S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "HRP",
+    "Exchange": "WAR",
+    "Name": "Harper Hygienics S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "HRS",
+    "Exchange": "WAR",
+    "Name": "Herkules S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "HUB",
+    "Exchange": "WAR",
+    "Name": "HubStyle S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "HUG",
+    "Exchange": "WAR",
+    "Name": "Huuuge Inc.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "IBC",
+    "Exchange": "WAR",
+    "Name": "IBC",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "IBS",
+    "Exchange": "WAR",
+    "Name": "Noble Financials SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "ICE",
+    "Exchange": "WAR",
+    "Name": "Medinice S.A",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "ICG",
+    "Exchange": "WAR",
+    "Name": "Ice Code Games S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "IDH",
+    "Exchange": "WAR",
+    "Name": "IDH Development S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "IDM",
+    "Exchange": "WAR",
+    "Name": "Dom Maklerski IDM SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "IFA",
+    "Exchange": "WAR",
+    "Name": "Infra SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "IFC",
+    "Exchange": "WAR",
+    "Name": "Investment Friends Capital SE",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "IFI",
+    "Exchange": "WAR",
+    "Name": "IFirma SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "IGT",
+    "Exchange": "WAR",
+    "Name": "Igoria Trade S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "IIA",
+    "Exchange": "WAR",
+    "Name": "Immofinanz AG",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "IMC",
+    "Exchange": "WAR",
+    "Name": "IMC SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "IMG",
+    "Exchange": "WAR",
+    "Name": "IMG",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "IMP",
+    "Exchange": "WAR",
+    "Name": "Impera Capital S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "IMS",
+    "Exchange": "WAR",
+    "Name": "IMS SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "INC",
+    "Exchange": "WAR",
+    "Name": "INC S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "ING",
+    "Exchange": "WAR",
+    "Name": "ING Bank \u015al\u0105ski SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "INK",
+    "Exchange": "WAR",
+    "Name": "INSTAL KRAK\u00d3W SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "INL",
+    "Exchange": "WAR",
+    "Name": "Introl S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "INM",
+    "Exchange": "WAR",
+    "Name": "INM",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "INP",
+    "Exchange": "WAR",
+    "Name": "Inpro SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "INS",
+    "Exchange": "WAR",
+    "Name": "Indos S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "INT",
+    "Exchange": "WAR",
+    "Name": "Internity S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "IPE",
+    "Exchange": "WAR",
+    "Name": "Ipopema Securities SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "IPO",
+    "Exchange": "WAR",
+    "Name": "Intersport Polska S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "IPW",
+    "Exchange": "WAR",
+    "Name": "Image Power S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "IRL",
+    "Exchange": "WAR",
+    "Name": "INTER RAO Lietuva AB",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "ITB",
+    "Exchange": "WAR",
+    "Name": "Interbud-Lublin SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "ITX",
+    "Exchange": "WAR",
+    "Name": "Industria de Diseno Textil S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "IUS",
+    "Exchange": "WAR",
+    "Name": "IUS",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "IVE",
+    "Exchange": "WAR",
+    "Name": "IVE",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "IVO",
+    "Exchange": "WAR",
+    "Name": "Incuvo S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "IWS",
+    "Exchange": "WAR",
+    "Name": "Iron Wolf Studio S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "IZB",
+    "Exchange": "WAR",
+    "Name": "Izoblok",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "IZO",
+    "Exchange": "WAR",
+    "Name": "Izolacja Jarocin SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "IZS",
+    "Exchange": "WAR",
+    "Name": "Izostal SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "JJB",
+    "Exchange": "WAR",
+    "Name": "Jujubee SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "JMT",
+    "Exchange": "WAR",
+    "Name": "Jeronimo Martins SGPS S/A",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "JRC",
+    "Exchange": "WAR",
+    "Name": "JRC Group S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "JSW",
+    "Exchange": "WAR",
+    "Name": "Jastrzebska Spotka Weglowa SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "JWW",
+    "Exchange": "WAR",
+    "Name": "Jwwinvest",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "K2P",
+    "Exchange": "WAR",
+    "Name": "Kool2play SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "KBJ",
+    "Exchange": "WAR",
+    "Name": "Kbj",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "KBT",
+    "Exchange": "WAR",
+    "Name": "KBT",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "KCH",
+    "Exchange": "WAR",
+    "Name": "Krakchemia SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "KCI",
+    "Exchange": "WAR",
+    "Name": "KCI SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "KER",
+    "Exchange": "WAR",
+    "Name": "Kernel Holding SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "KGH",
+    "Exchange": "WAR",
+    "Name": "KGHM Polska Miedz SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "KGL",
+    "Exchange": "WAR",
+    "Name": "Korporacja KGL S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "KGN",
+    "Exchange": "WAR",
+    "Name": "Kogeneracja SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "KLE",
+    "Exchange": "WAR",
+    "Name": "Grupa Klepsydra S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "KLN",
+    "Exchange": "WAR",
+    "Name": "KLN",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "KMP",
+    "Exchange": "WAR",
+    "Name": "Przedsiebiorstwo Produkcyjno Handlowe Kompap SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "KOM",
+    "Exchange": "WAR",
+    "Name": "Komputronik S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "KOR",
+    "Exchange": "WAR",
+    "Name": "KOR",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "KPC",
+    "Exchange": "WAR",
+    "Name": "Kupiec SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "KPD",
+    "Exchange": "WAR",
+    "Name": "Koszalinskie Przedsiebiorstwo Przemyslu Drzewnego SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "KPI",
+    "Exchange": "WAR",
+    "Name": "Kancelaria Prawna Inkaso Wec SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "KPL",
+    "Exchange": "WAR",
+    "Name": "Kino Polska TV SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "KRI",
+    "Exchange": "WAR",
+    "Name": "Kredyt Inkaso SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "KRK",
+    "Exchange": "WAR",
+    "Name": "Krka d. d",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "KRU",
+    "Exchange": "WAR",
+    "Name": "Kruk SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "KSG",
+    "Exchange": "WAR",
+    "Name": "KSG Agro SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "KTY",
+    "Exchange": "WAR",
+    "Name": "Grupa K\u0118TY SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "KUB",
+    "Exchange": "WAR",
+    "Name": "Kubota S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "KVT",
+    "Exchange": "WAR",
+    "Name": "Krynica Vitamin SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "LAB",
+    "Exchange": "WAR",
+    "Name": "Labo Print SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "LBT",
+    "Exchange": "WAR",
+    "Name": "Libet S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "LBW",
+    "Exchange": "WAR",
+    "Name": "LUBAWA SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "LCN",
+    "Exchange": "WAR",
+    "Name": "Labocanna SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "LEG",
+    "Exchange": "WAR",
+    "Name": "Legimi S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "LEN",
+    "Exchange": "WAR",
+    "Name": "Lena Lighting S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "LES",
+    "Exchange": "WAR",
+    "Name": "LESS S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "LGT",
+    "Exchange": "WAR",
+    "Name": "Logintrade S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "LKD",
+    "Exchange": "WAR",
+    "Name": "Lokum Deweloper SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "LMG",
+    "Exchange": "WAR",
+    "Name": "Live Motion Games S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "LPP",
+    "Exchange": "WAR",
+    "Name": "LPP S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "LRQ",
+    "Exchange": "WAR",
+    "Name": "Larq SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "LSI",
+    "Exchange": "WAR",
+    "Name": "LSI Software S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "LTM",
+    "Exchange": "WAR",
+    "Name": "Longterm Games S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "LTX",
+    "Exchange": "WAR",
+    "Name": "Zak\u0142ady Lentex SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "LUG",
+    "Exchange": "WAR",
+    "Name": "LUG S.A",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "LWB",
+    "Exchange": "WAR",
+    "Name": "Lubelski Wegiel Bogdanka S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "MAB",
+    "Exchange": "WAR",
+    "Name": "Mabion S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "MAD",
+    "Exchange": "WAR",
+    "Name": "MAD",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "MAK",
+    "Exchange": "WAR",
+    "Name": "Makarony Polskie S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "MAN",
+    "Exchange": "WAR",
+    "Name": "Manydev Studio SE",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "MBK",
+    "Exchange": "WAR",
+    "Name": "mBank SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "MBR",
+    "Exchange": "WAR",
+    "Name": "Mo-Bruk SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "MBW",
+    "Exchange": "WAR",
+    "Name": "Marie Brizard Wine & Spirits",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "MCI",
+    "Exchange": "WAR",
+    "Name": "MCI Management SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "MCR",
+    "Exchange": "WAR",
+    "Name": "Mercor S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "MDA",
+    "Exchange": "WAR",
+    "Name": "MedApp S.A",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "MDB",
+    "Exchange": "WAR",
+    "Name": "Medicofarma Biotech S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "MDG",
+    "Exchange": "WAR",
+    "Name": "Medicalg",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "MDI",
+    "Exchange": "WAR",
+    "Name": "MDI Energia S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "MDP",
+    "Exchange": "WAR",
+    "Name": "Medcamp S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "MEG",
+    "Exchange": "WAR",
+    "Name": "Megaron SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "MER",
+    "Exchange": "WAR",
+    "Name": "MER",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "MEX",
+    "Exchange": "WAR",
+    "Name": "Mex Polska S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "MFD",
+    "Exchange": "WAR",
+    "Name": "M Food S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "MFO",
+    "Exchange": "WAR",
+    "Name": "MFO SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "MGT",
+    "Exchange": "WAR",
+    "Name": "Mangata Holding S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "MIL",
+    "Exchange": "WAR",
+    "Name": "Bank Millennium S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "MIR",
+    "Exchange": "WAR",
+    "Name": "Miraculum SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "MLB",
+    "Exchange": "WAR",
+    "Name": "Makolab",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "MLG",
+    "Exchange": "WAR",
+    "Name": "MLP Group S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "MLK",
+    "Exchange": "WAR",
+    "Name": "Mlk Foods Public Company Ltd",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "MLM",
+    "Exchange": "WAR",
+    "Name": "Milisystem S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "MLS",
+    "Exchange": "WAR",
+    "Name": "ML System S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "MMC",
+    "Exchange": "WAR",
+    "Name": "MM Conferences S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "MNC",
+    "Exchange": "WAR",
+    "Name": "Mennica Polska S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "MNS",
+    "Exchange": "WAR",
+    "Name": "Mennica Skarbowa SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "MO2",
+    "Exchange": "WAR",
+    "Name": "Moliera2 S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "MOC",
+    "Exchange": "WAR",
+    "Name": "Molecure S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "MOJ",
+    "Exchange": "WAR",
+    "Name": "MOJ S.A",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "MOL",
+    "Exchange": "WAR",
+    "Name": "MOL PLC",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "MON",
+    "Exchange": "WAR",
+    "Name": "Monnari Trade S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "MOV",
+    "Exchange": "WAR",
+    "Name": "Movie Games S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "MPS",
+    "Exchange": "WAR",
+    "Name": "MegaPixel Studio S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "MPY",
+    "Exchange": "WAR",
+    "Name": "MPY",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "MRB",
+    "Exchange": "WAR",
+    "Name": "Mirbud SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "MRC",
+    "Exchange": "WAR",
+    "Name": "Mercator Medical S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "MSP",
+    "Exchange": "WAR",
+    "Name": "MOSTOSTAL P\u0142ock SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "MSW",
+    "Exchange": "WAR",
+    "Name": "Mostostal Warszawa S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "MSZ",
+    "Exchange": "WAR",
+    "Name": "Mostostal Zabrze - Holding SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "MTN",
+    "Exchange": "WAR",
+    "Name": "Milton Essex S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "MUR",
+    "Exchange": "WAR",
+    "Name": "Murapol S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "MVP",
+    "Exchange": "WAR",
+    "Name": "Marvipol S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "MVR",
+    "Exchange": "WAR",
+    "Name": "Movie Games VR S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "MWT",
+    "Exchange": "WAR",
+    "Name": "MW Trade S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "MXC",
+    "Exchange": "WAR",
+    "Name": "Maxcom SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "MZA",
+    "Exchange": "WAR",
+    "Name": "Muza S.A",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "NCL",
+    "Exchange": "WAR",
+    "Name": "Noctiluca S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "NEU",
+    "Exchange": "WAR",
+    "Name": "Neuca S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "NNG",
+    "Exchange": "WAR",
+    "Name": "Nanogroup SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "NOB",
+    "Exchange": "WAR",
+    "Name": "Noobz from Poland S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "NOV",
+    "Exchange": "WAR",
+    "Name": "Novina S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "NST",
+    "Exchange": "WAR",
+    "Name": "Nestmedic S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "NTC",
+    "Exchange": "WAR",
+    "Name": "New Tech Capital S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "NTS",
+    "Exchange": "WAR",
+    "Name": "Notoria",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "NTT",
+    "Exchange": "WAR",
+    "Name": "NTT System SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "NTU",
+    "Exchange": "WAR",
+    "Name": "Novaturas AB",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "NTV",
+    "Exchange": "WAR",
+    "Name": "New Tech Venture S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "NVA",
+    "Exchange": "WAR",
+    "Name": "PA Nova S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "NVG",
+    "Exchange": "WAR",
+    "Name": "Novavis Group SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "NVT",
+    "Exchange": "WAR",
+    "Name": "Novita S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "NWA",
+    "Exchange": "WAR",
+    "Name": "Nwai",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "NWG",
+    "Exchange": "WAR",
+    "Name": "Newag S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "NXB",
+    "Exchange": "WAR",
+    "Name": "Nextbike Polska SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "NXG",
+    "Exchange": "WAR",
+    "Name": "Nexity Global SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "O2T",
+    "Exchange": "WAR",
+    "Name": "One2tribe S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "OBL",
+    "Exchange": "WAR",
+    "Name": "Orze\u0142 Bia\u0142y SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "ODL",
+    "Exchange": "WAR",
+    "Name": "Odlewnie Polskie SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "OLY",
+    "Exchange": "WAR",
+    "Name": "Olymp S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "OML",
+    "Exchange": "WAR",
+    "Name": "One More Level SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "OND",
+    "Exchange": "WAR",
+    "Name": "Onde SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "ONE",
+    "Exchange": "WAR",
+    "Name": "One Solution S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "ONO",
+    "Exchange": "WAR",
+    "Name": "onesano S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "OPG",
+    "Exchange": "WAR",
+    "Name": "Cpi Fim SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "OPI",
+    "Exchange": "WAR",
+    "Name": "Optigis S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "OPL",
+    "Exchange": "WAR",
+    "Name": "OrangePL",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "OPM",
+    "Exchange": "WAR",
+    "Name": "OpTeam S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "OPN",
+    "Exchange": "WAR",
+    "Name": "Oponeo.pl SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "ORG",
+    "Exchange": "WAR",
+    "Name": "ORG",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "ORL",
+    "Exchange": "WAR",
+    "Name": "Orzel SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "OTM",
+    "Exchange": "WAR",
+    "Name": "Zaklady Przemyslu Cukierniczego Otmuchow S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "OTS",
+    "Exchange": "WAR",
+    "Name": "OT Logistics S.A",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "OUT",
+    "Exchange": "WAR",
+    "Name": "OUT",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "OVI",
+    "Exchange": "WAR",
+    "Name": "Ovid Works\u00a0Sa",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "OVO",
+    "Exchange": "WAR",
+    "Name": "Ovostar Union N.V.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "OZE",
+    "Exchange": "WAR",
+    "Name": "Oze Capital SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "P24",
+    "Exchange": "WAR",
+    "Name": "Present24 SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "P2B",
+    "Exchange": "WAR",
+    "Name": "P2B",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "P2C",
+    "Exchange": "WAR",
+    "Name": "Play2Chill SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "PAS",
+    "Exchange": "WAR",
+    "Name": "Passus S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "PAT",
+    "Exchange": "WAR",
+    "Name": "Patentus SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "PBF",
+    "Exchange": "WAR",
+    "Name": "PBS Finanse SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "PBG",
+    "Exchange": "WAR",
+    "Name": "PBG SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "PBT",
+    "Exchange": "WAR",
+    "Name": "PBT",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "PBX",
+    "Exchange": "WAR",
+    "Name": "Poznanska Korporacja Budowlana Pekabex SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "PCE",
+    "Exchange": "WAR",
+    "Name": "Grupa Azoty Zaklady Chemiczne Police SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "PCF",
+    "Exchange": "WAR",
+    "Name": "PCF Group SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "PCO",
+    "Exchange": "WAR",
+    "Name": "Pepco Group B.V.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "PCR",
+    "Exchange": "WAR",
+    "Name": "PCC Rokita SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "PCX",
+    "Exchange": "WAR",
+    "Name": "PCC Exol SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "PDG",
+    "Exchange": "WAR",
+    "Name": "Pyramid Games S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "PEN",
+    "Exchange": "WAR",
+    "Name": "Photon Energy N.V.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "PEO",
+    "Exchange": "WAR",
+    "Name": "Bank Polska Kasa Opieki SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "PEP",
+    "Exchange": "WAR",
+    "Name": "PolEnergia S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "PGE",
+    "Exchange": "WAR",
+    "Name": "PGE Polska Grupa Energetyczna SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "PGM",
+    "Exchange": "WAR",
+    "Name": "PMPG Polskie Media S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "PGV",
+    "Exchange": "WAR",
+    "Name": "PGF Polska Grupa Fotowoltaiczna SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "PHN",
+    "Exchange": "WAR",
+    "Name": "Polski Holding Nieruchomo\u015bci SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "PHR",
+    "Exchange": "WAR",
+    "Name": "Pharmena S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "PIT",
+    "Exchange": "WAR",
+    "Name": "PIT",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "PIX",
+    "Exchange": "WAR",
+    "Name": "Pixel Crow Games SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "PJP",
+    "Exchange": "WAR",
+    "Name": "PJP Makrum S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "PKN",
+    "Exchange": "WAR",
+    "Name": "Polski Koncern Naftowy ORLEN SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "PKO",
+    "Exchange": "WAR",
+    "Name": "Powszechna Kasa Oszczednosci Bank Polski SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "PKP",
+    "Exchange": "WAR",
+    "Name": "PKP Cargo S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "PLI",
+    "Exchange": "WAR",
+    "Name": "PLI",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "PLM",
+    "Exchange": "WAR",
+    "Name": "PLM",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "PLW",
+    "Exchange": "WAR",
+    "Name": "PLAYWAY SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "PLZ",
+    "Exchange": "WAR",
+    "Name": "Plaza Centers NV",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "PMA",
+    "Exchange": "WAR",
+    "Name": "Prima Moda SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "PMP",
+    "Exchange": "WAR",
+    "Name": "Pamapol S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "PNT",
+    "Exchange": "WAR",
+    "Name": "Pointpack.pl S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "PPS",
+    "Exchange": "WAR",
+    "Name": "Przedsiebiorstwo Przemyslu Spozywczego PEPEES S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "PRI",
+    "Exchange": "WAR",
+    "Name": "Pragma Inkaso S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "PRM",
+    "Exchange": "WAR",
+    "Name": "Prochem S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "PRN",
+    "Exchange": "WAR",
+    "Name": "PRN",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "PRO",
+    "Exchange": "WAR",
+    "Name": "A.P.N. Promise S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "PRS",
+    "Exchange": "WAR",
+    "Name": "PRS",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "PRT",
+    "Exchange": "WAR",
+    "Name": "Protektor S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "PSHE",
+    "Exchange": "WAR",
+    "Name": "Porsche Automobil Holding SE Pfd.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "PTG",
+    "Exchange": "WAR",
+    "Name": "PolTREG S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "PTN",
+    "Exchange": "WAR",
+    "Name": "PTN",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "PTW",
+    "Exchange": "WAR",
+    "Name": "Wspierania Przedsiebiorczosci",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "PUR",
+    "Exchange": "WAR",
+    "Name": "Pure Biologics Sp\u00f3lka Akcyjna",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "PWX",
+    "Exchange": "WAR",
+    "Name": "Polwax SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "PXM",
+    "Exchange": "WAR",
+    "Name": "Polimex-Mostostal S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "PZU",
+    "Exchange": "WAR",
+    "Name": "Powszechny Zaklad Ubezpieczen SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "QNT",
+    "Exchange": "WAR",
+    "Name": "Quantum Software SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "QRS",
+    "Exchange": "WAR",
+    "Name": "Quercus TFI SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "QRT",
+    "Exchange": "WAR",
+    "Name": "QRT",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "QUB",
+    "Exchange": "WAR",
+    "Name": "QUB",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "RAE",
+    "Exchange": "WAR",
+    "Name": "Raen S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "RAF",
+    "Exchange": "WAR",
+    "Name": "Fabryka Obrabiarek RAFAMET S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "RBS",
+    "Exchange": "WAR",
+    "Name": "RBS",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "RBW",
+    "Exchange": "WAR",
+    "Name": "Rainbow Tours SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "RCA",
+    "Exchange": "WAR",
+    "Name": "Rocca SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "RDG",
+    "Exchange": "WAR",
+    "Name": "Readgene",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "RDN",
+    "Exchange": "WAR",
+    "Name": "Redan S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "RFK",
+    "Exchange": "WAR",
+    "Name": "RAFAKO SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "RGL",
+    "Exchange": "WAR",
+    "Name": "Robs Group Logistic S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "RHD",
+    "Exchange": "WAR",
+    "Name": "Reinhold Europe AB",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "RLP",
+    "Exchange": "WAR",
+    "Name": "Relpol SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "RMK",
+    "Exchange": "WAR",
+    "Name": "REMAK SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "RNC",
+    "Exchange": "WAR",
+    "Name": "Reino Capital SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "RND",
+    "Exchange": "WAR",
+    "Name": "Render Cube S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "RNK",
+    "Exchange": "WAR",
+    "Name": "Rank Progress S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "RPC",
+    "Exchange": "WAR",
+    "Name": "Zaklady Magnezytowe Ropczyce S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "RRH",
+    "Exchange": "WAR",
+    "Name": "Roof Renovation S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "RST",
+    "Exchange": "WAR",
+    "Name": "Road Studio S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "RVU",
+    "Exchange": "WAR",
+    "Name": "Ryvu Therapeutics SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "RWL",
+    "Exchange": "WAR",
+    "Name": "Rawlplug S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "SAN",
+    "Exchange": "WAR",
+    "Name": "Banco Santander S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "SBE",
+    "Exchange": "WAR",
+    "Name": "Softblue SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "SCP",
+    "Exchange": "WAR",
+    "Name": "Scope Fluidics SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "SCS",
+    "Exchange": "WAR",
+    "Name": "SCS",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "SCW",
+    "Exchange": "WAR",
+    "Name": "Scanway SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "SDG",
+    "Exchange": "WAR",
+    "Name": "Sundragon S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "SDS",
+    "Exchange": "WAR",
+    "Name": "SDS Optic S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "SED",
+    "Exchange": "WAR",
+    "Name": "Sedivio S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "SEK",
+    "Exchange": "WAR",
+    "Name": "Seko S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "SEL",
+    "Exchange": "WAR",
+    "Name": "Selena FM S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "SEN",
+    "Exchange": "WAR",
+    "Name": "Serinus Energy Inc.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "SEV",
+    "Exchange": "WAR",
+    "Name": "Sevenet",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "SFD",
+    "Exchange": "WAR",
+    "Name": "SFD",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "SFG",
+    "Exchange": "WAR",
+    "Name": "Silvano Fashion Group AS",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "SFS",
+    "Exchange": "WAR",
+    "Name": "Sfinks Polska S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "SGN",
+    "Exchange": "WAR",
+    "Name": "Sygnity SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "SGR",
+    "Exchange": "WAR",
+    "Name": "Sadovaya Group S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "SHD",
+    "Exchange": "WAR",
+    "Name": "Soho Development SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "SHG",
+    "Exchange": "WAR",
+    "Name": "Starhedge SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "SHO",
+    "Exchange": "WAR",
+    "Name": "Shoper S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "SIM",
+    "Exchange": "WAR",
+    "Name": "SimFabric S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "SIN",
+    "Exchange": "WAR",
+    "Name": "Solar Innovation SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "SKA",
+    "Exchange": "WAR",
+    "Name": "Fabryka Farb i Lakier\u00f3w \u015aNIE\u017bKA SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "SKH",
+    "Exchange": "WAR",
+    "Name": "Skarbiec Holding S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "SKL",
+    "Exchange": "WAR",
+    "Name": "Skyline Investment S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "SKN",
+    "Exchange": "WAR",
+    "Name": "Sakana SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "SLT",
+    "Exchange": "WAR",
+    "Name": "Saule Technologies S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "SLV",
+    "Exchange": "WAR",
+    "Name": "Selvita S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "SMT",
+    "Exchange": "WAR",
+    "Name": "Simteract S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "SNG",
+    "Exchange": "WAR",
+    "Name": "SNG",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "SNK",
+    "Exchange": "WAR",
+    "Name": "Stomil Sanok SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "SNT",
+    "Exchange": "WAR",
+    "Name": "Synektik S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "SNW",
+    "Exchange": "WAR",
+    "Name": "Sanwil Holding SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "SNX",
+    "Exchange": "WAR",
+    "Name": "SUNEX S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "SOK",
+    "Exchange": "WAR",
+    "Name": "Sonka SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "SON",
+    "Exchange": "WAR",
+    "Name": "Sonel S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "SPH",
+    "Exchange": "WAR",
+    "Name": "Sopharma AD",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "SPL",
+    "Exchange": "WAR",
+    "Name": "Santander Bank Polska SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "SPR",
+    "Exchange": "WAR",
+    "Name": "Spyrosoft S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "STA",
+    "Exchange": "WAR",
+    "Name": "Starward Industries S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "STD",
+    "Exchange": "WAR",
+    "Name": "STD",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "STF",
+    "Exchange": "WAR",
+    "Name": "Stalprofil S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "STP",
+    "Exchange": "WAR",
+    "Name": "Stalprodukt SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "STS",
+    "Exchange": "WAR",
+    "Name": "Satis Group S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "STX",
+    "Exchange": "WAR",
+    "Name": "Stalexport Autostrady SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "SUN",
+    "Exchange": "WAR",
+    "Name": "SUN",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "SVE",
+    "Exchange": "WAR",
+    "Name": "Synthaverse S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "SVRS",
+    "Exchange": "WAR",
+    "Name": "Silvair Inc",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "SWG",
+    "Exchange": "WAR",
+    "Name": "Seco/Warwick SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "SWM",
+    "Exchange": "WAR",
+    "Name": "SOFTWARE MANSION SPOLKA AKCYJNA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "SYG",
+    "Exchange": "WAR",
+    "Name": "Sygnis SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "SZR",
+    "Exchange": "WAR",
+    "Name": "Szar",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "T2P",
+    "Exchange": "WAR",
+    "Name": "Termo2Power SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "TAR",
+    "Exchange": "WAR",
+    "Name": "Tarczynski S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "TBL",
+    "Exchange": "WAR",
+    "Name": "T-Bull S.A",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "TEN",
+    "Exchange": "WAR",
+    "Name": "TEN SQUARE GAMES SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "TGS",
+    "Exchange": "WAR",
+    "Name": "True Games Syndicate S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "THD",
+    "Exchange": "WAR",
+    "Name": "THD",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "THG",
+    "Exchange": "WAR",
+    "Name": "TenderHut S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "TLG",
+    "Exchange": "WAR",
+    "Name": "TLG",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "TLS",
+    "Exchange": "WAR",
+    "Name": "Telestrada SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "TLT",
+    "Exchange": "WAR",
+    "Name": "TLT",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "TLX",
+    "Exchange": "WAR",
+    "Name": "Talex S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "TME",
+    "Exchange": "WAR",
+    "Name": "TME",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "TMP",
+    "Exchange": "WAR",
+    "Name": "Telemedpl",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "TMR",
+    "Exchange": "WAR",
+    "Name": "Tatry Mountain",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "TOA",
+    "Exchange": "WAR",
+    "Name": "Toya SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "TOR",
+    "Exchange": "WAR",
+    "Name": "Torpol SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "TOS",
+    "Exchange": "WAR",
+    "Name": "TOS",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "TOW",
+    "Exchange": "WAR",
+    "Name": "Tower Investments SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "TPE",
+    "Exchange": "WAR",
+    "Name": "Tauron Polska Energia S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "TRI",
+    "Exchange": "WAR",
+    "Name": "Triton Development S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "TRK",
+    "Exchange": "WAR",
+    "Name": "Trakcja PRKiI S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "TRN",
+    "Exchange": "WAR",
+    "Name": "Trans Polonia S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "TRR",
+    "Exchange": "WAR",
+    "Name": "Termorex",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "TSG",
+    "Exchange": "WAR",
+    "Name": "TESGAS S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "TXN",
+    "Exchange": "WAR",
+    "Name": "TXN",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "TXT",
+    "Exchange": "WAR",
+    "Name": "Text S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "UCG",
+    "Exchange": "WAR",
+    "Name": "UniCredit S.p.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "UFC",
+    "Exchange": "WAR",
+    "Name": "Unified Factory S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "UFG",
+    "Exchange": "WAR",
+    "Name": "UF Games S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "ULG",
+    "Exchange": "WAR",
+    "Name": "Ultimate Games SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "ULM",
+    "Exchange": "WAR",
+    "Name": "ULMA Construccion Polska SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "UNF",
+    "Exchange": "WAR",
+    "Name": "Unfold.vc ASI S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "UNI",
+    "Exchange": "WAR",
+    "Name": "UNIBEP S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "UNT",
+    "Exchange": "WAR",
+    "Name": "Unimot S.A",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "UNV",
+    "Exchange": "WAR",
+    "Name": "Universe S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "URT",
+    "Exchange": "WAR",
+    "Name": "Urteste SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "VAR",
+    "Exchange": "WAR",
+    "Name": "Varsav Game Studios S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "VEE",
+    "Exchange": "WAR",
+    "Name": "Vee S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "VER",
+    "Exchange": "WAR",
+    "Name": "MPL Verbum S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "VGO",
+    "Exchange": "WAR",
+    "Name": "Vigo System SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "VIN",
+    "Exchange": "WAR",
+    "Name": "Gielda Praw Majatkowych Vindexus S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "VKT",
+    "Exchange": "WAR",
+    "Name": "Vakomtek",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "VLT",
+    "Exchange": "WAR",
+    "Name": "VOOLT S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "VOT",
+    "Exchange": "WAR",
+    "Name": "Votum SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "VOW",
+    "Exchange": "WAR",
+    "Name": "Volkswagen AG Non-Vtg Pfd.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "VOX",
+    "Exchange": "WAR",
+    "Name": "Voxel S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "VRC",
+    "Exchange": "WAR",
+    "Name": "Vercom SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "VRF",
+    "Exchange": "WAR",
+    "Name": "VR Factory Games SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "VRG",
+    "Exchange": "WAR",
+    "Name": "VRG SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "VTL",
+    "Exchange": "WAR",
+    "Name": "Vistal Gdynia",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "VVD",
+    "Exchange": "WAR",
+    "Name": "Vivid Games S.A",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "WAS",
+    "Exchange": "WAR",
+    "Name": "Wasko S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "WHH",
+    "Exchange": "WAR",
+    "Name": "Werth Holz SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "WIK",
+    "Exchange": "WAR",
+    "Name": "Wikana SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "WIS",
+    "Exchange": "WAR",
+    "Name": "Baltic Bridge S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "WLT",
+    "Exchange": "WAR",
+    "Name": "Wielton S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "WOD",
+    "Exchange": "WAR",
+    "Name": "Wodkan Wodociagow Kanalizacji",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "WPL",
+    "Exchange": "WAR",
+    "Name": "Wirtualna Polska Holding SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "WPR",
+    "Exchange": "WAR",
+    "Name": "Woodpecker.co. S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "WRL",
+    "Exchange": "WAR",
+    "Name": "Wierzycl",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "WTN",
+    "Exchange": "WAR",
+    "Name": "Wittchen SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "WWL",
+    "Exchange": "WAR",
+    "Name": "WAWEL SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "WXF",
+    "Exchange": "WAR",
+    "Name": "Warimpex Finanz- und Beteiligungs AG",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "XBS",
+    "Exchange": "WAR",
+    "Name": "XBS Pro Log SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "XDD",
+    "Exchange": "WAR",
+    "Name": "Mentzen SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "XPL",
+    "Exchange": "WAR",
+    "Name": "Xplus SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "XTB",
+    "Exchange": "WAR",
+    "Name": "X Trade Brokers Dom Maklerski SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "XTP",
+    "Exchange": "WAR",
+    "Name": "XTPL SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "YAN",
+    "Exchange": "WAR",
+    "Name": "Neptis",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "YOL",
+    "Exchange": "WAR",
+    "Name": "Yolo SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "YOS",
+    "Exchange": "WAR",
+    "Name": "Yoshi Innovation SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "YRL",
+    "Exchange": "WAR",
+    "Name": "yarrl S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "ZAB",
+    "Exchange": "WAR",
+    "Name": "Zabka Group S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "ZAL",
+    "Exchange": "WAR",
+    "Name": "Zalando SE",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "ZAP",
+    "Exchange": "WAR",
+    "Name": "Grupa Azoty Zaklady Azotowe Pulawy SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "ZEN",
+    "Exchange": "WAR",
+    "Name": "Zeneris Projekty S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "ZEP",
+    "Exchange": "WAR",
+    "Name": "Zespol Elektrowni Patnow Adamow Konin SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "ZMT",
+    "Exchange": "WAR",
+    "Name": "Zamet Industry SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "ZRE",
+    "Exchange": "WAR",
+    "Name": "Zaklad Budowy Maszyn ZREMB-CHOJNICE S.A.",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "ZRX",
+    "Exchange": "WAR",
+    "Name": "Zortrax SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "ZUE",
+    "Exchange": "WAR",
+    "Name": "ZUE SA",
+    "Country": "Poland"
+  },
+  {
+    "Symbol": "ZUK",
+    "Exchange": "WAR",
+    "Name": "Zaklady Urzadzen Kotlowych Staporkow SA",
+    "Country": "Poland"
+  }
+]

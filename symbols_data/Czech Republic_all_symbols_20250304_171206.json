@@ -1,0 +1,290 @@
+[
+  {
+    "Symbol": "ATOMT",
+    "Exchange": "PR",
+    "Name": "AtomTrace a.s.",
+    "Country": "Czech Republic"
+  },
+  {
+    "Symbol": "BEZVA",
+    "Exchange": "PR",
+    "Name": "Bezvavlasy as",
+    "Country": "Czech Republic"
+  },
+  {
+    "Symbol": "BVB",
+    "Exchange": "PR",
+    "Name": "Borussia Dortmund GmbH & Co. Kommanditgesellschaft auf Aktien",
+    "Country": "Czech Republic"
+  },
+  {
+    "Symbol": "CEZ",
+    "Exchange": "PR",
+    "Name": "Cez A.S.",
+    "Country": "Czech Republic"
+  },
+  {
+    "Symbol": "COLOS",
+    "Exchange": "PR",
+    "Name": "Coloseum Holding a.s.",
+    "Country": "Czech Republic"
+  },
+  {
+    "Symbol": "CTPNV",
+    "Exchange": "PR",
+    "Name": "CTP N.V.",
+    "Country": "Czech Republic"
+  },
+  {
+    "Symbol": "CZG",
+    "Exchange": "PR",
+    "Name": "Colt CZ Group SE",
+    "Country": "Czech Republic"
+  },
+  {
+    "Symbol": "DSPW",
+    "Exchange": "PR",
+    "Name": "Doosan Skoda Power as",
+    "Country": "Czech Republic"
+  },
+  {
+    "Symbol": "EFORU",
+    "Exchange": "PR",
+    "Name": "E4U a.s.",
+    "Country": "Czech Republic"
+  },
+  {
+    "Symbol": "EMAN",
+    "Exchange": "PR",
+    "Name": "eMan a.s.",
+    "Country": "Czech Republic"
+  },
+  {
+    "Symbol": "ENRGA",
+    "Exchange": "PR",
+    "Name": "Energoaqua a.s.",
+    "Country": "Czech Republic"
+  },
+  {
+    "Symbol": "EOAN",
+    "Exchange": "PR",
+    "Name": "E.ON SE",
+    "Country": "Czech Republic"
+  },
+  {
+    "Symbol": "ERBAG",
+    "Exchange": "PR",
+    "Name": "Erste Group Bank AG",
+    "Country": "Czech Republic"
+  },
+  {
+    "Symbol": "FILL",
+    "Exchange": "PR",
+    "Name": "Fillamentum a.s.",
+    "Country": "Czech Republic"
+  },
+  {
+    "Symbol": "FIXED",
+    "Exchange": "PR",
+    "Name": "FIXEDzone as",
+    "Country": "Czech Republic"
+  },
+  {
+    "Symbol": "FTSHP",
+    "Exchange": "PR",
+    "Name": "FOOTSHOP A.S.",
+    "Country": "Czech Republic"
+  },
+  {
+    "Symbol": "GEN",
+    "Exchange": "PR",
+    "Name": "Gen Digital Inc.",
+    "Country": "Czech Republic"
+  },
+  {
+    "Symbol": "GEV",
+    "Exchange": "PR",
+    "Name": "GEVORKYAN as",
+    "Country": "Czech Republic"
+  },
+  {
+    "Symbol": "HWIO",
+    "Exchange": "PR",
+    "Name": "HARDWARIO as",
+    "Country": "Czech Republic"
+  },
+  {
+    "Symbol": "JTINA",
+    "Exchange": "PR",
+    "Name": "J&T ARCH INVESTMENTS SICAV a.s.",
+    "Country": "Czech Republic"
+  },
+  {
+    "Symbol": "JUVE",
+    "Exchange": "PR",
+    "Name": "Juventus Football Club S.p.A.",
+    "Country": "Czech Republic"
+  },
+  {
+    "Symbol": "KARIN",
+    "Exchange": "PR",
+    "Name": "KARO INVEST a.s.",
+    "Country": "Czech Republic"
+  },
+  {
+    "Symbol": "KLIKY",
+    "Exchange": "PR",
+    "Name": "M&T 1997 A.S.",
+    "Country": "Czech Republic"
+  },
+  {
+    "Symbol": "KOFOL",
+    "Exchange": "PR",
+    "Name": "Kofola CeskoSlovensko as",
+    "Country": "Czech Republic"
+  },
+  {
+    "Symbol": "KOMB",
+    "Exchange": "PR",
+    "Name": "Komercni Banka A.S.",
+    "Country": "Czech Republic"
+  },
+  {
+    "Symbol": "MMCTE",
+    "Exchange": "PR",
+    "Name": "Mmcit\u00e9 a.s.",
+    "Country": "Czech Republic"
+  },
+  {
+    "Symbol": "MOL",
+    "Exchange": "PR",
+    "Name": "MOL Magyar Olaj- \u00e9s G\u00e1zipari Nyilv\u00e1nosan Muk\u00f6do R\u00e9szv\u00e9nyt\u00e1rsas\u00e1g",
+    "Country": "Czech Republic"
+  },
+  {
+    "Symbol": "MONET",
+    "Exchange": "PR",
+    "Name": "Moneta Money Bank AS",
+    "Country": "Czech Republic"
+  },
+  {
+    "Symbol": "NOKIA",
+    "Exchange": "PR",
+    "Name": "Nokia Oyj",
+    "Country": "Czech Republic"
+  },
+  {
+    "Symbol": "ORLEN",
+    "Exchange": "PR",
+    "Name": "Orlen SA",
+    "Country": "Czech Republic"
+  },
+  {
+    "Symbol": "PEN",
+    "Exchange": "PR",
+    "Name": "Photon Energy N.V.",
+    "Country": "Czech Republic"
+  },
+  {
+    "Symbol": "PINK",
+    "Exchange": "PR",
+    "Name": "Pilulka Lekarny as",
+    "Country": "Czech Republic"
+  },
+  {
+    "Symbol": "PKN",
+    "Exchange": "PR",
+    "Name": "Orlen S.A.",
+    "Country": "Czech Republic"
+  },
+  {
+    "Symbol": "PRAB",
+    "Exchange": "PR",
+    "Name": "Prabos Plus a.s.",
+    "Country": "Czech Republic"
+  },
+  {
+    "Symbol": "PRIUA",
+    "Exchange": "PR",
+    "Name": "Primoco UAV SE",
+    "Country": "Czech Republic"
+  },
+  {
+    "Symbol": "PVT",
+    "Exchange": "PR",
+    "Name": "RMS Mezzanine A.S.",
+    "Country": "Czech Republic"
+  },
+  {
+    "Symbol": "RBI",
+    "Exchange": "PR",
+    "Name": "Raiffeisen Bank International AG",
+    "Country": "Czech Republic"
+  },
+  {
+    "Symbol": "RWE",
+    "Exchange": "PR",
+    "Name": "RWE Aktiengesellschaft",
+    "Country": "Czech Republic"
+  },
+  {
+    "Symbol": "SABFG",
+    "Exchange": "PR",
+    "Name": "SAB Finance as",
+    "Country": "Czech Republic"
+  },
+  {
+    "Symbol": "SHELL",
+    "Exchange": "PR",
+    "Name": "Shell PLC",
+    "Country": "Czech Republic"
+  },
+  {
+    "Symbol": "TABAK",
+    "Exchange": "PR",
+    "Name": "Philip Morris CR A.S.",
+    "Country": "Czech Republic"
+  },
+  {
+    "Symbol": "TMR",
+    "Exchange": "PR",
+    "Name": "Tatry Mountain Resorts a.s.",
+    "Country": "Czech Republic"
+  },
+  {
+    "Symbol": "TOMA",
+    "Exchange": "PR",
+    "Name": "Toma as",
+    "Country": "Czech Republic"
+  },
+  {
+    "Symbol": "UQA",
+    "Exchange": "PR",
+    "Name": "UNIQA Insurance Group AG",
+    "Country": "Czech Republic"
+  },
+  {
+    "Symbol": "VER",
+    "Exchange": "PR",
+    "Name": "VERBUND AG",
+    "Country": "Czech Republic"
+  },
+  {
+    "Symbol": "VIG",
+    "Exchange": "PR",
+    "Name": "Vienna Insurance Group",
+    "Country": "Czech Republic"
+  },
+  {
+    "Symbol": "VOW",
+    "Exchange": "PR",
+    "Name": "Volkswagen AG",
+    "Country": "Czech Republic"
+  },
+  {
+    "Symbol": "WSO",
+    "Exchange": "PR",
+    "Name": "WOOD SPAC One as",
+    "Country": "Czech Republic"
+  }
+]

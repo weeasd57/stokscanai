@@ -1,0 +1,1682 @@
+[
+  {
+    "Symbol": "0P00000W41",
+    "Exchange": "MC",
+    "Name": "Mediolanum Renta Variable Pp",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "0P00000XDG",
+    "Exchange": "MC",
+    "Name": "Kutxabank Bolsa Global Pp",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "0P00000XFW",
+    "Exchange": "MC",
+    "Name": "Uniplan Renta Variable Global Pp",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "0P00000XGU",
+    "Exchange": "MC",
+    "Name": "CABK RV Internacional PP",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "0P00000XI6",
+    "Exchange": "MC",
+    "Name": "Naranja Standard & Poors 500 Pp",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "0P00000XI7",
+    "Exchange": "MC",
+    "Name": "Naranja Renta Fija Europea Pp",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "0P0000120T",
+    "Exchange": "MC",
+    "Name": "BK Variable Internacional PP",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "0P000015V0",
+    "Exchange": "MC",
+    "Name": "BK Variable Am\u00e9rica PP",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "0P00001D8X",
+    "Exchange": "MC",
+    "Name": "Santander Asg Renta Fija Corto Plazo Pp",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "0P00008570",
+    "Exchange": "MC",
+    "Name": "Naranja 2030 Pp",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "0P00008571",
+    "Exchange": "MC",
+    "Name": "Naranja 2040 Pp",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "0P0000857L",
+    "Exchange": "MC",
+    "Name": "Naranja Renta Fija Corto Plazo Pp",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "0P0000858L",
+    "Exchange": "MC",
+    "Name": "Naranja 2050 PP",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "0P0000A357",
+    "Exchange": "MC",
+    "Name": "CI Global Alpha Innovators Corp Cl A",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "0P0000OQ3V",
+    "Exchange": "MC",
+    "Name": "Renta 4 Global Acciones PP",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "0P0000UJ6C",
+    "Exchange": "MC",
+    "Name": "Mi Plan Santander Decidido PP",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "0P0000UUV8",
+    "Exchange": "MC",
+    "Name": "Mi Proyecto Santander 2035 PP",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "0P0000UUVC",
+    "Exchange": "MC",
+    "Name": "BK Premium Defensivo",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "0P000170QH",
+    "Exchange": "MC",
+    "Name": "Cabk Destino 2030 Pp",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "0P00017QSQ",
+    "Exchange": "MC",
+    "Name": "Gestion Boutique V Robotics R Fi",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "0P00018HST",
+    "Exchange": "MC",
+    "Name": "Azvalor Consolidaci\u00f3n PP",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "0P0001971N",
+    "Exchange": "MC",
+    "Name": "Indexa M\u00e1s Rentabilidad Bonos Pp",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "0P0001971O",
+    "Exchange": "MC",
+    "Name": "Indexa M\u00e1s Rentabilidad Acciones Pp",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "0P0001971P",
+    "Exchange": "MC",
+    "Name": "Finizens Decidido (#4) Pp",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "0P00019JDN",
+    "Exchange": "MC",
+    "Name": "Finizens Atrevido (#5) Pp",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "0P0001BICI",
+    "Exchange": "MC",
+    "Name": "Cobas Mixto Global PP",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "0P0001I2CI",
+    "Exchange": "MC",
+    "Name": "Gesti\u00f3n Boutique Vii Azagala Fi",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "0P0001LIG7",
+    "Exchange": "MC",
+    "Name": "Myinvestor Indexado Global PP",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "0P0001LIG8",
+    "Exchange": "MC",
+    "Name": "MyInvestor Indexado S&P 500 PP",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "2INVE",
+    "Exchange": "MC",
+    "Name": "Lyxor Ibex 35 Doble Inverso Diario UCITS ETF",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "480S",
+    "Exchange": "MC",
+    "Name": "Soluciones Cuatroochenta S.L.",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "A3M",
+    "Exchange": "MC",
+    "Name": "Atresmedia Corporaci\u00f3n de Medios de Comunicaci\u00f3n S.A.",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "ACS",
+    "Exchange": "MC",
+    "Name": "ACS Actividades de Construccion y Servicios SA",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "ACX",
+    "Exchange": "MC",
+    "Name": "Acerinox",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "ADX",
+    "Exchange": "MC",
+    "Name": "Audax Renovables S.A.",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "ADZ",
+    "Exchange": "MC",
+    "Name": "Adolfo Dominguez SA",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "AEDAS",
+    "Exchange": "MC",
+    "Name": "Aedas Homes SL",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "AENA",
+    "Exchange": "MC",
+    "Name": "Aena SA",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "AGIL",
+    "Exchange": "MC",
+    "Name": "Agile Content SA",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "AI",
+    "Exchange": "MC",
+    "Name": "Airtificial Intelligence Structures SA",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "AIR",
+    "Exchange": "MC",
+    "Name": "Airbus Group SE",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "ALB",
+    "Exchange": "MC",
+    "Name": "Corporacion Financiera Alba SA",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "ALC",
+    "Exchange": "MC",
+    "Name": "Altia Consultores S.A.",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "ALM",
+    "Exchange": "MC",
+    "Name": "Almirall S.A.",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "ALNT",
+    "Exchange": "MC",
+    "Name": "Alantra Partners S.A.",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "ALQ",
+    "Exchange": "MC",
+    "Name": "Alquiber Quality SA",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "AMEN",
+    "Exchange": "MC",
+    "Name": "Aeternal Mentis SA",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "AMP",
+    "Exchange": "MC",
+    "Name": "Amper S.A.",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "AMS",
+    "Exchange": "MC",
+    "Name": "Amadeus IT Group S.A.",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "ANA",
+    "Exchange": "MC",
+    "Name": "Acciona",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "ANE",
+    "Exchange": "MC",
+    "Name": "Corporacion Acciona Energias Renovables SA",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "APAM",
+    "Exchange": "MC",
+    "Name": "Aperam SA",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "APG",
+    "Exchange": "MC",
+    "Name": "Axon Partners Group S.A.",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "ARM",
+    "Exchange": "MC",
+    "Name": "Arima Real Estate SOCIMI SA",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "ART",
+    "Exchange": "MC",
+    "Name": "Arteche Lantegi Elkartea SA",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "ATRY",
+    "Exchange": "MC",
+    "Name": "Atrys Health SL",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "ATSI",
+    "Exchange": "MC",
+    "Name": "Aplicaciones y Tratamiento de Sistemas S.A.",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "AZK",
+    "Exchange": "MC",
+    "Name": "Azkoyen",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "BAIN",
+    "Exchange": "MC",
+    "Name": "Borges Agricultural & Industrial Nuts S.A.",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "BBVA",
+    "Exchange": "MC",
+    "Name": "Banco Bilbao Vizcaya Argentaria SA",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "BBVAE",
+    "Exchange": "MC",
+    "Name": "BBVA Accion DJ Eurostoxx 50",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "BBVAI",
+    "Exchange": "MC",
+    "Name": "Accion IBEX 35 Cotizado Armonizado FI",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "BKT",
+    "Exchange": "MC",
+    "Name": "Bankinter",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "BKY",
+    "Exchange": "MC",
+    "Name": "Berkeley Energia Limited",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "BST",
+    "Exchange": "MC",
+    "Name": "Biotechnology Assets S.A.",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "CABK",
+    "Exchange": "MC",
+    "Name": "Caixabank SA",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "CAF",
+    "Exchange": "MC",
+    "Name": "Construcciones y Auxiliar de Ferrocarriles S.A.",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "CAPRI",
+    "Exchange": "MC",
+    "Name": "BBVA Capital Privado FCR",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "CASH",
+    "Exchange": "MC",
+    "Name": "Prosegur Cash S.A",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "CBAV",
+    "Exchange": "MC",
+    "Name": "Clinica Baviera",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "CCEP",
+    "Exchange": "MC",
+    "Name": "Coca-Cola European Partners PLC",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "CEV",
+    "Exchange": "MC",
+    "Name": "Compania Espanola de Viviendas en Alquiler SA",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "CIE",
+    "Exchange": "MC",
+    "Name": "CIE Automotive S.A.",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "CITY",
+    "Exchange": "MC",
+    "Name": "Club De Futbol Intercity Sad",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "CLNX",
+    "Exchange": "MC",
+    "Name": "Cellnex Telecom SA",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "CLR",
+    "Exchange": "MC",
+    "Name": "CLERHP Estructuras S.A",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "CMM",
+    "Exchange": "MC",
+    "Name": "Commcenter S.A.",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "CMO",
+    "Exchange": "MC",
+    "Name": "Cementos Molins SA",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "COL",
+    "Exchange": "MC",
+    "Name": "Inmobiliaria Colonial SA",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "COM",
+    "Exchange": "MC",
+    "Name": "Catenon S.A",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "COXE",
+    "Exchange": "MC",
+    "Name": "Cox Energy Am\u00e9rica, S.A.B. de C.V.",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "COXG",
+    "Exchange": "MC",
+    "Name": "Cox ABG Group SA",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "DIA",
+    "Exchange": "MC",
+    "Name": "Distribuidora Internacional de Alimentaci\u00f3n S.A",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "DOM",
+    "Exchange": "MC",
+    "Name": "Global Dominion Access S.A",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "DOMO",
+    "Exchange": "MC",
+    "Name": "Domo Activos Socimi SA",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "EAT",
+    "Exchange": "MC",
+    "Name": "AmRest Holdings SE",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "EBRO",
+    "Exchange": "MC",
+    "Name": "Ebro Foods",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "ECR",
+    "Exchange": "MC",
+    "Name": "Ercros",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "EDR",
+    "Exchange": "MC",
+    "Name": "eDreams Odigeo SA",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "EEP",
+    "Exchange": "MC",
+    "Name": "Euroespes S.A.",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "EIDF",
+    "Exchange": "MC",
+    "Name": "Energ\u00eda Innovaci\u00f3n y Desarrollo Fotovoltaico S.A.",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "ELE",
+    "Exchange": "MC",
+    "Name": "Endesa SA",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "ELZ",
+    "Exchange": "MC",
+    "Name": "Asturiana de Laminados S.A.",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "ENC",
+    "Exchange": "MC",
+    "Name": "ENCE Energ\u00eda y Celulosa S.A",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "END",
+    "Exchange": "MC",
+    "Name": "Endurance Motive S.A.",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "ENER",
+    "Exchange": "MC",
+    "Name": "Grupo Ecoener S.A.",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "ENG",
+    "Exchange": "MC",
+    "Name": "Enag\u00e1s S.A.",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "ENO",
+    "Exchange": "MC",
+    "Name": "Elecnor S.A",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "ENRS",
+    "Exchange": "MC",
+    "Name": "Enerside Energy S.A.",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "ETC",
+    "Exchange": "MC",
+    "Name": "Energy Solar Tech S.L.",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "EZE",
+    "Exchange": "MC",
+    "Name": "Grupo Ezentis S.A",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "FACE",
+    "Exchange": "MC",
+    "Name": "Facephi Biometria SA",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "FAE",
+    "Exchange": "MC",
+    "Name": "Faes Farma SA",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "FCC",
+    "Exchange": "MC",
+    "Name": "Fomento de Construcciones y Contratas SA",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "FDR",
+    "Exchange": "MC",
+    "Name": "Fluidra",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "FER",
+    "Exchange": "MC",
+    "Name": "Ferrovial S.A.",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "GAM",
+    "Exchange": "MC",
+    "Name": "General de Alquiler de Maquinaria SA",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "GCO",
+    "Exchange": "MC",
+    "Name": "Grupo Catalana Occidente",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "GEST",
+    "Exchange": "MC",
+    "Name": "Gestamp Automocion SA",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "GGC",
+    "Exchange": "MC",
+    "Name": "General de Galerias Comerciales SOCIMI S.A.",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "GGR",
+    "Exchange": "MC",
+    "Name": "Grupo Greening 2022 SA",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "GIGA",
+    "Exchange": "MC",
+    "Name": "Gigas Hosting S.A",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "GRE",
+    "Exchange": "MC",
+    "Name": "Grenergy Renovables S.A",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "GRF",
+    "Exchange": "MC",
+    "Name": "Grifols S.A.",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "GRF-P",
+    "Exchange": "MC",
+    "Name": "Grifols SA",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "GRI",
+    "Exchange": "MC",
+    "Name": "Gri\u00f1\u00f3 Ecologic S.A",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "GSJ",
+    "Exchange": "MC",
+    "Name": "Grupo Empresarial San Jose SA",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "HAN",
+    "Exchange": "MC",
+    "Name": "Hannun SA",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "HBX",
+    "Exchange": "MC",
+    "Name": "HBX Group International plc",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "HLZ",
+    "Exchange": "MC",
+    "Name": "Holaluz-Clidom S.A",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "HOME",
+    "Exchange": "MC",
+    "Name": "Neinor Homes SLU",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "IAG",
+    "Exchange": "MC",
+    "Name": "International Consolidated Airlines Group S.A",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "IBE",
+    "Exchange": "MC",
+    "Name": "Iberdrola S.A.",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "IBEXA",
+    "Exchange": "MC",
+    "Name": "Lyxor Ibex 35 Doble Apalancado Diario UCITS ETF",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "IBG",
+    "Exchange": "MC",
+    "Name": "Iberpapel Gestion SA",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "IDR",
+    "Exchange": "MC",
+    "Name": "Indra A",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "IFLEX",
+    "Exchange": "MC",
+    "Name": "Iflex Flexible Packaging, S.A.",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "IMC",
+    "Exchange": "MC",
+    "Name": "Inmocemento, S.A.",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "INDXA",
+    "Exchange": "MC",
+    "Name": "Indexa Capital Group, S.A.",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "ISE",
+    "Exchange": "MC",
+    "Name": "Innovative Solutions Ecosystem SA",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "ISUR",
+    "Exchange": "MC",
+    "Name": "Inmobiliaria del Sur SA",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "ITX",
+    "Exchange": "MC",
+    "Name": "Industria de Diseno Textil SA",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "IZER",
+    "Exchange": "MC",
+    "Name": "Izertis\u00a0Sa",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "KOM",
+    "Exchange": "MC",
+    "Name": "Plasticos Compuestos S.A.",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "LAB",
+    "Exchange": "MC",
+    "Name": "Labiana Health S.A.",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "LDA",
+    "Exchange": "MC",
+    "Name": "Linea Directa Aseguradora SA Compania de Seguros y Reaseguros",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "LGT",
+    "Exchange": "MC",
+    "Name": "Lingotes",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "LIB",
+    "Exchange": "MC",
+    "Name": "Libertas 7 SA",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "LLN",
+    "Exchange": "MC",
+    "Name": "Lleidanetworks Serveis Telematics SA",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "LLYC",
+    "Exchange": "MC",
+    "Name": "Llorente & Cuenca S.A.",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "LOG",
+    "Exchange": "MC",
+    "Name": "Cia de Distribucion Integral",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "LP68080317",
+    "Exchange": "MC",
+    "Name": "Cabk Tendencias Pp",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "LP77001933",
+    "Exchange": "MC",
+    "Name": "Abanca Renta Variable Pp",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "LP77004857",
+    "Exchange": "MC",
+    "Name": "Naranja Eurostoxx 50 Pp",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "LRE",
+    "Exchange": "MC",
+    "Name": "Lar Espana Real Estate",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "LYXIB",
+    "Exchange": "MC",
+    "Name": "Lyxor UCITS Ibex35 (DR) D-EUR",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "MAKS",
+    "Exchange": "MC",
+    "Name": "Making Science Group S.A.",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "MAP",
+    "Exchange": "MC",
+    "Name": "Mapfre",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "MCM",
+    "Exchange": "MC",
+    "Name": "Miquel y Costas & Miquel S.A.",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "MDF",
+    "Exchange": "MC",
+    "Name": "Duro Felguera",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "MEL",
+    "Exchange": "MC",
+    "Name": "Melia Hotels",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "MIO",
+    "Exchange": "MC",
+    "Name": "Media Investment Optimization SL",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "MRL",
+    "Exchange": "MC",
+    "Name": "Merlin Properties SOCIMI SA",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "MTB",
+    "Exchange": "MC",
+    "Name": "Montebalito S.A.",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "MTS",
+    "Exchange": "MC",
+    "Name": "ArcelorMittal SA",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "MVC",
+    "Exchange": "MC",
+    "Name": "Metrovacesa SA",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "N5263",
+    "Exchange": "MC",
+    "Name": "Horos Internacional Pp",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "NAT",
+    "Exchange": "MC",
+    "Name": "Iffe Futura S.A.",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "NBI",
+    "Exchange": "MC",
+    "Name": "NBI Bearings Europe S.A.",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "NEA",
+    "Exchange": "MC",
+    "Name": "Nicolas Correa SA",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "NHH",
+    "Exchange": "MC",
+    "Name": "NH Hoteles",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "NTGY",
+    "Exchange": "MC",
+    "Name": "Naturgy Energy Group SA",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "NTH",
+    "Exchange": "MC",
+    "Name": "Naturhouse Health SA",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "NXT",
+    "Exchange": "MC",
+    "Name": "Nueva Expresi\u00f3n Textil S.A.",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "OHLA",
+    "Exchange": "MC",
+    "Name": "Obrascon Huarte Lain SA",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "OLE",
+    "Exchange": "MC",
+    "Name": "Deoleo S.A",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "ORY",
+    "Exchange": "MC",
+    "Name": "Oryzon Genomics SA",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "PANG",
+    "Exchange": "MC",
+    "Name": "Pangaea Oncology S.A.",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "PAR",
+    "Exchange": "MC",
+    "Name": "Parlem Telecom Companyia de Telecomunicacions S.A.",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "PHM",
+    "Exchange": "MC",
+    "Name": "Pharma Mar S.A.",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "PRM",
+    "Exchange": "MC",
+    "Name": "Prim S.A.",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "PRO",
+    "Exchange": "MC",
+    "Name": "Proeduca Altus S.A.",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "PRS",
+    "Exchange": "MC",
+    "Name": "Promotora de Informaciones SA",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "PSG",
+    "Exchange": "MC",
+    "Name": "Prosegur",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "PUIG",
+    "Exchange": "MC",
+    "Name": "Puig Brands SA",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "PVA",
+    "Exchange": "MC",
+    "Name": "Pescanova SA",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "R4",
+    "Exchange": "MC",
+    "Name": "Renta 4 Banco S.A",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "RBT",
+    "Exchange": "MC",
+    "Name": "Robot S.A.",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "RED",
+    "Exchange": "MC",
+    "Name": "Redeia Corporacion S.A.",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "REN",
+    "Exchange": "MC",
+    "Name": "Renta Corporacion Real Estate SA",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "REP",
+    "Exchange": "MC",
+    "Name": "Repsol",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "RIO",
+    "Exchange": "MC",
+    "Name": "Bodegas Riojanas S.A.",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "RJF",
+    "Exchange": "MC",
+    "Name": "Laboratorio Reig Jofre S.A",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "RLIA",
+    "Exchange": "MC",
+    "Name": "Realia",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "ROVI",
+    "Exchange": "MC",
+    "Name": "Laboratorios Farmaceuticos ROVI",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "RSS",
+    "Exchange": "MC",
+    "Name": "Revenga Ingenieros SA",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "S1013",
+    "Exchange": "MC",
+    "Name": "Brunara S.A. SICAV",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "SAB",
+    "Exchange": "MC",
+    "Name": "Banco de Sabadell S.A",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "SAI",
+    "Exchange": "MC",
+    "Name": "Substrate AI S.A.",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "SAN",
+    "Exchange": "MC",
+    "Name": "Banco Santander",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "SCBYT",
+    "Exchange": "MC",
+    "Name": "Bytetravel SA",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "SCO",
+    "Exchange": "MC",
+    "Name": "Seresco S.A.",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "SCYR",
+    "Exchange": "MC",
+    "Name": "Sacyr SA",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "SEC",
+    "Exchange": "MC",
+    "Name": "Secuoya Grupo de Comunicaci\u00f3n S.A",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "SLR",
+    "Exchange": "MC",
+    "Name": "Solaria Energ\u00eda y Medio Ambiente S.A",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "SNG",
+    "Exchange": "MC",
+    "Name": "Singular People S.A.",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "SOL",
+    "Exchange": "MC",
+    "Name": "Soltec Power Holdings S.A",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "SPH",
+    "Exchange": "MC",
+    "Name": "Profithol S.A.",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "SQRL",
+    "Exchange": "MC",
+    "Name": "Squirrel Media SA",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "TEF",
+    "Exchange": "MC",
+    "Name": "Telefonica",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "TLGO",
+    "Exchange": "MC",
+    "Name": "Talgo SA",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "TQT",
+    "Exchange": "MC",
+    "Name": "Technomeca Aerospace S.A.",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "TR1",
+    "Exchange": "MC",
+    "Name": "Tier1 Technology S.A.",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "TRE",
+    "Exchange": "MC",
+    "Name": "Tecnicas Reunidas",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "TRG",
+    "Exchange": "MC",
+    "Name": "Tubos Reunidos S.A",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "TUB",
+    "Exchange": "MC",
+    "Name": "Tubacex S.A",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "UBS",
+    "Exchange": "MC",
+    "Name": "Urbas Grupo Financiero SA",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "UNI",
+    "Exchange": "MC",
+    "Name": "Unicaja Banco SA",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "VID",
+    "Exchange": "MC",
+    "Name": "Vidrala SA",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "VIS",
+    "Exchange": "MC",
+    "Name": "Viscofan",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "VOC",
+    "Exchange": "MC",
+    "Name": "Vocento",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "VYT",
+    "Exchange": "MC",
+    "Name": "Vytrus Biotech S.A.",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "XPBRA",
+    "Exchange": "MC",
+    "Name": "Petroleo Brasileiro S.A.",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "XVALO",
+    "Exchange": "MC",
+    "Name": "Vale S.A.",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "YABA",
+    "Exchange": "MC",
+    "Name": "Jaba I Inversiones Inmobiliarias Socimi SA",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "YADR",
+    "Exchange": "MC",
+    "Name": "Adriano Care SOCIMI SAU",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "YADV",
+    "Exchange": "MC",
+    "Name": "Advero Properties SOCIMI S.A.",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "YAI1",
+    "Exchange": "MC",
+    "Name": "All Iron Re I Socimi\u00a0Sa",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "YAML",
+    "Exchange": "MC",
+    "Name": "AM Locales Property Socimi",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "YARP",
+    "Exchange": "MC",
+    "Name": "Arrienda Rental Properties SOCIMI SA",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "YATO",
+    "Exchange": "MC",
+    "Name": "Atom Hoteles Socimi",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "YAZR",
+    "Exchange": "MC",
+    "Name": "Azaria Rental SOCIMI S.A.",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "YCPS",
+    "Exchange": "MC",
+    "Name": "Castellana Properties Socimi",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "YDOA",
+    "Exchange": "MC",
+    "Name": "Inversiones Doalca SOCIMI SA",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "YEIS",
+    "Exchange": "MC",
+    "Name": "Elaia Investment Spain Socimi SA",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "YENT",
+    "Exchange": "MC",
+    "Name": "Entre Cua Socimi",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "YEPSA",
+    "Exchange": "MC",
+    "Name": "Emperador Properties SOCIMI S.A.",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "YEUR",
+    "Exchange": "MC",
+    "Name": "Euro Cervantes SOCIMI SA",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "YFID",
+    "Exchange": "MC",
+    "Name": "Fidere Patrimonio SOCIMI SA",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "YGAV",
+    "Exchange": "MC",
+    "Name": "Gavari Properties SOCIMI S.A.",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "YGCS",
+    "Exchange": "MC",
+    "Name": "Galil Capital Re Spain SOCIMI SA",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "YGMP",
+    "Exchange": "MC",
+    "Name": "GMP Property SOCIMI SA",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "YGO2",
+    "Exchange": "MC",
+    "Name": "GreenOak Spain Holdings SOCIMI S.A.",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "YGOP",
+    "Exchange": "MC",
+    "Name": "Grupo Ortiz Properties Socimi",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "YHCR",
+    "Exchange": "MC",
+    "Name": "Home Capital Rentals SOCIMI S.A.",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "YHSP",
+    "Exchange": "MC",
+    "Name": "Hispanotels Inversiones SOCIMI SA",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "YIBI",
+    "Exchange": "MC",
+    "Name": "IBI Lion SOCIMI S.A.",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "YIBV",
+    "Exchange": "MC",
+    "Name": "Ibervalles SOCIMI S.A.",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "YINB1",
+    "Exchange": "MC",
+    "Name": "Inbest Prime I Inmuebles SOCIMI S.A.",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "YINB2",
+    "Exchange": "MC",
+    "Name": "Inbest Prime II Inmuebles SOCIMI S.A.",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "YINB3",
+    "Exchange": "MC",
+    "Name": "Inbest Prime III Inmuebles SOCIMI S.A.",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "YINB4",
+    "Exchange": "MC",
+    "Name": "Inbest Prime IV Inmuebles SOCIMI S.A.",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "YINB6",
+    "Exchange": "MC",
+    "Name": "Inbest Prime VI Inmuebles Socimi SA",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "YINB7",
+    "Exchange": "MC",
+    "Name": "Inbest Prime VII Inmuebles SOCIMI S.A.",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "YINB8",
+    "Exchange": "MC",
+    "Name": "NBEST Prime VIII Inmuebles Socimi SA",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "YINM",
+    "Exchange": "MC",
+    "Name": "Inmofam 99 SOCIMI SA",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "YIPP",
+    "Exchange": "MC",
+    "Name": "Inhome Prime Properties SOCIMI S.A.",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "YIPS",
+    "Exchange": "MC",
+    "Name": "Inversa Prime SOCIMI S.A.",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "YISC",
+    "Exchange": "MC",
+    "Name": "ISC Fresh Water Investment SOCIMI SA",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "YJSS",
+    "Exchange": "MC",
+    "Name": "JSS Real Estate SOCIMI SA",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "YLFG",
+    "Exchange": "MC",
+    "Name": "La Finca Global Assets SOCIMI S.A.",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "YMAT",
+    "Exchange": "MC",
+    "Name": "Matritense Real Estate SOCIMI S.A.",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "YMCS",
+    "Exchange": "MC",
+    "Name": "Miciso Real Estate SOCIMI S.A.",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "YMEI",
+    "Exchange": "MC",
+    "Name": "Mercal Inmuebles Socimi SA",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "YMHRE",
+    "Exchange": "MC",
+    "Name": "Millenium Hotels Real Estate I SOCIMI S.A.",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "YMIB",
+    "Exchange": "MC",
+    "Name": "Mistral Iberia Real Estate SOCIMI S.A.",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "YMPI",
+    "Exchange": "MC",
+    "Name": "Mistral Patrimonio Inmobiliario SOCIMI SA",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "YMRE",
+    "Exchange": "MC",
+    "Name": "Meridia Real Estate III Socimi SA",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "YNPC",
+    "Exchange": "MC",
+    "Name": "NextPoint Capital SOCIMI S.A.",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "YNUM",
+    "Exchange": "MC",
+    "Name": "Numulae Gestion de Servicios SOCIMI SA",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "YORE",
+    "Exchange": "MC",
+    "Name": "Olimpo Real Estate SA",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "YPARK",
+    "Exchange": "MC",
+    "Name": "Inmobiliaria Park Rose Iberoamericana SOCIMI SA",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "YPSN",
+    "Exchange": "MC",
+    "Name": "Prevision Sanitaria Nacional Gestion SOCIMI S.A.",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "YQUO",
+    "Exchange": "MC",
+    "Name": "Quonia SOCIMI SA",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "YSIL",
+    "Exchange": "MC",
+    "Name": "Silicius Real Estate SOCIMI S.A.",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "YSRR",
+    "Exchange": "MC",
+    "Name": "Serrano 61 Desarrollo SOCIMI SA",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "YTAN",
+    "Exchange": "MC",
+    "Name": "Tander Inversiones SOCIMI SA",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "YTAR",
+    "Exchange": "MC",
+    "Name": "Tarjar Xairo Socimi SA",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "YTCH",
+    "Exchange": "MC",
+    "Name": "Techo Hogar SOCIMI, S.A.",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "YTEM",
+    "Exchange": "MC",
+    "Name": "Tempore Properties SOCIMI SAU",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "YTRA",
+    "Exchange": "MC",
+    "Name": "Trajano Iberia Socimi SA",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "YTRI",
+    "Exchange": "MC",
+    "Name": "Trivium Real Estate Socimi SA",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "YTRM",
+    "Exchange": "MC",
+    "Name": "Torimbia Socimi S.A.",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "YTST",
+    "Exchange": "MC",
+    "Name": "Testa Residencial SOCIMI S.A.",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "YUVS",
+    "Exchange": "MC",
+    "Name": "Urban View Development Spain SOCIMI S.A.",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "YVBA",
+    "Exchange": "MC",
+    "Name": "VBARE Iberian Properties SOCIMI SA",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "YVCP",
+    "Exchange": "MC",
+    "Name": "Veracruz Properties SOCIMI SA",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "YVIT",
+    "Exchange": "MC",
+    "Name": "Vitruvio Real Estate Socimi",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "YVIV",
+    "Exchange": "MC",
+    "Name": "Vivenio Residencial SOCIMI S.A.",
+    "Country": "Spain"
+  },
+  {
+    "Symbol": "YZBL",
+    "Exchange": "MC",
+    "Name": "Zambal Spain Socimi SA",
+    "Country": "Spain"
+  }
+]

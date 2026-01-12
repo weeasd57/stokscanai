@@ -1,0 +1,974 @@
+[
+  {
+    "Symbol": "ABBEYBDS",
+    "Exchange": "XNSA",
+    "Name": "ABBEY MORTGAGE BANK PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "ABCTRANS",
+    "Exchange": "XNSA",
+    "Name": "ABC TRANSPORT PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "ACADEMY",
+    "Exchange": "XNSA",
+    "Name": "ACADEMY PRESS PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "ACCESSCORP",
+    "Exchange": "XNSA",
+    "Name": "ACCESS HOLDINGS PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "AFRINSURE",
+    "Exchange": "XNSA",
+    "Name": "AFRICAN ALLIANCE INSURANCE PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "AFRIPRUD",
+    "Exchange": "XNSA",
+    "Name": "AFRICA PRUDENTIAL PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "AFROMEDIA",
+    "Exchange": "XNSA",
+    "Name": "AFROMEDIA PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "AIICO",
+    "Exchange": "XNSA",
+    "Name": "AIICO INSURANCE PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "AIRTELAFRI",
+    "Exchange": "XNSA",
+    "Name": "AIRTEL AFRICA PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "ALEX",
+    "Exchange": "XNSA",
+    "Name": "ALUMINIUM EXTRUSION IND. PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "ARADEL",
+    "Exchange": "XNSA",
+    "Name": "ARADEL HOLDINGS PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "ASOSAVINGS",
+    "Exchange": "XNSA",
+    "Name": "ASO SAVINGS AND LOANS PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "AUSTINLAZ",
+    "Exchange": "XNSA",
+    "Name": "AUSTIN LAZ & COMPANY PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "AVAIF",
+    "Exchange": "XNSA",
+    "Name": "AVA INFRASTRUCTURE FUND",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "BAPLC",
+    "Exchange": "XNSA",
+    "Name": "BRICLINKS AFRICA PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "BERGER",
+    "Exchange": "XNSA",
+    "Name": "BERGER PAINTS PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "BETAGLAS",
+    "Exchange": "XNSA",
+    "Name": "BETA GLASS PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "BUACEMENT",
+    "Exchange": "XNSA",
+    "Name": "BUA CEMENT PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "BUAFOODS",
+    "Exchange": "XNSA",
+    "Name": "BUA FOODS PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "CADBURY",
+    "Exchange": "XNSA",
+    "Name": "CADBURY NIGERIA PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "CAP",
+    "Exchange": "XNSA",
+    "Name": "CAP PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "CAPOIL",
+    "Exchange": "XNSA",
+    "Name": "CAPITAL OIL PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "CAVERTON",
+    "Exchange": "XNSA",
+    "Name": "CAVERTON OFFSHORE SUPPORT GRP PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "CHAMPION",
+    "Exchange": "XNSA",
+    "Name": "CHAMPION BREWERIES PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "CHAMS",
+    "Exchange": "XNSA",
+    "Name": "CHAMS HOLDING COMPANY PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "CHELLARAM",
+    "Exchange": "XNSA",
+    "Name": "CHELLARAMS PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "CILEASING",
+    "Exchange": "XNSA",
+    "Name": "C & I LEASING PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "CONHALLPLC",
+    "Exchange": "XNSA",
+    "Name": "CONSOLIDATED HALLMARK INSURANCE PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "CONOIL",
+    "Exchange": "XNSA",
+    "Name": "CONOIL PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "CORNERST",
+    "Exchange": "XNSA",
+    "Name": "CORNERSTONE INSURANCE CO. PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "CUSTODIAN",
+    "Exchange": "XNSA",
+    "Name": "CUSTODIAN INVESTMENT PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "CUTIX",
+    "Exchange": "XNSA",
+    "Name": "CUTIX PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "CWG",
+    "Exchange": "XNSA",
+    "Name": "CWG PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "DAARCOMM",
+    "Exchange": "XNSA",
+    "Name": "DAAR COMMUNICATIONS PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "DANGCEM",
+    "Exchange": "XNSA",
+    "Name": "DANGOTE CEMENT PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "DANGSUGAR",
+    "Exchange": "XNSA",
+    "Name": "DANGOTE SUGAR REFINERY PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "DEAPCAP",
+    "Exchange": "XNSA",
+    "Name": "DEAP CAPITAL MANAGEMENT AND TRUST PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "DUNLOP",
+    "Exchange": "XNSA",
+    "Name": "DN TYRE & RUBBER PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "EKOCORP",
+    "Exchange": "XNSA",
+    "Name": "EKOCORP PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "ELLAHLAKES",
+    "Exchange": "XNSA",
+    "Name": "ELLAH LAKES PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "ENAMELWA",
+    "Exchange": "XNSA",
+    "Name": "NIGERIA ENAMELWARE PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "ETERNA",
+    "Exchange": "XNSA",
+    "Name": "ETERNA PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "ETI",
+    "Exchange": "XNSA",
+    "Name": "ECOBANK TRANSNATIONAL INCORPORATED",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "ETRANZACT",
+    "Exchange": "XNSA",
+    "Name": "E-TRANZACT INTERNATIONAL PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "EUNISELL",
+    "Exchange": "XNSA",
+    "Name": "EUNISELL INTERLINKED PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "FBNH",
+    "Exchange": "XNSA",
+    "Name": "FBN HOLDINGS PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "FCMB",
+    "Exchange": "XNSA",
+    "Name": "FCMB GROUP PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "FIDELITYBK",
+    "Exchange": "XNSA",
+    "Name": "FIDELITY BANK PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "FIDSON",
+    "Exchange": "XNSA",
+    "Name": "FIDSON HEALTHCARE PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "FTNCOCOA",
+    "Exchange": "XNSA",
+    "Name": "FTN COCOA PROCESSORS PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "GEREGU",
+    "Exchange": "XNSA",
+    "Name": "GEREGU POWER PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "GOLDBREW",
+    "Exchange": "XNSA",
+    "Name": "GOLDEN GUINEA BREWERIES PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "GOLDINSURE",
+    "Exchange": "XNSA",
+    "Name": "GOLDLINK INSURANCE PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "GREENWETF",
+    "Exchange": "XNSA",
+    "Name": "GREENWICH ASSET ETF",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "GTCO",
+    "Exchange": "XNSA",
+    "Name": "GUARANTY TRUST HOLDING COMPANY PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "GUINEAINS",
+    "Exchange": "XNSA",
+    "Name": "GUINEA INSURANCE PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "GUINNESS",
+    "Exchange": "XNSA",
+    "Name": "GUINNESS NIGERIA PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "HMCALL",
+    "Exchange": "XNSA",
+    "Name": "HALDANE MCCALL PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "HONYFLOUR",
+    "Exchange": "XNSA",
+    "Name": "HONEYWELL FLOUR MILL PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "IKEJAHOTEL",
+    "Exchange": "XNSA",
+    "Name": "IKEJA HOTELS PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "IMG",
+    "Exchange": "XNSA",
+    "Name": "INDUSTRIAL & MEDICAL GASES NIGERIA PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "INFINITY",
+    "Exchange": "XNSA",
+    "Name": "INFINITY TRUST MORTGAGE BANK PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "INTBREW",
+    "Exchange": "XNSA",
+    "Name": "INTERNATIONAL BREWERIES PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "INTENEGINS",
+    "Exchange": "XNSA",
+    "Name": "INTERNATIONAL ENERGY INSURANCE PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "JAIZBANK",
+    "Exchange": "XNSA",
+    "Name": "JAIZ BANK PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "JAPAULGOLD",
+    "Exchange": "XNSA",
+    "Name": "JAPAUL OIL & MARITIME SERVICES PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "JBERGER",
+    "Exchange": "XNSA",
+    "Name": "JULIUS BERGER NIGERIA PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "JOHNHOLT",
+    "Exchange": "XNSA",
+    "Name": "JOHN HOLT PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "JULI",
+    "Exchange": "XNSA",
+    "Name": "JULI PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "LASACO",
+    "Exchange": "XNSA",
+    "Name": "LASACO ASSURANCE PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "LEARNAFRCA",
+    "Exchange": "XNSA",
+    "Name": "LEARN AFRICA PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "LINKASSURE",
+    "Exchange": "XNSA",
+    "Name": "LINKAGE ASSURANCE PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "LIVESTOCK",
+    "Exchange": "XNSA",
+    "Name": "LIVESTOCK FEEDS PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "LIVINGTRUST",
+    "Exchange": "XNSA",
+    "Name": "LIVINGTRUST MORTGAGE BANK PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "LOTUSHAL15",
+    "Exchange": "XNSA",
+    "Name": "LOTUS HALAL EQUITY ETF",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "MANSARD",
+    "Exchange": "XNSA",
+    "Name": "AXAMANSARD INSURANCE PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "MAYBAKER",
+    "Exchange": "XNSA",
+    "Name": "MAY & BAKER NIGERIA PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "MBENEFIT",
+    "Exchange": "XNSA",
+    "Name": "MUTUAL BENEFITS ASSURANCE PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "MCNICHOLS",
+    "Exchange": "XNSA",
+    "Name": "MCNICHOLS NIGERIA PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "MECURE",
+    "Exchange": "XNSA",
+    "Name": "MECURE INDUSTRIES PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "MEDVIEWAIR",
+    "Exchange": "XNSA",
+    "Name": "MEDVIEW AIRLINE PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "MERGROWTH",
+    "Exchange": "XNSA",
+    "Name": "MERISTEM GROWTH EXCHANGE TRADED FUND",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "MERVALUE",
+    "Exchange": "XNSA",
+    "Name": "MERISTEM VALUE EXCHANGE TRADED FUND",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "MEYER",
+    "Exchange": "XNSA",
+    "Name": "MEYER PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "MORISON",
+    "Exchange": "XNSA",
+    "Name": "MORISON INDUSTRIES PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "MRS",
+    "Exchange": "XNSA",
+    "Name": "MRS OIL NIGERIA PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "MTNN",
+    "Exchange": "XNSA",
+    "Name": "MTN NIGERIA COMMUNICATIONS PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "MULTITREX",
+    "Exchange": "XNSA",
+    "Name": "MULTI-TREX INTEGRATED FOODS PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "MULTIVERSE",
+    "Exchange": "XNSA",
+    "Name": "MULTIVERSE MINING AND EXPLORATION PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "NAHCO",
+    "Exchange": "XNSA",
+    "Name": "NIGERIAN AVIATION HANDLING CO. PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "NASCON",
+    "Exchange": "XNSA",
+    "Name": "NASCON ALLIED INDUSTRIES PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "NB",
+    "Exchange": "XNSA",
+    "Name": "NIGERIAN BREWERIES PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "NCR",
+    "Exchange": "XNSA",
+    "Name": "NCR (NIGERIA) PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "NEIMETH",
+    "Exchange": "XNSA",
+    "Name": "NEIMETH INTERNATIONAL PHARMACEUTICAL PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "NEM",
+    "Exchange": "XNSA",
+    "Name": "NEM INSURANCE PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "NESTLE",
+    "Exchange": "XNSA",
+    "Name": "NESTLE NIGERIA PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "NEWGOLD",
+    "Exchange": "XNSA",
+    "Name": "NEWGOLD EXCHANGE TRADED FUND",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "NGXGROUP",
+    "Exchange": "XNSA",
+    "Name": "NIGERIAN EXCHANGE GROUP PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "NIDF",
+    "Exchange": "XNSA",
+    "Name": "CHAPEL HILL DENHAM NIG. INFRAS DEBT FUND",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "NNFM",
+    "Exchange": "XNSA",
+    "Name": "NORTHERN NIGERIA FLOUR MILLS PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "NOTORE",
+    "Exchange": "XNSA",
+    "Name": "NOTORE CHEMICAL IND PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "NPFMCRFBK",
+    "Exchange": "XNSA",
+    "Name": "NPF MICRO FINANCE BANK PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "NSLTECH",
+    "Exchange": "XNSA",
+    "Name": "SECURE ELECTRONIC TECHNOLOGY PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "OANDO",
+    "Exchange": "XNSA",
+    "Name": "OANDO PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "OKOMUOIL",
+    "Exchange": "XNSA",
+    "Name": "OKOMU OIL PALM PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "OMATEK",
+    "Exchange": "XNSA",
+    "Name": "OMATEK VENTURES PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "PHARMDEKO",
+    "Exchange": "XNSA",
+    "Name": "PHARMA-DEKO PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "PREMPAINTS",
+    "Exchange": "XNSA",
+    "Name": "PREMIER PAINTS PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "PRESCO",
+    "Exchange": "XNSA",
+    "Name": "PRESCO PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "PRESTIGE",
+    "Exchange": "XNSA",
+    "Name": "PRESTIGE ASSURANCE CO. PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "PZ",
+    "Exchange": "XNSA",
+    "Name": "P Z CUSSONS NIGERIA PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "REDSTAREX",
+    "Exchange": "XNSA",
+    "Name": "RED STAR EXPRESS PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "REGALINS",
+    "Exchange": "XNSA",
+    "Name": "REGENCY ASSURANCE PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "RONCHESS",
+    "Exchange": "XNSA",
+    "Name": "RONCHESS GLOBAL RESOURCES PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "ROYALEX",
+    "Exchange": "XNSA",
+    "Name": "ROYAL EXCHANGE PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "RTBRISCOE",
+    "Exchange": "XNSA",
+    "Name": "R T BRISCOE PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "SCOA",
+    "Exchange": "XNSA",
+    "Name": "SCOA NIGERIA PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "SEPLAT",
+    "Exchange": "XNSA",
+    "Name": "SEPLAT ENERGY PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "SFSREIT",
+    "Exchange": "XNSA",
+    "Name": "SFS REAL ESTATE INVESTMENT TRUST",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "SIAMLETF40",
+    "Exchange": "XNSA",
+    "Name": "SIAML PENSION ETF 40",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "SKYAVN",
+    "Exchange": "XNSA",
+    "Name": "SKYWAY AVIATION HANDLING COMPANY PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "SMURFIT",
+    "Exchange": "XNSA",
+    "Name": "SMART PRODUCTS NIGERIA PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "SOVRENINS",
+    "Exchange": "XNSA",
+    "Name": "SOVEREIGN TRUST INSURANCE PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "STACO",
+    "Exchange": "XNSA",
+    "Name": "STACO INSURANCE PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "STANBIC",
+    "Exchange": "XNSA",
+    "Name": "STANBIC IBTC HOLDINGS PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "STANBICETF30",
+    "Exchange": "XNSA",
+    "Name": "STANBIC IBTC ETF 30",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "STDINSURE",
+    "Exchange": "XNSA",
+    "Name": "STANDARD ALLIANCE INSURANCE PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "STERLINGNG",
+    "Exchange": "XNSA",
+    "Name": "STERLING FINANCIAL HOLDINGS COMPANY PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "SUNUASSUR",
+    "Exchange": "XNSA",
+    "Name": "SUNU ASSURANCES NIGERIA PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "TANTALIZER",
+    "Exchange": "XNSA",
+    "Name": "TANTALIZERS PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "THOMASWY",
+    "Exchange": "XNSA",
+    "Name": "THOMAS WYATT NIGERIA PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "TIP",
+    "Exchange": "XNSA",
+    "Name": "THE INITIATES PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "TOTAL",
+    "Exchange": "XNSA",
+    "Name": "TOTALENERGIES MARKETING NIGERIA PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "TRANSCOHOT",
+    "Exchange": "XNSA",
+    "Name": "TRANSCORP HOTELS PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "TRANSCORP",
+    "Exchange": "XNSA",
+    "Name": "TRANSNATIONAL CORPORATION OF NIGERIA PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "TRANSEXPR",
+    "Exchange": "XNSA",
+    "Name": "TRANS-NATIONWIDE EXPRESS PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "TRANSPOWER",
+    "Exchange": "XNSA",
+    "Name": "TRANSCORP POWER PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "TRIPPLEG",
+    "Exchange": "XNSA",
+    "Name": "TRIPPLE GEE AND COMPANY PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "UACN",
+    "Exchange": "XNSA",
+    "Name": "UAC OF NIGERIA PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "UBA",
+    "Exchange": "XNSA",
+    "Name": "UNITED BANK FOR AFRICA PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "UCAP",
+    "Exchange": "XNSA",
+    "Name": "UNITED CAPITAL PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "UHOMREIT",
+    "Exchange": "XNSA",
+    "Name": "UNION HOMES REAL ESTATE INVESTMENT TRUST PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "UNILEVER",
+    "Exchange": "XNSA",
+    "Name": "UNILEVER NIGERIA PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "UNIONDICON",
+    "Exchange": "XNSA",
+    "Name": "UNION DICON SALT PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "UNITYBNK",
+    "Exchange": "XNSA",
+    "Name": "UNITY BANK PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "UNIVINSURE",
+    "Exchange": "XNSA",
+    "Name": "UNIVERSAL INSURANCE COMPANY PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "UPDC",
+    "Exchange": "XNSA",
+    "Name": "UPDC PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "UPDCREIT",
+    "Exchange": "XNSA",
+    "Name": "UPDC REAL ESTATE INVESTMENT TRUST",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "UPL",
+    "Exchange": "XNSA",
+    "Name": "UNIVERSITY PRESS PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "VANLEER",
+    "Exchange": "XNSA",
+    "Name": "GREIF NIGERIA PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "VERITASKAP",
+    "Exchange": "XNSA",
+    "Name": "VERITAS KAPITAL ASSURANCE PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "VETBANK",
+    "Exchange": "XNSA",
+    "Name": "VETIVA BANKING ETF",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "VETGOODS",
+    "Exchange": "XNSA",
+    "Name": "VETIVA CONSUMER GOODS ETF",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "VETGRIF30",
+    "Exchange": "XNSA",
+    "Name": "VETIVA GRIFFIN 30 ETF",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "VETINDETF",
+    "Exchange": "XNSA",
+    "Name": "VETIVA INDUSTRIAL ETF",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "VFDGROUP",
+    "Exchange": "XNSA",
+    "Name": "VFD GROUP",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "VITAFOAM",
+    "Exchange": "XNSA",
+    "Name": "VITAFOAM NIGERIA PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "VSPBONDETF",
+    "Exchange": "XNSA",
+    "Name": "VETIVA S & P NIGERIA SOVEREIGN BOND ETF",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "WAPCO",
+    "Exchange": "XNSA",
+    "Name": "LAFARGE AFRICA PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "WAPIC",
+    "Exchange": "XNSA",
+    "Name": "CORONATION INSURANCE PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "WEMABANK",
+    "Exchange": "XNSA",
+    "Name": "WEMA BANK PLC",
+    "Country": "Nigeria"
+  },
+  {
+    "Symbol": "ZENITHBANK",
+    "Exchange": "XNSA",
+    "Name": "ZENITH BANK PLC",
+    "Country": "Nigeria"
+  }
+]

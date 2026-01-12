@@ -1,0 +1,353 @@
+{
+  "USA": {
+    "TotalSymbols": 50339,
+    "Exchanges": {
+      "US": 50339
+    }
+  },
+  "UK": {
+    "TotalSymbols": 6370,
+    "Exchanges": {
+      "LSE": 6284,
+      "IL": 86
+    }
+  },
+  "Canada": {
+    "TotalSymbols": 4206,
+    "Exchanges": {
+      "TO": 2466,
+      "V": 1490,
+      "NEO": 250
+    }
+  },
+  "Germany": {
+    "TotalSymbols": 27977,
+    "Exchanges": {
+      "BE": 3270,
+      "HM": 614,
+      "XETRA": 3023,
+      "DU": 1455,
+      "HA": 222,
+      "MU": 2342,
+      "STU": 4917,
+      "F": 12134
+    }
+  },
+  "Luxembourg": {
+    "TotalSymbols": 5,
+    "Exchanges": {
+      "LU": 5
+    }
+  },
+  "Austria": {
+    "TotalSymbols": 79,
+    "Exchanges": {
+      "VI": 79
+    }
+  },
+  "France": {
+    "TotalSymbols": 1164,
+    "Exchanges": {
+      "PA": 1164
+    }
+  },
+  "Belgium": {
+    "TotalSymbols": 29389,
+    "Exchanges": {
+      "BR": 116,
+      "EUBOND": 29273
+    }
+  },
+  "Spain": {
+    "TotalSymbols": 280,
+    "Exchanges": {
+      "MC": 280
+    }
+  },
+  "Switzerland": {
+    "TotalSymbols": 1662,
+    "Exchanges": {
+      "SW": 1662
+    }
+  },
+  "Portugal": {
+    "TotalSymbols": 38,
+    "Exchanges": {
+      "LS": 38
+    }
+  },
+  "Netherlands": {
+    "TotalSymbols": 432,
+    "Exchanges": {
+      "AS": 432
+    }
+  },
+  "Iceland": {
+    "TotalSymbols": 31,
+    "Exchanges": {
+      "IC": 31
+    }
+  },
+  "Ireland": {
+    "TotalSymbols": 56,
+    "Exchanges": {
+      "IR": 56
+    }
+  },
+  "Finland": {
+    "TotalSymbols": 188,
+    "Exchanges": {
+      "HE": 188
+    }
+  },
+  "Norway": {
+    "TotalSymbols": 315,
+    "Exchanges": {
+      "OL": 315
+    }
+  },
+  "Denmark": {
+    "TotalSymbols": 552,
+    "Exchanges": {
+      "CO": 552
+    }
+  },
+  "Sweden": {
+    "TotalSymbols": 830,
+    "Exchanges": {
+      "ST": 830
+    }
+  },
+  "Zimbabwe": {
+    "TotalSymbols": 44,
+    "Exchanges": {
+      "VFEX": 1,
+      "XZIM": 43
+    }
+  },
+  "Zambia": {
+    "TotalSymbols": 32,
+    "Exchanges": {
+      "LUSE": 32
+    }
+  },
+  "Uganda": {
+    "TotalSymbols": 18,
+    "Exchanges": {
+      "USE": 18
+    }
+  },
+  "Tanzania": {
+    "TotalSymbols": 28,
+    "Exchanges": {
+      "DSE": 28
+    }
+  },
+  "Czech Republic": {
+    "TotalSymbols": 48,
+    "Exchanges": {
+      "PR": 48
+    }
+  },
+  "Rwanda": {
+    "TotalSymbols": 10,
+    "Exchanges": {
+      "RSE": 10
+    }
+  },
+  "Botswana": {
+    "TotalSymbols": 36,
+    "Exchanges": {
+      "XBOT": 36
+    }
+  },
+  "Egypt": {
+    "TotalSymbols": 268,
+    "Exchanges": {
+      "EGX": 268
+    }
+  },
+  "Nigeria": {
+    "TotalSymbols": 162,
+    "Exchanges": {
+      "XNSA": 162
+    }
+  },
+  "Ghana": {
+    "TotalSymbols": 36,
+    "Exchanges": {
+      "GSE": 36
+    }
+  },
+  "Malawi": {
+    "TotalSymbols": 16,
+    "Exchanges": {
+      "MSE": 16
+    }
+  },
+  "Kenya": {
+    "TotalSymbols": 63,
+    "Exchanges": {
+      "XNAI": 63
+    }
+  },
+  "Morocco": {
+    "TotalSymbols": 71,
+    "Exchanges": {
+      "BC": 71
+    }
+  },
+  "Mauritius": {
+    "TotalSymbols": 101,
+    "Exchanges": {
+      "SEM": 101
+    }
+  },
+  "Korea": {
+    "TotalSymbols": 4674,
+    "Exchanges": {
+      "KQ": 2077,
+      "KO": 2597
+    }
+  },
+  "Hungary": {
+    "TotalSymbols": 39,
+    "Exchanges": {
+      "BUD": 39
+    }
+  },
+  "Poland": {
+    "TotalSymbols": 638,
+    "Exchanges": {
+      "WAR": 638
+    }
+  },
+  "Philippines": {
+    "TotalSymbols": 271,
+    "Exchanges": {
+      "PSE": 271
+    }
+  },
+  "Indonesia": {
+    "TotalSymbols": 920,
+    "Exchanges": {
+      "JK": 920
+    }
+  },
+  "Australia": {
+    "TotalSymbols": 2306,
+    "Exchanges": {
+      "AU": 2306
+    }
+  },
+  "China": {
+    "TotalSymbols": 5978,
+    "Exchanges": {
+      "SHG": 2806,
+      "SHE": 3172
+    }
+  },
+  "Pakistan": {
+    "TotalSymbols": 492,
+    "Exchanges": {
+      "KAR": 492
+    }
+  },
+  "South Africa": {
+    "TotalSymbols": 486,
+    "Exchanges": {
+      "JSE": 486
+    }
+  },
+  "India": {
+    "TotalSymbols": 2266,
+    "Exchanges": {
+      "NSE": 2266
+    }
+  },
+  "Greece": {
+    "TotalSymbols": 142,
+    "Exchanges": {
+      "AT": 142
+    }
+  },
+  "Chile": {
+    "TotalSymbols": 134,
+    "Exchanges": {
+      "SN": 134
+    }
+  },
+  "Thailand": {
+    "TotalSymbols": 1036,
+    "Exchanges": {
+      "BK": 1036
+    }
+  },
+  "Sri Lanka": {
+    "TotalSymbols": 258,
+    "Exchanges": {
+      "CM": 258
+    }
+  },
+  "Vietnam": {
+    "TotalSymbols": 626,
+    "Exchanges": {
+      "VN": 626
+    }
+  },
+  "Malaysia": {
+    "TotalSymbols": 1006,
+    "Exchanges": {
+      "KLSE": 1006
+    }
+  },
+  "Romania": {
+    "TotalSymbols": 131,
+    "Exchanges": {
+      "RO": 131
+    }
+  },
+  "Brazil": {
+    "TotalSymbols": 2267,
+    "Exchanges": {
+      "SA": 2267
+    }
+  },
+  "Argentina": {
+    "TotalSymbols": 148,
+    "Exchanges": {
+      "BA": 148
+    }
+  },
+  "Mexico": {
+    "TotalSymbols": 595,
+    "Exchanges": {
+      "MX": 595
+    }
+  },
+  "Croatia": {
+    "TotalSymbols": 20,
+    "Exchanges": {
+      "ZSE": 20
+    }
+  },
+  "Taiwan": {
+    "TotalSymbols": 1986,
+    "Exchanges": {
+      "TW": 1171,
+      "TWO": 815
+    }
+  },
+  "Peru": {
+    "TotalSymbols": 44,
+    "Exchanges": {
+      "LIM": 44
+    }
+  },
+  "Turkey": {
+    "TotalSymbols": 574,
+    "Exchanges": {
+      "IS": 574
+    }
+  }
+}

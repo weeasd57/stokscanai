@@ -1,0 +1,854 @@
+[
+  {
+    "Symbol": "AAAK",
+    "Exchange": "AT",
+    "Name": "Wool Industry Tria Alfa S.A.",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "ACAG",
+    "Exchange": "AT",
+    "Name": "Austriacard Holdings AG",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "ADMIE",
+    "Exchange": "AT",
+    "Name": "Admie Holding S.A",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "AEGN",
+    "Exchange": "AT",
+    "Name": "Aegean Airlines S.A.",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "AETF",
+    "Exchange": "AT",
+    "Name": "ALPHA ETF FTSE Athex Large Cap Equity UCITS",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "AIA",
+    "Exchange": "AT",
+    "Name": "ATHENS INTERNATIONAL AIRPORT S.",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "AKRIT",
+    "Exchange": "AT",
+    "Name": "Akritas S.A",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "ALMY",
+    "Exchange": "AT",
+    "Name": "Alumil Aluminium Industry S.A",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "ALPHA",
+    "Exchange": "AT",
+    "Name": "Alpha Services and Holdings S.A.",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "ANDRO",
+    "Exchange": "AT",
+    "Name": "Alpha Trust Andromeda Investment Trust S.A",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "ASCO",
+    "Exchange": "AT",
+    "Name": "As Commercial Industrial Company of Computers and Toys S.A.",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "ASTAK",
+    "Exchange": "AT",
+    "Name": "Alpha Astika Akinita S.A",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "ATEK",
+    "Exchange": "AT",
+    "Name": "Attica Publications S.A",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "ATRUST",
+    "Exchange": "AT",
+    "Name": "Alpha Trust Mutual Fund and Alternative Investment Fund Management S.A",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "ATTICA",
+    "Exchange": "AT",
+    "Name": "Attica Holdings S.A",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "AVAX",
+    "Exchange": "AT",
+    "Name": "Avax S.A",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "AVE",
+    "Exchange": "AT",
+    "Name": "AVE S.A.",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "BELA",
+    "Exchange": "AT",
+    "Name": "Jumbo S.A.",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "BIOKA",
+    "Exchange": "AT",
+    "Name": "Biokarpet S.A.",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "BIOSK",
+    "Exchange": "AT",
+    "Name": "Unibios Holdings S.A",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "BIOT",
+    "Exchange": "AT",
+    "Name": "Bioter S.A.",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "BLEKEDROS",
+    "Exchange": "AT",
+    "Name": "BLE Kedros R.E.I.C.",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "BRIQ",
+    "Exchange": "AT",
+    "Name": "BriQ Properties Real Estate Investment Company",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "CAIROMEZ",
+    "Exchange": "AT",
+    "Name": "Cairo Mezz PLC",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "CENER",
+    "Exchange": "AT",
+    "Name": "Cenergy Holdings SA",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "CENTR",
+    "Exchange": "AT",
+    "Name": "Centric Holdings S.A",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "CNLCAP",
+    "Exchange": "AT",
+    "Name": "CNL Capital EKES-AIFM",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "CPI",
+    "Exchange": "AT",
+    "Name": "CPI Computer Peripherals International",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "DAIOS",
+    "Exchange": "AT",
+    "Name": "Daios Plastics S.A.",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "DIMAND",
+    "Exchange": "AT",
+    "Name": "Dimand S.A.",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "DOMIK",
+    "Exchange": "AT",
+    "Name": "Domiki Kritis S.A.",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "DOPPLER",
+    "Exchange": "AT",
+    "Name": "Doppler S.A.",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "DROME",
+    "Exchange": "AT",
+    "Name": "Dromeas SA",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "DUR",
+    "Exchange": "AT",
+    "Name": "Duros S.A.",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "EEE",
+    "Exchange": "AT",
+    "Name": "Coca-Cola HBC AG",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "EKTER",
+    "Exchange": "AT",
+    "Name": "Ekter SA",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "ELBE",
+    "Exchange": "AT",
+    "Name": "Elve S.A",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "ELHA",
+    "Exchange": "AT",
+    "Name": "Elvalhalcor Hellenic Copper and Aluminium Industry S.A",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "ELIN",
+    "Exchange": "AT",
+    "Name": "Elinoil Hellenic Petroleum Company S.A",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "ELLAKTOR",
+    "Exchange": "AT",
+    "Name": "Ellaktor S.A",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "ELPE",
+    "Exchange": "AT",
+    "Name": "Hellenic Petroleum S.A",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "ELSTR",
+    "Exchange": "AT",
+    "Name": "Elastron S.A. - Steel Service Centers",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "ELTON",
+    "Exchange": "AT",
+    "Name": "Elton International Trading Company S.A",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "ETE",
+    "Exchange": "AT",
+    "Name": "National Bank of Greece S.A",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "EUROB",
+    "Exchange": "AT",
+    "Name": "Eurobank Ergasias Services and Holdings S.A.",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "EUROC",
+    "Exchange": "AT",
+    "Name": "Euroconsultants SA",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "EVROF",
+    "Exchange": "AT",
+    "Name": "Evrofarma SA",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "EXAE",
+    "Exchange": "AT",
+    "Name": "Hellenic Exchanges - Athens Stock Exchange SA",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "EYAPS",
+    "Exchange": "AT",
+    "Name": "Thessaloniki Water Supply & Sewerage Co S.A",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "EYDAP",
+    "Exchange": "AT",
+    "Name": "Athens Water Supply and Sewerage Company S.A",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "FLEXO",
+    "Exchange": "AT",
+    "Name": "Flexopack Soci\u00e9t\u00e9 Anonyme Commercial and Industrial Plastics Company",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "FOODL",
+    "Exchange": "AT",
+    "Name": "Foodlink A.E",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "FOYRK",
+    "Exchange": "AT",
+    "Name": "Fourlis Holdings S.A.",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "FRIGO",
+    "Exchange": "AT",
+    "Name": "Frigoglass S.A.I.C.",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "GCMEZZ",
+    "Exchange": "AT",
+    "Name": "Galaxy Cosmos Mezz PLC",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "GEBKA",
+    "Exchange": "AT",
+    "Name": "General Commercial & Industrial S.A",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "GEKTERNA",
+    "Exchange": "AT",
+    "Name": "GEK TERNA Holdings Real Estate Construction S.A",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "HAIDE",
+    "Exchange": "AT",
+    "Name": "Haidemenos S.A.",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "HTO",
+    "Exchange": "AT",
+    "Name": "Hellenic Telecommunications Organization S.A",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "IATR",
+    "Exchange": "AT",
+    "Name": "Athens Medical C.S.A.",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "IKTIN",
+    "Exchange": "AT",
+    "Name": "Iktinos Hellas S.A. Greek Marble Industry Technical and Touristic Company",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "ILYDA",
+    "Exchange": "AT",
+    "Name": "Ilyda SA",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "INKAT",
+    "Exchange": "AT",
+    "Name": "Intracom Constructions Societe Anonyme Technical and Steel Constructions",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "INLIF",
+    "Exchange": "AT",
+    "Name": "Interlife General Insurance S.A.",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "INLOT",
+    "Exchange": "AT",
+    "Name": "Intralot S.A. Integrated Lottery Systems and Services",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "INTEK",
+    "Exchange": "AT",
+    "Name": "Ideal Group S.A",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "INTET",
+    "Exchange": "AT",
+    "Name": "Intertech S.A. Inter. Technologies",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "INTRK",
+    "Exchange": "AT",
+    "Name": "Intracom Holdings S.A.",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "KARE",
+    "Exchange": "AT",
+    "Name": "Karelia Tobacco Company Inc",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "KEKR",
+    "Exchange": "AT",
+    "Name": "Kekrops S.A.",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "KEPEN",
+    "Exchange": "AT",
+    "Name": "Flour Mills Kepenos S.A.",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "KLM",
+    "Exchange": "AT",
+    "Name": "I.Kloukinas-I.Lappas S.A",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "KORDE",
+    "Exchange": "AT",
+    "Name": "Kordellos Ch. Bros S.A",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "KRI",
+    "Exchange": "AT",
+    "Name": "Kri-Kri Milk Industry S.A",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "KTILA",
+    "Exchange": "AT",
+    "Name": "Ktima Kostas Lazaridis S.A",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "KYLO",
+    "Exchange": "AT",
+    "Name": "Loulis Mills S.A.",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "KYRI",
+    "Exchange": "AT",
+    "Name": "Kiriacoulis Mediterranean Cruises Shipping S.A.",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "KYSA",
+    "Exchange": "AT",
+    "Name": "Flour Mills C. Sarantopoulos S.A.",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "LAMDA",
+    "Exchange": "AT",
+    "Name": "LAMDA Development S.A.",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "LAMPS",
+    "Exchange": "AT",
+    "Name": "Lampsa Hellenic Hotels S.A",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "LANAC",
+    "Exchange": "AT",
+    "Name": "Lanakam S.A",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "LAVI",
+    "Exchange": "AT",
+    "Name": "Lavipharm S.A",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "LEBEK",
+    "Exchange": "AT",
+    "Name": "N. Leventeris S.A.",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "LEBEP",
+    "Exchange": "AT",
+    "Name": "N. Leventeris S.A",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "LOGISMOS",
+    "Exchange": "AT",
+    "Name": "Logismos Information Systems S.A",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "MASTIHA",
+    "Exchange": "AT",
+    "Name": "Mediterra S.A.",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "MATHIO",
+    "Exchange": "AT",
+    "Name": "Mathios Refractories S.A.",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "MEDIC",
+    "Exchange": "AT",
+    "Name": "Medicon Hellas S.A.",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "MERKO",
+    "Exchange": "AT",
+    "Name": "Mermeren Kombinat AD",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "MEVA",
+    "Exchange": "AT",
+    "Name": "Mevaco S.A",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "MIG",
+    "Exchange": "AT",
+    "Name": "Marfin Investment Group Holdings S.A",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "MIN",
+    "Exchange": "AT",
+    "Name": "J. & B. Ladenis Bros S.A. - Minerva - Knitwear Manufacturing Company",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "MODA",
+    "Exchange": "AT",
+    "Name": "N. Varveris-Moda Bagno S.A",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "MOH",
+    "Exchange": "AT",
+    "Name": "Motor Oil (Hellas) Corinth Refineries S.A",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "MOTO",
+    "Exchange": "AT",
+    "Name": "Emporiki Eisagogiki Aftokiniton Ditrohon kai Mihanon Thalassis Societe Anonyme",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "MOYZK",
+    "Exchange": "AT",
+    "Name": "EL. D. Mouzakis S.A",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "MPITR",
+    "Exchange": "AT",
+    "Name": "Bitros Holding S.A",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "MYTIL",
+    "Exchange": "AT",
+    "Name": "Mytilineos S.A",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "NAKAS",
+    "Exchange": "AT",
+    "Name": "Philippos Nakas S.A",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "NAYP",
+    "Exchange": "AT",
+    "Name": "Nafpaktos Textile Industry S.A",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "NOVAL",
+    "Exchange": "AT",
+    "Name": "NOVAL PROPERTY REAL ESTATE INVE",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "OLTH",
+    "Exchange": "AT",
+    "Name": "Thessaloniki Port Authority SA",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "OLYMP",
+    "Exchange": "AT",
+    "Name": "Technical Olympic S.A",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "OPAP",
+    "Exchange": "AT",
+    "Name": "Greek Organization of Football Prognostics S.A.",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "OPTIMA",
+    "Exchange": "AT",
+    "Name": "Optima bank SA",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "OPTRON",
+    "Exchange": "AT",
+    "Name": "Optronics Technologies S.A.",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "ORILINA",
+    "Exchange": "AT",
+    "Name": "Orilina Properties REIC S.A.",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "OTOEL",
+    "Exchange": "AT",
+    "Name": "Autohellas S.A.",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "PAIR",
+    "Exchange": "AT",
+    "Name": "E. Pairis S.A",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "PAP",
+    "Exchange": "AT",
+    "Name": "Papoutsanis S.A",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "PERF",
+    "Exchange": "AT",
+    "Name": "Performance Technologies S.A.",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "PETRO",
+    "Exchange": "AT",
+    "Name": "Petros Petropoulos AEBE",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "PLAKR",
+    "Exchange": "AT",
+    "Name": "Plastika Kritis S.A.",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "PLAT",
+    "Exchange": "AT",
+    "Name": "Thrace Plastics Holding and Commercial S.A",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "PPA",
+    "Exchange": "AT",
+    "Name": "Piraeus Port Authority S.A",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "PPC",
+    "Exchange": "AT",
+    "Name": "Public Power Corporation S.A.",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "PRD",
+    "Exchange": "AT",
+    "Name": "Proodeftiki S.A.",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "PREMIA",
+    "Exchange": "AT",
+    "Name": "Premia S.A.",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "PRODEA",
+    "Exchange": "AT",
+    "Name": "Prodea Real Estate Investment Co.",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "PROF",
+    "Exchange": "AT",
+    "Name": "Profile Systems & Software SA",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "PROFK",
+    "Exchange": "AT",
+    "Name": "Pipe Works L. Girakian Profil S.A.",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "PVMEZZ",
+    "Exchange": "AT",
+    "Name": "Phoenix Vega Mezz PLC",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "QUAL",
+    "Exchange": "AT",
+    "Name": "Quality & Reliability A.B.E.E",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "QUEST",
+    "Exchange": "AT",
+    "Name": "Quest Holdings S.A",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "REALCONS",
+    "Exchange": "AT",
+    "Name": "Real Consulting IT Business Solutions S.A.",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "REVOIL",
+    "Exchange": "AT",
+    "Name": "Revoil S.A",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "SAR",
+    "Exchange": "AT",
+    "Name": "Gr. Sarantis S.A.",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "SIDMA",
+    "Exchange": "AT",
+    "Name": "Sidma S.A. Steel Products",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "SPACE",
+    "Exchange": "AT",
+    "Name": "Space Hellas SA",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "SPIR",
+    "Exchange": "AT",
+    "Name": "The House of Agriculture Spiroy S.A.",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "SUNMEZZ",
+    "Exchange": "AT",
+    "Name": "Sunrisemezz PLC",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "TATT",
+    "Exchange": "AT",
+    "Name": "Attica Bank S.A.",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "TELL",
+    "Exchange": "AT",
+    "Name": "Bank of Greece",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "TENERGY",
+    "Exchange": "AT",
+    "Name": "Terna Energy Societe Anonyme Commercial Technical Company",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "TITC",
+    "Exchange": "AT",
+    "Name": "Titan Cement International S.A.",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "TPEIR",
+    "Exchange": "AT",
+    "Name": "Piraeus Financial Holdings S.A",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "TRASTOR",
+    "Exchange": "AT",
+    "Name": "Trastor Real Estate Investment Company SA",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "VIDAVO",
+    "Exchange": "AT",
+    "Name": "VIDAVO S.A.",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "VIO",
+    "Exchange": "AT",
+    "Name": "Viohalco S.A",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "VIS",
+    "Exchange": "AT",
+    "Name": "VIS Containers Manufacturing Co. Ltd",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "VOSYS",
+    "Exchange": "AT",
+    "Name": "Vogiatzoglou Systems S.A",
+    "Country": "Greece"
+  },
+  {
+    "Symbol": "XYLEK",
+    "Exchange": "AT",
+    "Name": "Interwood-Xylemporia A.T.E.N.E.",
+    "Country": "Greece"
+  }
+]

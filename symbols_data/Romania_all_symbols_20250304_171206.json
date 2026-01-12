@@ -1,0 +1,788 @@
+[
+  {
+    "Symbol": "AAG",
+    "Exchange": "RO",
+    "Name": "Aages SA",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "AG",
+    "Exchange": "RO",
+    "Name": "AGROLAND BUSINESS SYSTEM",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "ALR",
+    "Exchange": "RO",
+    "Name": "Alro Slatina",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "ALT",
+    "Exchange": "RO",
+    "Name": "Altur Slatina",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "ALU",
+    "Exchange": "RO",
+    "Name": "Alumil Rom Industry SA",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "AQ",
+    "Exchange": "RO",
+    "Name": "AQUILA PART PROD COM",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "ARCV",
+    "Exchange": "RO",
+    "Name": "Imotrust SA",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "ARM",
+    "Exchange": "RO",
+    "Name": "ARMATURA S.A.",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "AROBS",
+    "Exchange": "RO",
+    "Name": "AROBS TRANSILVANIA SOFTWARE SA",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "ARS",
+    "Exchange": "RO",
+    "Name": "Aerostar Bacau",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "ARTE",
+    "Exchange": "RO",
+    "Name": "Artego Tg. Jiu",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "ASC",
+    "Exchange": "RO",
+    "Name": "ASCENDIA SA",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "ATB",
+    "Exchange": "RO",
+    "Name": "Antibiotice Ia",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "ATRD",
+    "Exchange": "RO",
+    "Name": "Atelierele CFR Grivita SA",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "AVIO",
+    "Exchange": "RO",
+    "Name": "Avioane Craiova SA",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "BCM",
+    "Exchange": "RO",
+    "Name": "CASA DE BUCOVINA-CLUB DE MUNTE",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "BENTO",
+    "Exchange": "RO",
+    "Name": "2B INTELLIGENT SOFT S.A.",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "BIO",
+    "Exchange": "RO",
+    "Name": "Biofarm Bucure",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "BIOW",
+    "Exchange": "RO",
+    "Name": "VIFRANA",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "BNET",
+    "Exchange": "RO",
+    "Name": "Bittnet Systems SA",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "BONA",
+    "Exchange": "RO",
+    "Name": "BONAS IMPORT EXPORT S.A.",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "BRD",
+    "Exchange": "RO",
+    "Name": "BRD Groupe Societe Generale SA",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "BRK",
+    "Exchange": "RO",
+    "Name": "Ssif Broker Cl",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "BRM",
+    "Exchange": "RO",
+    "Name": "Bermas SA",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "BRNA",
+    "Exchange": "RO",
+    "Name": "ROMNAV SA BRAILA",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "BUCU",
+    "Exchange": "RO",
+    "Name": "Bucur Obor SA",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "BUCV",
+    "Exchange": "RO",
+    "Name": "Bucur SA",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "BVB",
+    "Exchange": "RO",
+    "Name": "Bursa De Valor",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "CACU",
+    "Exchange": "RO",
+    "Name": "Sifi CJ Logistic SA",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "CBC",
+    "Exchange": "RO",
+    "Name": "Carbochim SA",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "CC",
+    "Exchange": "RO",
+    "Name": "CONNECTIONS CONSULT S.A.",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "CCOM",
+    "Exchange": "RO",
+    "Name": "Cerealcom SA",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "CEON",
+    "Exchange": "RO",
+    "Name": "Cemacon Zalau",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "CEPO",
+    "Exchange": "RO",
+    "Name": "Ceprocim SA",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "CMF",
+    "Exchange": "RO",
+    "Name": "Comelf SA",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "CMP",
+    "Exchange": "RO",
+    "Name": "Compa Sibiu",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "CMVX",
+    "Exchange": "RO",
+    "Name": "Comvex SA",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "COMI",
+    "Exchange": "RO",
+    "Name": "Condmag Brasov",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "COTE",
+    "Exchange": "RO",
+    "Name": "Conpet Sa Ploi",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "CRC",
+    "Exchange": "RO",
+    "Name": "S.C. CHIMCOMPLEX S.A.",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "DIGI",
+    "Exchange": "RO",
+    "Name": "Digi Communications NV",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "EBS",
+    "Exchange": "RO",
+    "Name": "Erste Group Bank AG",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "ECT",
+    "Exchange": "RO",
+    "Name": "GRUPUL INDUSTRIAL ELECTROCONTACT S.A.",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "EFO",
+    "Exchange": "RO",
+    "Name": "Turism Hotelur",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "EL",
+    "Exchange": "RO",
+    "Name": "Societatea Energetica Electrica SA",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "ELGS",
+    "Exchange": "RO",
+    "Name": "Electroarges S",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "ELMA",
+    "Exchange": "RO",
+    "Name": "Electromagnetica SA",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "ELV",
+    "Exchange": "RO",
+    "Name": "Elvila SA",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "ELZY",
+    "Exchange": "RO",
+    "Name": "Electroprecizia SA",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "EMAI",
+    "Exchange": "RO",
+    "Name": "Emailul SA",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "EVER",
+    "Exchange": "RO",
+    "Name": "Evergent Investments SA",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "FEP",
+    "Exchange": "RO",
+    "Name": "Feper SA",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "FOJE",
+    "Exchange": "RO",
+    "Name": "Foraj Sonde SA Videle",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "FP",
+    "Exchange": "RO",
+    "Name": "Fondul Proprietatea SA",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "H2O",
+    "Exchange": "RO",
+    "Name": "S.P.E.E.H Hidroelectrica S.A.",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "HAI",
+    "Exchange": "RO",
+    "Name": "Holde Agri Invest Sa",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "HUNT",
+    "Exchange": "RO",
+    "Name": "IHUNT TECHNOLOGY IMPORT-EXPORT S.A.",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "IAMU",
+    "Exchange": "RO",
+    "Name": "IAMU SA",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "IARV",
+    "Exchange": "RO",
+    "Name": "IAR SA",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "IMP",
+    "Exchange": "RO",
+    "Name": "Impact Develop",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "INFINITY",
+    "Exchange": "RO",
+    "Name": "Infinity Capital Investments S.A.",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "IPRU",
+    "Exchange": "RO",
+    "Name": "Iproeb SA",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "LCSI",
+    "Exchange": "RO",
+    "Name": "LCS Imobiliar SA",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "LIH",
+    "Exchange": "RO",
+    "Name": "Life Is Hard SA",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "LION",
+    "Exchange": "RO",
+    "Name": "Lion Capital S.A.",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "M",
+    "Exchange": "RO",
+    "Name": "Med Life SA",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "MACO",
+    "Exchange": "RO",
+    "Name": "Macofil SA",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "MCAB",
+    "Exchange": "RO",
+    "Name": "Romcab SA",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "MECE",
+    "Exchange": "RO",
+    "Name": "Mecanica Fina SA",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "MECF",
+    "Exchange": "RO",
+    "Name": "Mecanica Sa Ce",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "MILK",
+    "Exchange": "RO",
+    "Name": "AGROSERV MARIUTA",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "MOIB",
+    "Exchange": "RO",
+    "Name": "Moara Cibin SA",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "NAPO",
+    "Exchange": "RO",
+    "Name": "SOCIETATEA DE CONSTRUCTII NAPOCA SA",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "NRF",
+    "Exchange": "RO",
+    "Name": "Norofert SA",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "OIL",
+    "Exchange": "RO",
+    "Name": "Oil Terminal C",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "OMAL",
+    "Exchange": "RO",
+    "Name": "Comaliment Resita SA",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "ONE",
+    "Exchange": "RO",
+    "Name": "One United Properties SA",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "PBK",
+    "Exchange": "RO",
+    "Name": "Patria Bank SA",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "PE",
+    "Exchange": "RO",
+    "Name": "Premier Energy",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "PPL",
+    "Exchange": "RO",
+    "Name": "Promateris SA",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "PREB",
+    "Exchange": "RO",
+    "Name": "Prebet Aiud SA",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "PREH",
+    "Exchange": "RO",
+    "Name": "Prefab Bucures",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "PRSN",
+    "Exchange": "RO",
+    "Name": "Prospectiuni SA",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "PTENGETF",
+    "Exchange": "RO",
+    "Name": "FDI ETF ENERGIE PATRIA TRADEVIL",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "PTR",
+    "Exchange": "RO",
+    "Name": "Rompetrol Well",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "RCHI",
+    "Exchange": "RO",
+    "Name": "Compania Hoteliera InterContinental Romania SA",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "REFE",
+    "Exchange": "RO",
+    "Name": "Remarul 16 Februarie SA",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "RMAH",
+    "Exchange": "RO",
+    "Name": "Farmaceutica R",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "ROC1",
+    "Exchange": "RO",
+    "Name": "ROCA INDUSTRY HOLDINGROCK1 S.A.",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "ROCE",
+    "Exchange": "RO",
+    "Name": "Romcarbon Sa B",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "RPH",
+    "Exchange": "RO",
+    "Name": "Ropharma Bras",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "RRC",
+    "Exchange": "RO",
+    "Name": "Rompetrol Rafi",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "SAFE",
+    "Exchange": "RO",
+    "Name": "Safetech Innovations SA",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "SATU",
+    "Exchange": "RO",
+    "Name": "Saturn SA",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "SCBC",
+    "Exchange": "RO",
+    "Name": "SCUT SA BACAU",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "SCD",
+    "Exchange": "RO",
+    "Name": "ZENTIVA S.A.",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "SCDM",
+    "Exchange": "RO",
+    "Name": "Unirea Shopping Center SA",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "SEOL",
+    "Exchange": "RO",
+    "Name": "Semrom Oltenia SA",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "SEOM",
+    "Exchange": "RO",
+    "Name": "Germina Agribusiness SA",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "SFG",
+    "Exchange": "RO",
+    "Name": "Sphera Franchise Group SA MiFID Eligible Security",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "SINA",
+    "Exchange": "RO",
+    "Name": "SINATEX SA BUCURESTI",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "SMTL",
+    "Exchange": "RO",
+    "Name": "Simtel Team S.A.",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "SNC",
+    "Exchange": "RO",
+    "Name": "SANTIERUL NAVAL CONSTANTA S.A.",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "SNG",
+    "Exchange": "RO",
+    "Name": "Societatea Nationala de Gaze Naturale Romgaz SA",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "SNN",
+    "Exchange": "RO",
+    "Name": "S N Nuclearele",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "SNO",
+    "Exchange": "RO",
+    "Name": "Santierul Naval Orsova SA",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "SNP",
+    "Exchange": "RO",
+    "Name": "Omv Petrom S.A",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "SOCP",
+    "Exchange": "RO",
+    "Name": "Socep Constant",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "STZ",
+    "Exchange": "RO",
+    "Name": "SINTEZA S.A.",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "TBK",
+    "Exchange": "RO",
+    "Name": "TRANSILVANIA BROKER DE ASIGURARE",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "TBM",
+    "Exchange": "RO",
+    "Name": "TURBOMECANICA S.A.",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "TEL",
+    "Exchange": "RO",
+    "Name": "Compania Nationala de Transport al Energiei Electrice Transelectrica SA",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "TGN",
+    "Exchange": "RO",
+    "Name": "Societatea Nationala de Transport Gaze Naturale Transgaz SA",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "TLV",
+    "Exchange": "RO",
+    "Name": "Banca Transilvania S.A.",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "TRANSI",
+    "Exchange": "RO",
+    "Name": "TRANSILVANIA INVESTMENTS ALLIANCE S.A.",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "TRP",
+    "Exchange": "RO",
+    "Name": "Teraplast Bist",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "TRVM",
+    "Exchange": "RO",
+    "Name": "Transcom SA",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "TSLA",
+    "Exchange": "RO",
+    "Name": "TRANSILVANIA LEASING SI CREDIT IFN SA BRASOV",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "TSND",
+    "Exchange": "RO",
+    "Name": "Tusnad SA",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "TTS",
+    "Exchange": "RO",
+    "Name": "TTS (TRANSPORT TRADE SERVICES)",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "TUFE",
+    "Exchange": "RO",
+    "Name": "Turism Felix B",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "TVBETETF",
+    "Exchange": "RO",
+    "Name": "Fondul Deschis De Investitii BET Tradeville",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "UARG",
+    "Exchange": "RO",
+    "Name": "Argus SA",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "UCM",
+    "Exchange": "RO",
+    "Name": "UCM RESITA S.A.",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "UNISEM",
+    "Exchange": "RO",
+    "Name": "Unisem SA",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "UZC",
+    "Exchange": "RO",
+    "Name": "Uzuc SA",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "UZIN",
+    "Exchange": "RO",
+    "Name": "Uzinexport SA",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "VAC",
+    "Exchange": "RO",
+    "Name": "Prodvinalco SA",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "VNC",
+    "Exchange": "RO",
+    "Name": "Vrancart Adjud",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "WINE",
+    "Exchange": "RO",
+    "Name": "IM Vinaria Purcari SRL",
+    "Country": "Romania"
+  },
+  {
+    "Symbol": "XFOA",
+    "Exchange": "RO",
+    "Name": "Fondul Oamenilor Afaceri",
+    "Country": "Romania"
+  }
+]

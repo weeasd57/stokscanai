@@ -1,0 +1,3446 @@
+[
+  {
+    "Symbol": "A1CAP",
+    "Exchange": "IS",
+    "Name": "A1 Capital Menkul Degerler AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "ACSEL",
+    "Exchange": "IS",
+    "Name": "Aciselsan Acipayam Seluloz Sanayi Ve Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "ADEL",
+    "Exchange": "IS",
+    "Name": "Adel Kalemcilik Ticaret ve Sanayi AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "ADESE",
+    "Exchange": "IS",
+    "Name": "Adese Gayrimenkul Yatirim AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "ADGYO",
+    "Exchange": "IS",
+    "Name": "Adra Gayrimenkul Yatirim Ortakligi Anonim Sirketi",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "AEFES",
+    "Exchange": "IS",
+    "Name": "Anadolu Efes Biracilik ve Malt Sanayi AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "AFYON",
+    "Exchange": "IS",
+    "Name": "Afyon Cimento Sanayi TAS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "AGESA",
+    "Exchange": "IS",
+    "Name": "Agesa Hayat ve Emeklilik AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "AGHOL",
+    "Exchange": "IS",
+    "Name": "AG Anadolu Group Holding",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "AGROT",
+    "Exchange": "IS",
+    "Name": "AGROT",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "AGYO",
+    "Exchange": "IS",
+    "Name": "Atakule Gayrimenkul Yatirim Ortakligi AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "AHGAZ",
+    "Exchange": "IS",
+    "Name": "Ahlatci Dogal Gaz Dagitim Enerji ve Yatirim A.S.",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "AHSGY",
+    "Exchange": "IS",
+    "Name": "AHES GMYO",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "AKBNK",
+    "Exchange": "IS",
+    "Name": "Akbank TAS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "AKCNS",
+    "Exchange": "IS",
+    "Name": "Akcansa Cimento Sanayi ve Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "AKENR",
+    "Exchange": "IS",
+    "Name": "Akenerji Elektrik Uretim AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "AKFGY",
+    "Exchange": "IS",
+    "Name": "Akfen Gayrimenkul Yatirim Ortakligi AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "AKFYE",
+    "Exchange": "IS",
+    "Name": "Akfen Yenilenebilir Enerji A.S.",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "AKGRT",
+    "Exchange": "IS",
+    "Name": "AK Sigorta AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "AKMGY",
+    "Exchange": "IS",
+    "Name": "Akmerkez Gayrimenkul Yatirim Ortakligi AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "AKSA",
+    "Exchange": "IS",
+    "Name": "Aksa Akrilik Kimya Sanayi AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "AKSEN",
+    "Exchange": "IS",
+    "Name": "Aksa Enerji Uretim AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "AKSGY",
+    "Exchange": "IS",
+    "Name": "Akis Gayrimenkul Yatirim Ortakligi AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "AKSUE",
+    "Exchange": "IS",
+    "Name": "Aksu Enerji ve Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "AKYHO",
+    "Exchange": "IS",
+    "Name": "Akdeniz Yatirim Holding AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "ALARK",
+    "Exchange": "IS",
+    "Name": "Alarko Holding AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "ALBRK",
+    "Exchange": "IS",
+    "Name": "Albaraka Turk Katilim Bankasi AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "ALCAR",
+    "Exchange": "IS",
+    "Name": "Alarko Carrier Sanayi ve Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "ALCTL",
+    "Exchange": "IS",
+    "Name": "Alcatel Lucent Teletas Telekomunikasyon AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "ALFAS",
+    "Exchange": "IS",
+    "Name": "Alfas Solar Enerji Sanayi ve Ticaret A.S.",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "ALGYO",
+    "Exchange": "IS",
+    "Name": "Alarko Gayrimenkul Yatirim Ortakligi AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "ALKA",
+    "Exchange": "IS",
+    "Name": "Alkim Kagit Sanayi ve Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "ALKIM",
+    "Exchange": "IS",
+    "Name": "Alkim Alkali Kimya AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "ALKLC",
+    "Exchange": "IS",
+    "Name": "Altinkilic Gida ve Sut Sanayi Ticaret A.S.",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "ALMAD",
+    "Exchange": "IS",
+    "Name": "Altinyag Kombinalari AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "ALTNY",
+    "Exchange": "IS",
+    "Name": "ALTINAY SAVUNMA",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "ALVES",
+    "Exchange": "IS",
+    "Name": "Alves Kablo San As",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "ANELE",
+    "Exchange": "IS",
+    "Name": "Anel Elektrik Proje Taahhut ve Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "ANGEN",
+    "Exchange": "IS",
+    "Name": "Anatolia Tani ve Biyoteknoloji Urunleri Arastirma Gelistirme Sanayi ve Ticaret",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "ANHYT",
+    "Exchange": "IS",
+    "Name": "Anadolu Hayat Emeklilik AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "ANSGR",
+    "Exchange": "IS",
+    "Name": "Anadolu Anonim Turk Sigorta Sti",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "ARASE",
+    "Exchange": "IS",
+    "Name": "Dogu Aras Enerji Yatirimlari AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "ARCLK",
+    "Exchange": "IS",
+    "Name": "Arcelik AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "ARDYZ",
+    "Exchange": "IS",
+    "Name": "Ard Grup Bilisim Teknolojileri\u00a0AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "ARENA",
+    "Exchange": "IS",
+    "Name": "Arena Bilgisayar Sanayi ve Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "ARSAN",
+    "Exchange": "IS",
+    "Name": "Arsan Tekstil Ticaret ve Sanayi AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "ARTMS",
+    "Exchange": "IS",
+    "Name": "Artemis Hali As",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "ARZUM",
+    "Exchange": "IS",
+    "Name": "Arzum Elektrikli Ev Aletleri Sanayi ve Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "ASELS",
+    "Exchange": "IS",
+    "Name": "Aselsan Elektronik Sanayi ve Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "ASGYO",
+    "Exchange": "IS",
+    "Name": "Asce Gayrimenkul Yatirim Ortakligi A.S.",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "ASTOR",
+    "Exchange": "IS",
+    "Name": "Astor Enerji AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "ASUZU",
+    "Exchange": "IS",
+    "Name": "Anadolu Isuzu Otomotiv Sanayi ve Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "ATAGY",
+    "Exchange": "IS",
+    "Name": "Ata Gayrimenkul Yatirim Ortakligi AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "ATAKP",
+    "Exchange": "IS",
+    "Name": "Atakey Patates Gida Sanayi ve Ticaret A.S.",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "ATATP",
+    "Exchange": "IS",
+    "Name": "Atp Ticari Bilgisayar Agi ve Elektrik Guc Kaynaklari Uretim Pazarlama ve Ticaret",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "ATEKS",
+    "Exchange": "IS",
+    "Name": "Akin Tekstil AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "ATLAS",
+    "Exchange": "IS",
+    "Name": "Atlas Menkul Kiymetler Yatirim Ortakligi AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "ATSYH",
+    "Exchange": "IS",
+    "Name": "Atlantis Yatirim Holding AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "AVGYO",
+    "Exchange": "IS",
+    "Name": "Avrasya Gayrimenkul Yatirim Ortakligi AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "AVHOL",
+    "Exchange": "IS",
+    "Name": "Avrupa Yatirim Holding AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "AVOD",
+    "Exchange": "IS",
+    "Name": "AVOD Kurutulmus Gida ve Tarim Urunleri Sanayi Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "AVPGY",
+    "Exchange": "IS",
+    "Name": "AVRUPAKENT GMYO",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "AVTUR",
+    "Exchange": "IS",
+    "Name": "Avrasya Petrol ve Turistik Tesisler Yatirimlar AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "AYCES",
+    "Exchange": "IS",
+    "Name": "Altin Yunus Cesme Turistik Tesisler AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "AYDEM",
+    "Exchange": "IS",
+    "Name": "Aydem Yenilenebilir Enerji AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "AYEN",
+    "Exchange": "IS",
+    "Name": "Ayen Enerji AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "AYES",
+    "Exchange": "IS",
+    "Name": "Ayes Celik Hasir ve Cit Sanayi AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "AYGAZ",
+    "Exchange": "IS",
+    "Name": "Aygaz AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "AZTEK",
+    "Exchange": "IS",
+    "Name": "Aztek Teknoloji Urunleri Ticaret A.S.",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "BAGFS",
+    "Exchange": "IS",
+    "Name": "Bagfas Bandirma Gubre Fabrikalari AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "BAHKM",
+    "Exchange": "IS",
+    "Name": "BAHADIR KIMYA",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "BAKAB",
+    "Exchange": "IS",
+    "Name": "Bak Ambalaj Sanayi ve Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "BALAT",
+    "Exchange": "IS",
+    "Name": "Balatacilar Balatacilik Sanayi ve Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "BANVT",
+    "Exchange": "IS",
+    "Name": "Banvit Bandirma Vitaminli Yem Sanayi AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "BARMA",
+    "Exchange": "IS",
+    "Name": "Barem Ambalaj Sanayi ve Ticaret a.s.",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "BASCM",
+    "Exchange": "IS",
+    "Name": "Bastas Baskent Cimento Sanayi ve Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "BASGZ",
+    "Exchange": "IS",
+    "Name": "Baskent Dogalgaz Dagitim Gayrimenkul Yatirim Ortakligi AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "BAYRK",
+    "Exchange": "IS",
+    "Name": "Bayrak EBT Taban Sanayi ve Ticaret Anonim Sirketi",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "BEGYO",
+    "Exchange": "IS",
+    "Name": "BATI EGE GMYO",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "BERA",
+    "Exchange": "IS",
+    "Name": "Bera Holding AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "BEYAZ",
+    "Exchange": "IS",
+    "Name": "Beyaz Filo Oto Kiralama AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "BFREN",
+    "Exchange": "IS",
+    "Name": "Bosch Fren Sistemleri Sanayi ve Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "BIENY",
+    "Exchange": "IS",
+    "Name": "Bien Yapi Urunleri Sanayi Turizm ve Ticaret A.S.",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "BIGCH",
+    "Exchange": "IS",
+    "Name": "Buyuk Sefler Gida Turizm",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "BIGEN",
+    "Exchange": "IS",
+    "Name": "Birlesim Grup Enerji",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "BIMAS",
+    "Exchange": "IS",
+    "Name": "BIM Birlesik Magazalar AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "BINBN",
+    "Exchange": "IS",
+    "Name": "Bin Ulasim ve Akilli Sehir Teknolojileri A.S.",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "BINHO",
+    "Exchange": "IS",
+    "Name": "BINHO",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "BIOEN",
+    "Exchange": "IS",
+    "Name": "Biotrend Cevre ve Enerji Yatirimlari AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "BIZIM",
+    "Exchange": "IS",
+    "Name": "Bizim Toptan Satis Magazalari AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "BJKAS",
+    "Exchange": "IS",
+    "Name": "Besiktas Futbol Yatirimlari Sanayi ve Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "BLCYT",
+    "Exchange": "IS",
+    "Name": "Bilici Yatirim Sanayi ve Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "BMSCH",
+    "Exchange": "IS",
+    "Name": "BMS Celik Hasir Sanayi ve Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "BMSTL",
+    "Exchange": "IS",
+    "Name": "Bms Birlesik Metal Sanayi ve Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "BNTAS",
+    "Exchange": "IS",
+    "Name": "Bantas Bandirma Ambalaj Sanayi ve Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "BOBET",
+    "Exchange": "IS",
+    "Name": "Bogazici Beton Sanayi ve Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "BORLS",
+    "Exchange": "IS",
+    "Name": "Borlease Otomotiv A.S.",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "BORSK",
+    "Exchange": "IS",
+    "Name": "Bor Seker As",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "BOSSA",
+    "Exchange": "IS",
+    "Name": "Bossa Ticaret ve Sanayi Isletmeleri TAS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "BRISA",
+    "Exchange": "IS",
+    "Name": "Brisa Bridgestone Sabanci Lastik Sanayi ve Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "BRKO",
+    "Exchange": "IS",
+    "Name": "Birko Birlesik Koyunlulular Mensucat Ticaret ve Sanayi AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "BRKSN",
+    "Exchange": "IS",
+    "Name": "Berkosan Yalitim ve Tecrit Maddeleri Uretim ve Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "BRKVY",
+    "Exchange": "IS",
+    "Name": "Birikim Varlik Yonetim A.S.",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "BRLSM",
+    "Exchange": "IS",
+    "Name": "Birlesim Muhendislik Isitma Sogutma Havalandirma Sanayi & Ticaret Sirketi AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "BRMEN",
+    "Exchange": "IS",
+    "Name": "Birlik Mensucat Ticaret ve Sanayi Isletmesi AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "BRSAN",
+    "Exchange": "IS",
+    "Name": "Borusan Mannesmann Boru Sanayi ve Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "BRYAT",
+    "Exchange": "IS",
+    "Name": "Borusan Yatirim ve Pazarlama AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "BSOKE",
+    "Exchange": "IS",
+    "Name": "Batisoke Soke Cimento Sanayi TAS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "BTCIM",
+    "Exchange": "IS",
+    "Name": "Baticim Bati Anadolu Cimento Sanayi AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "BUCIM",
+    "Exchange": "IS",
+    "Name": "Bursa Cimento Fabrikasi AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "BURCE",
+    "Exchange": "IS",
+    "Name": "Burcelik Bursa Celik Dokum Sanayi AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "BURVA",
+    "Exchange": "IS",
+    "Name": "Burcelik Vana Sanayi ve Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "BVSAN",
+    "Exchange": "IS",
+    "Name": "BVS AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "BYDNR",
+    "Exchange": "IS",
+    "Name": "Baydoner Restoranlari A.S.",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "CANTE",
+    "Exchange": "IS",
+    "Name": "Can2 Termik AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "CASA",
+    "Exchange": "IS",
+    "Name": "Casa Emtia Petrol Kimyevi ve Turevleri Sanayi ve Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "CATES",
+    "Exchange": "IS",
+    "Name": "CATES ELEKTRIK",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "CCOLA",
+    "Exchange": "IS",
+    "Name": "Coca-Cola Icecek AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "CELHA",
+    "Exchange": "IS",
+    "Name": "Celik Halat ve Tel Sanayi AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "CEMAS",
+    "Exchange": "IS",
+    "Name": "Cemas Dokum Sanayi AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "CEMTS",
+    "Exchange": "IS",
+    "Name": "Cemtas Celik Makina Sanayi ve Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "CEMZY",
+    "Exchange": "IS",
+    "Name": "CEM ZEYTIN",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "CEOEM",
+    "Exchange": "IS",
+    "Name": "CEO Event Medya AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "CGCAM",
+    "Exchange": "IS",
+    "Name": "Cagdas Cam Sanayi ve Ticaret A.S.",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "CIMSA",
+    "Exchange": "IS",
+    "Name": "Cimsa Cimento Sanayi ve Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "CLEBI",
+    "Exchange": "IS",
+    "Name": "Celebi Hava Servisi AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "CMBTN",
+    "Exchange": "IS",
+    "Name": "Cimbeton Hazirbeton ve Prefabrik Yapi Elemanlari Sanayi ve Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "CMENT",
+    "Exchange": "IS",
+    "Name": "Cimentas Izmir Cimento Fabrikasi TAS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "CONSE",
+    "Exchange": "IS",
+    "Name": "Consus Enerji Isletmeciligi ve Hizmetleri AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "COSMO",
+    "Exchange": "IS",
+    "Name": "Cosmos Yatirim Holding AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "CRDFA",
+    "Exchange": "IS",
+    "Name": "Creditwest Faktoring AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "CRFSA",
+    "Exchange": "IS",
+    "Name": "CarrefourSA Carrefour Sabanci Ticaret Merkezi AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "CUSAN",
+    "Exchange": "IS",
+    "Name": "Cuhadaroglu Metal Sanayi ve Pazarlama AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "CVKMD",
+    "Exchange": "IS",
+    "Name": "CVK Maden Isletmeleri Sanayi ve Ticaret A.S.",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "CWENE",
+    "Exchange": "IS",
+    "Name": "CW Enerji SA",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "DAGHL",
+    "Exchange": "IS",
+    "Name": "Dagi Yatirim Holding AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "DAGI",
+    "Exchange": "IS",
+    "Name": "Dagi Giyim Sanayi ve Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "DAPGM",
+    "Exchange": "IS",
+    "Name": "Dap Gayrimenkul Gelistirme AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "DARDL",
+    "Exchange": "IS",
+    "Name": "Dardanel Onentas Gida Sanayi AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "DCTTR",
+    "Exchange": "IS",
+    "Name": "DCT TRADING DIS TICARET",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "DENGE",
+    "Exchange": "IS",
+    "Name": "Denge Yatirim Holding AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "DERHL",
+    "Exchange": "IS",
+    "Name": "Derluks Yatirim Holding AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "DERIM",
+    "Exchange": "IS",
+    "Name": "Derimod Konfeksiyon Ayakkabi Deri Sanayi ve Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "DESA",
+    "Exchange": "IS",
+    "Name": "Desa Deri Sanayi ve Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "DESPC",
+    "Exchange": "IS",
+    "Name": "Despec Bilgisayar Pazarlama ve Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "DEVA",
+    "Exchange": "IS",
+    "Name": "Deva Holding AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "DGATE",
+    "Exchange": "IS",
+    "Name": "Datagate Bilgisayar Malzemeleri Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "DGGYO",
+    "Exchange": "IS",
+    "Name": "Dogus Gayrimenkul Yatirim Ortakligi AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "DGNMO",
+    "Exchange": "IS",
+    "Name": "Doganlar Mobilya Grubu Imalat Sanayi ve Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "DIRIT",
+    "Exchange": "IS",
+    "Name": "Diriteks Dirilis Tekstil Sanayi ve Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "DITAS",
+    "Exchange": "IS",
+    "Name": "Ditas Dogan Yedek Parca Imalat ve Teknik AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "DMRGD",
+    "Exchange": "IS",
+    "Name": "Dmr Unlu Mamuller Uretim Gida Toptan Perakende Ihracat A.S.",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "DMSAS",
+    "Exchange": "IS",
+    "Name": "Demisas Dokum Emaye Mamulleri Sanayi AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "DNISI",
+    "Exchange": "IS",
+    "Name": "Dinamik Isi Makina Yalitim Malzemeleri Sanayi ve Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "DOAS",
+    "Exchange": "IS",
+    "Name": "Dogus Otomotiv Servis ve Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "DOBUR",
+    "Exchange": "IS",
+    "Name": "Dogan Burda Dergi Yayincilik ve Pazarlama AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "DOCO",
+    "Exchange": "IS",
+    "Name": "DO & CO AG",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "DOFER",
+    "Exchange": "IS",
+    "Name": "Dofer Yapi Malzemeleri Sanayi ve Ticaret A.S.",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "DOGUB",
+    "Exchange": "IS",
+    "Name": "Dogusan Boru Sanayi ve Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "DOHOL",
+    "Exchange": "IS",
+    "Name": "Dogan Sirketler Grubu Holding AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "DOKTA",
+    "Exchange": "IS",
+    "Name": "Doktas Dokumculuk Ticaret ve Sanayi AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "DURDO",
+    "Exchange": "IS",
+    "Name": "Duran-Dogan Basim ve Ambalaj Sanayi AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "DURKN",
+    "Exchange": "IS",
+    "Name": "DURUKAN SEKERLEME",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "DYOBY",
+    "Exchange": "IS",
+    "Name": "DYO Boya Fabrikalari Sanayi ve Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "DZGYO",
+    "Exchange": "IS",
+    "Name": "Deniz Gayrimenkul Yatirim Ortakligi AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "EBEBK",
+    "Exchange": "IS",
+    "Name": "Ebebek Magazacilik Anonim Sirketi",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "ECILC",
+    "Exchange": "IS",
+    "Name": "EIS Eczacibasi Ilac Sinai ve Finansal Yatirimlar Sanayi ve Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "ECZYT",
+    "Exchange": "IS",
+    "Name": "Eczacibasi Yatirim Holding Ortakligi AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "EDATA",
+    "Exchange": "IS",
+    "Name": "E-Data Teknoloji Pazarlama AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "EDIP",
+    "Exchange": "IS",
+    "Name": "Edip Gayrimenkul Yatirim Sanayi ve Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "EFORC",
+    "Exchange": "IS",
+    "Name": "EFOR CAY SANAYI",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "EGEEN",
+    "Exchange": "IS",
+    "Name": "Ege Endustri ve Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "EGEPO",
+    "Exchange": "IS",
+    "Name": "Nasmed Ozel Saglik Hizmetleri Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "EGGUB",
+    "Exchange": "IS",
+    "Name": "Ege Gubre Sanayi AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "EGPRO",
+    "Exchange": "IS",
+    "Name": "Ege Profil Ticaret ve Sanayi AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "EGSER",
+    "Exchange": "IS",
+    "Name": "Ege Seramik Sanayi ve Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "EKGYO",
+    "Exchange": "IS",
+    "Name": "Emlak Konut Gayrimenkul Yatirim Ortakligi AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "EKIZ",
+    "Exchange": "IS",
+    "Name": "Ekiz Kimya Sanayi ve Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "EKOS",
+    "Exchange": "IS",
+    "Name": "EKOS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "EKSUN",
+    "Exchange": "IS",
+    "Name": "Eksun Gida Tarim Sanayi ve Ticaret A.S.",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "ELITE",
+    "Exchange": "IS",
+    "Name": "Elite Naturel Organik Gida Sanayi ve Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "EMKEL",
+    "Exchange": "IS",
+    "Name": "EMEK Elektrik Endustrisi AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "EMNIS",
+    "Exchange": "IS",
+    "Name": "Eminis Ambalaj Sanayi ve Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "ENERY",
+    "Exchange": "IS",
+    "Name": "Enerya Enerji Anonim Sirketi",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "ENJSA",
+    "Exchange": "IS",
+    "Name": "Enerjisa Enerji AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "ENKAI",
+    "Exchange": "IS",
+    "Name": "ENKA Insaat ve Sanayi AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "ENSRI",
+    "Exchange": "IS",
+    "Name": "Ensari Deri Gida Sanayi ve Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "ENTRA",
+    "Exchange": "IS",
+    "Name": "Ic Enterra Yenilenebilir Enerji As",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "EPLAS",
+    "Exchange": "IS",
+    "Name": "Egeplast Ege Plastik Ticaret ve Sanayi AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "ERBOS",
+    "Exchange": "IS",
+    "Name": "Erbosan Erciyas Boru Sanayi Ve Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "ERCB",
+    "Exchange": "IS",
+    "Name": "Erciyas Celik Boru Sanayi A.S.",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "EREGL",
+    "Exchange": "IS",
+    "Name": "Eregli Demir ve Celik Fabrikalari TAS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "ERSU",
+    "Exchange": "IS",
+    "Name": "ERSU Meyve ve Gida Sanayi AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "ESCAR",
+    "Exchange": "IS",
+    "Name": "Escar Turizm Tasimacilik Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "ESCOM",
+    "Exchange": "IS",
+    "Name": "Escort Teknoloji Yatirim AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "ESEN",
+    "Exchange": "IS",
+    "Name": "Esenboga Elektrik Uretim AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "ETILR",
+    "Exchange": "IS",
+    "Name": "Etiler \u0130nci Bufe Gida Sanayi ve Dis Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "ETYAT",
+    "Exchange": "IS",
+    "Name": "Euro Trend Yatirim Ortakligi AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "EUHOL",
+    "Exchange": "IS",
+    "Name": "Euro Yatirim Holding AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "EUKYO",
+    "Exchange": "IS",
+    "Name": "Euro Kapital Yatirim Ortakligi AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "EUPWR",
+    "Exchange": "IS",
+    "Name": "Europower Enerji ve Otomasyon Teknolojileri Sanayi Ticaret A.S.",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "EUREN",
+    "Exchange": "IS",
+    "Name": "Europen Endustri Insaat Sanayi ve Ticaret A.S.",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "EUYO",
+    "Exchange": "IS",
+    "Name": "Euro Menkul Kiymet Yatirim Ortakligi AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "EYGYO",
+    "Exchange": "IS",
+    "Name": "EYG Gayrimenkul Yatirim Ortakligi A.S.",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "FADE",
+    "Exchange": "IS",
+    "Name": "Fade Gida Yatirim Sanayi Ticaret As",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "FENER",
+    "Exchange": "IS",
+    "Name": "Fenerbahce Futbol AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "FLAP",
+    "Exchange": "IS",
+    "Name": "Flap Kongre Toplanti Hizmetleri Otomotiv ve Turizm AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "FMIZP",
+    "Exchange": "IS",
+    "Name": "Federal Mogul Izmit Piston ve Pim Uretim Tesisleri AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "FONET",
+    "Exchange": "IS",
+    "Name": "Fonet Bilgi Teknolojileri AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "FORMT",
+    "Exchange": "IS",
+    "Name": "Formet Celik Kapi Sanayi ve Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "FORTE",
+    "Exchange": "IS",
+    "Name": "Forte Bilgi Iletisim Teknologjileri ve Savunma Sanayi A.S.",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "FRIGO",
+    "Exchange": "IS",
+    "Name": "Frigo-Pak Gida Maddeleri Sanayi ve Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "FROTO",
+    "Exchange": "IS",
+    "Name": "Ford Otomotiv Sanayi AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "FZLGY",
+    "Exchange": "IS",
+    "Name": "Fuzul Gayrimenkul Yatirim Ortakligi Anonim Sirketi",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "GARAN",
+    "Exchange": "IS",
+    "Name": "Turkiye Garanti Bankasi A.S.",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "GARFA",
+    "Exchange": "IS",
+    "Name": "Garanti Faktoring AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "GEDIK",
+    "Exchange": "IS",
+    "Name": "Gedik Yatirim Menkul Degerler AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "GEDZA",
+    "Exchange": "IS",
+    "Name": "Gediz Ambalaj Sanayi ve Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "GENIL",
+    "Exchange": "IS",
+    "Name": "Gen Ilac ve Saglik Urunleri Sanayi ve Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "GENTS",
+    "Exchange": "IS",
+    "Name": "Gentas Genel Metal Sanayi ve Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "GEREL",
+    "Exchange": "IS",
+    "Name": "Gersan Elektrik Ticaret ve Sanayi AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "GESAN",
+    "Exchange": "IS",
+    "Name": "Girisim Elektrik Taahhut Ticaret & Sanayi AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "GIPTA",
+    "Exchange": "IS",
+    "Name": "Gipta Ofis Kirtasiye ve Promosyon \u00c3\u009cr\u00c3\u00bcnleri Imalat Sanayi A.S.",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "GLBMD",
+    "Exchange": "IS",
+    "Name": "Global Menkul Degerler AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "GLCVY",
+    "Exchange": "IS",
+    "Name": "Gelecek Varlik Yonetimi AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "GLRYH",
+    "Exchange": "IS",
+    "Name": "Guler Yatirim Holding AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "GLYHO",
+    "Exchange": "IS",
+    "Name": "Global Yatirim Holding AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "GMTAS",
+    "Exchange": "IS",
+    "Name": "Gimat Magazacilik Sanayi ve Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "GOKNR",
+    "Exchange": "IS",
+    "Name": "Goknur Gida Maddeleri Enerji Imalati Ithalat Ihracat Ticaret ve Sanayi A.S.",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "GOLTS",
+    "Exchange": "IS",
+    "Name": "Goltas Goller Bolgesi Cimento Sanayi ve Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "GOODY",
+    "Exchange": "IS",
+    "Name": "Goodyear Lastikleri TAS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "GOZDE",
+    "Exchange": "IS",
+    "Name": "Gozde Girisim Sermayesi Yatirim Ortakligi AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "GRNYO",
+    "Exchange": "IS",
+    "Name": "Garanti Yatirim Ortakligi AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "GRSEL",
+    "Exchange": "IS",
+    "Name": "GurSel Turizm Tasimacilik Ve Servis Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "GRTHO",
+    "Exchange": "IS",
+    "Name": "GRAINTURK Holding A.S.",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "GSDDE",
+    "Exchange": "IS",
+    "Name": "GSD Denizcilik Gayrimenkul Insaat Sanayi ve Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "GSDHO",
+    "Exchange": "IS",
+    "Name": "GSD Holding AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "GSRAY",
+    "Exchange": "IS",
+    "Name": "Galatasaray Sportif Sinai ve Ticari Yatirimlar AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "GUBRF",
+    "Exchange": "IS",
+    "Name": "Gubre Fabrikalari TAS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "GUNDG",
+    "Exchange": "IS",
+    "Name": "Gundogdu Gida Sut Urunleri Sanayi ve Dis Ticaret Anonim Sirketi",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "GWIND",
+    "Exchange": "IS",
+    "Name": "Galata Wind Enerji Anonim Sirket",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "GZNMI",
+    "Exchange": "IS",
+    "Name": "Gezinomi Seyahat Turizm Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "HALKB",
+    "Exchange": "IS",
+    "Name": "Turkiye Halk Bankasi",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "HATEK",
+    "Exchange": "IS",
+    "Name": "Hateks Hatay Tekstil Isletmeleri AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "HATSN",
+    "Exchange": "IS",
+    "Name": "Hat-San Gemi Insaa Bakim Onarim Deniz Nakliyat Sanayi ve Ticaret Anonim Sirketi",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "HDFGS",
+    "Exchange": "IS",
+    "Name": "Hedef Girisim Sermayesi",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "HEDEF",
+    "Exchange": "IS",
+    "Name": "Hedef Holdings AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "HEKTS",
+    "Exchange": "IS",
+    "Name": "Hektas Ticaret TAS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "HKTM",
+    "Exchange": "IS",
+    "Name": "Hidropar Hareket Kontrol Teknolojileri Merkezi Sanayi ve Ticaret A.S.",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "HLGYO",
+    "Exchange": "IS",
+    "Name": "Halk Gayrimenkul Yatirim Ortakligi AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "HOROZ",
+    "Exchange": "IS",
+    "Name": "Horoz Lojistik Kargo Hizmetleri ve Ticaret Anonim Sirketi",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "HRKET",
+    "Exchange": "IS",
+    "Name": "Hareket Proje Tasimaciligi ve Yuk Muhendisligi Anonim Sirketi ",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "HTTBT",
+    "Exchange": "IS",
+    "Name": "Hitit Bilgisayar Hizmetleri AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "HUNER",
+    "Exchange": "IS",
+    "Name": "Hun Yenilenebilir Enerji Uretim AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "HURGZ",
+    "Exchange": "IS",
+    "Name": "Hurriyet Gazetecilik ve Matbaacilik AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "ICBCT",
+    "Exchange": "IS",
+    "Name": "ICBC Turkey Bank AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "ICUGS",
+    "Exchange": "IS",
+    "Name": "ICU Girisim Sermayesi Yatirim Ortakligi A.S.",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "IDGYO",
+    "Exchange": "IS",
+    "Name": "Idealist Gayrimenkul Yatirim Ortakligi AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "IEYHO",
+    "Exchange": "IS",
+    "Name": "Isiklar Enerji ve Yapi Holding AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "IHAAS",
+    "Exchange": "IS",
+    "Name": "Ihlas Haber Ajansi AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "IHEVA",
+    "Exchange": "IS",
+    "Name": "Ihlas Ev Aletleri Imalat Sanayi ve Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "IHGZT",
+    "Exchange": "IS",
+    "Name": "Ihlas Gazetecilik AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "IHLAS",
+    "Exchange": "IS",
+    "Name": "Ihlas Holding AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "IHLGM",
+    "Exchange": "IS",
+    "Name": "Ihlas Gayrimenkul Proje Gelistirme ve Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "IHYAY",
+    "Exchange": "IS",
+    "Name": "Ihlas Yayin Holding A.S.",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "IMASM",
+    "Exchange": "IS",
+    "Name": "Imas Makina Sanayi AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "INDES",
+    "Exchange": "IS",
+    "Name": "Indeks Bilgisayar Sistemleri Muhendislik Sanayi ve Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "INFO",
+    "Exchange": "IS",
+    "Name": "Info Yatirim AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "INGRM",
+    "Exchange": "IS",
+    "Name": "Ingram Micro Bilisim Sistemleri A.S.",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "INTEK",
+    "Exchange": "IS",
+    "Name": "Uzertas Boya Sanayi Ticaret ve Yatirim A.S.",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "INTEM",
+    "Exchange": "IS",
+    "Name": "Intema Insaat ve Tesisat Malzemeleri Yatirim ve Pazarlama AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "INVEO",
+    "Exchange": "IS",
+    "Name": "Inveo Yatirim Holding AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "INVES",
+    "Exchange": "IS",
+    "Name": "Investco Holding AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "IPEKE",
+    "Exchange": "IS",
+    "Name": "Ipek Dogal Enerji Kaynaklari Arastirma ve Uretim AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "ISBIR",
+    "Exchange": "IS",
+    "Name": "Isbir Holding AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "ISBTR",
+    "Exchange": "IS",
+    "Name": "Turkiye Is Bankasi AS Class B",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "ISCTR",
+    "Exchange": "IS",
+    "Name": "Turkiye Is Bankasi AS Class C",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "ISDMR",
+    "Exchange": "IS",
+    "Name": "Iskenderun Demir ve Celik AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "ISFIN",
+    "Exchange": "IS",
+    "Name": "Is Finansal Kiralama AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "ISGSY",
+    "Exchange": "IS",
+    "Name": "Is Girisim Sermayesi Yatirim Ortakligi AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "ISGYO",
+    "Exchange": "IS",
+    "Name": "Is Gayrimenkul Yatirim Ortakligi AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "ISKPL",
+    "Exchange": "IS",
+    "Name": "Isik Plastik Sanayi ve Dis Ticaret Pazarlama AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "ISMEN",
+    "Exchange": "IS",
+    "Name": "Is Yatirim Menkul Degerler AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "ISSEN",
+    "Exchange": "IS",
+    "Name": "Isbir Sentetik Dokuma Sanayi AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "ISYAT",
+    "Exchange": "IS",
+    "Name": "Is Yatirim Ortakligi AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "IZENR",
+    "Exchange": "IS",
+    "Name": "IZDEMIR Enerji Elektrik Uretim A.S.",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "IZFAS",
+    "Exchange": "IS",
+    "Name": "Izmir Firca Sanayi ve Ticaret",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "IZINV",
+    "Exchange": "IS",
+    "Name": "Iz Hayvancilik Tarim ve Gida Sanayi Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "IZMDC",
+    "Exchange": "IS",
+    "Name": "Izmir Demir Celik Sanayi AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "JANTS",
+    "Exchange": "IS",
+    "Name": "Jantsa Jant Sanayi ve Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "KAPLM",
+    "Exchange": "IS",
+    "Name": "Kaplamin Ambalaj Sanayi ve Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "KAREL",
+    "Exchange": "IS",
+    "Name": "Karel Elektronik Sanayi ve Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "KARSN",
+    "Exchange": "IS",
+    "Name": "Karsan Otomotiv Sanayi ve Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "KARTN",
+    "Exchange": "IS",
+    "Name": "Kartonsan Karton Sanayi ve Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "KARYE",
+    "Exchange": "IS",
+    "Name": "Kartal Yenilenebilir Enerji Uretim AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "KATMR",
+    "Exchange": "IS",
+    "Name": "Katmerciler Arac Ustu Ekipman Sanayi ve Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "KAYSE",
+    "Exchange": "IS",
+    "Name": "Kayseri Seker Fabrikasi AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "KBORU",
+    "Exchange": "IS",
+    "Name": "KUZEY BORU",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "KCAER",
+    "Exchange": "IS",
+    "Name": "Kocaer Celik Sanayi ve Ticaret A.S.",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "KCHOL",
+    "Exchange": "IS",
+    "Name": "Koc Holding AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "KENT",
+    "Exchange": "IS",
+    "Name": "Kent Gida Maddeleri Sanayi ve Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "KERVN",
+    "Exchange": "IS",
+    "Name": "Kervansaray Yatirim Holding AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "KERVT",
+    "Exchange": "IS",
+    "Name": "Kerevitas Gida Sanayi ve Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "KFEIN",
+    "Exchange": "IS",
+    "Name": "Kafein Yazilim",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "KGYO",
+    "Exchange": "IS",
+    "Name": "Yapi Kredi Koray Gayrimenkul Yatirim Ortakligi AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "KIMMR",
+    "Exchange": "IS",
+    "Name": "Ersan Alisveris Hizmetleri & Gida Sanayi Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "KLGYO",
+    "Exchange": "IS",
+    "Name": "Kiler Gayrimenkul Yatirim Ortakligi AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "KLKIM",
+    "Exchange": "IS",
+    "Name": "Kalekim Kimyevi Maddeler Sanayi & Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "KLMSN",
+    "Exchange": "IS",
+    "Name": "Klimasan Klima Sanayi ve Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "KLNMA",
+    "Exchange": "IS",
+    "Name": "Turkiye Kalkinma Bankasi AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "KLRHO",
+    "Exchange": "IS",
+    "Name": "Kiler Holding A.S.",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "KLSER",
+    "Exchange": "IS",
+    "Name": "Kaleseramik Canakkale Kalebodur Seramik Sanayi A.S.",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "KLSYN",
+    "Exchange": "IS",
+    "Name": "Koleksiyon Mobilya Sanayi AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "KMPUR",
+    "Exchange": "IS",
+    "Name": "Kimteks Poliuretan Sanayi ve Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "KNFRT",
+    "Exchange": "IS",
+    "Name": "Konfrut Gida Sanayi ve Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "KOCMT",
+    "Exchange": "IS",
+    "Name": "KOC METALURJI",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "KONKA",
+    "Exchange": "IS",
+    "Name": "Konya Kagit Sanayi ve Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "KONTR",
+    "Exchange": "IS",
+    "Name": "Kontrolmatik Teknoloji Enerji ve Mu",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "KONYA",
+    "Exchange": "IS",
+    "Name": "Konya Cimento Sanayi AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "KOPOL",
+    "Exchange": "IS",
+    "Name": "Koza Polyester Sanayi ve Ticaret A.S.",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "KORDS",
+    "Exchange": "IS",
+    "Name": "Kordsa Global Endustriyel Iplik ve Kord Bezi Sanayi ve Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "KOTON",
+    "Exchange": "IS",
+    "Name": "KOTON MAGAZACILIK ",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "KOZAA",
+    "Exchange": "IS",
+    "Name": "Koza Anadolu Metal Madencilik Isletmeleri AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "KOZAL",
+    "Exchange": "IS",
+    "Name": "Koza Altin Isletmeleri AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "KRDMA",
+    "Exchange": "IS",
+    "Name": "Kardemir Karabuk Demir Celik Sanayi ve Ticaret AS Class A",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "KRDMB",
+    "Exchange": "IS",
+    "Name": "Kardemir Karabuk Demir Celik Sanayi ve Ticaret AS Class B",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "KRDMD",
+    "Exchange": "IS",
+    "Name": "Kardemir Karabuk Demir Celik Sanayi ve Ticaret AS Class D",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "KRGYO",
+    "Exchange": "IS",
+    "Name": "Korfez Gayrimenkul Yatirim",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "KRONT",
+    "Exchange": "IS",
+    "Name": "Kron Telekomunikasyon Hizmetleri AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "KRPLS",
+    "Exchange": "IS",
+    "Name": "Koroplast Temizlik Ambalaj Urunleri San. ve Dis Ticaret A.S.",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "KRSTL",
+    "Exchange": "IS",
+    "Name": "Kristal Kola ve Mesrubat Sanayi Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "KRTEK",
+    "Exchange": "IS",
+    "Name": "Karsu Tekstil Sanayi ve Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "KRVGD",
+    "Exchange": "IS",
+    "Name": "Kervan G\u0131da Sanayi Ve Ticaret As",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "KSTUR",
+    "Exchange": "IS",
+    "Name": "Kustur Kusadasi Turizm Endustrisi AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "KTLEV",
+    "Exchange": "IS",
+    "Name": "Katilimevim Tasaruf Finansman A.S.",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "KTSKR",
+    "Exchange": "IS",
+    "Name": "Kutahya Seker Fabrikasi AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "KUTPO",
+    "Exchange": "IS",
+    "Name": "Kutahya Porselen Sanayi AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "KUVVA",
+    "Exchange": "IS",
+    "Name": "Kuvva Gida Ticaret ve Sanayi Yatirimlari A.S.",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "KUYAS",
+    "Exchange": "IS",
+    "Name": "Kuyas Yatirim AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "KZBGY",
+    "Exchange": "IS",
+    "Name": "Kizilbuk Gayrimenkul Yatirim Ortakligi AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "KZGYO",
+    "Exchange": "IS",
+    "Name": "Kuzugrup Gayrimenkul Yatirim Ortakligi AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "LIDER",
+    "Exchange": "IS",
+    "Name": "LDR Turizm AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "LIDFA",
+    "Exchange": "IS",
+    "Name": "Lider Faktoring AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "LILAK",
+    "Exchange": "IS",
+    "Name": "LILA KAGIT",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "LINK",
+    "Exchange": "IS",
+    "Name": "Link Bilgisayar Sistemleri Yazilimi ve Donanimi Sanayi ve Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "LKMNH",
+    "Exchange": "IS",
+    "Name": "Lokman Hekim Engurusag Saglik Turizm Egitim Hizmetleri ve Insaat Taahhut AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "LMKDC",
+    "Exchange": "IS",
+    "Name": "Limak Dogu Anadolu Cimento San As",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "LOGO",
+    "Exchange": "IS",
+    "Name": "Logo Yazilim Sanayi ve Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "LRSHO",
+    "Exchange": "IS",
+    "Name": "Ittifak Holding A.S.",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "LUKSK",
+    "Exchange": "IS",
+    "Name": "Luks Kadife Ticaret ve Sanayi AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "LYDHO",
+    "Exchange": "IS",
+    "Name": "LYDIA HOLDING A.S.",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "LYDYE",
+    "Exchange": "IS",
+    "Name": "Lydia Yesil Enerji Kaynaklari A.S.",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "MAALT",
+    "Exchange": "IS",
+    "Name": "Marmaris Altinyunus Turistik Tesisleri AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "MACKO",
+    "Exchange": "IS",
+    "Name": "Mackolik Internet Hizmetleri Ticaret A.S.",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "MAGEN",
+    "Exchange": "IS",
+    "Name": "Margun Enerji Uretim Sanayi ve Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "MAKIM",
+    "Exchange": "IS",
+    "Name": "Makim Makina Teknolojileri Sanayi ve Ticaret A.S.",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "MAKTK",
+    "Exchange": "IS",
+    "Name": "Makina Takim Endustrisi AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "MANAS",
+    "Exchange": "IS",
+    "Name": "Manas Enerji Yonetimi Sanayi & Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "MARBL",
+    "Exchange": "IS",
+    "Name": "Tureks Turunc Madencilik Ic ve Dis Ticaret A.S.",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "MARKA",
+    "Exchange": "IS",
+    "Name": "Marka Yatirim Holding AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "MARTI",
+    "Exchange": "IS",
+    "Name": "Marti Otel Isletmeleri AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "MAVI",
+    "Exchange": "IS",
+    "Name": "Mavi Giyim Sanayi Ve Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "MEDTR",
+    "Exchange": "IS",
+    "Name": "Meditera Tibbi Malzeme Sanayi ve Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "MEGAP",
+    "Exchange": "IS",
+    "Name": "Mega Polietilen Kopuk Sanayi ve Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "MEGMT",
+    "Exchange": "IS",
+    "Name": "MEGA METAL",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "MEKAG",
+    "Exchange": "IS",
+    "Name": "Meka Beton Santralleri Imalat Sanayi ve Ticaret A.S.",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "MEPET",
+    "Exchange": "IS",
+    "Name": "Mepet Metro Petrol ve Tesisleri Sanayi Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "MERCN",
+    "Exchange": "IS",
+    "Name": "Mercan Kimya Sanayi ve Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "MERIT",
+    "Exchange": "IS",
+    "Name": "Merit Turizm Yatirim ve Isletme AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "MERKO",
+    "Exchange": "IS",
+    "Name": "Merko Gida Sanayi ve Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "METRO",
+    "Exchange": "IS",
+    "Name": "Metro Ticari ve Mali Yatirimlar Holding AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "METUR",
+    "Exchange": "IS",
+    "Name": "Metemtur Yat\u0131r\u0131m Enerji Turizm ve \u0130n\u015faat A.\u015e.",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "MGROS",
+    "Exchange": "IS",
+    "Name": "Migros Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "MHRGY",
+    "Exchange": "IS",
+    "Name": "MHR Gayrimenkul Yatirim Ortakligi Anonim Sirketi",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "MIATK",
+    "Exchange": "IS",
+    "Name": "Mia Teknoloji AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "MMCAS",
+    "Exchange": "IS",
+    "Name": "MMC Sanayi ve Ticari Yatirimlar AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "MNDRS",
+    "Exchange": "IS",
+    "Name": "Menderes Tekstil Sanayi ve Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "MNDTR",
+    "Exchange": "IS",
+    "Name": "Mondi Turkey Oluklui Mukavva Kagit ve Ambalaj Sanayi A.S.",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "MOBTL",
+    "Exchange": "IS",
+    "Name": "Mobiltel Iletisim Hizmetleri Sanayi ve Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "MOGAN",
+    "Exchange": "IS",
+    "Name": "Mogan Enerji Yat\u0131r\u0131m Holding As",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "MOPAS",
+    "Exchange": "IS",
+    "Name": "Mopas Marketcilik Gida",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "MPARK",
+    "Exchange": "IS",
+    "Name": "MLP Saglik Hizmetleri AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "MRGYO",
+    "Exchange": "IS",
+    "Name": "Marti Gayrimenkul Yatirim Ortakligi AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "MRSHL",
+    "Exchange": "IS",
+    "Name": "Marshall Boya ve Vernik Sanayi AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "MSGYO",
+    "Exchange": "IS",
+    "Name": "Mistral Gayrimenkul Yatirim Ortakligi AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "MTRKS",
+    "Exchange": "IS",
+    "Name": "Matriks Bilgi Dagitim Hizmetleri AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "MZHLD",
+    "Exchange": "IS",
+    "Name": "Mazhar Zorlu Holding AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "NATEN",
+    "Exchange": "IS",
+    "Name": "Naturel Yenilenebilir Enerji Ticare",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "NETAS",
+    "Exchange": "IS",
+    "Name": "Netas Telekomunikasyon AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "NIBAS",
+    "Exchange": "IS",
+    "Name": "Nigbas Nigde Beton Sanayi ve Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "NTGAZ",
+    "Exchange": "IS",
+    "Name": "Naturelgaz Sanayi ve Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "NTHOL",
+    "Exchange": "IS",
+    "Name": "Net Holding AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "NUGYO",
+    "Exchange": "IS",
+    "Name": "Nurol Gayrimenkul Yatirim Ortakligi AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "NUHCM",
+    "Exchange": "IS",
+    "Name": "Nuh Cimento Sanayi AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "OBAMS",
+    "Exchange": "IS",
+    "Name": "Oba Makarnac\u0131l\u0131k San As",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "OBASE",
+    "Exchange": "IS",
+    "Name": "Obase Bilgisayar ve Danismanlik Hizmetleri Ticaret A.S.",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "ODAS",
+    "Exchange": "IS",
+    "Name": "ODAS Elektrik Uretim Sanayi Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "ODINE",
+    "Exchange": "IS",
+    "Name": "Odine Solutions Teknoloji As",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "OFSYM",
+    "Exchange": "IS",
+    "Name": "Ofis Yem Gida Sanayi ve Ticaret A.S.",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "ONCSM",
+    "Exchange": "IS",
+    "Name": "Oncosem Onkolojik Sistemler Sanayi ve Ticaret A.S.",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "ONRYT",
+    "Exchange": "IS",
+    "Name": "ONUR TEKNOLOJI ",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "ORCAY",
+    "Exchange": "IS",
+    "Name": "Orcay Ortakoy Cay Sanayi & Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "ORGE",
+    "Exchange": "IS",
+    "Name": "Orge Enerji Elektrik Taahhut AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "ORMA",
+    "Exchange": "IS",
+    "Name": "Orma Orman Mahsulleri Integre Sanayi ve Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "OSMEN",
+    "Exchange": "IS",
+    "Name": "Osmanli Menkul Degerler AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "OSTIM",
+    "Exchange": "IS",
+    "Name": "Ostim Endustriyel Yatirimlar ve Isletme AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "OTKAR",
+    "Exchange": "IS",
+    "Name": "Otokar Otomotiv ve Savunma Sanayi AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "OTTO",
+    "Exchange": "IS",
+    "Name": "Otto Holding AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "OYAKC",
+    "Exchange": "IS",
+    "Name": "Oyak Cimento Fabrikalari AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "OYAYO",
+    "Exchange": "IS",
+    "Name": "OYAK Yatirim Ortakligi AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "OYLUM",
+    "Exchange": "IS",
+    "Name": "Oylum Sinai Yatirimlar AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "OYYAT",
+    "Exchange": "IS",
+    "Name": "Oyak Yatirim Menkul Degerler AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "OZATD",
+    "Exchange": "IS",
+    "Name": "OZATA DENIZCILIK",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "OZGYO",
+    "Exchange": "IS",
+    "Name": "Ozderici Gayrimenkul Yatirim Ortakligi AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "OZKGY",
+    "Exchange": "IS",
+    "Name": "Ozak Gayrimenkul Yatirim Ortakligi AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "OZRDN",
+    "Exchange": "IS",
+    "Name": "Ozerden Plastik Sanayi",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "OZSUB",
+    "Exchange": "IS",
+    "Name": "Ozsu Balik Uretim A.S.",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "OZYSR",
+    "Exchange": "IS",
+    "Name": "OZYASAR TEL",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "PAGYO",
+    "Exchange": "IS",
+    "Name": "Panora Gayrimenkul Yatirim Ortakligi AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "PAMEL",
+    "Exchange": "IS",
+    "Name": "Pamel Yenilenebilir Elektrik Uretim AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "PAPIL",
+    "Exchange": "IS",
+    "Name": "Papilon Savunma Guvenlik Sistemleri",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "PARSN",
+    "Exchange": "IS",
+    "Name": "Parsan Makina Parcalari Sanayi AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "PASEU",
+    "Exchange": "IS",
+    "Name": "Pasifik Eurasia Lojistik Dis Ticaret A.S.",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "PATEK",
+    "Exchange": "IS",
+    "Name": "Pasifik Donan\u0131m ve Yaz\u0131l\u0131m Bilgi Tek As",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "PCILT",
+    "Exchange": "IS",
+    "Name": "Pc Iletisim ve Medya Hizmetleri Sanayi Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "PEHOL",
+    "Exchange": "IS",
+    "Name": "Pera Yatirim Holding Anonim Sirketi",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "PEKGY",
+    "Exchange": "IS",
+    "Name": "Peker Gayrimenkul Yatirim Ortakligi AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "PENGD",
+    "Exchange": "IS",
+    "Name": "Penguen Gida Sanayi AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "PENTA",
+    "Exchange": "IS",
+    "Name": "Penta Teknoloji Urunleri Dagitim Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "PETKM",
+    "Exchange": "IS",
+    "Name": "Petkim Petrokimya Holding AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "PETUN",
+    "Exchange": "IS",
+    "Name": "Pinar Entegre Et ve Un Sanayi AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "PGSUS",
+    "Exchange": "IS",
+    "Name": "Pegasus Hava Tasimaciligi AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "PINSU",
+    "Exchange": "IS",
+    "Name": "Pinar Su Sanayi ve Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "PKART",
+    "Exchange": "IS",
+    "Name": "Plastikkart Akilli Kart Iletisim Sistemleri Sanayi ve Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "PKENT",
+    "Exchange": "IS",
+    "Name": "Petrokent Turizm AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "PLTUR",
+    "Exchange": "IS",
+    "Name": "Platform Turizm Tasimacilik AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "PNLSN",
+    "Exchange": "IS",
+    "Name": "Panelsan Cati Cephe Sistemleri Sanayi ve Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "PNSUT",
+    "Exchange": "IS",
+    "Name": "Pinar Sut Mamulleri Sanayi AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "POLHO",
+    "Exchange": "IS",
+    "Name": "Polisan Holding AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "POLTK",
+    "Exchange": "IS",
+    "Name": "Politeknik Metal Sanayi ve",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "PRDGS",
+    "Exchange": "IS",
+    "Name": "Pardus Girisim Sermayesi Yatirim Ortakligi A.S.",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "PRKAB",
+    "Exchange": "IS",
+    "Name": "Turk Prysmian Kablo ve Sistemleri AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "PRKME",
+    "Exchange": "IS",
+    "Name": "Park Elektrik Uretim Madencilik Sanayi ve Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "PRZMA",
+    "Exchange": "IS",
+    "Name": "Prizma Pres Matbaacilik Yayincilik Sanayi ve Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "PSDTC",
+    "Exchange": "IS",
+    "Name": "Pergamon Status Dis Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "PSGYO",
+    "Exchange": "IS",
+    "Name": "Pasifik Gayrimenkul Yatirim Ortakligi AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "QNBFK",
+    "Exchange": "IS",
+    "Name": "QNB Finansal Kiralama A.S.",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "QNBTR",
+    "Exchange": "IS",
+    "Name": "Qnb Finansbank AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "QUAGR",
+    "Exchange": "IS",
+    "Name": "Qua Granite Hayal Yapi ve Urunleri Sanayi Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "RALYH",
+    "Exchange": "IS",
+    "Name": "Ral Yatirim Holding AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "RAYSG",
+    "Exchange": "IS",
+    "Name": "Ray Sigorta AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "REEDR",
+    "Exchange": "IS",
+    "Name": "Reeder Teknoloji Sanayi ve Ticaret Anonim Sirketi",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "RGYAS",
+    "Exchange": "IS",
+    "Name": "RONESANS GAYRIMENKUL YAT.",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "RNPOL",
+    "Exchange": "IS",
+    "Name": "Rainbow Polikarbonat Sanayi Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "RODRG",
+    "Exchange": "IS",
+    "Name": "Rodrigo Tekstil Sanayi ve Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "ROYAL",
+    "Exchange": "IS",
+    "Name": "Royal Hali Iplik Tekstil Mobilya Sanayi ve Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "RTALB",
+    "Exchange": "IS",
+    "Name": "RTA Laboratuvarlari Biyolojik",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "RUBNS",
+    "Exchange": "IS",
+    "Name": "Rubenis Tekstil Ticaret A.S.",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "RYGYO",
+    "Exchange": "IS",
+    "Name": "Reysas Gayrimenkul Yatirim Ortakligi AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "RYSAS",
+    "Exchange": "IS",
+    "Name": "Reysas Tasimacilik ve Lojistik Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "SAFKR",
+    "Exchange": "IS",
+    "Name": "Safkar Ege Sogutmacilik Klima Soguk Hava Tesisleri Ihracat Ithalat Sanayi ve Tic",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "SAHOL",
+    "Exchange": "IS",
+    "Name": "Haci Omer Sabanci Holding AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "SAMAT",
+    "Exchange": "IS",
+    "Name": "Saray Matbaacilik Kagitcilik Kirtasiyecilik Ticaret ve Sanayi AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "SANEL",
+    "Exchange": "IS",
+    "Name": "SAN-EL Muhendislik Elektrik Taahhut Sanayi ve Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "SANFM",
+    "Exchange": "IS",
+    "Name": "Sanifoam Sunger Sanayi ve Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "SANKO",
+    "Exchange": "IS",
+    "Name": "Sanko Pazarlama Ithalat Ihracat AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "SARKY",
+    "Exchange": "IS",
+    "Name": "Sarkuysan Elektrolitik Bakir Sanayi ve Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "SASA",
+    "Exchange": "IS",
+    "Name": "SASA Polyester Sanayi AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "SAYAS",
+    "Exchange": "IS",
+    "Name": "Say Yenilenebilir Enerji Ekipmanlar\u0131 Sanayi ve Ticaret Anonim \u015eirketi",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "SDTTR",
+    "Exchange": "IS",
+    "Name": "SDT Uzay ve Savunma Teknolojileri A.S.",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "SEGMN",
+    "Exchange": "IS",
+    "Name": "SEGMEN KARDESLER GIDA",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "SEGYO",
+    "Exchange": "IS",
+    "Name": "Seker Gayrimenkul Yatirim Ortakligi A.S.",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "SEKFK",
+    "Exchange": "IS",
+    "Name": "Seker Finansal Kiralama AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "SEKUR",
+    "Exchange": "IS",
+    "Name": "Sekuro Plastik Ambalaj Sanayi AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "SELEC",
+    "Exchange": "IS",
+    "Name": "Selcuk Ecza Deposu Ticaret ve Sanayi AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "SELGD",
+    "Exchange": "IS",
+    "Name": "Selcuk Gida Endustri Ihracat Ithalat AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "SELVA",
+    "Exchange": "IS",
+    "Name": "Selva Gida Sanayi AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "SEYKM",
+    "Exchange": "IS",
+    "Name": "Seyitler Kimya Sanayi AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "SILVR",
+    "Exchange": "IS",
+    "Name": "Silverline Endustri ve Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "SISE",
+    "Exchange": "IS",
+    "Name": "Turkiye Sise ve Cam Fabrikalari AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "SKBNK",
+    "Exchange": "IS",
+    "Name": "Sekerbank TAS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "SKTAS",
+    "Exchange": "IS",
+    "Name": "Soktas Tekstil Sanayi ve Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "SKYLP",
+    "Exchange": "IS",
+    "Name": "Ideal Finansal Teknolojiler ve Danismanlik Anonim Sirketi",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "SKYMD",
+    "Exchange": "IS",
+    "Name": "SEKER YATIRIM",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "SMART",
+    "Exchange": "IS",
+    "Name": "Smartiks Yazilim AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "SMRTG",
+    "Exchange": "IS",
+    "Name": "Smart Gunes Enerjisi Teknolojileri Arastirma Gelistirme Uretim Sanayi ve Ticaret",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "SMRVA",
+    "Exchange": "IS",
+    "Name": "Sumer Varlik Yonetim A.S.",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "SNGYO",
+    "Exchange": "IS",
+    "Name": "Sinpas Gayrimenkul Yatirim Ortakligi AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "SNICA",
+    "Exchange": "IS",
+    "Name": "Sanica Isi Sanayi A.S.",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "SNKRN",
+    "Exchange": "IS",
+    "Name": "Senkron Guvenlik ve Iletisim Sistemleri AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "SNPAM",
+    "Exchange": "IS",
+    "Name": "Sonmez Pamuklu Sanayii AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "SODSN",
+    "Exchange": "IS",
+    "Name": "Sodas Sodyum Sanayi AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "SOKE",
+    "Exchange": "IS",
+    "Name": "Soke Degirmencilik AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "SOKM",
+    "Exchange": "IS",
+    "Name": "Sok Marketler Ticaret As",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "SONME",
+    "Exchange": "IS",
+    "Name": "Sonmez Filament Sentetik Iplik ve Elyaf Sanayi AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "SRVGY",
+    "Exchange": "IS",
+    "Name": "Servet Gayrimenkul Yatirim Ortakligi AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "SUMAS",
+    "Exchange": "IS",
+    "Name": "Sumas Suni Tahta ve Mobilya Sanayi AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "SUNTK",
+    "Exchange": "IS",
+    "Name": "Sun Tekstil Sanayi ve Ticaret A.S.",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "SURGY",
+    "Exchange": "IS",
+    "Name": "SUR TATIL EVLERI GMYO",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "SUWEN",
+    "Exchange": "IS",
+    "Name": "Suwen Tekstil Sanayi Pazarlama AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "TABGD",
+    "Exchange": "IS",
+    "Name": "TAB GIDA",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "TARKM",
+    "Exchange": "IS",
+    "Name": "Tarkim Bitki Koruma Sanayi ve Ticaret A.S.",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "TATGD",
+    "Exchange": "IS",
+    "Name": "Tat Gida Sanayi AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "TAVHL",
+    "Exchange": "IS",
+    "Name": "TAV Havalimanlari Holding",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "TBORG",
+    "Exchange": "IS",
+    "Name": "Turk Tuborg Bira ve Malt Sanayi AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "TCELL",
+    "Exchange": "IS",
+    "Name": "Turkcell Iletisim Hizmetleri AS ORD",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "TCKRC",
+    "Exchange": "IS",
+    "Name": "KIRAC GALVANIZ",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "TDGYO",
+    "Exchange": "IS",
+    "Name": "Trend Gayrimenkul Yatirim Ortakligi AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "TEKTU",
+    "Exchange": "IS",
+    "Name": "Tek-Art Insaat Ticaret Turizm Sanayi ve Yatirimlar AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "TERA",
+    "Exchange": "IS",
+    "Name": "Tera Yatirim Menkul Degerler A.S.",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "TEZOL",
+    "Exchange": "IS",
+    "Name": "Europap Tezol Kagit Sanayi Ve Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "TGSAS",
+    "Exchange": "IS",
+    "Name": "TGS Dis Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "THYAO",
+    "Exchange": "IS",
+    "Name": "Turkish Airlines",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "TKFEN",
+    "Exchange": "IS",
+    "Name": "Tekfen Holding AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "TKNSA",
+    "Exchange": "IS",
+    "Name": "Teknosa Ic ve Dis Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "TLMAN",
+    "Exchange": "IS",
+    "Name": "Trabzon Liman Isletmeciligi A.S.",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "TMPOL",
+    "Exchange": "IS",
+    "Name": "Temapol Polimer Plastik ve Insaat Sanayi Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "TMSN",
+    "Exchange": "IS",
+    "Name": "Tumosan Motor ve Traktor Sanayi AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "TNZTP",
+    "Exchange": "IS",
+    "Name": "Tapdi Oksijen AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "TOASO",
+    "Exchange": "IS",
+    "Name": "Tofas Turk Otomobil Fabrikasi AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "TRCAS",
+    "Exchange": "IS",
+    "Name": "Turcas Petrol AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "TRGYO",
+    "Exchange": "IS",
+    "Name": "Torunlar Gayrimenkul Yatirim Ortakligi AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "TRILC",
+    "Exchange": "IS",
+    "Name": "Turk Ilac ve Serum Sanayi AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "TSGYO",
+    "Exchange": "IS",
+    "Name": "TSKB Gayrimenkul Yatirim Ortakligi AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "TSKB",
+    "Exchange": "IS",
+    "Name": "Turkiye Sinai Kalkinma Bankasi AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "TSPOR",
+    "Exchange": "IS",
+    "Name": "Trabzonspor Sportif Yatirim ve Futbol Isletmeciligi Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "TTKOM",
+    "Exchange": "IS",
+    "Name": "Turk Telekomunikasyon AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "TTRAK",
+    "Exchange": "IS",
+    "Name": "Turk Traktor ve Ziraat Makineleri AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "TUCLK",
+    "Exchange": "IS",
+    "Name": "Tugcelik Aluminyum ve Metal",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "TUKAS",
+    "Exchange": "IS",
+    "Name": "Tukas Gida Sanayi ve Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "TUPRS",
+    "Exchange": "IS",
+    "Name": "Turkiye Petrol Rafinerileri AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "TUREX",
+    "Exchange": "IS",
+    "Name": "Tureks Turizm Tasimacilik AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "TURGG",
+    "Exchange": "IS",
+    "Name": "Turker Proje Gayrimenkul Ve Yatirim Gelistirme AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "TURSG",
+    "Exchange": "IS",
+    "Name": "Turkiye Sigorta AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "UFUK",
+    "Exchange": "IS",
+    "Name": "Ufuk Yatirim Yonetim Ve Gayrimenkul AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "ULAS",
+    "Exchange": "IS",
+    "Name": "Ulaslar Turizm Yatirimlari ve Dayanikli Tuketim Mallari Ticaret Pazarlama AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "ULKER",
+    "Exchange": "IS",
+    "Name": "Ulker Biskuvi Sanayi AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "ULUFA",
+    "Exchange": "IS",
+    "Name": "Ulusal Faktoring AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "ULUSE",
+    "Exchange": "IS",
+    "Name": "Ulusoy Elektrik Imalat",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "ULUUN",
+    "Exchange": "IS",
+    "Name": "Ulusoy Un Sanayi ve Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "UMPAS",
+    "Exchange": "IS",
+    "Name": "Umpas Holding AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "UNLU",
+    "Exchange": "IS",
+    "Name": "Unlu Yatirim Holding AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "USAK",
+    "Exchange": "IS",
+    "Name": "Usak Seramik Sanayi AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "VAKBN",
+    "Exchange": "IS",
+    "Name": "Turkiye Vakiflar Bankasi TAO",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "VAKFN",
+    "Exchange": "IS",
+    "Name": "Vakif Finansal Kiralama AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "VAKKO",
+    "Exchange": "IS",
+    "Name": "Vakko Tekstil ve Hazir Giyim Sanayi Isletmeleri AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "VANGD",
+    "Exchange": "IS",
+    "Name": "Vanet Gida Sanayi Ic ve Dis Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "VBTYZ",
+    "Exchange": "IS",
+    "Name": "Vbt Yazilim AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "VERTU",
+    "Exchange": "IS",
+    "Name": "Verusaturk Girisim Sermayesi",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "VERUS",
+    "Exchange": "IS",
+    "Name": "Verusa Holding AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "VESBE",
+    "Exchange": "IS",
+    "Name": "Vestel Beyaz Esya Sanayi ve Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "VESTL",
+    "Exchange": "IS",
+    "Name": "Vestel Elektronik Sanayi ve Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "VKFYO",
+    "Exchange": "IS",
+    "Name": "Vakif Menkul Kiymet Yatirim Ortakligi AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "VKGYO",
+    "Exchange": "IS",
+    "Name": "Vakif Gayrimenkul Yatirim Ortakligi AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "VKING",
+    "Exchange": "IS",
+    "Name": "Viking Kagit ve Seluloz AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "VRGYO",
+    "Exchange": "IS",
+    "Name": "VERA KONSEPT GMYO",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "YAPRK",
+    "Exchange": "IS",
+    "Name": "Yaprak Sut ve Besi Ciftlikleri Sanayi ve Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "YATAS",
+    "Exchange": "IS",
+    "Name": "Yatas Yatak ve Yorgan Sanayi Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "YAYLA",
+    "Exchange": "IS",
+    "Name": "Yayla Enerji Uretim Turizm ve",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "YBTAS",
+    "Exchange": "IS",
+    "Name": "Yibitas Yozgat Isci Birligi Insaat Malzemeleri Ticaret Sanayi AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "YEOTK",
+    "Exchange": "IS",
+    "Name": "Yeo Teknoloji Enerji ve Endustri AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "YESIL",
+    "Exchange": "IS",
+    "Name": "Yesil Yatirim Holding AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "YGGYO",
+    "Exchange": "IS",
+    "Name": "Yeni Gimat Gayrimenkul Yatirim Ortakligi AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "YGYO",
+    "Exchange": "IS",
+    "Name": "Yesil Gayrimenkul Yatirim Ortakligi AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "YIGIT",
+    "Exchange": "IS",
+    "Name": "Yigit Aku Malzemeleri Nakliyat Turizm Insaat Sanayi ve Ticaret A.S. ",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "YKBNK",
+    "Exchange": "IS",
+    "Name": "Yapi ve Kredi Bankasi AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "YKSLN",
+    "Exchange": "IS",
+    "Name": "Yukselen Celik\u00a0As",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "YONGA",
+    "Exchange": "IS",
+    "Name": "Yonga Mobilya Sanayi ve Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "YUNSA",
+    "Exchange": "IS",
+    "Name": "Yunsa Yunlu Sanayi ve Ticaret AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "YYAPI",
+    "Exchange": "IS",
+    "Name": "Yesil Yapi Endustrisi AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "YYLGD",
+    "Exchange": "IS",
+    "Name": "Yayla Agro Gida Sanayi ve Ticaret A.S.",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "ZEDUR",
+    "Exchange": "IS",
+    "Name": "Zedur Enerji Elektrik Uretim A.S.",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "ZOREN",
+    "Exchange": "IS",
+    "Name": "Zorlu Enerji Elektrik Uretim AS",
+    "Country": "Turkey"
+  },
+  {
+    "Symbol": "ZRGYO",
+    "Exchange": "IS",
+    "Name": "Ziraat Gayrimenkul Yatirim Ortakligi AS",
+    "Country": "Turkey"
+  }
+]

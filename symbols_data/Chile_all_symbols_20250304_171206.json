@@ -1,0 +1,806 @@
+[
+  {
+    "Symbol": "AAISA",
+    "Exchange": "SN",
+    "Name": "Administradora Americana de Inversiones S.A.",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "ABC",
+    "Exchange": "SN",
+    "Name": "Empresas la Polar SA",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "AGUAS-A",
+    "Exchange": "SN",
+    "Name": "Aguas Andinas S.A",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "ALMENDRAL",
+    "Exchange": "SN",
+    "Name": "Almendral",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "AMZN",
+    "Exchange": "SN",
+    "Name": "Amazon.com Inc",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "ANDINA-A",
+    "Exchange": "SN",
+    "Name": "Embotelladora Andina S.A",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "ANDINA-B",
+    "Exchange": "SN",
+    "Name": "Embotelladora Andina S.A",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "ANDINAA",
+    "Exchange": "SN",
+    "Name": "Embotelladora Andina S.A. Pfd. A",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "ANTARCHILE",
+    "Exchange": "SN",
+    "Name": "Antar Chile",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "AZULAZUL",
+    "Exchange": "SN",
+    "Name": "Azul Azul Sa",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "BANVIDA",
+    "Exchange": "SN",
+    "Name": "Banvida",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "BCI",
+    "Exchange": "SN",
+    "Name": "Banco de Credito e Inversiones",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "BESALCO",
+    "Exchange": "SN",
+    "Name": "Besalco Sa",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "BICECORP",
+    "Exchange": "SN",
+    "Name": "BICECORP S.A",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "BLUMAR",
+    "Exchange": "SN",
+    "Name": "Blumar",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "BSANTANDER",
+    "Exchange": "SN",
+    "Name": "Banco Santander Chile",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "CAMANCHACA",
+    "Exchange": "SN",
+    "Name": "Pes Camanchaca",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "CAP",
+    "Exchange": "SN",
+    "Name": "CAP S.A",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "CCU",
+    "Exchange": "SN",
+    "Name": "Compania Cervecerias Unidas SA",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "CEMARGOSCL",
+    "Exchange": "SN",
+    "Name": "Cementos Argos S.A.",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "CEMENTOS",
+    "Exchange": "SN",
+    "Name": "Cementos Bio-B",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "CENCOMALLS",
+    "Exchange": "SN",
+    "Name": "Cencosud Shopping SA",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "CENCOSUD",
+    "Exchange": "SN",
+    "Name": "Cencosud",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "CFIARRAA-E",
+    "Exchange": "SN",
+    "Name": "Arrayan Acciones Chilenas FIP",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "CFIBCHREN1",
+    "Exchange": "SN",
+    "Name": "Fondo de Inversi\u00f3n Banchile Rentas Inmobiliarias",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "CFIBTGFGIA",
+    "Exchange": "SN",
+    "Name": "BTG Pactual Chile S.A. Administradora General De Fondos - BTF Finacimiento Garantias Inmov Fund",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "CFIBTGRCA",
+    "Exchange": "SN",
+    "Name": "BTG Pactual Renta Comercial F. I.",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "CFIETFCC",
+    "Exchange": "SN",
+    "Name": "Fondo De Inversion ETF Singular Chile Corporativo",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "CFIETFCD",
+    "Exchange": "SN",
+    "Name": "Fondo de Inversion ETF Singular Chile Corta Duracion",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "CFIETFGE",
+    "Exchange": "SN",
+    "Name": "Fondo De Inversion ETF Singular Global Equities",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "CFIFYNRF2A",
+    "Exchange": "SN",
+    "Name": "Fondo De Inversion Fynsa Renta Fija Privada II",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "CFIIMDLAT",
+    "Exchange": "SN",
+    "Name": "Moneda Deuda Latinoamericana fondo de inversion",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "CFILVMXA-E",
+    "Exchange": "SN",
+    "Name": "Larrain Vial Activos S.A. Administradora General - FI Larrain Vial Mexico Mezzanine",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "CFILVPARI1",
+    "Exchange": "SN",
+    "Name": "Aurus Capital Renta Inmobiliaria Fondo de Inversi\u00f3n",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "CFIMBDPA-E",
+    "Exchange": "SN",
+    "Name": "MBI Administradora General de Fondos S.A. - MBI Deuda Privada Fondo de Inversion",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "CFIMBDPC-E",
+    "Exchange": "SN",
+    "Name": "MBI Administradora General de Fondos S.A. - MBI Deuda Privada Fondo de Inversion",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "CFIMBIDA-A",
+    "Exchange": "SN",
+    "Name": "MBI Administradora General De Fondo - MBI Deuda Alternativa Fondo De Inversion",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "CFIMFUS-E",
+    "Exchange": "SN",
+    "Name": "\tHMC SA ADMINISTRADORA GENERAL DE FONDOS - FONDO DE INVERSI\u00d3N HMC MULTIFAMILY US FUND",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "CFINHRFLA",
+    "Exchange": "SN",
+    "Name": "Fondo De Inversion Nevasa HMC Renta Fija Local",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "CFINRENTAS",
+    "Exchange": "SN",
+    "Name": "Fondo de Inversion Independencia Rentas Inmobiliarias",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "CFIPIONERO",
+    "Exchange": "SN",
+    "Name": "Pionero Fondo De Inversion",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "CFIWEG-1",
+    "Exchange": "SN",
+    "Name": "Weg ADM General De Fondos SA - Fondo De Inversion Weg-1 Fund",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "CFMDIVO",
+    "Exchange": "SN",
+    "Name": "Fondo Mutuo ETF It Now S&P/CLX Chile Dividend Index",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "CFMITNIPSA",
+    "Exchange": "SN",
+    "Name": "Fondo Mutuo ETF IT Now IPSA",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "CGE",
+    "Exchange": "SN",
+    "Name": "Compania General de Electricidad SA",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "CGET",
+    "Exchange": "SN",
+    "Name": "CGE Transmision S.A.",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "CHILE",
+    "Exchange": "SN",
+    "Name": "Banco de Chile",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "CINTAC",
+    "Exchange": "SN",
+    "Name": "Cintac",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "CMPC",
+    "Exchange": "SN",
+    "Name": "Empresas CMPC",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "COLBUN",
+    "Exchange": "SN",
+    "Name": "Colbun",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "COLOCOLO",
+    "Exchange": "SN",
+    "Name": "Blanco Y Negro",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "CONCHATORO",
+    "Exchange": "SN",
+    "Name": "Vina Concha To",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "COPEC",
+    "Exchange": "SN",
+    "Name": "Empresas Copec S.A.",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "COUNTRY-A",
+    "Exchange": "SN",
+    "Name": "Prince of Wales Country Club S.A.I.",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "CRISTALES",
+    "Exchange": "SN",
+    "Name": "Cristales",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "CRUZADOS",
+    "Exchange": "SN",
+    "Name": "Cruzados SADP",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "CTC",
+    "Exchange": "SN",
+    "Name": "Telefonica Chile S.A.",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "CUPRUM",
+    "Exchange": "SN",
+    "Name": "Cuprum",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "DIS",
+    "Exchange": "SN",
+    "Name": "Walt Disney Company",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "ECL",
+    "Exchange": "SN",
+    "Name": "Engie Energia Chile SA",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "EISA",
+    "Exchange": "SN",
+    "Name": "Eche Izquierdo",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "EMBONOR-A",
+    "Exchange": "SN",
+    "Name": "Coca-Cola Embonor S.A",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "EMBONOR-B",
+    "Exchange": "SN",
+    "Name": "Coca-Cola Embonor S.A",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "ENAEX",
+    "Exchange": "SN",
+    "Name": "Enaex S.A",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "ENELAM",
+    "Exchange": "SN",
+    "Name": "Enel Am\u00e9ricas S.A",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "ENELCHILE",
+    "Exchange": "SN",
+    "Name": "Enel Chile S.A",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "ENELGXCH",
+    "Exchange": "SN",
+    "Name": "Enel Generaci\u00f3n Chile S.A",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "ENJOY",
+    "Exchange": "SN",
+    "Name": "Enjoy S.A",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "ENLASA",
+    "Exchange": "SN",
+    "Name": "Energia Latina SA",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "ENTEL",
+    "Exchange": "SN",
+    "Name": "Empresa Nacional de Telecomunicaciones SA",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "FALABELLA",
+    "Exchange": "SN",
+    "Name": "Falabella",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "FORUS",
+    "Exchange": "SN",
+    "Name": "Forus S.A",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "GASCO",
+    "Exchange": "SN",
+    "Name": "Empresas Gasco S.A",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "GOOGL",
+    "Exchange": "SN",
+    "Name": "Alphabet Inc. Cl A",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "HABITAT",
+    "Exchange": "SN",
+    "Name": "A.F.P. Habitat",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "HITES",
+    "Exchange": "SN",
+    "Name": "Hites S.A.",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "IAM",
+    "Exchange": "SN",
+    "Name": "Inversiones Aguas Metropolitanas SA",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "IANSA",
+    "Exchange": "SN",
+    "Name": "Empresas Iansa S.A",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "IAUCL",
+    "Exchange": "SN",
+    "Name": "IAUCL",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "ILC",
+    "Exchange": "SN",
+    "Name": "Inv La Constru",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "INDISA",
+    "Exchange": "SN",
+    "Name": "Inst Diagnosti",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "INGEVEC",
+    "Exchange": "SN",
+    "Name": "Ingevec",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "INVERCAP",
+    "Exchange": "SN",
+    "Name": "Invercap",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "ITAUCL",
+    "Exchange": "SN",
+    "Name": "Banco Itau Chile",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "IVVCL",
+    "Exchange": "SN",
+    "Name": "IVVCL",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "IYWCL",
+    "Exchange": "SN",
+    "Name": "iShares Trust - iShares U.S. Technology ETF",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "LASCONDES",
+    "Exchange": "SN",
+    "Name": "Las Condes",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "LIPIGAS",
+    "Exchange": "SN",
+    "Name": "Empresas Lipigas S.A.",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "LTM",
+    "Exchange": "SN",
+    "Name": "LATAM Airlines Group S.A",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "MALLPLAZA",
+    "Exchange": "SN",
+    "Name": "Plaza S.A",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "MANQUEHUE",
+    "Exchange": "SN",
+    "Name": "Inmobiliaria Manquehue S.A",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "MARINSA",
+    "Exchange": "SN",
+    "Name": "Maritima De In",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "MASISA",
+    "Exchange": "SN",
+    "Name": "Masisa",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "MELON",
+    "Exchange": "SN",
+    "Name": "Melon SA",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "MINERA",
+    "Exchange": "SN",
+    "Name": "Minera Valparaiso S.A.",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "MOLLER",
+    "Exchange": "SN",
+    "Name": "Moller Y Perez",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "MOLYMET",
+    "Exchange": "SN",
+    "Name": "Molymet",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "MSFT",
+    "Exchange": "SN",
+    "Name": "Microsoft Corporation",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "MULTIX",
+    "Exchange": "SN",
+    "Name": "Multiexport Foods S.A.",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "NAVIERA",
+    "Exchange": "SN",
+    "Name": "Grupo Empresas Navieras SA",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "NITRATOS",
+    "Exchange": "SN",
+    "Name": "Nitratos de Chile SA",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "NORTEGRAN",
+    "Exchange": "SN",
+    "Name": "Norte Grande",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "NTGCLGAS",
+    "Exchange": "SN",
+    "Name": "Naturgy Chile Gas Natural S.A.",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "NUAM",
+    "Exchange": "SN",
+    "Name": "Holding Burs\u00e1til Regional S.A.",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "OROBLANCO",
+    "Exchange": "SN",
+    "Name": "Oro Blanco",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "OXIQUIM",
+    "Exchange": "SN",
+    "Name": "Oxiquim S.A",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "PARAUCO",
+    "Exchange": "SN",
+    "Name": "Parq Arauco",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "PAZ",
+    "Exchange": "SN",
+    "Name": "Paz Corp",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "PEHUENCHE",
+    "Exchange": "SN",
+    "Name": "Pehuenche",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "PLANVITAL",
+    "Exchange": "SN",
+    "Name": "A.F.P. Planvital S.A.",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "PROVIDA",
+    "Exchange": "SN",
+    "Name": "A.F.P. Provida",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "PUCOBRE",
+    "Exchange": "SN",
+    "Name": "Sociedad Punta del Cobre S.A",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "QUINENCO",
+    "Exchange": "SN",
+    "Name": "Quinenco",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "RIPLEY",
+    "Exchange": "SN",
+    "Name": "Ripley Corp",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "SALFACORP",
+    "Exchange": "SN",
+    "Name": "Salfacorp",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "SALMOCAM",
+    "Exchange": "SN",
+    "Name": "Salmones Camanchaca S.A",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "SCHWAGER",
+    "Exchange": "SN",
+    "Name": "Schwager",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "SECURITY",
+    "Exchange": "SN",
+    "Name": "Grupo Security",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "SK",
+    "Exchange": "SN",
+    "Name": "Sigdo Koppers",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "SMHCL",
+    "Exchange": "SN",
+    "Name": "SMHCL",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "SMSAAM",
+    "Exchange": "SN",
+    "Name": "Sociedad Matriz SAAM SA",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "SMU",
+    "Exchange": "SN",
+    "Name": "SMU S.A",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "SOCOVESA",
+    "Exchange": "SN",
+    "Name": "Socovesa",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "SONDA",
+    "Exchange": "SN",
+    "Name": "Sonda S.A",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "SOQUICOM",
+    "Exchange": "SN",
+    "Name": "Soquicom",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "SQM-A",
+    "Exchange": "SN",
+    "Name": "Sociedad Qu\u00edmica y Minera de Chile S.A",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "SQM-B",
+    "Exchange": "SN",
+    "Name": "Sociedad Qu\u00edmica y Minera de Chile S.A.",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "TRICAHUE",
+    "Exchange": "SN",
+    "Name": "Inv Tricahue",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "TRICOT",
+    "Exchange": "SN",
+    "Name": "Empresas Tricot S.A",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "VAPORES",
+    "Exchange": "SN",
+    "Name": "Vapores",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "VENTANAS",
+    "Exchange": "SN",
+    "Name": "Puerto Ventana",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "VSPT",
+    "Exchange": "SN",
+    "Name": "Vina San Pedro",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "WATTS",
+    "Exchange": "SN",
+    "Name": "Watts SA",
+    "Country": "Chile"
+  },
+  {
+    "Symbol": "ZOFRI",
+    "Exchange": "SN",
+    "Name": "Zona Franca de Iquique S.A",
+    "Country": "Chile"
+  }
+]

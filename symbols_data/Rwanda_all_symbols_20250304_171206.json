@@ -1,0 +1,62 @@
+[
+  {
+    "Symbol": "BLR",
+    "Exchange": "RSE",
+    "Name": "BRALIRWA LTD",
+    "Country": "Rwanda"
+  },
+  {
+    "Symbol": "BOK",
+    "Exchange": "RSE",
+    "Name": "BANK OF KIGALI",
+    "Country": "Rwanda"
+  },
+  {
+    "Symbol": "CMR",
+    "Exchange": "RSE",
+    "Name": "CIMERWA PLC",
+    "Country": "Rwanda"
+  },
+  {
+    "Symbol": "EQTY",
+    "Exchange": "RSE",
+    "Name": "EQUITY GROUP HOLDINGS LTD",
+    "Country": "Rwanda"
+  },
+  {
+    "Symbol": "IMR",
+    "Exchange": "RSE",
+    "Name": "I&M BANK RWANDA LTD",
+    "Country": "Rwanda"
+  },
+  {
+    "Symbol": "KCB",
+    "Exchange": "RSE",
+    "Name": "KENYA COMMERCIAL BANK LTD",
+    "Country": "Rwanda"
+  },
+  {
+    "Symbol": "MTNR",
+    "Exchange": "RSE",
+    "Name": "MTN RWANDACELL PLC",
+    "Country": "Rwanda"
+  },
+  {
+    "Symbol": "NMG",
+    "Exchange": "RSE",
+    "Name": "NATION MEDIA GROUP",
+    "Country": "Rwanda"
+  },
+  {
+    "Symbol": "RHB",
+    "Exchange": "RSE",
+    "Name": "RH BOPHELO LTD",
+    "Country": "Rwanda"
+  },
+  {
+    "Symbol": "USL",
+    "Exchange": "RSE",
+    "Name": "UCHUMI SUPERMARKET LTD",
+    "Country": "Rwanda"
+  }
+]

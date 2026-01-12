@@ -1,0 +1,6986 @@
+[
+  {
+    "Symbol": "0P00000JQA",
+    "Exchange": "PA",
+    "Name": "Libert\u00e9 Euro Pea C",
+    "Country": "France"
+  },
+  {
+    "Symbol": "100H",
+    "Exchange": "PA",
+    "Name": "Amundi FTSE 100 UCITS ETF EUR Hedged Acc",
+    "Country": "France"
+  },
+  {
+    "Symbol": "28IY",
+    "Exchange": "PA",
+    "Name": "iShares iBonds Dec 2028 Term EUR Italy Government Bond UCITS ETF EUR (Dist)",
+    "Country": "France"
+  },
+  {
+    "Symbol": "500",
+    "Exchange": "PA",
+    "Name": "Amundi Index Solutions - Amundi S&P 500 UCITS ETF C EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "500H",
+    "Exchange": "PA",
+    "Name": "Amundi Index Solutions - Amundi S&P 500 UCITS ETF C Hedged EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "500U",
+    "Exchange": "PA",
+    "Name": "Amundi Index Solutions - Amundi S&P 500 UCITS ETF C USD",
+    "Country": "France"
+  },
+  {
+    "Symbol": "50E",
+    "Exchange": "PA",
+    "Name": "HSBC EURO STOXX 50 UCITS ETF",
+    "Country": "France"
+  },
+  {
+    "Symbol": "5OGE",
+    "Exchange": "PA",
+    "Name": "Ossiam Shiller Barclays Cape Global Sector Value Fund 1C (EUR) EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "5OGU",
+    "Exchange": "PA",
+    "Name": "Ossiam Lux - Ossiam Shiller Barclays Cape Global Sector Value Trust Ucits ETF",
+    "Country": "France"
+  },
+  {
+    "Symbol": "AAA",
+    "Exchange": "PA",
+    "Name": "Alan Allman Associates SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "AADA",
+    "Exchange": "PA",
+    "Name": "21Shares Cardano ETP EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "AARB",
+    "Exchange": "PA",
+    "Name": "21Shares Arbitrum ETP",
+    "Country": "France"
+  },
+  {
+    "Symbol": "AASI",
+    "Exchange": "PA",
+    "Name": "Amundi Index Solutions - Amundi MSCI Em Asia UCITS ETF-C EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "AASU",
+    "Exchange": "PA",
+    "Name": "Amundi Index Solutions - Amundi MSCI Em Asia UCITS ETF-C USD",
+    "Country": "France"
+  },
+  {
+    "Symbol": "AAVE",
+    "Exchange": "PA",
+    "Name": "21Shares Aave ETP EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "AB",
+    "Exchange": "PA",
+    "Name": "AB Science S.A",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ABCA",
+    "Exchange": "PA",
+    "Name": "ABC arbitrage SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ABCH",
+    "Exchange": "PA",
+    "Name": "21Shares Bitcoin Cash ETP EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ABEO",
+    "Exchange": "PA",
+    "Name": "Abeo SAS",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ABLD",
+    "Exchange": "PA",
+    "Name": "AbL Diagnostics SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ABNX",
+    "Exchange": "PA",
+    "Name": "Abionyx Pharma SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ABTC",
+    "Exchange": "PA",
+    "Name": "Amun Underlying Tracker on Bitcoin ETP 2019",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ABVX",
+    "Exchange": "PA",
+    "Name": "Abivax SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "AC",
+    "Exchange": "PA",
+    "Name": "Accor S. A.",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ACA",
+    "Exchange": "PA",
+    "Name": "Credit Agricole SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ACAN",
+    "Exchange": "PA",
+    "Name": "Acanthe D\u00e9veloppement",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ACWE",
+    "Exchange": "PA",
+    "Name": "SSgA SPDR MSCI ACWI",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ACWI",
+    "Exchange": "PA",
+    "Name": "Multi Units Luxembourg - Lyxor MSCI All Country World UCITS ETF",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ADAW",
+    "Exchange": "PA",
+    "Name": "WisdomTree Cardano EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ADOC",
+    "Exchange": "PA",
+    "Name": "Adocia",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ADOT",
+    "Exchange": "PA",
+    "Name": "21Shares Polkadot ETP EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ADP",
+    "Exchange": "PA",
+    "Name": "Aeroports de Paris SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "AEEM",
+    "Exchange": "PA",
+    "Name": "Amundi Index Solutions - Amundi MSCI Emerging Markets UCITS ETF-C EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "AEJ",
+    "Exchange": "PA",
+    "Name": "Lyxor UCITS MSCI AC Asia-Pacific Ex Japan C-E",
+    "Country": "France"
+  },
+  {
+    "Symbol": "AELIS",
+    "Exchange": "PA",
+    "Name": "Aelis Farma SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "AEME",
+    "Exchange": "PA",
+    "Name": "Amundi Index Solutions - Amundi Index MSCI Emerging Markets UCITS ETF DR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "AETH",
+    "Exchange": "PA",
+    "Name": "Amun Coin Market Cap Fund",
+    "Country": "France"
+  },
+  {
+    "Symbol": "AF",
+    "Exchange": "PA",
+    "Name": "Air France-KLM SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "AFLE",
+    "Exchange": "PA",
+    "Name": "Amundi Index Solutions - Amundi Floating Rate USD Corporate ESG - UCITS ETF DR - HEDGED EUR (C)",
+    "Country": "France"
+  },
+  {
+    "Symbol": "AFLT",
+    "Exchange": "PA",
+    "Name": "Amundi Index Solutions - Amundi Floating Rate USD Corporate ESG - UCITS ETF DR - USD (C)",
+    "Country": "France"
+  },
+  {
+    "Symbol": "AFME",
+    "Exchange": "PA",
+    "Name": "Affluent Medical SAS",
+    "Country": "France"
+  },
+  {
+    "Symbol": "AFRHG",
+    "Exchange": "PA",
+    "Name": "Amundi Index Solutions - Amundi Floating Rate EURO Corporate ESG - UCITS ETF DR - GBP HEDGED (C)",
+    "Country": "France"
+  },
+  {
+    "Symbol": "AFRHU",
+    "Exchange": "PA",
+    "Name": "Amundi Index Solutions - Amundi Floating Rate EURO Corporate ESG - UCITS ETF DR - USD HEDGED (C)",
+    "Country": "France"
+  },
+  {
+    "Symbol": "AFRN",
+    "Exchange": "PA",
+    "Name": "Amundi Index Solutions - Amundi Floating Rate EURO Corporate ESG - UCITS ETF DR - EUR (C)",
+    "Country": "France"
+  },
+  {
+    "Symbol": "AFTM",
+    "Exchange": "PA",
+    "Name": "21Shares Fantom ETP",
+    "Country": "France"
+  },
+  {
+    "Symbol": "AGEB",
+    "Exchange": "PA",
+    "Name": "Amundi Index Solutions - Amundi Global Emerging Bond Markit IBOXX UCITS ETF DR - C",
+    "Country": "France"
+  },
+  {
+    "Symbol": "AHYE",
+    "Exchange": "PA",
+    "Name": "Amundi Index Solutions - Amundi EURO High Yield Bond ESG - UCITS ETF DR - EUR (C)",
+    "Country": "France"
+  },
+  {
+    "Symbol": "AI",
+    "Exchange": "PA",
+    "Name": "Air Liquide SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "AIGPP",
+    "Exchange": "PA",
+    "Name": "WisdomTree Precious Metals EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "AIR",
+    "Exchange": "PA",
+    "Name": "Airbus Group SE",
+    "Country": "France"
+  },
+  {
+    "Symbol": "AKE",
+    "Exchange": "PA",
+    "Name": "Arkema SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "AKW",
+    "Exchange": "PA",
+    "Name": "Akwel SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "AL2SI",
+    "Exchange": "PA",
+    "Name": "2CRSI S.A.",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALACT",
+    "Exchange": "PA",
+    "Name": "Acticor Biotech SAS",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALADO",
+    "Exchange": "PA",
+    "Name": "Adomos SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALAFY",
+    "Exchange": "PA",
+    "Name": "Afyren SAS",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALAGO",
+    "Exchange": "PA",
+    "Name": "E-Pango SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALAGP",
+    "Exchange": "PA",
+    "Name": "Agripower France Sa",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALAGR",
+    "Exchange": "PA",
+    "Name": "Agrogeneration",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALAIR",
+    "Exchange": "PA",
+    "Name": "Groupe Airwell Soci\u00e9t\u00e9 anonyme",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALALO",
+    "Exchange": "PA",
+    "Name": "Acheter Louer",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALAMA",
+    "Exchange": "PA",
+    "Name": "AMA Corp PLC",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALAMG",
+    "Exchange": "PA",
+    "Name": "Auplata SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALAQU",
+    "Exchange": "PA",
+    "Name": "Aquila SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALARF",
+    "Exchange": "PA",
+    "Name": "Adeunis",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALAST",
+    "Exchange": "PA",
+    "Name": "AST Groupe",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALAT",
+    "Exchange": "PA",
+    "Name": "Amundi Index Solutions - Amundi MSCI Em Latin America UCITS ETF-C EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALATA",
+    "Exchange": "PA",
+    "Name": "Atari S.A.",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALATI",
+    "Exchange": "PA",
+    "Name": "Actia Group",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALAU",
+    "Exchange": "PA",
+    "Name": "Amundi Index Solutions - Amundi MSCI Em Latin America",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALAUD",
+    "Exchange": "PA",
+    "Name": "Audacia SAS",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALAUR",
+    "Exchange": "PA",
+    "Name": "Aures Technologies S.A.",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALAVI",
+    "Exchange": "PA",
+    "Name": "AdVini S.A.",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALBDM",
+    "Exchange": "PA",
+    "Name": "Bd Multimedia",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALBFR",
+    "Exchange": "PA",
+    "Name": "Sidetrade",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALBI",
+    "Exchange": "PA",
+    "Name": "Gascogne SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALBIO",
+    "Exchange": "PA",
+    "Name": "Biosynex",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALBIZ",
+    "Exchange": "PA",
+    "Name": "Obiz Concept SAS",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALBKK",
+    "Exchange": "PA",
+    "Name": "Baikowski SASU",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALBLD",
+    "Exchange": "PA",
+    "Name": "Bilendi",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALBLU",
+    "Exchange": "PA",
+    "Name": "Bluelinea SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALBOA",
+    "Exchange": "PA",
+    "Name": "Boa Concept SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALBON",
+    "Exchange": "PA",
+    "Name": "Compagnie Lebon S.A.",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALBOO",
+    "Exchange": "PA",
+    "Name": "Boostheat",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALBPK",
+    "Exchange": "PA",
+    "Name": "Broadpeak SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALBPS",
+    "Exchange": "PA",
+    "Name": "Biophytis S.A.",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALCAB",
+    "Exchange": "PA",
+    "Name": "Cabasse S.A.",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALCAP",
+    "Exchange": "PA",
+    "Name": "Capelli SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALCAR",
+    "Exchange": "PA",
+    "Name": "Carmat",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALCBI",
+    "Exchange": "PA",
+    "Name": "Crypto Blockchain Industries SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALCBX",
+    "Exchange": "PA",
+    "Name": "Cibox Inter@ctive S.A.",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALCHI",
+    "Exchange": "PA",
+    "Name": "Alchimie\u00a0Sa",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALCIS",
+    "Exchange": "PA",
+    "Name": "Catering International & Services S.A.",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALCJ",
+    "Exchange": "PA",
+    "Name": "Crossject",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALCLS",
+    "Exchange": "PA",
+    "Name": "Cellectis",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALCOF",
+    "Exchange": "PA",
+    "Name": "Cofidur SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALCOG",
+    "Exchange": "PA",
+    "Name": "Cogra 48 Soci\u00e9t\u00e9 Anonyme",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALCOI",
+    "Exchange": "PA",
+    "Name": "Coil S.A./N.V",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALCOX",
+    "Exchange": "PA",
+    "Name": "NicOx S.A.",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALCRB",
+    "Exchange": "PA",
+    "Name": "Carbios",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALCUR",
+    "Exchange": "PA",
+    "Name": "Arcure SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALCWE",
+    "Exchange": "PA",
+    "Name": "Charwood Energy SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALDAR",
+    "Exchange": "PA",
+    "Name": "Damartex",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALDBL",
+    "Exchange": "PA",
+    "Name": "Bernard Loisea",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALDBT",
+    "Exchange": "PA",
+    "Name": "DBT SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALDEL",
+    "Exchange": "PA",
+    "Name": "Delfingen",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALDEV",
+    "Exchange": "PA",
+    "Name": "Devernois SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALDLS",
+    "Exchange": "PA",
+    "Name": "DLSI",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALDLT",
+    "Exchange": "PA",
+    "Name": "Delta Plus Group SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALDMS",
+    "Exchange": "PA",
+    "Name": "Diagnostic Medical Systems SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALDNE",
+    "Exchange": "PA",
+    "Name": "DONTNOD Entertainment SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALDNX",
+    "Exchange": "PA",
+    "Name": "DNXcorp",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALDOL",
+    "Exchange": "PA",
+    "Name": "Dolfines SAS",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALDRV",
+    "Exchange": "PA",
+    "Name": "Drone Volt SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALDUB",
+    "Exchange": "PA",
+    "Name": "Encres Dubuit SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALDV",
+    "Exchange": "PA",
+    "Name": "Alliance Developpement Capital SIIC SE",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALDVI",
+    "Exchange": "PA",
+    "Name": "Advicenne",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALEAC",
+    "Exchange": "PA",
+    "Name": "EdiliziAcrobatica S.p.A",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALECO",
+    "Exchange": "PA",
+    "Name": "Ecomiam SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALECP",
+    "Exchange": "PA",
+    "Name": "Europacorp",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALEMG",
+    "Exchange": "PA",
+    "Name": "Euromedis Groupe SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALEMV",
+    "Exchange": "PA",
+    "Name": "Emova Group SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALENO",
+    "Exchange": "PA",
+    "Name": "Enogia SAS",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALENR",
+    "Exchange": "PA",
+    "Name": "Entreprendre",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALENT",
+    "Exchange": "PA",
+    "Name": "Entreparticuli",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALEO2",
+    "Exchange": "PA",
+    "Name": "Eo2 Soci\u00e9t\u00e9 Anonyme",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALERS",
+    "Exchange": "PA",
+    "Name": "Eurobio Scientific SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALESA",
+    "Exchange": "PA",
+    "Name": "Ecoslops SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALESE",
+    "Exchange": "PA",
+    "Name": "Entech SE SAS",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALESK",
+    "Exchange": "PA",
+    "Name": "Esker SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALEUP",
+    "Exchange": "PA",
+    "Name": "Europlasma SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALEXA",
+    "Exchange": "PA",
+    "Name": "Exacompta Clairefontaine",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALFBA",
+    "Exchange": "PA",
+    "Name": "Fashion Bel Air S.A",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALFLE",
+    "Exchange": "PA",
+    "Name": "Fleury Michon",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALFLO",
+    "Exchange": "PA",
+    "Name": "Florentaise SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALFPC",
+    "Exchange": "PA",
+    "Name": "Fountaine Pajo",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALFRE",
+    "Exchange": "PA",
+    "Name": "Freelance.Com",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALFUM",
+    "Exchange": "PA",
+    "Name": "Fill Up Media SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALGAU",
+    "Exchange": "PA",
+    "Name": "Gaussin",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALGBE",
+    "Exchange": "PA",
+    "Name": "Glob Bioenergi",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALGEC",
+    "Exchange": "PA",
+    "Name": "GECI International SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALGEN",
+    "Exchange": "PA",
+    "Name": "Genoway",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALGEV",
+    "Exchange": "PA",
+    "Name": "Gevelot",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALGID",
+    "Exchange": "PA",
+    "Name": "Egide S.A.",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALGIL",
+    "Exchange": "PA",
+    "Name": "Groupe Guillin SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALGIR",
+    "Exchange": "PA",
+    "Name": "Signaux Girod",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALGLD",
+    "Exchange": "PA",
+    "Name": "Gold By Gold",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALGO",
+    "Exchange": "PA",
+    "Name": "21Shares Algorand ETP EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALGRO",
+    "Exchange": "PA",
+    "Name": "Grolleau SAS",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALGTR",
+    "Exchange": "PA",
+    "Name": "Groupe Tera SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALHAF",
+    "Exchange": "PA",
+    "Name": "Haffner Energy SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALHEX",
+    "Exchange": "PA",
+    "Name": "Hexaom",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALHF",
+    "Exchange": "PA",
+    "Name": "HF Company SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALHG",
+    "Exchange": "PA",
+    "Name": "Louis HachEtte Group SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALHGO",
+    "Exchange": "PA",
+    "Name": "Hamilton Global Opportunities PLC",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALHGR",
+    "Exchange": "PA",
+    "Name": "Hoffmann Green Cement Technologies",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALHIT",
+    "Exchange": "PA",
+    "Name": "Hitechpros",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALHOP",
+    "Exchange": "PA",
+    "Name": "Hopscotch Groupe S.A.",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALHPI",
+    "Exchange": "PA",
+    "Name": "Hopium\u00a0SAS",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALHRG",
+    "Exchange": "PA",
+    "Name": "Herige SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALHRS",
+    "Exchange": "PA",
+    "Name": "Hydrogen Refueling Solutions",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALHUN",
+    "Exchange": "PA",
+    "Name": "Hunyvers SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALHYP",
+    "Exchange": "PA",
+    "Name": "Hipay Group SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALI2S",
+    "Exchange": "PA",
+    "Name": "i2S SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALICA",
+    "Exchange": "PA",
+    "Name": "Icape Holding",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALICR",
+    "Exchange": "PA",
+    "Name": "I.Ceram SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALIDS",
+    "Exchange": "PA",
+    "Name": "Idsud S.A",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALIE",
+    "Exchange": "PA",
+    "Name": "Iervolino & Lady Bacardi Entertainment S.p.A.",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALIKO",
+    "Exchange": "PA",
+    "Name": "Ikonisys SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALIMO",
+    "Exchange": "PA",
+    "Name": "Groupimo SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALIMP",
+    "Exchange": "PA",
+    "Name": "Implanet SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALIMR",
+    "Exchange": "PA",
+    "Name": "Immersion SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALINK",
+    "Exchange": "PA",
+    "Name": "21Shares Chainlink ETP EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALINN",
+    "Exchange": "PA",
+    "Name": "Innelec Multimedia",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALINS",
+    "Exchange": "PA",
+    "Name": "Intrasense",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALINT",
+    "Exchange": "PA",
+    "Name": "Integragen",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALINV",
+    "Exchange": "PA",
+    "Name": "Invibes Advertising NV",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALISP",
+    "Exchange": "PA",
+    "Name": "ISPD Network S.A.",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALITL",
+    "Exchange": "PA",
+    "Name": "IT Link",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALJXR",
+    "Exchange": "PA",
+    "Name": "Archos",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALKAL",
+    "Exchange": "PA",
+    "Name": "Kalray SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALKEY",
+    "Exchange": "PA",
+    "Name": "Keyrus SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALKKO",
+    "Exchange": "PA",
+    "Name": "Kko International SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALKLA",
+    "Exchange": "PA",
+    "Name": "Klarsen SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALKLH",
+    "Exchange": "PA",
+    "Name": "KLEA HOLDING",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALKLK",
+    "Exchange": "PA",
+    "Name": "Kerlink SAS",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALLAM",
+    "Exchange": "PA",
+    "Name": "Llama Group S.A.",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALLAN",
+    "Exchange": "PA",
+    "Name": "Lanson BCC SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALLDL",
+    "Exchange": "PA",
+    "Name": "Groupe LDLC SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALLEC",
+    "Exchange": "PA",
+    "Name": "Cogelec SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALLEX",
+    "Exchange": "PA",
+    "Name": "Lexibook Linguistic Electronic System SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALLGO",
+    "Exchange": "PA",
+    "Name": "Largo SAS",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALLHB",
+    "Exchange": "PA",
+    "Name": "Les Hotels Bav",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALLIX",
+    "Exchange": "PA",
+    "Name": "Wallix Group SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALLLN",
+    "Exchange": "PA",
+    "Name": "LleidaNetworks Serveis Telem\u00e0tics S.A",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALLOG",
+    "Exchange": "PA",
+    "Name": "Logic Instrume",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALLPL",
+    "Exchange": "PA",
+    "Name": "Lepermislibre Sa",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALLUX",
+    "Exchange": "PA",
+    "Name": "Installux",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALMAR",
+    "Exchange": "PA",
+    "Name": "Mare Nostrum",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALMAS",
+    "Exchange": "PA",
+    "Name": "Mastrad",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALMCE",
+    "Exchange": "PA",
+    "Name": "Mon Courtier Energie Groupe SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALMCP",
+    "Exchange": "PA",
+    "Name": "Mcphy Energy",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALMDG",
+    "Exchange": "PA",
+    "Name": "MGI Digital",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALMDP",
+    "Exchange": "PA",
+    "Name": "Medesis Pharma SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALMDT",
+    "Exchange": "PA",
+    "Name": "Mediantechn",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALMER",
+    "Exchange": "PA",
+    "Name": "Sapmer",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALMET",
+    "Exchange": "PA",
+    "Name": "Methanor",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALMEX",
+    "Exchange": "PA",
+    "Name": "Airtime Partecipazioni SpA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALMGI",
+    "Exchange": "PA",
+    "Name": "Mg Internation",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALMIB",
+    "Exchange": "PA",
+    "Name": "Amoeba SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALMII",
+    "Exchange": "PA",
+    "Name": "Maison Internationale de lInformatique M2I SAS",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALMKS",
+    "Exchange": "PA",
+    "Name": "Making Science Group S.A.",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALMKT",
+    "Exchange": "PA",
+    "Name": "Mauna Kea Technologies SAS",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALMLB",
+    "Exchange": "PA",
+    "Name": "Miliboo SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALMOU",
+    "Exchange": "PA",
+    "Name": "Moulinvest",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALMRB",
+    "Exchange": "PA",
+    "Name": "Mr Bricolage",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALMUN",
+    "Exchange": "PA",
+    "Name": "Munic SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALNEV",
+    "Exchange": "PA",
+    "Name": "Neovacs S.A.",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALNFL",
+    "Exchange": "PA",
+    "Name": "NFL Biosciences SAS",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALNLF",
+    "Exchange": "PA",
+    "Name": "Neolife SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALNMG",
+    "Exchange": "PA",
+    "Name": "Netmedia Group S.A.",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALNMR",
+    "Exchange": "PA",
+    "Name": "NamR SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALNOV",
+    "Exchange": "PA",
+    "Name": "Novacyt",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALNRG",
+    "Exchange": "PA",
+    "Name": "Energisme",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALNSC",
+    "Exchange": "PA",
+    "Name": "NSC Groupe SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALNSE",
+    "Exchange": "PA",
+    "Name": "NSE SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALNTG",
+    "Exchange": "PA",
+    "Name": "Netgem SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALNXT",
+    "Exchange": "PA",
+    "Name": "Nextedia",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALO",
+    "Exchange": "PA",
+    "Name": "Alstom S.A.",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALODC",
+    "Exchange": "PA",
+    "Name": "Omer-Decugis & Cie",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALODY",
+    "Exchange": "PA",
+    "Name": "Odyssee Technologies SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALOKW",
+    "Exchange": "PA",
+    "Name": "Groupe OKwind",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALOPM",
+    "Exchange": "PA",
+    "Name": "Oncodesign Precision Medicine",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALORA",
+    "Exchange": "PA",
+    "Name": "Altheora SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALORD",
+    "Exchange": "PA",
+    "Name": "Ordissimo",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALPAT",
+    "Exchange": "PA",
+    "Name": "Plant Advanced Technologies SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALPAU",
+    "Exchange": "PA",
+    "Name": "Paulic Meunerie Sa",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALPCV",
+    "Exchange": "PA",
+    "Name": "Cerinnov Group SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALPDX",
+    "Exchange": "PA",
+    "Name": "Piscines Desjoyaux SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALPHA",
+    "Exchange": "PA",
+    "Name": "Pharnext SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALPHI",
+    "Exchange": "PA",
+    "Name": "Facephi Biometria S.A.",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALPJT",
+    "Exchange": "PA",
+    "Name": "Poujoulat S.A.",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALPM",
+    "Exchange": "PA",
+    "Name": "Precia S.A.",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALPOU",
+    "Exchange": "PA",
+    "Name": "Poulaillon SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALPRE",
+    "Exchange": "PA",
+    "Name": "Predilife",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALPRG",
+    "Exchange": "PA",
+    "Name": "Prologue",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALPRI",
+    "Exchange": "PA",
+    "Name": "Prismaflex Intl",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALPRO",
+    "Exchange": "PA",
+    "Name": "Prodware",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALPUL",
+    "Exchange": "PA",
+    "Name": "Pullup Entertainment Soci\u00e9t\u00e9 anonyme",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALQGC",
+    "Exchange": "PA",
+    "Name": "Quantum Genomics SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALQP",
+    "Exchange": "PA",
+    "Name": "Quadpack Industries SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALQWA",
+    "Exchange": "PA",
+    "Name": "Qwamplify SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALREA",
+    "Exchange": "PA",
+    "Name": "Realites",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALREW",
+    "Exchange": "PA",
+    "Name": "Reworld Media",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALRFG",
+    "Exchange": "PA",
+    "Name": "Racing Force S.p.A.",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALRGR",
+    "Exchange": "PA",
+    "Name": "Rougier S.A.",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALRIB",
+    "Exchange": "PA",
+    "Name": "Riber S.A",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALROC",
+    "Exchange": "PA",
+    "Name": "Roctool",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALRPD",
+    "Exchange": "PA",
+    "Name": "Rapid Nutrition PLC",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALSAF",
+    "Exchange": "PA",
+    "Name": "Safe Orthopaedics SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALSAS",
+    "Exchange": "PA",
+    "Name": "Stradim Espace Finances SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALSEN",
+    "Exchange": "PA",
+    "Name": "Sensorion SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALSGD",
+    "Exchange": "PA",
+    "Name": "Spineguard",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALSMA",
+    "Exchange": "PA",
+    "Name": "SMAIO SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALSOG",
+    "Exchange": "PA",
+    "Name": "Sogeclair SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALSPT",
+    "Exchange": "PA",
+    "Name": "Spartoo SAS",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALSPW",
+    "Exchange": "PA",
+    "Name": "Spineway",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALSTI",
+    "Exchange": "PA",
+    "Name": "STIF Soci\u00e9t\u00e9 anonyme",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALSTW",
+    "Exchange": "PA",
+    "Name": "Streamwide",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALTA",
+    "Exchange": "PA",
+    "Name": "Altarea SCA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALTAI",
+    "Exchange": "PA",
+    "Name": "LIGHTON",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALTBG",
+    "Exchange": "PA",
+    "Name": "Blockchain Group SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALTHE",
+    "Exchange": "PA",
+    "Name": "Theradiag SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALTHO",
+    "Exchange": "PA",
+    "Name": "Metavisio (Thomson Computing)",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALTHX",
+    "Exchange": "PA",
+    "Name": "Theranexus SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALTME",
+    "Exchange": "PA",
+    "Name": "TME Pharma N.V.",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALTOO",
+    "Exchange": "PA",
+    "Name": "Toosla SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALTPC",
+    "Exchange": "PA",
+    "Name": "Societe Marseillaise du Tunnel Prado Carenage S.A.",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALTRI",
+    "Exchange": "PA",
+    "Name": "Trilogiq",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALTRO",
+    "Exchange": "PA",
+    "Name": "TronicS Microsystems SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALTS",
+    "Exchange": "PA",
+    "Name": "21Shares Crypto Mid-Cap Index ETP EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALTTU",
+    "Exchange": "PA",
+    "Name": "TaTaTu SpA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALTUV",
+    "Exchange": "PA",
+    "Name": "BIO UV Group",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALTXC",
+    "Exchange": "PA",
+    "Name": "Txcom SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALU10",
+    "Exchange": "PA",
+    "Name": "U10 SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALUCI",
+    "Exchange": "PA",
+    "Name": "Lucibel",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALUNT",
+    "Exchange": "PA",
+    "Name": "Uniti SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALUPG",
+    "Exchange": "PA",
+    "Name": "Upergy",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALUVI",
+    "Exchange": "PA",
+    "Name": "UV Germi SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALVAL",
+    "Exchange": "PA",
+    "Name": "Valbiotis SAS",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALVAP",
+    "Exchange": "PA",
+    "Name": "Kumulus Vape SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALVAZ",
+    "Exchange": "PA",
+    "Name": "Vaziva Sa",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALVDM",
+    "Exchange": "PA",
+    "Name": "Voyageurs du Monde SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALVER",
+    "Exchange": "PA",
+    "Name": "Vergnet",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALVG",
+    "Exchange": "PA",
+    "Name": "VEOM Group S.A.",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALVGO",
+    "Exchange": "PA",
+    "Name": "VOGO SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALVIN",
+    "Exchange": "PA",
+    "Name": "Vinpai SAS",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALVIO",
+    "Exchange": "PA",
+    "Name": "Valerio Therapeutics",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALVU",
+    "Exchange": "PA",
+    "Name": "Vente Unique.com",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALWEC",
+    "Exchange": "PA",
+    "Name": "WeConnect",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALWF",
+    "Exchange": "PA",
+    "Name": "Winfarm",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALWIT",
+    "Exchange": "PA",
+    "Name": "Witbe Net SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ALWTR",
+    "Exchange": "PA",
+    "Name": "Osmosun SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "AM",
+    "Exchange": "PA",
+    "Name": "Dassault Aviation SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "AM3A",
+    "Exchange": "PA",
+    "Name": "Amundi Index Solutions - Amundi Govt Bond Highest Rated Euro Investment Grade Ucits ETF EUR C",
+    "Country": "France"
+  },
+  {
+    "Symbol": "AMPLI",
+    "Exchange": "PA",
+    "Name": "Amplitude Surgical SAS",
+    "Country": "France"
+  },
+  {
+    "Symbol": "AMUN",
+    "Exchange": "PA",
+    "Name": "Amundi SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ANRJ",
+    "Exchange": "PA",
+    "Name": "Amundi ETF MSCI Europe Energy UCITS ETF",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ANTIN",
+    "Exchange": "PA",
+    "Name": "Antin IP SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ANX",
+    "Exchange": "PA",
+    "Name": "Amundi Index Solutions - Amundi Nasdaq-100 ETF-C EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ANXU",
+    "Exchange": "PA",
+    "Name": "Amundi Index Solutions - Amundi Nasdaq-100 ETF-C USD",
+    "Country": "France"
+  },
+  {
+    "Symbol": "APX",
+    "Exchange": "PA",
+    "Name": "Lyxor UCITS MSCI Asia Ex Japan C-EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ARAMI",
+    "Exchange": "PA",
+    "Name": "Aramis SAS",
+    "Country": "France"
+  },
+  {
+    "Symbol": "AREIT",
+    "Exchange": "PA",
+    "Name": "Altareit",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ARG",
+    "Exchange": "PA",
+    "Name": "Argan SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ARTE",
+    "Exchange": "PA",
+    "Name": "Artea SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ARTO",
+    "Exchange": "PA",
+    "Name": "Artois Nom.",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ASI",
+    "Exchange": "PA",
+    "Name": "Lyxor MSCI China ESG Leaders Extra (DR) UCITS ETF - Acc",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ASOL",
+    "Exchange": "PA",
+    "Name": "21Shares Solana staking ETP EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ASY",
+    "Exchange": "PA",
+    "Name": "Assystem S.A.",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ATE",
+    "Exchange": "PA",
+    "Name": "Alten SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ATEME",
+    "Exchange": "PA",
+    "Name": "ATEME SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ATLD",
+    "Exchange": "PA",
+    "Name": "Atland S.A.",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ATO",
+    "Exchange": "PA",
+    "Name": "Atos SE",
+    "Country": "France"
+  },
+  {
+    "Symbol": "AUB",
+    "Exchange": "PA",
+    "Name": "Aubay Soci\u00e9t\u00e9 Anonyme",
+    "Country": "France"
+  },
+  {
+    "Symbol": "AUEM",
+    "Exchange": "PA",
+    "Name": "Amundi Index Solutions - Amundi MSCI Emerging Markets UCITS ETF-C USD",
+    "Country": "France"
+  },
+  {
+    "Symbol": "AUGR",
+    "Exchange": "PA",
+    "Name": "Augros Cosmetic Packaging SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "AUNI",
+    "Exchange": "PA",
+    "Name": "21Shares Uniswap ETP EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "AURE",
+    "Exchange": "PA",
+    "Name": "Aurea SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "AVAX",
+    "Exchange": "PA",
+    "Name": "21Shares Avalanche ETP EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "AVT",
+    "Exchange": "PA",
+    "Name": "Avenir Telecom S.A",
+    "Country": "France"
+  },
+  {
+    "Symbol": "AWAT",
+    "Exchange": "PA",
+    "Name": "Amundi PEA Eau (MSCI Water) UCITS ETF Capi",
+    "Country": "France"
+  },
+  {
+    "Symbol": "AXLM",
+    "Exchange": "PA",
+    "Name": "21S Stellar",
+    "Country": "France"
+  },
+  {
+    "Symbol": "AYV",
+    "Exchange": "PA",
+    "Name": "ALD SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "B26A",
+    "Exchange": "PA",
+    "Name": "iShares iBonds Dec 2026 Term \u20ac Corp UCITS ETF EUR (Acc) EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "B28A",
+    "Exchange": "PA",
+    "Name": "iShares iBonds Dec 2028 Term \u20ac Corp UCITS ETF EUR (Acc) EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "BAIN",
+    "Exchange": "PA",
+    "Name": "Bains Mer Monaco",
+    "Country": "France"
+  },
+  {
+    "Symbol": "BALYO",
+    "Exchange": "PA",
+    "Name": "Balyo SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "BASS",
+    "Exchange": "PA",
+    "Name": "Bassac",
+    "Country": "France"
+  },
+  {
+    "Symbol": "BB",
+    "Exchange": "PA",
+    "Name": "Soci\u00e9t\u00e9 BIC SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "BEN",
+    "Exchange": "PA",
+    "Name": "B\u00e9n\u00e9teau S.A.",
+    "Country": "France"
+  },
+  {
+    "Symbol": "BIG",
+    "Exchange": "PA",
+    "Name": "BigBen Interactive",
+    "Country": "France"
+  },
+  {
+    "Symbol": "BIM",
+    "Exchange": "PA",
+    "Name": "Biomerieux SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "BLC",
+    "Exchange": "PA",
+    "Name": "Bastide Le Confort M\u00e9dical SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "BLOC",
+    "Exchange": "PA",
+    "Name": "WisdomTree Crypto Market EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "BLUSD",
+    "Exchange": "PA",
+    "Name": "BNP PARIBAS EASY - ECPI Global ESG Blue Economy UCITS ETF USD Capitalisation",
+    "Country": "France"
+  },
+  {
+    "Symbol": "BLV",
+    "Exchange": "PA",
+    "Name": "Believe SAS",
+    "Country": "France"
+  },
+  {
+    "Symbol": "BN",
+    "Exchange": "PA",
+    "Name": "Danone SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "BNK",
+    "Exchange": "PA",
+    "Name": "Lyxor Index Fund - Lyxor Stoxx Europe 600 Banks UCITS ETF",
+    "Country": "France"
+  },
+  {
+    "Symbol": "BNKE",
+    "Exchange": "PA",
+    "Name": "Lyxor UCITS Stoxx Banks C-EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "BNP",
+    "Exchange": "PA",
+    "Name": "BNP Paribas SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "BOI",
+    "Exchange": "PA",
+    "Name": "Boiron SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "BOL",
+    "Exchange": "PA",
+    "Name": "Bollore SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "BON",
+    "Exchange": "PA",
+    "Name": "Bonduelle S.C.A.",
+    "Country": "France"
+  },
+  {
+    "Symbol": "BRES",
+    "Exchange": "PA",
+    "Name": "Multi Units Luxembourg - Amundi STOXX Europe 600 Basic Resources UCITS ETF Acc EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "BRNT",
+    "Exchange": "PA",
+    "Name": "WT Brent Crude Oil",
+    "Country": "France"
+  },
+  {
+    "Symbol": "BRZ",
+    "Exchange": "PA",
+    "Name": "Amundi Index Solutions - Amundi ETF MSCI Brazil UCITS ETF",
+    "Country": "France"
+  },
+  {
+    "Symbol": "BSD",
+    "Exchange": "PA",
+    "Name": "Bourse Direct SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "BSRIC",
+    "Exchange": "PA",
+    "Name": "Bnp Paribas Easy -  Aggregate Bond Sri Fossil Free",
+    "Country": "France"
+  },
+  {
+    "Symbol": "BSRID",
+    "Exchange": "PA",
+    "Name": "Bnp Paribas Easy -  Aggregate Bond Sri Fossil Free",
+    "Country": "France"
+  },
+  {
+    "Symbol": "BSX",
+    "Exchange": "PA",
+    "Name": "Lyxor UCITS Stoxx 50 Daily Short",
+    "Country": "France"
+  },
+  {
+    "Symbol": "BTC",
+    "Exchange": "PA",
+    "Name": "M\u00e9lanion BTC Equities Universe UCITS ETF EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "BTCE",
+    "Exchange": "PA",
+    "Name": "BTCetc - Bitcoin Exchange Traded Crypto",
+    "Country": "France"
+  },
+  {
+    "Symbol": "BTPS",
+    "Exchange": "PA",
+    "Name": "Lyxor UCITS Daily Double Short BTP",
+    "Country": "France"
+  },
+  {
+    "Symbol": "BUI",
+    "Exchange": "PA",
+    "Name": "Barbara Bui SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "BULLP",
+    "Exchange": "PA",
+    "Name": "WisdomTree Gold EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "BUNS",
+    "Exchange": "PA",
+    "Name": "Amundi German Bund Daily (-1x) Inverse UCITS ETF EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "BUR",
+    "Exchange": "PA",
+    "Name": "Burelle SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "BUYB",
+    "Exchange": "PA",
+    "Name": "Invesco Global Buyback Achievers UCITS ETF",
+    "Country": "France"
+  },
+  {
+    "Symbol": "BVI",
+    "Exchange": "PA",
+    "Name": "Bureau Veritas SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "BX4",
+    "Exchange": "PA",
+    "Name": "Lyxor UCITS CAC 40 Daily Double Short",
+    "Country": "France"
+  },
+  {
+    "Symbol": "BXX",
+    "Exchange": "PA",
+    "Name": "Lyxor UCITS Stoxx 50 Daily Double Short",
+    "Country": "France"
+  },
+  {
+    "Symbol": "BYBE",
+    "Exchange": "PA",
+    "Name": "Amundi Index Solutions - Amundi S&P 500 Buyback ETF-C EUR EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "BYBU",
+    "Exchange": "PA",
+    "Name": "Amundi S&P 500 Buyback USD UCITS",
+    "Country": "France"
+  },
+  {
+    "Symbol": "C1U",
+    "Exchange": "PA",
+    "Name": "Amundi FTSE 100 UCITS",
+    "Country": "France"
+  },
+  {
+    "Symbol": "C3M",
+    "Exchange": "PA",
+    "Name": "Amundi ETF Govies 0-6 Months EuroMTS Investment Grade UCITS ETF DR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "C40",
+    "Exchange": "PA",
+    "Name": "Amundi Index Solutions - AMUNDI CAC 40 ESG UCITS ETF DR - EUR (C)",
+    "Country": "France"
+  },
+  {
+    "Symbol": "C4D",
+    "Exchange": "PA",
+    "Name": "Amundi Index Solutions - AMUNDI CAC 40 ESG UCITS ETF DR - EUR (D)",
+    "Country": "France"
+  },
+  {
+    "Symbol": "C50",
+    "Exchange": "PA",
+    "Name": "Amundi Index Solutions - Amundi EURO STOXX 50 UCITS ETF-C EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "C50U",
+    "Exchange": "PA",
+    "Name": "Amundi Index Solutions - Amundi EURO STOXX 50 UCITS ETF-C USD",
+    "Country": "France"
+  },
+  {
+    "Symbol": "C53D",
+    "Exchange": "PA",
+    "Name": "Amundi ETF Govt Bond Euro Broad Investment Grade 5-7 UCITS ETF D",
+    "Country": "France"
+  },
+  {
+    "Symbol": "C5E",
+    "Exchange": "PA",
+    "Name": "Amundi Stoxx Europe 50 UCITS",
+    "Country": "France"
+  },
+  {
+    "Symbol": "C6E",
+    "Exchange": "PA",
+    "Name": "Amundi Index Solutions - AMUNDI STOXX EUROPE 600 ESG - UCITS ETF DR - EUR (C)",
+    "Country": "France"
+  },
+  {
+    "Symbol": "CA",
+    "Exchange": "PA",
+    "Name": "Carrefour SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "CAC",
+    "Exchange": "PA",
+    "Name": "Amundi CAC 40 UCITS ETF Dist",
+    "Country": "France"
+  },
+  {
+    "Symbol": "CACC",
+    "Exchange": "PA",
+    "Name": "Lyxor CAC 40 (DR) UCITS ETF Acc",
+    "Country": "France"
+  },
+  {
+    "Symbol": "CACLG",
+    "Exchange": "PA",
+    "Name": "CAC Large 60",
+    "Country": "France"
+  },
+  {
+    "Symbol": "CAF",
+    "Exchange": "PA",
+    "Name": "Caisse R\u00e9gionale de Cr\u00e9dit Agricole Mutuel de Paris et d'Ile-de-France",
+    "Country": "France"
+  },
+  {
+    "Symbol": "CAFO",
+    "Exchange": "PA",
+    "Name": "Centrale d'Achat Fran\u00e7aise pour l'Outre-Mer Soci\u00e9t\u00e9 Anonyme",
+    "Country": "France"
+  },
+  {
+    "Symbol": "CAP",
+    "Exchange": "PA",
+    "Name": "Capgemini SE",
+    "Country": "France"
+  },
+  {
+    "Symbol": "CAPE",
+    "Exchange": "PA",
+    "Name": "Ossiam Shiller Barclays Cape Europe Sector Value TR UCITS",
+    "Country": "France"
+  },
+  {
+    "Symbol": "CARM",
+    "Exchange": "PA",
+    "Name": "Carmila SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "CARP",
+    "Exchange": "PA",
+    "Name": "Carpinienne de Participations",
+    "Country": "France"
+  },
+  {
+    "Symbol": "CATG",
+    "Exchange": "PA",
+    "Name": "SA Catana Group",
+    "Country": "France"
+  },
+  {
+    "Symbol": "CB3",
+    "Exchange": "PA",
+    "Name": "Amundi Index Solutions - Amundi Govt Bond Euro Broad Investment Grade UCITS ETF-C",
+    "Country": "France"
+  },
+  {
+    "Symbol": "CBDG",
+    "Exchange": "PA",
+    "Name": "Compagnie du Cambodge",
+    "Country": "France"
+  },
+  {
+    "Symbol": "CBOT",
+    "Exchange": "PA",
+    "Name": "CBO Territoria S.A.",
+    "Country": "France"
+  },
+  {
+    "Symbol": "CBSM",
+    "Exchange": "PA",
+    "Name": "Soc Centrale Bois Scieries Manche SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "CC1",
+    "Exchange": "PA",
+    "Name": "Amundi Index Solutions - Amundi MSCI China UCITS ETF-C EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "CC1U",
+    "Exchange": "PA",
+    "Name": "Amundi Index Solutions - Amundi MSCI China UCITS ETF-C USD",
+    "Country": "France"
+  },
+  {
+    "Symbol": "CC4",
+    "Exchange": "PA",
+    "Name": "Amundi Index Solutions - Amundi EURO Corporates UCITS ETF DR EUR C",
+    "Country": "France"
+  },
+  {
+    "Symbol": "CD5",
+    "Exchange": "PA",
+    "Name": "Amundi Index Solutions - Amundi EURO STOXX 50 UCITS ETF-D EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "CD8",
+    "Exchange": "PA",
+    "Name": "Amundi ETF MSCI EMU High Dividend UCITS ETF",
+    "Country": "France"
+  },
+  {
+    "Symbol": "CD9",
+    "Exchange": "PA",
+    "Name": "Amundi MSCI Europe High Dividend UCITS",
+    "Country": "France"
+  },
+  {
+    "Symbol": "CDA",
+    "Exchange": "PA",
+    "Name": "Compagnie des Alpes S.A.",
+    "Country": "France"
+  },
+  {
+    "Symbol": "CDI",
+    "Exchange": "PA",
+    "Name": "Christian Dior SE",
+    "Country": "France"
+  },
+  {
+    "Symbol": "CE8",
+    "Exchange": "PA",
+    "Name": "Amundi Index Solutions - Amundi MSCI World Ex Europe ETF-C EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "CEC",
+    "Exchange": "PA",
+    "Name": "Multi Units Luxembourg - Lyxor MSCI Eastern Europe Ex Russia UCITS ETF",
+    "Country": "France"
+  },
+  {
+    "Symbol": "CEM",
+    "Exchange": "PA",
+    "Name": "Amundi MSCI Europe Small Cap ESG Climate Net Zero Ambition CTB ETF Acc",
+    "Country": "France"
+  },
+  {
+    "Symbol": "CEN",
+    "Exchange": "PA",
+    "Name": "Groupe CRIT SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "CEU",
+    "Exchange": "PA",
+    "Name": "Amundi Index Solutions - Amundi MSCI Europe ESG Broad CTB UCITS ETF DR EUR C",
+    "Country": "France"
+  },
+  {
+    "Symbol": "CEU2",
+    "Exchange": "PA",
+    "Name": "Amundi Index Solutions - Amundi Index MSCI Europe UCITS ETF DR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "CF1",
+    "Exchange": "PA",
+    "Name": "Amundi ETF MSCI France UCITS ETF",
+    "Country": "France"
+  },
+  {
+    "Symbol": "CFI",
+    "Exchange": "PA",
+    "Name": "CFI-Compagnie Fonci\u00c3\u00a8re Internationale",
+    "Country": "France"
+  },
+  {
+    "Symbol": "CG1",
+    "Exchange": "PA",
+    "Name": "Amundi ETF DAX UCITS ETF DR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "CG9",
+    "Exchange": "PA",
+    "Name": "Amundi MSCI Europe Growth UCITS",
+    "Country": "France"
+  },
+  {
+    "Symbol": "CGM",
+    "Exchange": "PA",
+    "Name": "Cegedim S.A.",
+    "Country": "France"
+  },
+  {
+    "Symbol": "CHINA",
+    "Exchange": "PA",
+    "Name": "BNP PARIBAS EASY - MSCI China Select SRI S-Series 10% Capped UCITS ETF Accumulation USD",
+    "Country": "France"
+  },
+  {
+    "Symbol": "CHINE",
+    "Exchange": "PA",
+    "Name": "BNP PARIBAS EASY - MSCI China Select SRI S-Series 10% Capped UCITS ETF EUR Acculumation EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "CHIP",
+    "Exchange": "PA",
+    "Name": "Lyxor MSCI Semiconductors ESG Filtered UCITS ETF - Acc",
+    "Country": "France"
+  },
+  {
+    "Symbol": "CHM",
+    "Exchange": "PA",
+    "Name": "Amundi STOXX Europe 600 Basic Materials UCITS ETF Acc EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "CI2",
+    "Exchange": "PA",
+    "Name": "Amundi Index Solutions - Amundi MSCI India UCITS ETF-C EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "CI2U",
+    "Exchange": "PA",
+    "Name": "Amundi MSCI India UCITS USD",
+    "Country": "France"
+  },
+  {
+    "Symbol": "CIV",
+    "Exchange": "PA",
+    "Name": "Caisse Regionale de Credit Agricole Mutuel d\u2019IlleetVilaine SC",
+    "Country": "France"
+  },
+  {
+    "Symbol": "CJ1",
+    "Exchange": "PA",
+    "Name": "Amundi Index Solutions - Amundi Index MSCI Japan ETF-C EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "CL2",
+    "Exchange": "PA",
+    "Name": "Amundi ETF Leveraged MSCI USA Daily UCITS ETF",
+    "Country": "France"
+  },
+  {
+    "Symbol": "CLA",
+    "Exchange": "PA",
+    "Name": "Claranova SE",
+    "Country": "France"
+  },
+  {
+    "Symbol": "CLARI",
+    "Exchange": "PA",
+    "Name": "Clariane SE",
+    "Country": "France"
+  },
+  {
+    "Symbol": "CLIM",
+    "Exchange": "PA",
+    "Name": "Lyxor Green Bond DR UCITS C-EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "CLMA",
+    "Exchange": "PA",
+    "Name": "iClima Global Decarbonisation Enablers UCITS ETF Acc EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "CLWD",
+    "Exchange": "PA",
+    "Name": "Amundi MSCI World ESG Climate Net Zero Ambition CTB UCITS ETF Dis",
+    "Country": "France"
+  },
+  {
+    "Symbol": "CM9",
+    "Exchange": "PA",
+    "Name": "Amundi ETF MSCI World ex EMU UCITS ETF",
+    "Country": "France"
+  },
+  {
+    "Symbol": "CMU",
+    "Exchange": "PA",
+    "Name": "Amundi MSCI EMU ESG Leaders Select UCITS ETF DR EUR (C)",
+    "Country": "France"
+  },
+  {
+    "Symbol": "CMUD",
+    "Exchange": "PA",
+    "Name": "AM EMU ESG LEAD D",
+    "Country": "France"
+  },
+  {
+    "Symbol": "CN1",
+    "Exchange": "PA",
+    "Name": "Amundi Index Solutions - Amundi MSCI Nordic UCITS ETF-C",
+    "Country": "France"
+  },
+  {
+    "Symbol": "CNAA",
+    "Exchange": "PA",
+    "Name": "Lyxor Fortune SG UCITS MSCI China A DR C",
+    "Country": "France"
+  },
+  {
+    "Symbol": "CNB",
+    "Exchange": "PA",
+    "Name": "Lyxor UCITS Euro Corporate Bond ex Financials C-EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "CNV",
+    "Exchange": "PA",
+    "Name": "Cnova NV",
+    "Country": "France"
+  },
+  {
+    "Symbol": "CNY",
+    "Exchange": "PA",
+    "Name": "HSBC MSCI China UCITS ETF",
+    "Country": "France"
+  },
+  {
+    "Symbol": "CO",
+    "Exchange": "PA",
+    "Name": "Casino Guichard Perrachon SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "COBS3",
+    "Exchange": "PA",
+    "Name": "CASINO BSA3",
+    "Country": "France"
+  },
+  {
+    "Symbol": "CODW",
+    "Exchange": "PA",
+    "Name": "Amundi S&P Global Consumer Discretionary ESG UCITS ETF DR EUR Acc EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "COFA",
+    "Exchange": "PA",
+    "Name": "Coface SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "COH",
+    "Exchange": "PA",
+    "Name": "Coheris SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "COMO",
+    "Exchange": "PA",
+    "Name": "Amundi Bl Equal-weight Comm ex-A UE A",
+    "Country": "France"
+  },
+  {
+    "Symbol": "COPAP",
+    "Exchange": "PA",
+    "Name": "WisdomTree Copper EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "COSE",
+    "Exchange": "PA",
+    "Name": "AMUNDI PEA S&P US Cons Stp ESG UCITS ETF",
+    "Country": "France"
+  },
+  {
+    "Symbol": "COSW",
+    "Exchange": "PA",
+    "Name": "Amundi S&P Global Consumer Staples ESG UCITS ETF DR EUR Acc EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "COUR",
+    "Exchange": "PA",
+    "Name": "Courtois S.A",
+    "Country": "France"
+  },
+  {
+    "Symbol": "COV",
+    "Exchange": "PA",
+    "Name": "Covivio SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "COVH",
+    "Exchange": "PA",
+    "Name": "Covivio Hotels",
+    "Country": "France"
+  },
+  {
+    "Symbol": "CP9",
+    "Exchange": "PA",
+    "Name": "Amundi Index MSCI Pacific Ex Japen SRI PAB - UCITS ETF DR - EUR C",
+    "Country": "France"
+  },
+  {
+    "Symbol": "CP9U",
+    "Exchange": "PA",
+    "Name": "Amundi MSCI Pacific ex Japan UCITS DR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "CRAP",
+    "Exchange": "PA",
+    "Name": "Caisse R\u00e9gionale du Cr\u00e9dit Agricole Alpes Provence",
+    "Country": "France"
+  },
+  {
+    "Symbol": "CRAV",
+    "Exchange": "PA",
+    "Name": "Caisse r\u00e9gionale de Cr\u00e9dit Agricole Mutuel Atlantique Vend\u00e9e",
+    "Country": "France"
+  },
+  {
+    "Symbol": "CRB",
+    "Exchange": "PA",
+    "Name": "Lyxor Commodities Refinitiv/CoreCommodity CRB TR UCITS ETF - Acc-EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "CRBP2",
+    "Exchange": "PA",
+    "Name": "Caisse Regionale de Credit Agricole Mutuel Brie Picardie",
+    "Country": "France"
+  },
+  {
+    "Symbol": "CRI",
+    "Exchange": "PA",
+    "Name": "Chargeurs S.A.",
+    "Country": "France"
+  },
+  {
+    "Symbol": "CRLO",
+    "Exchange": "PA",
+    "Name": "Caisse Regionale de Credit Agricole Mutuel Loire HauteLoire",
+    "Country": "France"
+  },
+  {
+    "Symbol": "CROS",
+    "Exchange": "PA",
+    "Name": "Crosswood",
+    "Country": "France"
+  },
+  {
+    "Symbol": "CRP",
+    "Exchange": "PA",
+    "Name": "Lyxor UCITS Corporate Bond C-EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "CRSU",
+    "Exchange": "PA",
+    "Name": "Caisse Regionale De Credit Agricole Mutuel Sud Rhone Alpes",
+    "Country": "France"
+  },
+  {
+    "Symbol": "CRUDP",
+    "Exchange": "PA",
+    "Name": "WisdomTree WTI Crude Oil EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "CS",
+    "Exchange": "PA",
+    "Name": "AXA SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "CS1",
+    "Exchange": "PA",
+    "Name": "Amundi IBEX 35 UCITS ETF Acc",
+    "Country": "France"
+  },
+  {
+    "Symbol": "CS9",
+    "Exchange": "PA",
+    "Name": "Amundi Index Solutions - Amundi MSCI Europe Ex Switzerland UCITS ETF-C EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "CSH",
+    "Exchange": "PA",
+    "Name": "Lyxor Euro Cash UCITS ETF",
+    "Country": "France"
+  },
+  {
+    "Symbol": "CSH2",
+    "Exchange": "PA",
+    "Name": "Lyxor Smart Cash UCITS",
+    "Country": "France"
+  },
+  {
+    "Symbol": "CSW",
+    "Exchange": "PA",
+    "Name": "Amundi Index Solutions - Amundi MSCI Switzerland UCITS ETF-C EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "CSWC",
+    "Exchange": "PA",
+    "Name": "Amundi MSCI Switzerland UCITS",
+    "Country": "France"
+  },
+  {
+    "Symbol": "CU2",
+    "Exchange": "PA",
+    "Name": "Amundi Index Solutions - Amundi MSCI USA UCITS ETF-C EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "CU2U",
+    "Exchange": "PA",
+    "Name": "Amundi MSCI USA UCITS USD",
+    "Country": "France"
+  },
+  {
+    "Symbol": "CU9",
+    "Exchange": "PA",
+    "Name": "Amundi ETF MSCI Europe ex EMU UCITS ETF",
+    "Country": "France"
+  },
+  {
+    "Symbol": "CV9",
+    "Exchange": "PA",
+    "Name": "Amundi Index Solutions - Amundi MSCI Europe Value Factor UCITS ETF-C",
+    "Country": "France"
+  },
+  {
+    "Symbol": "CW8",
+    "Exchange": "PA",
+    "Name": "Amundi Index Solutions - Amundi MSCI World UCITS ETF C EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "CW8U",
+    "Exchange": "PA",
+    "Name": "Amundi MSCI World UCITS USD",
+    "Country": "France"
+  },
+  {
+    "Symbol": "CWE",
+    "Exchange": "PA",
+    "Name": "Amundi Index Solutions - Amundi MSCI World Energy UCITS ETF-C EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "CWEU",
+    "Exchange": "PA",
+    "Name": "Amundi Index Solutions - Amundi MSCI World Energy UCITS ETF",
+    "Country": "France"
+  },
+  {
+    "Symbol": "CYEA",
+    "Exchange": "PA",
+    "Name": "iShares China CNY Bond UCITS ETF USD Acc EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "DAX",
+    "Exchange": "PA",
+    "Name": "Multi Units Luxembourg - Lyxor DAX (DR) UCITS ETF",
+    "Country": "France"
+  },
+  {
+    "Symbol": "DBG",
+    "Exchange": "PA",
+    "Name": "Derichebourg",
+    "Country": "France"
+  },
+  {
+    "Symbol": "DBV",
+    "Exchange": "PA",
+    "Name": "DBV Technologies S.A.",
+    "Country": "France"
+  },
+  {
+    "Symbol": "DEC",
+    "Exchange": "PA",
+    "Name": "JC Decaux SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "DEEZR",
+    "Exchange": "PA",
+    "Name": "Deezer S.A.",
+    "Country": "France"
+  },
+  {
+    "Symbol": "DFND",
+    "Exchange": "PA",
+    "Name": "iShares Global Aerospace & Defence UCITS ETF USD (Acc)",
+    "Country": "France"
+  },
+  {
+    "Symbol": "DG",
+    "Exchange": "PA",
+    "Name": "Vinci S.A.",
+    "Country": "France"
+  },
+  {
+    "Symbol": "DGGE",
+    "Exchange": "PA",
+    "Name": "iShares Digital Entertainment and Education UCITS ETF USD (Acc) EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "DIGI",
+    "Exchange": "PA",
+    "Name": "Digital Infrastructure and Connectivity UCITS ETF - Accumulating EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "DIM",
+    "Exchange": "PA",
+    "Name": "Sartorius Stedim Biotech SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "DJE",
+    "Exchange": "PA",
+    "Name": "Lyxor UCITS Dow Jones Industrial Average D-EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "DKUPL",
+    "Exchange": "PA",
+    "Name": "Dekuple",
+    "Country": "France"
+  },
+  {
+    "Symbol": "DOTW",
+    "Exchange": "PA",
+    "Name": "WisdomTree Polkadot EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "DPAM",
+    "Exchange": "PA",
+    "Name": "Les Docks des P\u00e9troles d'Amb\u00e8s -SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "DPT",
+    "Exchange": "PA",
+    "Name": "ST Dupont",
+    "Country": "France"
+  },
+  {
+    "Symbol": "DSB",
+    "Exchange": "PA",
+    "Name": "Amundi German Bund Daily (-2x) Inverse UCITS ETF Acc",
+    "Country": "France"
+  },
+  {
+    "Symbol": "DSD",
+    "Exchange": "PA",
+    "Name": "Lyxor UCITS Daily ShortDAX x2 C-EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "DSP5",
+    "Exchange": "PA",
+    "Name": "Lyxor S&P 500 Daily (-2x) Inverse UCITS ETF C USD",
+    "Country": "France"
+  },
+  {
+    "Symbol": "DSUS",
+    "Exchange": "PA",
+    "Name": "Lyxor 10Y US Treasury Daily (-2x) Inverse UCITS ETF Acc EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "DSY",
+    "Exchange": "PA",
+    "Name": "Dassault Systemes SE",
+    "Country": "France"
+  },
+  {
+    "Symbol": "E40",
+    "Exchange": "PA",
+    "Name": "BNP Paribas Easy CAC 40\u00ae ESG UCITS ETF",
+    "Country": "France"
+  },
+  {
+    "Symbol": "EAGG",
+    "Exchange": "PA",
+    "Name": "SPDR Barclays Euro Aggregate Bond UCITS",
+    "Country": "France"
+  },
+  {
+    "Symbol": "EAPI",
+    "Exchange": "PA",
+    "Name": "Euroapi SAS",
+    "Country": "France"
+  },
+  {
+    "Symbol": "EBBB",
+    "Exchange": "PA",
+    "Name": "Amundi Index Solutions - Amundi Index Euro Corp BBB 1-5 UCITS ETF DR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "EBUY",
+    "Exchange": "PA",
+    "Name": "Lyxor Index Fund - Lyxor MSCI Digital Economy ESG Filtered (DR) UCITS ETF Acc EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "EC",
+    "Exchange": "PA",
+    "Name": "TotalEnergies EP Gabon S.A.",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ECN",
+    "Exchange": "PA",
+    "Name": "BNP Paribas Easy Low Carbon 100 Europe PAB\u00ae UCITS ETF",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ECRP",
+    "Exchange": "PA",
+    "Name": "Amundi Index Solutions - Amundi Index Euro AGG Corporate SRI Fund",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ECRP3",
+    "Exchange": "PA",
+    "Name": "Amundi Index Solutions - Amundi Index Euro Corporate Sri 0-3 Y UCITS ETF DR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "EDEN",
+    "Exchange": "PA",
+    "Name": "Edenred SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "EDEU",
+    "Exchange": "PA",
+    "Name": "BNP Paribas Easy ESG Equity Dividend Europe UCITS ETF Capitalisation",
+    "Country": "France"
+  },
+  {
+    "Symbol": "EDI",
+    "Exchange": "PA",
+    "Name": "Media 6 SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "EDIV",
+    "Exchange": "PA",
+    "Name": "Lyxor S&P Eurozone ESG Dividend Aristocrats (DR) UCITS ETF EUR Acc",
+    "Country": "France"
+  },
+  {
+    "Symbol": "EEA",
+    "Exchange": "PA",
+    "Name": "BNP Paribas Easy FTSE EPRA/NAREIT Eurozone Capped UCITS ETF Cap",
+    "Country": "France"
+  },
+  {
+    "Symbol": "EEE",
+    "Exchange": "PA",
+    "Name": "BNP Paribas Easy FTSE EPRA/NAREIT Eurozone Capped UCITS ETF QD Dis",
+    "Country": "France"
+  },
+  {
+    "Symbol": "EEMK",
+    "Exchange": "PA",
+    "Name": "BNP Paribas Easy MSCI Emerging ESG Filtered Min TE UCITS ETF EUR Cap",
+    "Country": "France"
+  },
+  {
+    "Symbol": "EEMU",
+    "Exchange": "PA",
+    "Name": "BNP Paribas Easy MSCI EMU Ex CW UCITS",
+    "Country": "France"
+  },
+  {
+    "Symbol": "EESG",
+    "Exchange": "PA",
+    "Name": "Amundi Index Solutions - Amundi Index MSCI EMU SRI PAB Ucits ETF DR Cap EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "EESM",
+    "Exchange": "PA",
+    "Name": "BNP Paribas Easy MSCI Europe Small Caps SRI S-Series PAB 5% Capped UCITS ETF Capitalisation",
+    "Country": "France"
+  },
+  {
+    "Symbol": "EEUE",
+    "Exchange": "PA",
+    "Name": "BNP Paribas Easy MSCI Europe ESG Filtered Min TE UCITS ETF Cap",
+    "Country": "France"
+  },
+  {
+    "Symbol": "EFI",
+    "Exchange": "PA",
+    "Name": "Eurasia Fonciere Investissements Soci\u00e9t\u00e9 Anonyme",
+    "Country": "France"
+  },
+  {
+    "Symbol": "EGOV",
+    "Exchange": "PA",
+    "Name": "Amundi Index Solutions - Amundi Index Bofa Merrill Lynch Euro Govies 1-10",
+    "Country": "France"
+  },
+  {
+    "Symbol": "EGR",
+    "Exchange": "PA",
+    "Name": "Transition Evergreen",
+    "Country": "France"
+  },
+  {
+    "Symbol": "EGRI",
+    "Exchange": "PA",
+    "Name": "Amundi Index Solutions - Amundi Index Euro AGG SRI UCITS ETF DR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "EGRO",
+    "Exchange": "PA",
+    "Name": "BNP Paribas Easy ESG Growth Europe UCITS ETF EUR Cap EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "EIFF",
+    "Exchange": "PA",
+    "Name": "Societe de la Tour Eiffel SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "EISR",
+    "Exchange": "PA",
+    "Name": "BNP Paribas Easy MSCI Emerging SRI S-Series PAB 5% Capped UCITS ETF EUR Distribution",
+    "Country": "France"
+  },
+  {
+    "Symbol": "EJAH",
+    "Exchange": "PA",
+    "Name": "BNP Paribas Easy MSCI Japan ESG Filtered Min TE UCITS ETF H EUR Cap",
+    "Country": "France"
+  },
+  {
+    "Symbol": "EJAP",
+    "Exchange": "PA",
+    "Name": "BNP Paribas Easy MSCI Japan ex CW UCITS ETF Cap",
+    "Country": "France"
+  },
+  {
+    "Symbol": "EKI",
+    "Exchange": "PA",
+    "Name": "Ekinops SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "EKLD",
+    "Exchange": "PA",
+    "Name": "BNP Paribas Easy - MSCI USA SRI S-Series 5% Capped",
+    "Country": "France"
+  },
+  {
+    "Symbol": "EKLDC",
+    "Exchange": "PA",
+    "Name": "BNP Paribas Easy MSCI USA SRI S-Series PAB 5% Capped UCITS ETF EUR Capitalisation",
+    "Country": "France"
+  },
+  {
+    "Symbol": "EKUS",
+    "Exchange": "PA",
+    "Name": "BNP Paribas Easy MSCI USA SRI S-Series PAB 5% Capped UCITS ETF EUR Distribution",
+    "Country": "France"
+  },
+  {
+    "Symbol": "EL",
+    "Exchange": "PA",
+    "Name": "EssilorLuxottica S. A.",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ELCR",
+    "Exchange": "PA",
+    "Name": "Lyxor Index Fund - Lyxor MSCI Future Mobility ESG Filtered (DR) UCITS ETF Acc EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ELEC",
+    "Exchange": "PA",
+    "Name": "\u00c9lectricite de Strasbourg Soci\u00e9t\u00e9 Anonyme",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ELIOR",
+    "Exchange": "PA",
+    "Name": "Elior SCA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ELIS",
+    "Exchange": "PA",
+    "Name": "Elis SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ELLE",
+    "Exchange": "PA",
+    "Name": "Lyxor Global Gender Equality (DR) UCITS ETF - C-USD EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ELTC",
+    "Exchange": "PA",
+    "Name": "LTCetc - Physical Litecoin ETC EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "EMBH",
+    "Exchange": "PA",
+    "Name": "BNP Paribas Easy JPM ESG EMBI Global Diversified Composite UCITS ETF H EUR Capitalisation EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "EMBI",
+    "Exchange": "PA",
+    "Name": "BNP Paribas Easy JPM ESG EMBI Global Diversified Composite UCITS ETF Capitalisation USD",
+    "Country": "France"
+  },
+  {
+    "Symbol": "EMEH",
+    "Exchange": "PA",
+    "Name": "BNP Paribas Easy Energy & Metals Enhanced Roll",
+    "Country": "France"
+  },
+  {
+    "Symbol": "EMEIS",
+    "Exchange": "PA",
+    "Name": "EMEIS SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "EMHD",
+    "Exchange": "PA",
+    "Name": "Invesco Markets III plc - Invesco FTSE Emerging Markets High Dividend Low Volatility UCITS ETF",
+    "Country": "France"
+  },
+  {
+    "Symbol": "EMIS",
+    "Exchange": "PA",
+    "Name": "BNP Paribas Easy MSCI Emerging SRI S-Series PAB 5% Capped UCITS ETF EUR Capitalisation",
+    "Country": "France"
+  },
+  {
+    "Symbol": "EMLD",
+    "Exchange": "PA",
+    "Name": "SSgA SPDR ETFs Europe I Public Limited Company - SPDR Barclays Emerging Markets Local Bond UCITS ETF",
+    "Country": "France"
+  },
+  {
+    "Symbol": "EMOM",
+    "Exchange": "PA",
+    "Name": "BNP Paribas Easy ESG Equity Momentum Europe UCITS ETF Cap",
+    "Country": "France"
+  },
+  {
+    "Symbol": "EMQQ",
+    "Exchange": "PA",
+    "Name": "EMQQ Emerging Markets Internet & Ecommerce UCITS ETF - Accumulating EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "EMRG",
+    "Exchange": "PA",
+    "Name": "SSgA SPDR MSCI Emerging Markets UCITS",
+    "Country": "France"
+  },
+  {
+    "Symbol": "EMSR",
+    "Exchange": "PA",
+    "Name": "BNP Paribas Easy MSCI Emerging SRI S-Series PAB 5% Capped UCITS ETF Capitalisation",
+    "Country": "France"
+  },
+  {
+    "Symbol": "EMSRI",
+    "Exchange": "PA",
+    "Name": "Amundi Index MSCI Emerging Markets SRI UCITS",
+    "Country": "France"
+  },
+  {
+    "Symbol": "EMUE",
+    "Exchange": "PA",
+    "Name": "SPDR\u00ae MSCI EMU UCITS ETF EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "EMWE",
+    "Exchange": "PA",
+    "Name": "BNP Paribas Easy MSCI World SRI S-Series PAB 5% Capped UCITS ETF EUR Capitalisation",
+    "Country": "France"
+  },
+  {
+    "Symbol": "EN",
+    "Exchange": "PA",
+    "Name": "Bouygues SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ENAM",
+    "Exchange": "PA",
+    "Name": "BNP Paribas Easy MSCI North America ESG Filtered Min TE UCITS ETF Cap",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ENG",
+    "Exchange": "PA",
+    "Name": "BNP Paribas EASY ECPI Global ESG Infrastructure UCITS ETF EUR EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ENGI",
+    "Exchange": "PA",
+    "Name": "Engie S.A.",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ENGUS",
+    "Exchange": "PA",
+    "Name": "BNP Paribas Easy ECPI Global ESG Infrastructure UCITS ETF USD Cap",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ENX",
+    "Exchange": "PA",
+    "Name": "Euronext N.V.",
+    "Country": "France"
+  },
+  {
+    "Symbol": "EOS",
+    "Exchange": "PA",
+    "Name": "ACTEOS S.A",
+    "Country": "France"
+  },
+  {
+    "Symbol": "EPAB",
+    "Exchange": "PA",
+    "Name": "Lyxor Net Zero 2050 S&P Eurozone Climate PAB (DR) UCITS ETF - Acc",
+    "Country": "France"
+  },
+  {
+    "Symbol": "EPEJ",
+    "Exchange": "PA",
+    "Name": "BNP Paribas Easy MSCI Pacific ex Japan ESG Filtered Min TE UCITS ETF Cap",
+    "Country": "France"
+  },
+  {
+    "Symbol": "EPRA",
+    "Exchange": "PA",
+    "Name": "Amundi Index Solutions - Amundi Index FTSE EPRA NAREIT Global UCITS ETF DR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "EPRE",
+    "Exchange": "PA",
+    "Name": "Amundi Index Solutions - Amundi FTSE EPRA Europe Real Estate UCITS ETF-C",
+    "Country": "France"
+  },
+  {
+    "Symbol": "EQQQ",
+    "Exchange": "PA",
+    "Name": "Invesco EQQQ NASDAQ-100 UCITS ETF",
+    "Country": "France"
+  },
+  {
+    "Symbol": "EQS",
+    "Exchange": "PA",
+    "Name": "Equasens S. A.",
+    "Country": "France"
+  },
+  {
+    "Symbol": "EQUA",
+    "Exchange": "PA",
+    "Name": "BNP Paribas Easy ESG Equity Quality Europe UCITS ETF Cap",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ERA",
+    "Exchange": "PA",
+    "Name": "Eramet SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ERF",
+    "Exchange": "PA",
+    "Name": "Eurofins Scientific SE",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ERO",
+    "Exchange": "PA",
+    "Name": "SPDR MSCI Europe UCITS ETF",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ERTH",
+    "Exchange": "PA",
+    "Name": "Lyxor Euro Government Green Bond DR ETF Acc EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ES",
+    "Exchange": "PA",
+    "Name": "Esso S.A.F.",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ESD",
+    "Exchange": "PA",
+    "Name": "BNP Paribas Easy S&P 500 UCITS C",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ESDD",
+    "Exchange": "PA",
+    "Name": "BNP Paribas Easy S&P 500 UCITS H",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ESE",
+    "Exchange": "PA",
+    "Name": "EasyETF - BNP Paribas Easy S&P 500 UCITS ETF",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ESEH",
+    "Exchange": "PA",
+    "Name": "BNP Paribas Easy S&P 500 UCITS ETF EUR H",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ESGE",
+    "Exchange": "PA",
+    "Name": "Lyxor MSCI Europe ESG Leaders (DR) UCITS ETF - Acc",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ESGH",
+    "Exchange": "PA",
+    "Name": "Lyxor MSCI Europe ESG Leaders (DR) UCITS ETF - Monthly Hedged to EUR - Acc",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ESGO",
+    "Exchange": "PA",
+    "Name": "AuAg ESG Gold Mining UCITS ETF EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ETBB",
+    "Exchange": "PA",
+    "Name": "BNP Paribas Easy Euro Stoxx 50 UCITS ETF EUR C/D",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ETDD",
+    "Exchange": "PA",
+    "Name": "BNP Paribas Easy Euro Stoxx 50 UCITS ETF EUR C",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ETL",
+    "Exchange": "PA",
+    "Name": "Eutelsat Communications SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ETZ",
+    "Exchange": "PA",
+    "Name": "BNP Paribas Easy Stoxx Europe 600 UCITS ETF EUR C",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ETZD",
+    "Exchange": "PA",
+    "Name": "BNP Paribas Easy Stoxx Europe 600 UCITS H",
+    "Country": "France"
+  },
+  {
+    "Symbol": "EUCO",
+    "Exchange": "PA",
+    "Name": "SPDR Barclays Euro Corporate Bond UCITS",
+    "Country": "France"
+  },
+  {
+    "Symbol": "EUDIV",
+    "Exchange": "PA",
+    "Name": "Lyxor S&P Eurozone ESG Dividend Aristocrats (DR) UCITS ETF EUR Dis",
+    "Country": "France"
+  },
+  {
+    "Symbol": "EUDV",
+    "Exchange": "PA",
+    "Name": "SSgA SPDR ETFs Europe I Public Limited Company - SPDR S&P Euro Dividend Aristocrats UCITS ETF",
+    "Country": "France"
+  },
+  {
+    "Symbol": "EUHD",
+    "Exchange": "PA",
+    "Name": "PowerShares EURO STOXX High Dividend Low Volatility UCITS",
+    "Country": "France"
+  },
+  {
+    "Symbol": "EUMV",
+    "Exchange": "PA",
+    "Name": "Ossiam Europe ESG Machine Learning ETF UCITS 1C (EUR)",
+    "Country": "France"
+  },
+  {
+    "Symbol": "EURS",
+    "Exchange": "PA",
+    "Name": "Fonci\u00e8re Euris SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "EUSRI",
+    "Exchange": "PA",
+    "Name": "Amundi Index Solutions - Amundi MSCI Europe SRI PAB UCITS ETF DR C",
+    "Country": "France"
+  },
+  {
+    "Symbol": "EVAE",
+    "Exchange": "PA",
+    "Name": "BNP Paribas Easy ESG Equity Value Europe UCITS ETF Cap",
+    "Country": "France"
+  },
+  {
+    "Symbol": "EVOE",
+    "Exchange": "PA",
+    "Name": "BNP Paribas Easy ESG Equity Low Vol Europe UCITS ETF Cap",
+    "Country": "France"
+  },
+  {
+    "Symbol": "EVOU",
+    "Exchange": "PA",
+    "Name": "BNP Paribas Easy ESG Equity Low Vol US UCITS ETF Cap",
+    "Country": "France"
+  },
+  {
+    "Symbol": "EWLD",
+    "Exchange": "PA",
+    "Name": "Amundi Index Solutions - Amundi MSCI World UCITS ETF D EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "EWRD",
+    "Exchange": "PA",
+    "Name": "BNP Paribas Easy MSCI World SRI S-Series PAB 5% Capped UCITS ETF Capitalisation",
+    "Country": "France"
+  },
+  {
+    "Symbol": "EXA",
+    "Exchange": "PA",
+    "Name": "Exail Technologies S.A.",
+    "Country": "France"
+  },
+  {
+    "Symbol": "EXE",
+    "Exchange": "PA",
+    "Name": "Exel Industries",
+    "Country": "France"
+  },
+  {
+    "Symbol": "EXENS",
+    "Exchange": "PA",
+    "Name": "EXOSENS PROM",
+    "Country": "France"
+  },
+  {
+    "Symbol": "EXN",
+    "Exchange": "PA",
+    "Name": "Exclusive Networks SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "EXPL",
+    "Exchange": "PA",
+    "Name": "EPC Groupe",
+    "Country": "France"
+  },
+  {
+    "Symbol": "FCMC",
+    "Exchange": "PA",
+    "Name": "Ferm. Casino Mun. Canne",
+    "Country": "France"
+  },
+  {
+    "Symbol": "FDE",
+    "Exchange": "PA",
+    "Name": "La Fran\u00e7aise de l'Energie S.A.",
+    "Country": "France"
+  },
+  {
+    "Symbol": "FDJ",
+    "Exchange": "PA",
+    "Name": "La Francaise Des Jeux Sa",
+    "Country": "France"
+  },
+  {
+    "Symbol": "FGA",
+    "Exchange": "PA",
+    "Name": "Figeac Aero SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "FGBL",
+    "Exchange": "PA",
+    "Name": "First Trust Global Equity Income UCITS ETF Class A USD",
+    "Country": "France"
+  },
+  {
+    "Symbol": "FGR",
+    "Exchange": "PA",
+    "Name": "Eiffage SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "FII",
+    "Exchange": "PA",
+    "Name": "Lisi S.A",
+    "Country": "France"
+  },
+  {
+    "Symbol": "FINM",
+    "Exchange": "PA",
+    "Name": "Financiere Marjos SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "FINSW",
+    "Exchange": "PA",
+    "Name": "Multi Units Luxembourg - Lyxor MSCI World Financials TR UCITS ETF",
+    "Country": "France"
+  },
+  {
+    "Symbol": "FINW",
+    "Exchange": "PA",
+    "Name": "Lyxor MSCI World Financials TR UCITS ETF - C-EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "FIPP",
+    "Exchange": "PA",
+    "Name": "FIPP S.A.",
+    "Country": "France"
+  },
+  {
+    "Symbol": "FLY",
+    "Exchange": "PA",
+    "Name": "Fonciere Lyonnaise",
+    "Country": "France"
+  },
+  {
+    "Symbol": "FMI",
+    "Exchange": "PA",
+    "Name": "Amundi Index Solutions - Amundi FTSE MIB UCITS ETF-C",
+    "Country": "France"
+  },
+  {
+    "Symbol": "FMONC",
+    "Exchange": "PA",
+    "Name": "Financiere Moncey S.A.",
+    "Country": "France"
+  },
+  {
+    "Symbol": "FNAC",
+    "Exchange": "PA",
+    "Name": "Fnac Darty SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "FOO",
+    "Exchange": "PA",
+    "Name": "Lyxor Index Fund - Lyxor Stoxx Europe 600 Food & Beverage UCITS ETF",
+    "Country": "France"
+  },
+  {
+    "Symbol": "FORSE",
+    "Exchange": "PA",
+    "Name": "Forsee Power SAS",
+    "Country": "France"
+  },
+  {
+    "Symbol": "FPG",
+    "Exchange": "PA",
+    "Name": "Union Technologies Informatique Group S.A",
+    "Country": "France"
+  },
+  {
+    "Symbol": "FPXU",
+    "Exchange": "PA",
+    "Name": "First Trust US Equity Opportunities UCITS ETF Class A Accumulation",
+    "Country": "France"
+  },
+  {
+    "Symbol": "FR",
+    "Exchange": "PA",
+    "Name": "Valeo SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "FREY",
+    "Exchange": "PA",
+    "Name": "Frey SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "FRVIA",
+    "Exchange": "PA",
+    "Name": "Forvia SE",
+    "Country": "France"
+  },
+  {
+    "Symbol": "GAGG",
+    "Exchange": "PA",
+    "Name": "Amundi Index Solutions - Amundi Index Barclays Global Agg 500M",
+    "Country": "France"
+  },
+  {
+    "Symbol": "GAHU",
+    "Exchange": "PA",
+    "Name": "Amundi Index Solutions - Amundi Index Global AGG 500M UCITS ETF DR Hedged USD",
+    "Country": "France"
+  },
+  {
+    "Symbol": "GAM",
+    "Exchange": "PA",
+    "Name": "Gaumont SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "GBS",
+    "Exchange": "PA",
+    "Name": "Gold Bullion Securities ETC",
+    "Country": "France"
+  },
+  {
+    "Symbol": "GBSE",
+    "Exchange": "PA",
+    "Name": "WisdomTree Physical Gold - EUR Daily Hedged",
+    "Country": "France"
+  },
+  {
+    "Symbol": "GBT",
+    "Exchange": "PA",
+    "Name": "Guerbet S. A.",
+    "Country": "France"
+  },
+  {
+    "Symbol": "GDS",
+    "Exchange": "PA",
+    "Name": "Ramsay Generale De Sante",
+    "Country": "France"
+  },
+  {
+    "Symbol": "GEA",
+    "Exchange": "PA",
+    "Name": "GEA Grenobl. Elect.",
+    "Country": "France"
+  },
+  {
+    "Symbol": "GEMU",
+    "Exchange": "PA",
+    "Name": "BNP Paribas Easy JPM ESG EMU Government Bond IG 3-5 Y UCITS ETF Capitalisation EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "GET",
+    "Exchange": "PA",
+    "Name": "Getlink SE",
+    "Country": "France"
+  },
+  {
+    "Symbol": "GEU3C",
+    "Exchange": "PA",
+    "Name": "BNP Paribas Easy JPM ESG EMU Government Bond IG 1-3Y UCITS ETF Capitalisation",
+    "Country": "France"
+  },
+  {
+    "Symbol": "GEU3D",
+    "Exchange": "PA",
+    "Name": "BNP Paribas Easy JPM ESG EMU Government Bond IG 1-3Y",
+    "Country": "France"
+  },
+  {
+    "Symbol": "GFC",
+    "Exchange": "PA",
+    "Name": "Gecina SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "GGOV",
+    "Exchange": "PA",
+    "Name": "Amundi Index Solutions - Amundi Index J.P. Morgan GBI Global Govies",
+    "Country": "France"
+  },
+  {
+    "Symbol": "GILI",
+    "Exchange": "PA",
+    "Name": "Lyxor FTSE Actuaries UK Gilts Inflation-Linked (DR) UCITS ETF",
+    "Country": "France"
+  },
+  {
+    "Symbol": "GILS",
+    "Exchange": "PA",
+    "Name": "Lyxor UCITS Iboxx GBP Gilts",
+    "Country": "France"
+  },
+  {
+    "Symbol": "GINF",
+    "Exchange": "PA",
+    "Name": "Amundi Index Solutions - Amundi Global Infrastructure",
+    "Country": "France"
+  },
+  {
+    "Symbol": "GJAJ",
+    "Exchange": "PA",
+    "Name": "Groupe JAJ",
+    "Country": "France"
+  },
+  {
+    "Symbol": "GLDM",
+    "Exchange": "PA",
+    "Name": "Lyxor MSCI ACWI Gold UCITS C EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "GLE",
+    "Exchange": "PA",
+    "Name": "Societe Generale S.A.",
+    "Country": "France"
+  },
+  {
+    "Symbol": "GLO",
+    "Exchange": "PA",
+    "Name": "GL Events SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "GLUX",
+    "Exchange": "PA",
+    "Name": "Amundi Index Solutions - Amundi S&P Global Luxury ETF-C EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "GNFT",
+    "Exchange": "PA",
+    "Name": "Genfit",
+    "Country": "France"
+  },
+  {
+    "Symbol": "GNRO",
+    "Exchange": "PA",
+    "Name": "Geneuro SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "GOAI",
+    "Exchange": "PA",
+    "Name": "Amundi Stoxx Global Artificial Intelligence",
+    "Country": "France"
+  },
+  {
+    "Symbol": "GOLD",
+    "Exchange": "PA",
+    "Name": "Amundi Physical Gold ETC C EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "GOVH",
+    "Exchange": "PA",
+    "Name": "Amundi Index Solutions - Amundi Index J.P. Morgan GBI Global Govies UCITS ETF DR EUR Hedged",
+    "Country": "France"
+  },
+  {
+    "Symbol": "GOVS",
+    "Exchange": "PA",
+    "Name": "SPDR Barclays Capital 1-3 Yr Euro Govt Bond",
+    "Country": "France"
+  },
+  {
+    "Symbol": "GPE",
+    "Exchange": "PA",
+    "Name": "Groupe Pizzorno Environnement SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "GRCTB",
+    "Exchange": "PA",
+    "Name": "BNP Paribas Easy FTSE EPRA Nareit Global Developed Green CTB UCITS ETF EUR Capitalisation",
+    "Country": "France"
+  },
+  {
+    "Symbol": "GRE",
+    "Exchange": "PA",
+    "Name": "Multi Units France - Lyxor MSCI Greece UCITS ETF",
+    "Country": "France"
+  },
+  {
+    "Symbol": "GREAL",
+    "Exchange": "PA",
+    "Name": "BNP Paribas Easy FTSE EPRA Nareit Developed Europe ex UK Green CTB UCITS ETF Cap",
+    "Country": "France"
+  },
+  {
+    "Symbol": "GRVO",
+    "Exchange": "PA",
+    "Name": "Graines Voltz S.A",
+    "Country": "France"
+  },
+  {
+    "Symbol": "GSCU",
+    "Exchange": "PA",
+    "Name": "BNP Paribas Easy Energy & Metals Enhanced Roll UCITS ETF USD Cap",
+    "Country": "France"
+  },
+  {
+    "Symbol": "GSSBD",
+    "Exchange": "PA",
+    "Name": "BNPP Greenbond ETF",
+    "Country": "France"
+  },
+  {
+    "Symbol": "GSSBO",
+    "Exchange": "PA",
+    "Name": "BNP PARIBAS EASY - JPM ESG Green Social & Sustainability IG Bond UCITS ETF EUR Distribution",
+    "Country": "France"
+  },
+  {
+    "Symbol": "GTT",
+    "Exchange": "PA",
+    "Name": "Gaztransport & Technigaz SAS",
+    "Country": "France"
+  },
+  {
+    "Symbol": "GUI",
+    "Exchange": "PA",
+    "Name": "Guillemot Corporation S.A.",
+    "Country": "France"
+  },
+  {
+    "Symbol": "GWT",
+    "Exchange": "PA",
+    "Name": "Amundi Index Solutions - Amundi MSCI Europe Growth UCITS ETF Dist EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "HAGG",
+    "Exchange": "PA",
+    "Name": "HSBCBBGAGGCORPETF",
+    "Country": "France"
+  },
+  {
+    "Symbol": "HAMO",
+    "Exchange": "PA",
+    "Name": "Hashdex Crypto Momentum Factor ETP",
+    "Country": "France"
+  },
+  {
+    "Symbol": "HCAN",
+    "Exchange": "PA",
+    "Name": "HSBC MSCI Canada UCITS ETF",
+    "Country": "France"
+  },
+  {
+    "Symbol": "HCAS",
+    "Exchange": "PA",
+    "Name": "HSBC MSCI CHINA A UCITS ETF USD (Acc) EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "HCO",
+    "Exchange": "PA",
+    "Name": "High Co. SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "HDF",
+    "Exchange": "PA",
+    "Name": "Hydrogene De France SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "HDLV",
+    "Exchange": "PA",
+    "Name": "Invesco S&P 500 High Dividend Low Volatility UCITS ETF EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "HDP",
+    "Exchange": "PA",
+    "Name": "Les H\u00f4tels de Paris SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "HEMA",
+    "Exchange": "PA",
+    "Name": "HSBC MSCI Emerging Markets UCITS ETF USD Acc EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "HESS",
+    "Exchange": "PA",
+    "Name": "HSBC MSCI Emerging Markets Small Cap ESG UCITS ETF USD Acc EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "HEU",
+    "Exchange": "PA",
+    "Name": "HSBC MSCI Europe UCITS ETF",
+    "Country": "France"
+  },
+  {
+    "Symbol": "HEVS",
+    "Exchange": "PA",
+    "Name": "HSBC MSCI Emerging Markets Value ESG UCITS ETF USD (Acc) EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "HHH",
+    "Exchange": "PA",
+    "Name": "HSBC S&P 500 UCITS ETF",
+    "Country": "France"
+  },
+  {
+    "Symbol": "HIES",
+    "Exchange": "PA",
+    "Name": "HSBC MSCI Emerging Markets Islamic ESG UCITS ETF USD Acc EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "HIPS",
+    "Exchange": "PA",
+    "Name": "HSBC MSCI Europe Islamic ESG UCITS ETF EUR Acc",
+    "Country": "France"
+  },
+  {
+    "Symbol": "HIUS",
+    "Exchange": "PA",
+    "Name": "HSBC MSCI USA Islamic ESG UCITS ETF USD (Acc) EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "HIWS",
+    "Exchange": "PA",
+    "Name": "HSBC MSCI World Islamic ESG UCITS ETF USD Acc EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "HLT",
+    "Exchange": "PA",
+    "Name": "Lyxor Index Fund - Lyxor STOXX Europe 600 Healthcare UCITS ETF",
+    "Country": "France"
+  },
+  {
+    "Symbol": "HLTW",
+    "Exchange": "PA",
+    "Name": "Multi Units Luxembourg - Lyxor MSCI World Health Care TR UCITS ETF",
+    "Country": "France"
+  },
+  {
+    "Symbol": "HMJP",
+    "Exchange": "PA",
+    "Name": "HSBC MSCI JAPAN UCITS ETF",
+    "Country": "France"
+  },
+  {
+    "Symbol": "HO",
+    "Exchange": "PA",
+    "Name": "Thales S.A.",
+    "Country": "France"
+  },
+  {
+    "Symbol": "HODL",
+    "Exchange": "PA",
+    "Name": "21Shares Crypto Basket Index ETP EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "HODLV",
+    "Exchange": "PA",
+    "Name": "21Shares Crypto Basket Equal Weight (HODLV) ETP EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "HODLX",
+    "Exchange": "PA",
+    "Name": "21Shares Crypto Basket 10 (HODLX) ETP EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "HPAU",
+    "Exchange": "PA",
+    "Name": "HSBC MSCI USA Climate Paris Aligned UCITS ETF USD Acc",
+    "Country": "France"
+  },
+  {
+    "Symbol": "HPJP",
+    "Exchange": "PA",
+    "Name": "HSBC MSCI Japan Climate Paris Aligned UCITS ETF EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "HSEM",
+    "Exchange": "PA",
+    "Name": "HSBC Emerging Market Sustainable Equity UCITS ETF EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "HSEU",
+    "Exchange": "PA",
+    "Name": "HSBC Europe Sustainable Equity UCITS ETF EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "HSJA",
+    "Exchange": "PA",
+    "Name": "HSBCJAPNSUSUSDDIST",
+    "Country": "France"
+  },
+  {
+    "Symbol": "HSPA",
+    "Exchange": "PA",
+    "Name": "HSBC S&P 500 UCITS ETF USD (Acc) EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "HSRID",
+    "Exchange": "PA",
+    "Name": "BNPP EHY SRI D ETF",
+    "Country": "France"
+  },
+  {
+    "Symbol": "HSTE",
+    "Exchange": "PA",
+    "Name": "HSBC ETFS PLC - HSBC Hang Seng Tech UCITS ETF",
+    "Country": "France"
+  },
+  {
+    "Symbol": "HSUD",
+    "Exchange": "PA",
+    "Name": "HSBC USA Sustainable Equity UCITS ETF EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "HSUK",
+    "Exchange": "PA",
+    "Name": "HSBC UK SUS EQ ETF",
+    "Country": "France"
+  },
+  {
+    "Symbol": "HSWD",
+    "Exchange": "PA",
+    "Name": "HSBC Developed World Sustainable Equity UCITS ETF EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "HSXD",
+    "Exchange": "PA",
+    "Name": "HSBC Asia Pacific Ex Japan Sustainable Equity UCITS ETF EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "HWOE",
+    "Exchange": "PA",
+    "Name": "HSBC MSCI World UCITS ETF EUR Hedged (Acc) EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "HYBB",
+    "Exchange": "PA",
+    "Name": "Amundi Index Solutions - Amundi EURO High Yield Bond ESG UCITS ETF EUR Dist",
+    "Country": "France"
+  },
+  {
+    "Symbol": "HYDRO",
+    "Exchange": "PA",
+    "Name": "BNP Paribas Easy ECPI Global ESG Hydrogen Economy UCITS ETF EUR Cap",
+    "Country": "France"
+  },
+  {
+    "Symbol": "HYDUS",
+    "Exchange": "PA",
+    "Name": "BNP Paribas Easy ECPI Global ESG Hydrogen Economy UCITS ETF \u00d9SD Cap",
+    "Country": "France"
+  },
+  {
+    "Symbol": "HYSRI",
+    "Exchange": "PA",
+    "Name": "BNP Paribas Easy \u20ac High Yield SRI Fossil Free UCITS ETF EUR Acc EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "IAM",
+    "Exchange": "PA",
+    "Name": "Itissalat Al-Maghrib",
+    "Country": "France"
+  },
+  {
+    "Symbol": "IART",
+    "Exchange": "PA",
+    "Name": "iShares AI Innovation Active UCITS ETF USD (Acc) EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "IBE7",
+    "Exchange": "PA",
+    "Name": "iShares V PLC - iShares iBonds Dec 2027 Term \u20ac Corp UCITS ETF",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ICAD",
+    "Exchange": "PA",
+    "Name": "Icade SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "IDIP",
+    "Exchange": "PA",
+    "Name": "IDI S.C.A.",
+    "Country": "France"
+  },
+  {
+    "Symbol": "IDL",
+    "Exchange": "PA",
+    "Name": "ID Logistics Group SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "IMDA",
+    "Exchange": "PA",
+    "Name": "Immobiliere Dassault SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "IMIE",
+    "Exchange": "PA",
+    "Name": "SPDR MSCI ACWI IMI",
+    "Country": "France"
+  },
+  {
+    "Symbol": "IND",
+    "Exchange": "PA",
+    "Name": "Lyxor Index Fund - Lyxor STOXX Europe 600 Industrial Goods & Services UCITS ETF",
+    "Country": "France"
+  },
+  {
+    "Symbol": "INDO",
+    "Exchange": "PA",
+    "Name": "Lyxor MSCI Indonesia UCITS ETF Acc",
+    "Country": "France"
+  },
+  {
+    "Symbol": "INDW",
+    "Exchange": "PA",
+    "Name": "Amundi S&P Global Industrials ESG UCITS ETF DR EUR Acc EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "INEA",
+    "Exchange": "PA",
+    "Name": "Fonciere Inea",
+    "Country": "France"
+  },
+  {
+    "Symbol": "INF",
+    "Exchange": "PA",
+    "Name": "Infotel SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "INFE",
+    "Exchange": "PA",
+    "Name": "Compagnie Industrielle et Financi\u00e8re d'Entreprises SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "INFL",
+    "Exchange": "PA",
+    "Name": "Lyxor EUR 2-10 Inflation Expectations UCITS C-EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "INFU",
+    "Exchange": "PA",
+    "Name": "Lyxor US$ 10Y Inflation Expectations UCITS ETF - C-USD EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "INR",
+    "Exchange": "PA",
+    "Name": "Multi Units France - Lyxor MSCI India UCITS ETF",
+    "Country": "France"
+  },
+  {
+    "Symbol": "INRE",
+    "Exchange": "PA",
+    "Name": "iShares Global Clean Energy UCITS ETF USD (Acc) EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "INS",
+    "Exchange": "PA",
+    "Name": "Lyxor Index Fund - Lyxor STOXX Europe 600 Insurance UCITS ETF",
+    "Country": "France"
+  },
+  {
+    "Symbol": "IPH",
+    "Exchange": "PA",
+    "Name": "Innate Pharma",
+    "Country": "France"
+  },
+  {
+    "Symbol": "IPN",
+    "Exchange": "PA",
+    "Name": "Ipsen SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "IPS",
+    "Exchange": "PA",
+    "Name": "Ipsos SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "IQEC",
+    "Exchange": "PA",
+    "Name": "IndexIQ Factors Sustainable Corporate Euro Bond UCITS ETF Dis",
+    "Country": "France"
+  },
+  {
+    "Symbol": "IQEE",
+    "Exchange": "PA",
+    "Name": "IndexIQ Factors Sustainable Europe Equity UCITS ETF Cap",
+    "Country": "France"
+  },
+  {
+    "Symbol": "IQJP",
+    "Exchange": "PA",
+    "Name": "IndexIQ Factors Sustainable Japan Equity UCITS ETF Cap",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ITEK",
+    "Exchange": "PA",
+    "Name": "HAN-GINS Tech Megatrend Equal Weight UCITS ETF - Accumulating EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ITP",
+    "Exchange": "PA",
+    "Name": "Interparfums SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "IVA",
+    "Exchange": "PA",
+    "Name": "Inventiva S.A",
+    "Country": "France"
+  },
+  {
+    "Symbol": "JBEM",
+    "Exchange": "PA",
+    "Name": "BNP Paribas Easy JPM ESG EMU Govt Bd IG UCITS ETF Capitalisation",
+    "Country": "France"
+  },
+  {
+    "Symbol": "JBOG",
+    "Exchange": "PA",
+    "Name": "Jacques Bogart SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "JCQ",
+    "Exchange": "PA",
+    "Name": "Jacquet Metal Service SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "JNKE",
+    "Exchange": "PA",
+    "Name": "SSgA SPDR ETFs Europe I Public Limited Company - SPDR Barclays Euro High Yield Bond UCITS ETF",
+    "Country": "France"
+  },
+  {
+    "Symbol": "JPHC",
+    "Exchange": "PA",
+    "Name": "Amundi Index Solutions - Amundi JPX-Nikkei 400 UCITS ETF-C CHF Hedged",
+    "Country": "France"
+  },
+  {
+    "Symbol": "JPHG",
+    "Exchange": "PA",
+    "Name": "Amundi Index Solutions - Amundi JPX-Nikkei 400 UCITS ETF-C GBP Hedged",
+    "Country": "France"
+  },
+  {
+    "Symbol": "JPJY",
+    "Exchange": "PA",
+    "Name": "SPDR\u00ae MSCI Japan UCITS ETF JPY",
+    "Country": "France"
+  },
+  {
+    "Symbol": "JPN",
+    "Exchange": "PA",
+    "Name": "Lyxor UCITS Japan (Topix) D-EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "JPNH",
+    "Exchange": "PA",
+    "Name": "Lyxor UCITS Japan Topix Daily Hedged D-EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "JPX4",
+    "Exchange": "PA",
+    "Name": "Amundi Index Solutions - Amundi Index MSCI Japan SRI PAB UCITS ETF DR (C) EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "KER",
+    "Exchange": "PA",
+    "Name": "Kering SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "KOF",
+    "Exchange": "PA",
+    "Name": "Kaufman Et Broad",
+    "Country": "France"
+  },
+  {
+    "Symbol": "L100",
+    "Exchange": "PA",
+    "Name": "Multi Units Luxembourg - Lyxor FTSE 100 UCITS Fund",
+    "Country": "France"
+  },
+  {
+    "Symbol": "LACR",
+    "Exchange": "PA",
+    "Name": "Lacroix Group SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "LAT",
+    "Exchange": "PA",
+    "Name": "Lat\u00e9co\u00e8re S.A",
+    "Country": "France"
+  },
+  {
+    "Symbol": "LBIRD",
+    "Exchange": "PA",
+    "Name": "Lumibird SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "LC30",
+    "Exchange": "PA",
+    "Name": "Amundi Index Solutions - Amundi Lifecycle 2030 UCITS ETF Acc EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "LC33",
+    "Exchange": "PA",
+    "Name": "Amundi Index Solutions - Amundi Lifecycle 2033 UCITS ETF Acc EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "LC36",
+    "Exchange": "PA",
+    "Name": "Amundi Index Solutions - Amundi Lifecycle 2036 UCITS ETF Acc EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "LC39",
+    "Exchange": "PA",
+    "Name": "Amundi Index Solutions - Amundi Lifecycle 2039 UCITS ETF Acc EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "LCEZ",
+    "Exchange": "PA",
+    "Name": "BNPP LC EURPAB ETF",
+    "Country": "France"
+  },
+  {
+    "Symbol": "LCUS",
+    "Exchange": "PA",
+    "Name": "Multi Units Luxembourg - Lyxor Core Morningstar US (DR) UCITS ETF",
+    "Country": "France"
+  },
+  {
+    "Symbol": "LCWD",
+    "Exchange": "PA",
+    "Name": "Multi Units Luxembourg - Lyxor Core MSCI World (DR) UCITS ETF",
+    "Country": "France"
+  },
+  {
+    "Symbol": "LCWLD",
+    "Exchange": "PA",
+    "Name": "BNP PARIBAS EASY - Low Carbon 300 World PAB UCITS ETF EUR Acc EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "LEBL",
+    "Exchange": "PA",
+    "Name": "Fonci\u00e8re 7 investissement Soci\u00e9t\u00e9 Anonyme",
+    "Country": "France"
+  },
+  {
+    "Symbol": "LEM",
+    "Exchange": "PA",
+    "Name": "Multi Units France - Lyxor MSCI Emerging Markets UCITS ETF",
+    "Country": "France"
+  },
+  {
+    "Symbol": "LHYFE",
+    "Exchange": "PA",
+    "Name": "Lhyfe SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "LI",
+    "Exchange": "PA",
+    "Name": "Klepierre SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "LIN",
+    "Exchange": "PA",
+    "Name": "Linedata Services S.A.",
+    "Country": "France"
+  },
+  {
+    "Symbol": "LNA",
+    "Exchange": "PA",
+    "Name": "LNA Sante SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "LOCAL",
+    "Exchange": "PA",
+    "Name": "Solocal Group SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "LOUP",
+    "Exchange": "PA",
+    "Name": "Societe LDC SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "LOWV",
+    "Exchange": "PA",
+    "Name": "SPDR\u00ae S&P 500 Low Volatility UCITS ETF EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "LPE",
+    "Exchange": "PA",
+    "Name": "Laurent-Perrier",
+    "Country": "France"
+  },
+  {
+    "Symbol": "LQQ",
+    "Exchange": "PA",
+    "Name": "Lyxor UCITS NASDAQ-100 Daily Leverage",
+    "Country": "France"
+  },
+  {
+    "Symbol": "LR",
+    "Exchange": "PA",
+    "Name": "Legrand SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "LSS",
+    "Exchange": "PA",
+    "Name": "Lectra SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "LTA",
+    "Exchange": "PA",
+    "Name": "Altamir SCA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "LUXU",
+    "Exchange": "PA",
+    "Name": "Amundi S&P Global Luxury UCITS",
+    "Country": "France"
+  },
+  {
+    "Symbol": "LVC",
+    "Exchange": "PA",
+    "Name": "Lyxor UCITS Daily Leverage CAC 40",
+    "Country": "France"
+  },
+  {
+    "Symbol": "LVD",
+    "Exchange": "PA",
+    "Name": "Multi Units Luxembourg - Lyxor Daily LevDAX UCITS ETF",
+    "Country": "France"
+  },
+  {
+    "Symbol": "LVE",
+    "Exchange": "PA",
+    "Name": "Lyxor UCITS Stoxx 50 Daily Leverage",
+    "Country": "France"
+  },
+  {
+    "Symbol": "LWCE",
+    "Exchange": "PA",
+    "Name": "Amundi Index Solutions - Amundi Index MSCI Europe Climate Change UCITS ETF DR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "LWCR",
+    "Exchange": "PA",
+    "Name": "Amundi MSCI World ESG Climate Net Zero Ambition CTB UCITS ETF Acc EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "MA13",
+    "Exchange": "PA",
+    "Name": "Lyxor UCITS EuroMTS Highest Rated Macro-Weighted Govt Bond 1-3Y DR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "MA35",
+    "Exchange": "PA",
+    "Name": "Lyxor UCITS EuroMTS Highest Rated Macro-Weighted Govt Bond 3-5Y DR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "MAA",
+    "Exchange": "PA",
+    "Name": "Lyxor EuroMTS Highest Rated Macro-Weighted Government Bond DR UCITS C",
+    "Country": "France"
+  },
+  {
+    "Symbol": "MAAT",
+    "Exchange": "PA",
+    "Name": "Maat Pharma SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "MALT",
+    "Exchange": "PA",
+    "Name": "Malteries Franco-Belges Soci\u00e9t\u00e9 Anonyme",
+    "Country": "France"
+  },
+  {
+    "Symbol": "MANA",
+    "Exchange": "PA",
+    "Name": "21Shares Decentraland ETP USD Accumulation EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "MATIC",
+    "Exchange": "PA",
+    "Name": "21Shares Polygon ETP EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "MATW",
+    "Exchange": "PA",
+    "Name": "Amundi S&P Global Materials ESG UCITS ETF DR EUR Acc EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "MAU",
+    "Exchange": "PA",
+    "Name": "Etablissements Maurel et Prom SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "MBWS",
+    "Exchange": "PA",
+    "Name": "Marie Brizard Wine & Spirits",
+    "Country": "France"
+  },
+  {
+    "Symbol": "MC",
+    "Exchange": "PA",
+    "Name": "LVMH Mo\u00ebt Hennessy - Louis Vuitton Soci\u00e9t\u00e9 Europ\u00e9enne",
+    "Country": "France"
+  },
+  {
+    "Symbol": "MCEU",
+    "Exchange": "PA",
+    "Name": "Amundi Index Solutions - Amundi MSCI Europe Momentum Factor UCITS ETF-C",
+    "Country": "France"
+  },
+  {
+    "Symbol": "MDM",
+    "Exchange": "PA",
+    "Name": "Maisons du Monde SAS",
+    "Country": "France"
+  },
+  {
+    "Symbol": "MEDCL",
+    "Exchange": "PA",
+    "Name": "Medincell SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "MEDTE",
+    "Exchange": "PA",
+    "Name": "BNP Paribas Easy ECPI Global ESG Med Tech UCITS ETF EUR Capitalisation",
+    "Country": "France"
+  },
+  {
+    "Symbol": "MEGA",
+    "Exchange": "PA",
+    "Name": "WisdomTree Crypto Mega Cap Equal Weight EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "MEH",
+    "Exchange": "PA",
+    "Name": "Lyxor UCITS FTSE EPRA/NAREIT Developed Europe D-EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "MEMS",
+    "Exchange": "PA",
+    "Name": "Memscap Regpt",
+    "Country": "France"
+  },
+  {
+    "Symbol": "MERY",
+    "Exchange": "PA",
+    "Name": "Mercialys SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "MEU",
+    "Exchange": "PA",
+    "Name": "Lyxor UCITS MSCI Europe D-EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "MEUD",
+    "Exchange": "PA",
+    "Name": "Amundi Stoxx Europe 600 UCITS ETF C",
+    "Country": "France"
+  },
+  {
+    "Symbol": "MF",
+    "Exchange": "PA",
+    "Name": "Wendel",
+    "Country": "France"
+  },
+  {
+    "Symbol": "MFE",
+    "Exchange": "PA",
+    "Name": "Lyxor UCITS MSCI EMU",
+    "Country": "France"
+  },
+  {
+    "Symbol": "MFEC",
+    "Exchange": "PA",
+    "Name": "Lyxor Core MSCI EMU (DR) UCITS ETF",
+    "Country": "France"
+  },
+  {
+    "Symbol": "MFED",
+    "Exchange": "PA",
+    "Name": "Amundi MSCI EMU ESG CTB Net Zero Ambition UCITS ETF Acc EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "MGT",
+    "Exchange": "PA",
+    "Name": "Lyxor UCITS DJ Global Titans 50",
+    "Country": "France"
+  },
+  {
+    "Symbol": "MHM",
+    "Exchange": "PA",
+    "Name": "Societe Parisienne d\u2019apports En Capital   SPAC SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "MIB",
+    "Exchange": "PA",
+    "Name": "Lyxor FTSE MIB (DR) UCITS ETF",
+    "Country": "France"
+  },
+  {
+    "Symbol": "MILL",
+    "Exchange": "PA",
+    "Name": "Lyxor Index Fund - Lyxor MSCI Millennials ESG Filtered (DR) UCITS ETF Acc EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "MIVU",
+    "Exchange": "PA",
+    "Name": "Amundi Index Solutions MSCI USA Minimum Volatility Factor UCITS",
+    "Country": "France"
+  },
+  {
+    "Symbol": "MJP",
+    "Exchange": "PA",
+    "Name": "HSBC MSCI Japan UCITS ETF",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ML",
+    "Exchange": "PA",
+    "Name": "Compagnie Generale des Etablissements Michelin SCA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "MLAA",
+    "Exchange": "PA",
+    "Name": "L Agence Automobiliere SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "MLAAH",
+    "Exchange": "PA",
+    "Name": "Amatheon Agri Holding NV",
+    "Country": "France"
+  },
+  {
+    "Symbol": "MLALV",
+    "Exchange": "PA",
+    "Name": "Alveen",
+    "Country": "France"
+  },
+  {
+    "Symbol": "MLAZR",
+    "Exchange": "PA",
+    "Name": "Azur Selection S.A.",
+    "Country": "France"
+  },
+  {
+    "Symbol": "MLBBO",
+    "Exchange": "PA",
+    "Name": "BEBO Health SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "MLBMD",
+    "Exchange": "PA",
+    "Name": "Beaconsmind AG",
+    "Country": "France"
+  },
+  {
+    "Symbol": "MLCAC",
+    "Exchange": "PA",
+    "Name": "Lombard et Medot SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "MLCFD",
+    "Exchange": "PA",
+    "Name": "Compagnie de Chemins de Fer D\u00e9partementaux Soci\u00e9t\u00e9 Anonyme",
+    "Country": "France"
+  },
+  {
+    "Symbol": "MLCFM",
+    "Exchange": "PA",
+    "Name": "CFM Indosuez Wealth SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "MLCLP",
+    "Exchange": "PA",
+    "Name": "Colipays Reunion SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "MLCMB",
+    "Exchange": "PA",
+    "Name": "Compagnie Du Mont-Blanc",
+    "Country": "France"
+  },
+  {
+    "Symbol": "MLCMG",
+    "Exchange": "PA",
+    "Name": "CMG Cleantech S.A.",
+    "Country": "France"
+  },
+  {
+    "Symbol": "MLEAS",
+    "Exchange": "PA",
+    "Name": "Easson Holdings Ltd",
+    "Country": "France"
+  },
+  {
+    "Symbol": "MLEDR",
+    "Exchange": "PA",
+    "Name": "Compagnie des Eaux de Royan",
+    "Country": "France"
+  },
+  {
+    "Symbol": "MLEFA",
+    "Exchange": "PA",
+    "Name": "Eduform&#39;action S.A.",
+    "Country": "France"
+  },
+  {
+    "Symbol": "MLERO",
+    "Exchange": "PA",
+    "Name": "Euroland Corporate SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "MLETA",
+    "Exchange": "PA",
+    "Name": "Metalliance SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "MLFNP",
+    "Exchange": "PA",
+    "Name": "FNP Technologies SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "MLFTI",
+    "Exchange": "PA",
+    "Name": "France Tourisme Immobilier SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "MLGAL",
+    "Exchange": "PA",
+    "Name": "Galeo Concept SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "MLGEQ",
+    "Exchange": "PA",
+    "Name": "Gentlemen\u2019s Equity SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "MLGLB",
+    "Exchange": "PA",
+    "Name": "Glass To Power SpA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "MLHBB",
+    "Exchange": "PA",
+    "Name": "Financiere Hoche Bains-Les-Bains SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "MLHBP",
+    "Exchange": "PA",
+    "Name": "Hoteles Bestprice S.A.",
+    "Country": "France"
+  },
+  {
+    "Symbol": "MLHIN",
+    "Exchange": "PA",
+    "Name": "Soci\u00e9t\u00e9 H\u00f4teli\u00e8re et Immobili\u00e8re de Nice S.A",
+    "Country": "France"
+  },
+  {
+    "Symbol": "MLHMC",
+    "Exchange": "PA",
+    "Name": "Hotel Majestic Cannes",
+    "Country": "France"
+  },
+  {
+    "Symbol": "MLHOT",
+    "Exchange": "PA",
+    "Name": "Hotelim Soci\u00e9t\u00e9 Anonyme",
+    "Country": "France"
+  },
+  {
+    "Symbol": "MLHPE",
+    "Exchange": "PA",
+    "Name": "Hopening SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "MLIDS",
+    "Exchange": "PA",
+    "Name": "IDS France SAS",
+    "Country": "France"
+  },
+  {
+    "Symbol": "MLIFS",
+    "Exchange": "PA",
+    "Name": "Impulse Fitness Solutions SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "MLIML",
+    "Exchange": "PA",
+    "Name": "Imalliance SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "MLIMP",
+    "Exchange": "PA",
+    "Name": "Imprimerie Chirat Soci\u00e9t\u00e9 Anonyme",
+    "Country": "France"
+  },
+  {
+    "Symbol": "MLIRF",
+    "Exchange": "PA",
+    "Name": "Innovative Rfk SpA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "MLITN",
+    "Exchange": "PA",
+    "Name": "Italy Innovazioni SpA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "MLLCB",
+    "Exchange": "PA",
+    "Name": "Les Constructeurs Du Bois\u00a0SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "MLMAB",
+    "Exchange": "PA",
+    "Name": "Maison Antoine Baud Soci\u00e9t\u00e9 Anonyme",
+    "Country": "France"
+  },
+  {
+    "Symbol": "MLMAD",
+    "Exchange": "PA",
+    "Name": "Made SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "MLMCA",
+    "Exchange": "PA",
+    "Name": "Macompta Fr Sa",
+    "Country": "France"
+  },
+  {
+    "Symbol": "MLMIB",
+    "Exchange": "PA",
+    "Name": "Metrics in Balance NV",
+    "Country": "France"
+  },
+  {
+    "Symbol": "MLMTP",
+    "Exchange": "PA",
+    "Name": "Montepino Logistica SOCIMI S.A.",
+    "Country": "France"
+  },
+  {
+    "Symbol": "MLNMA",
+    "Exchange": "PA",
+    "Name": "Nicolas Miguet et Associes SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "MLNOV",
+    "Exchange": "PA",
+    "Name": "Novatech Industries SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "MLOCT",
+    "Exchange": "PA",
+    "Name": "Octopus Robots SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "MLOKP",
+    "Exchange": "PA",
+    "Name": "OK Business Properties SOCIMI S.A.",
+    "Country": "France"
+  },
+  {
+    "Symbol": "MLONE",
+    "Exchange": "PA",
+    "Name": "Body One SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "MLONL",
+    "Exchange": "PA",
+    "Name": "Onlineformapro SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "MLPAC",
+    "Exchange": "PA",
+    "Name": "Pacte Novation",
+    "Country": "France"
+  },
+  {
+    "Symbol": "MLPHO",
+    "Exchange": "PA",
+    "Name": "Photonike Capital SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "MLPLC",
+    "Exchange": "PA",
+    "Name": "Placoplatre SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "MLPRX",
+    "Exchange": "PA",
+    "Name": "Parx Plastics NV",
+    "Country": "France"
+  },
+  {
+    "Symbol": "MLSDN",
+    "Exchange": "PA",
+    "Name": "La Savonnerie de Nyons SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "MLSEQ",
+    "Exchange": "PA",
+    "Name": "Sequa Petroleum NV",
+    "Country": "France"
+  },
+  {
+    "Symbol": "MLSGT",
+    "Exchange": "PA",
+    "Name": "Smart Good Things Holding S.A.",
+    "Country": "France"
+  },
+  {
+    "Symbol": "MLSML",
+    "Exchange": "PA",
+    "Name": "Smalto SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "MLSRP",
+    "Exchange": "PA",
+    "Name": "Speed Rabbit Pizza SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "MLSUM",
+    "Exchange": "PA",
+    "Name": "Sumo Resources PLC",
+    "Country": "France"
+  },
+  {
+    "Symbol": "MLTRO",
+    "Exchange": "PA",
+    "Name": "TROC DE L'ILE SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "MLVER",
+    "Exchange": "PA",
+    "Name": "Verney-Carron S.A",
+    "Country": "France"
+  },
+  {
+    "Symbol": "MLVIE",
+    "Exchange": "PA",
+    "Name": "Integritas Viager SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "MLVIR",
+    "Exchange": "PA",
+    "Name": "Virtualware 2007 S.A.",
+    "Country": "France"
+  },
+  {
+    "Symbol": "MLWEA",
+    "Exchange": "PA",
+    "Name": "Weaccess Group SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "MLZAM",
+    "Exchange": "PA",
+    "Name": "ZCCM Investments Holdings Plc",
+    "Country": "France"
+  },
+  {
+    "Symbol": "MMB",
+    "Exchange": "PA",
+    "Name": "Lagardere SCA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "MMS",
+    "Exchange": "PA",
+    "Name": "Amundi MSCI EMU Small Cap ESG CTB Net Zero Ambition UCITS ETF D EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "MMT",
+    "Exchange": "PA",
+    "Name": "M\u00e9tropole T\u00e9l\u00e9vision S.A.",
+    "Country": "France"
+  },
+  {
+    "Symbol": "MOED",
+    "Exchange": "PA",
+    "Name": "BNP Paribas Easy - Equity Momentum Europe",
+    "Country": "France"
+  },
+  {
+    "Symbol": "MRN",
+    "Exchange": "PA",
+    "Name": "Mersen SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "MSE",
+    "Exchange": "PA",
+    "Name": "Lyxor UCITS Stoxx 50 D-EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "MSF2",
+    "Exchange": "PA",
+    "Name": "Leverage Shares 2x Microsoft ETC A EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "MTA",
+    "Exchange": "PA",
+    "Name": "Amundi Euro Government Bond 1-3Y UCITS ETF Acc EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "MTB",
+    "Exchange": "PA",
+    "Name": "Amundi Euro Government Bond 3-5Y UCITS ETF Acc EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "MTC",
+    "Exchange": "PA",
+    "Name": "Multi Units Luxembourg - Lyxor EuroMTS 5-7Y Investment Grade (DR) UCITS ETF",
+    "Country": "France"
+  },
+  {
+    "Symbol": "MTD",
+    "Exchange": "PA",
+    "Name": "Amundi Euro Government Bond 7-10Y UCITS ETF Acc",
+    "Country": "France"
+  },
+  {
+    "Symbol": "MTE",
+    "Exchange": "PA",
+    "Name": "MULTI-UNITS LUXEMBOURG - Lyxor Euro Government Bond 10-15Y (DR) UCITS ETF",
+    "Country": "France"
+  },
+  {
+    "Symbol": "MTF",
+    "Exchange": "PA",
+    "Name": "Lyxor EuroMTS 15+Y Investment Grade UCITS C",
+    "Country": "France"
+  },
+  {
+    "Symbol": "MTH",
+    "Exchange": "PA",
+    "Name": "Amundi Euro Government Bond 25+Y UCITS ETF Acc",
+    "Country": "France"
+  },
+  {
+    "Symbol": "MTI",
+    "Exchange": "PA",
+    "Name": "Lyxor UCITS EuroMTS Inflation Linked Investment Grade DR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "MTU",
+    "Exchange": "PA",
+    "Name": "Manitou BF S.A.",
+    "Country": "France"
+  },
+  {
+    "Symbol": "MTUSD",
+    "Exchange": "PA",
+    "Name": "BNP Paribas Easy ECPI Global ESG Med Tech UCITS ETF USD Capitalisation",
+    "Country": "France"
+  },
+  {
+    "Symbol": "MUS",
+    "Exchange": "PA",
+    "Name": "HSBC MSCI USA UCITS ETF",
+    "Country": "France"
+  },
+  {
+    "Symbol": "MUSA",
+    "Exchange": "PA",
+    "Name": "iShares MSCI USA Swap UCITS ETF USD (Acc) EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "MUSRI",
+    "Exchange": "PA",
+    "Name": "BNP Paribas Easy MSCI EMU SRI S-Series PAB 5% Capped UCITS ETF Capitalisation",
+    "Country": "France"
+  },
+  {
+    "Symbol": "MVUS",
+    "Exchange": "PA",
+    "Name": "Ossiam US Minimum Variance ESG NR UCITS ETF 1A (USD)",
+    "Country": "France"
+  },
+  {
+    "Symbol": "MWO",
+    "Exchange": "PA",
+    "Name": "Amundi FTSE EPRA/NAREIT Global Developed UCITS ETF D",
+    "Country": "France"
+  },
+  {
+    "Symbol": "MWRD",
+    "Exchange": "PA",
+    "Name": "Amundi MSCI World UCITS ETF DR USD Acc (EUR)",
+    "Country": "France"
+  },
+  {
+    "Symbol": "MXJ",
+    "Exchange": "PA",
+    "Name": "HSBC MSCI Pacific ex Japan UCITS ETF",
+    "Country": "France"
+  },
+  {
+    "Symbol": "NACON",
+    "Exchange": "PA",
+    "Name": "Nacon\u00a0Sa",
+    "Country": "France"
+  },
+  {
+    "Symbol": "NANO",
+    "Exchange": "PA",
+    "Name": "Nanobiotix S.A",
+    "Country": "France"
+  },
+  {
+    "Symbol": "NDXH",
+    "Exchange": "PA",
+    "Name": "Amundi Nasdaq-100 EUR Hedged Daily UCITS",
+    "Country": "France"
+  },
+  {
+    "Symbol": "NEOEN",
+    "Exchange": "PA",
+    "Name": "Neoen SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "NEX",
+    "Exchange": "PA",
+    "Name": "Nexans S.A.",
+    "Country": "France"
+  },
+  {
+    "Symbol": "NGASP",
+    "Exchange": "PA",
+    "Name": "WisdomTree Natural Gas EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "NK",
+    "Exchange": "PA",
+    "Name": "Imerys SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "NOKIA",
+    "Exchange": "PA",
+    "Name": "Nokia Oyj",
+    "Country": "France"
+  },
+  {
+    "Symbol": "NR21",
+    "Exchange": "PA",
+    "Name": "NR 21 S.A.",
+    "Country": "France"
+  },
+  {
+    "Symbol": "NRAM",
+    "Exchange": "PA",
+    "Name": "AMUNDI MSCI North America ESG Climate Net Zero Ambition CTB UCITS ETF Acc EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "NRG",
+    "Exchange": "PA",
+    "Name": "NRJ Group",
+    "Country": "France"
+  },
+  {
+    "Symbol": "NRGW",
+    "Exchange": "PA",
+    "Name": "Amundi S&P Global Energy Carbon Reduced UCITS ETF DR EUR Acc EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "NRJ",
+    "Exchange": "PA",
+    "Name": "Multi Units France - Lyxor New Energy (DR) UCITS ETF",
+    "Country": "France"
+  },
+  {
+    "Symbol": "NRJC",
+    "Exchange": "PA",
+    "Name": "Lyxor MSCI New Energy ESG Filtered (DR) UCITS ETF Acc",
+    "Country": "France"
+  },
+  {
+    "Symbol": "NRO",
+    "Exchange": "PA",
+    "Name": "Neurones",
+    "Country": "France"
+  },
+  {
+    "Symbol": "NXI",
+    "Exchange": "PA",
+    "Name": "Nexity",
+    "Country": "France"
+  },
+  {
+    "Symbol": "OBLI",
+    "Exchange": "PA",
+    "Name": "Lyxor PEA Obligations d'\u00c9tat Euro UCITS ETF Acc",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ODET",
+    "Exchange": "PA",
+    "Name": "Compagnie de l'Odet",
+    "Country": "France"
+  },
+  {
+    "Symbol": "OP2E",
+    "Exchange": "PA",
+    "Name": "OSSIAM MSCI EMU NR 1C EUR EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "OP4E",
+    "Exchange": "PA",
+    "Name": "Ossiam Lux Ossiam MSCI Europe ex EMU NR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "OP5E",
+    "Exchange": "PA",
+    "Name": "Ossiam Lux Ossiam MSCI Japan NR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "OP6E",
+    "Exchange": "PA",
+    "Name": "Ossiam Lux Bloomberg Asia Pacific Ex Japan PAB NR C EUR Acc EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "OP7H",
+    "Exchange": "PA",
+    "Name": "Ossiam Bloomberg USA PAB UCITS ETF - 1A EUR Hedged Acc",
+    "Country": "France"
+  },
+  {
+    "Symbol": "OPM",
+    "Exchange": "PA",
+    "Name": "OPmobility SE",
+    "Country": "France"
+  },
+  {
+    "Symbol": "OR",
+    "Exchange": "PA",
+    "Name": "L\u2019Oreal SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ORA",
+    "Exchange": "PA",
+    "Name": "Orange S.A.",
+    "Country": "France"
+  },
+  {
+    "Symbol": "OREGE",
+    "Exchange": "PA",
+    "Name": "Orege Soci\u00e9t\u00e9 Anonyme",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ORIA",
+    "Exchange": "PA",
+    "Name": "Fiducial Real Estate SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "OSE",
+    "Exchange": "PA",
+    "Name": "OSE Pharma SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "OVH",
+    "Exchange": "PA",
+    "Name": "OVH Groupe SAS",
+    "Country": "France"
+  },
+  {
+    "Symbol": "P500H",
+    "Exchange": "PA",
+    "Name": "Amundi ETF PEA S&P 500 UCITS ETF Daily Hedged EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "PAASI",
+    "Exchange": "PA",
+    "Name": "Amundi ETF PEA MSCI Emerging Asia UCITS ETF",
+    "Country": "France"
+  },
+  {
+    "Symbol": "PABH",
+    "Exchange": "PA",
+    "Name": "Lyxor Net Zero 2050 S&P 500 Climate PAB (DR) UCITS ETF - Daily Hedged to EUR - Acc",
+    "Country": "France"
+  },
+  {
+    "Symbol": "PABU",
+    "Exchange": "PA",
+    "Name": "Lyxor Net Zero 2050 S&P 500 Climate PAB (DR) UCITS ETF - Acc EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "PABW",
+    "Exchange": "PA",
+    "Name": "Amundi MSCI World Climate Net Zero Ambition PAB UCITS ETF Acc EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "PABZ",
+    "Exchange": "PA",
+    "Name": "Amundi Index Solutions - Amundi Euro iStoxx Climate Paris Aligned Pab UCITS ETF DR C",
+    "Country": "France"
+  },
+  {
+    "Symbol": "PAEEM",
+    "Exchange": "PA",
+    "Name": "Amundi ETF PEA MSCI Emerging Markets UCITS ETF",
+    "Country": "France"
+  },
+  {
+    "Symbol": "PAEJ",
+    "Exchange": "PA",
+    "Name": "Lyxor PEA MSCI AC Asia-Pacific ex Japan UCITS C",
+    "Country": "France"
+  },
+  {
+    "Symbol": "PALAT",
+    "Exchange": "PA",
+    "Name": "Amundi ETF PEA MSCI EM Latin America UCITS ETF",
+    "Country": "France"
+  },
+  {
+    "Symbol": "PANX",
+    "Exchange": "PA",
+    "Name": "Amundi ETF PEA Nasdaq-100 UCITS ETF",
+    "Country": "France"
+  },
+  {
+    "Symbol": "PAR",
+    "Exchange": "PA",
+    "Name": "Groupe Partouche SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "PARP",
+    "Exchange": "PA",
+    "Name": "Groupe Partouche SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "PARRO",
+    "Exchange": "PA",
+    "Name": "Parrot",
+    "Country": "France"
+  },
+  {
+    "Symbol": "PASI",
+    "Exchange": "PA",
+    "Name": "Lyxor PEA China Enterprise HSCEI UCITS C",
+    "Country": "France"
+  },
+  {
+    "Symbol": "PAT",
+    "Exchange": "PA",
+    "Name": "Patrimoine et Commerce SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "PAXJ",
+    "Exchange": "PA",
+    "Name": "Lyxor MSCI Pacific Ex Japan UCITS",
+    "Country": "France"
+  },
+  {
+    "Symbol": "PCEU",
+    "Exchange": "PA",
+    "Name": "Amundi ETF PEA MSCI Europe UCITS ETF",
+    "Country": "France"
+  },
+  {
+    "Symbol": "PDJE",
+    "Exchange": "PA",
+    "Name": "Lyxor PEA Dow Jones Industrial Average UCITS C",
+    "Country": "France"
+  },
+  {
+    "Symbol": "PE500",
+    "Exchange": "PA",
+    "Name": "Amundi ETF PEA S&P 500 UCITS ETF EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "PEF",
+    "Exchange": "PA",
+    "Name": "Invesco Markets III plc - Invesco FTSE RAFI Europe UCITS ETF",
+    "Country": "France"
+  },
+  {
+    "Symbol": "PEH",
+    "Exchange": "PA",
+    "Name": "Invesco Markets III plc - Invesco FTSE RAFI Emerging Markets UCITS ETF",
+    "Country": "France"
+  },
+  {
+    "Symbol": "PERR",
+    "Exchange": "PA",
+    "Name": "G\u00e9rard Perrier Industrie S.A",
+    "Country": "France"
+  },
+  {
+    "Symbol": "PEU",
+    "Exchange": "PA",
+    "Name": "Invesco Markets III plc - Invesco EuroMTS Cash 3 Months UCITS ETF",
+    "Country": "France"
+  },
+  {
+    "Symbol": "PEUG",
+    "Exchange": "PA",
+    "Name": "Peugeot Invest SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "PFT",
+    "Exchange": "PA",
+    "Name": "Invesco FTSE RAFI US 1000 UCITS ETF EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "PHXM",
+    "Exchange": "PA",
+    "Name": "PHAXIAM Therapeutics S.A.",
+    "Country": "France"
+  },
+  {
+    "Symbol": "PIG",
+    "Exchange": "PA",
+    "Name": "Haulotte Group SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "PINR",
+    "Exchange": "PA",
+    "Name": "Lyxor PEA Inde (MSCI India) UCITS ETF Capi",
+    "Country": "France"
+  },
+  {
+    "Symbol": "PLAN",
+    "Exchange": "PA",
+    "Name": "Multi Units Luxembourg - Lyxor Corporate Green Bond (DR) UCITS ETF",
+    "Country": "France"
+  },
+  {
+    "Symbol": "PLEM",
+    "Exchange": "PA",
+    "Name": "Lyxor PEA MSCI Emerging Markets UCITS C",
+    "Country": "France"
+  },
+  {
+    "Symbol": "PLNW",
+    "Exchange": "PA",
+    "Name": "Planisware SAS",
+    "Country": "France"
+  },
+  {
+    "Symbol": "PLX",
+    "Exchange": "PA",
+    "Name": "PLUXEE NV",
+    "Country": "France"
+  },
+  {
+    "Symbol": "PMEH",
+    "Exchange": "PA",
+    "Name": "Amundi PEA Immobilier Europe (FTSE EPRA/NAREIT) UCITS ETF Acc",
+    "Country": "France"
+  },
+  {
+    "Symbol": "POXEL",
+    "Exchange": "PA",
+    "Name": "Poxel SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "PQVM",
+    "Exchange": "PA",
+    "Name": "Invesco S&P 500 QVM UCITS ETF",
+    "Country": "France"
+  },
+  {
+    "Symbol": "PRC",
+    "Exchange": "PA",
+    "Name": "Artmarket.com SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "PROAC",
+    "Exchange": "PA",
+    "Name": "Proactis SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "PSAT",
+    "Exchange": "PA",
+    "Name": "Passat Soci\u00e9t\u00e9 Anonyme",
+    "Country": "France"
+  },
+  {
+    "Symbol": "PSP5",
+    "Exchange": "PA",
+    "Name": "Lyxor PEA S&P 500 UCITS C",
+    "Country": "France"
+  },
+  {
+    "Symbol": "PSPH",
+    "Exchange": "PA",
+    "Name": "Lyxor PEA S&P 500 UCITS ETF Couverte en EUR Capi",
+    "Country": "France"
+  },
+  {
+    "Symbol": "PSRW",
+    "Exchange": "PA",
+    "Name": "Invesco FTSE RAFI All World 3000 UCITS ETF",
+    "Country": "France"
+  },
+  {
+    "Symbol": "PTPXE",
+    "Exchange": "PA",
+    "Name": "Amundi ETF PEA Japan Topix UCITS ETF EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "PTPXH",
+    "Exchange": "PA",
+    "Name": "Amundi ETF PEA Japan Topix UCITS ETF Daily Hedged EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "PUB",
+    "Exchange": "PA",
+    "Name": "Publicis Groupe SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "PUST",
+    "Exchange": "PA",
+    "Name": "Lyxor PEA Nasdaq 100 UCITS C",
+    "Country": "France"
+  },
+  {
+    "Symbol": "PVL",
+    "Exchange": "PA",
+    "Name": "Plastiques du Val de Loire",
+    "Country": "France"
+  },
+  {
+    "Symbol": "PWG",
+    "Exchange": "PA",
+    "Name": "Prodways Group SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "QCEU",
+    "Exchange": "PA",
+    "Name": "Amundi Index Solutions - Amundi MSCI Europe Quality Factor UCITS ETF-C",
+    "Country": "France"
+  },
+  {
+    "Symbol": "QDT",
+    "Exchange": "PA",
+    "Name": "Quadient SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "QUED",
+    "Exchange": "PA",
+    "Name": "BNP Paribas Easy ESG Equity Quality Europe UCITS ETF Dis",
+    "Country": "France"
+  },
+  {
+    "Symbol": "R2US",
+    "Exchange": "PA",
+    "Name": "SSgA SPDR ETFs Europe II Public Limited Company - SPDR Russell 2000 U.S. Small Cap UCITS ETF",
+    "Country": "France"
+  },
+  {
+    "Symbol": "RAL",
+    "Exchange": "PA",
+    "Name": "Rallye SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "RBO",
+    "Exchange": "PA",
+    "Name": "Roche Bobois",
+    "Country": "France"
+  },
+  {
+    "Symbol": "RBT",
+    "Exchange": "PA",
+    "Name": "Robertet SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "RCO",
+    "Exchange": "PA",
+    "Name": "Remy Cointreau",
+    "Country": "France"
+  },
+  {
+    "Symbol": "REUSD",
+    "Exchange": "PA",
+    "Name": "BNP Paribas Easy ECPI Circular Economy Leaders UCITS ETF USD Cap",
+    "Country": "France"
+  },
+  {
+    "Symbol": "REUSE",
+    "Exchange": "PA",
+    "Name": "BNP Paribas Easy ECPI Circular Economy Leaders UCITS ETF Cap",
+    "Country": "France"
+  },
+  {
+    "Symbol": "RF",
+    "Exchange": "PA",
+    "Name": "Eurazeo",
+    "Country": "France"
+  },
+  {
+    "Symbol": "RI",
+    "Exchange": "PA",
+    "Name": "Pernod Ricard S.A.",
+    "Country": "France"
+  },
+  {
+    "Symbol": "RIO",
+    "Exchange": "PA",
+    "Name": "Lyxor MSCI Brazil UCITS ETF",
+    "Country": "France"
+  },
+  {
+    "Symbol": "RMAU",
+    "Exchange": "PA",
+    "Name": "Royal Mint Responsibly Sourced Physical Gold ETC EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "RMS",
+    "Exchange": "PA",
+    "Name": "Hermes International SCA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "RNL",
+    "Exchange": "PA",
+    "Name": "Renault Soci\u00e9t\u00e9 Anonyme",
+    "Country": "France"
+  },
+  {
+    "Symbol": "RNO",
+    "Exchange": "PA",
+    "Name": "Renault SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "RS2K",
+    "Exchange": "PA",
+    "Name": "Amundi Index Solutions - Amundi Russell 2000 ETF-C EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "RS2U",
+    "Exchange": "PA",
+    "Name": "Amundi Index Solutions - Amundi Russell 2000 ETF-C USD",
+    "Country": "France"
+  },
+  {
+    "Symbol": "RUI",
+    "Exchange": "PA",
+    "Name": "Rubis SCA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "RXL",
+    "Exchange": "PA",
+    "Name": "Rexel S.A",
+    "Country": "France"
+  },
+  {
+    "Symbol": "S30",
+    "Exchange": "PA",
+    "Name": "Solutions 30 SE",
+    "Country": "France"
+  },
+  {
+    "Symbol": "S500",
+    "Exchange": "PA",
+    "Name": "Amundi S&P 500 ESG UCITS ETF Acc EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "S500H",
+    "Exchange": "PA",
+    "Name": "Amundi Index Solutions - Amundi S&P 500 ESG UCITS ETF EUR Hedged Acc",
+    "Country": "France"
+  },
+  {
+    "Symbol": "S6EW",
+    "Exchange": "PA",
+    "Name": "Ossiam Stoxx Europe 600 Equal Weight NR UCITS 1C",
+    "Country": "France"
+  },
+  {
+    "Symbol": "SABE",
+    "Exchange": "PA",
+    "Name": "Saint Jean Groupe Soci\u00e9t\u00e9 anonyme",
+    "Country": "France"
+  },
+  {
+    "Symbol": "SACI",
+    "Exchange": "PA",
+    "Name": "Fiducial Office Solutions",
+    "Country": "France"
+  },
+  {
+    "Symbol": "SADU",
+    "Exchange": "PA",
+    "Name": "Amundi Index Solutions - Amundi MSCI USA ESG Leaders Select Ucits ETF DR Cap",
+    "Country": "France"
+  },
+  {
+    "Symbol": "SAF",
+    "Exchange": "PA",
+    "Name": "Safran SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "SAMS",
+    "Exchange": "PA",
+    "Name": "Samse SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "SAN",
+    "Exchange": "PA",
+    "Name": "Sanofi SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "SAVE",
+    "Exchange": "PA",
+    "Name": "Savencia SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "SBT",
+    "Exchange": "PA",
+    "Name": "Oeneo SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "SBTC",
+    "Exchange": "PA",
+    "Name": "21Shares Short Bitcoin ETP EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "SCHP",
+    "Exchange": "PA",
+    "Name": "Seche Environnem.",
+    "Country": "France"
+  },
+  {
+    "Symbol": "SCITY",
+    "Exchange": "PA",
+    "Name": "Amundi Index Solutions - Amundi Smart City UCITS ETF-C EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "SCR",
+    "Exchange": "PA",
+    "Name": "SCOR SE",
+    "Country": "France"
+  },
+  {
+    "Symbol": "SDG",
+    "Exchange": "PA",
+    "Name": "Synergie SE",
+    "Country": "France"
+  },
+  {
+    "Symbol": "SEC",
+    "Exchange": "PA",
+    "Name": "Soditech SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "SEFER",
+    "Exchange": "PA",
+    "Name": "Sergeferrari G",
+    "Country": "France"
+  },
+  {
+    "Symbol": "SEL",
+    "Exchange": "PA",
+    "Name": "Lyxor UCITS Stoxx Europe Select Dividend 30",
+    "Country": "France"
+  },
+  {
+    "Symbol": "SELER",
+    "Exchange": "PA",
+    "Name": "Selectirente",
+    "Country": "France"
+  },
+  {
+    "Symbol": "SEME",
+    "Exchange": "PA",
+    "Name": "iShares MSCI Global Semiconductors UCITS ETF USD Acc EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "SESG",
+    "Exchange": "PA",
+    "Name": "SES S. A.",
+    "Country": "France"
+  },
+  {
+    "Symbol": "SEUC",
+    "Exchange": "PA",
+    "Name": "SSgA SPDR ETFs Europe I plc - SPDR Barclays 0-3 Year Euro Corporate Bond UCITS ETF",
+    "Country": "France"
+  },
+  {
+    "Symbol": "SFCA",
+    "Exchange": "PA",
+    "Name": "Soc Franc Casinos",
+    "Country": "France"
+  },
+  {
+    "Symbol": "SFPI",
+    "Exchange": "PA",
+    "Name": "Groupe Sfpi",
+    "Country": "France"
+  },
+  {
+    "Symbol": "SFTRY",
+    "Exchange": "PA",
+    "Name": "Amundi Index Solutions - Amundi Smart Factory UCITS ETF-C EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "SGO",
+    "Exchange": "PA",
+    "Name": "Compagnie de Saint-Gobain S.A.",
+    "Country": "France"
+  },
+  {
+    "Symbol": "SGQE",
+    "Exchange": "PA",
+    "Name": "Lyxor SG European Quality Income NTR UCITS D",
+    "Country": "France"
+  },
+  {
+    "Symbol": "SGQI",
+    "Exchange": "PA",
+    "Name": "Multi Units Luxembourg - Lyxor SG Global Quality Income NTR UCITS ETF",
+    "Country": "France"
+  },
+  {
+    "Symbol": "SHC",
+    "Exchange": "PA",
+    "Name": "Lyxor UCITS Daily Short CAC 40",
+    "Country": "France"
+  },
+  {
+    "Symbol": "SIGHT",
+    "Exchange": "PA",
+    "Name": "Gensight Biologics SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "SK",
+    "Exchange": "PA",
+    "Name": "SEB SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "SLVRP",
+    "Exchange": "PA",
+    "Name": "WisdomTree Silver EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "SMC",
+    "Exchange": "PA",
+    "Name": "SPDR MSCI Europe Small Cap UCITS",
+    "Country": "France"
+  },
+  {
+    "Symbol": "SMCP",
+    "Exchange": "PA",
+    "Name": "Smcp SAS",
+    "Country": "France"
+  },
+  {
+    "Symbol": "SMRT",
+    "Exchange": "PA",
+    "Name": "Amundi Index Solutions - Amundi Index Equity Global Multi Smart Allocation Scientific Beta UCITS ETF",
+    "Country": "France"
+  },
+  {
+    "Symbol": "SMRU",
+    "Exchange": "PA",
+    "Name": "Amundi Index Solutions - Amundi Index Equity Global Multi Smart Allocation Scientific Beta ETF-C USD",
+    "Country": "France"
+  },
+  {
+    "Symbol": "SOI",
+    "Exchange": "PA",
+    "Name": "Soitec SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "SOLW",
+    "Exchange": "PA",
+    "Name": "WisdomTree Solana EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "SOP",
+    "Exchange": "PA",
+    "Name": "Sopra Steria Group SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "SP5",
+    "Exchange": "PA",
+    "Name": "Multi Units Luxembourg - Lyxor S&P 500 UCITS ETF",
+    "Country": "France"
+  },
+  {
+    "Symbol": "SP5C",
+    "Exchange": "PA",
+    "Name": "Lyxor S&P 500 UCITS ETF - C-EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "SP5H",
+    "Exchange": "PA",
+    "Name": "Amundi S&P 500 II UCITS ETF EUR Hedged Dist EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "SPEL",
+    "Exchange": "PA",
+    "Name": "Fonci\u00e8re Volta",
+    "Country": "France"
+  },
+  {
+    "Symbol": "SPEUS",
+    "Exchange": "PA",
+    "Name": "BNP Paribas Easy S&P 500 ESG UCITS ETF Acc",
+    "Country": "France"
+  },
+  {
+    "Symbol": "SPIE",
+    "Exchange": "PA",
+    "Name": "SPIE SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "SPMV",
+    "Exchange": "PA",
+    "Name": "Ossiam US Minimum Variance ESG NR UCITS ETF 1A (EUR)",
+    "Country": "France"
+  },
+  {
+    "Symbol": "SPY4",
+    "Exchange": "PA",
+    "Name": "SSgA SPDR S&P 400 US Mid Cap",
+    "Country": "France"
+  },
+  {
+    "Symbol": "SPY5",
+    "Exchange": "PA",
+    "Name": "SPDR\u00ae S&P 500 UCITS ETF EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "SRIC",
+    "Exchange": "PA",
+    "Name": "BNP Paribas Easy \u20ac Corp Bond SRI Fossil Free UCITS ETF Acc",
+    "Country": "France"
+  },
+  {
+    "Symbol": "SRIC3",
+    "Exchange": "PA",
+    "Name": "BNP Paribas Easy \u20ac Corp Bond SRI PAB 1-3Y UCITS ETF Inc",
+    "Country": "France"
+  },
+  {
+    "Symbol": "SRIC5",
+    "Exchange": "PA",
+    "Name": "BNP Paribas Easy \u20ac Corp Bond SRI PAB 3-5Y UCITS ETF",
+    "Country": "France"
+  },
+  {
+    "Symbol": "SRIC6",
+    "Exchange": "PA",
+    "Name": "BNP Paribas Easy \u20ac Corp Bond SRI PAB 3-5Y UCITS ETF Acc",
+    "Country": "France"
+  },
+  {
+    "Symbol": "SRICD",
+    "Exchange": "PA",
+    "Name": "BNPP BONDSRI ETF",
+    "Country": "France"
+  },
+  {
+    "Symbol": "SRIE",
+    "Exchange": "PA",
+    "Name": "BNP Paribas Easy MSCI Europe SRI S-Series PAB 5% Capped UCITS ETF Distribution",
+    "Country": "France"
+  },
+  {
+    "Symbol": "SRIEC",
+    "Exchange": "PA",
+    "Name": "BNP Paribas Easy MSCI Europe SRI S-Series PAB 5% Capped UCITS ETF Capitalisation",
+    "Country": "France"
+  },
+  {
+    "Symbol": "SRIJ",
+    "Exchange": "PA",
+    "Name": "BNP Paribas Easy MSCI Japan SRI S-Series PAB 5% Capped UCITS ETF Distribution",
+    "Country": "France"
+  },
+  {
+    "Symbol": "SRIJC",
+    "Exchange": "PA",
+    "Name": "BNP Paribas Easy MSCI Japan SRI S-Series PAB 5% Capped UCITS ETF Capitalisation",
+    "Country": "France"
+  },
+  {
+    "Symbol": "SRP",
+    "Exchange": "PA",
+    "Name": "SRP Groupe SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "STF",
+    "Exchange": "PA",
+    "Name": "Stef SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "STK",
+    "Exchange": "PA",
+    "Name": "SPDR\u00ae MSCI Europe Technology UCITS ETF",
+    "Country": "France"
+  },
+  {
+    "Symbol": "STLAP",
+    "Exchange": "PA",
+    "Name": "Stellantis NV",
+    "Country": "France"
+  },
+  {
+    "Symbol": "STMPA",
+    "Exchange": "PA",
+    "Name": "STMicroelectronics N.V.",
+    "Country": "France"
+  },
+  {
+    "Symbol": "STN",
+    "Exchange": "PA",
+    "Name": "SPDR\u00ae MSCI Europe Energy UCITS ETF",
+    "Country": "France"
+  },
+  {
+    "Symbol": "STP",
+    "Exchange": "PA",
+    "Name": "SSgA SPDR ETFs Europe II Public Limited Company - SPDR MSCI Europe Materials UCITS ETF",
+    "Country": "France"
+  },
+  {
+    "Symbol": "STPU",
+    "Exchange": "PA",
+    "Name": "MULTI-UNITS LUXEMBOURG - Lyxor US Curve Steepening 2-10 UCITS ETF - Acc-USD EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "STQ",
+    "Exchange": "PA",
+    "Name": "SPDR\u00ae MSCI Europe Industrials UCITS ETF",
+    "Country": "France"
+  },
+  {
+    "Symbol": "STR",
+    "Exchange": "PA",
+    "Name": "SPDR\u00ae MSCI Europe Consumer Discretionary UCITS ETF",
+    "Country": "France"
+  },
+  {
+    "Symbol": "STS",
+    "Exchange": "PA",
+    "Name": "SSgA SPDR ETFs Europe II Public Limited Company - SPDR MSCI Europe Consumer Staples UCITS ETF",
+    "Country": "France"
+  },
+  {
+    "Symbol": "STT",
+    "Exchange": "PA",
+    "Name": "SSgA SPDR ETFs Europe II Public Limited Company - SPDR MSCI Europe Telecommunications UCITS ETF",
+    "Country": "France"
+  },
+  {
+    "Symbol": "STU",
+    "Exchange": "PA",
+    "Name": "SPDR\u00ae MSCI Europe Utilities UCITS ETF",
+    "Country": "France"
+  },
+  {
+    "Symbol": "STW",
+    "Exchange": "PA",
+    "Name": "SPDR\u00ae MSCI Europe Health Care UCITS ETF",
+    "Country": "France"
+  },
+  {
+    "Symbol": "STZ",
+    "Exchange": "PA",
+    "Name": "SSgA SPDR ETFs Europe II Public Limited Company - SPDR MSCI Europe Financials UCITS ETF",
+    "Country": "France"
+  },
+  {
+    "Symbol": "SU",
+    "Exchange": "PA",
+    "Name": "Schneider Electric S.E.",
+    "Country": "France"
+  },
+  {
+    "Symbol": "SW",
+    "Exchange": "PA",
+    "Name": "Sodexo SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "SWP",
+    "Exchange": "PA",
+    "Name": "Sword Group S.E",
+    "Country": "France"
+  },
+  {
+    "Symbol": "TAYN",
+    "Exchange": "PA",
+    "Name": "Societe de Tayninh SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "TE",
+    "Exchange": "PA",
+    "Name": "Technip Energies BV",
+    "Country": "France"
+  },
+  {
+    "Symbol": "TELE",
+    "Exchange": "PA",
+    "Name": "Lyxor Index Fund - Lyxor Stoxx Europe 600 Telecommunications UCITS ETF Acc",
+    "Country": "France"
+  },
+  {
+    "Symbol": "TELW",
+    "Exchange": "PA",
+    "Name": "Amundi S&P Global Communication Services ESG UCITS ETF DR EUR Acc EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "TEP",
+    "Exchange": "PA",
+    "Name": "Teleperformance SE",
+    "Country": "France"
+  },
+  {
+    "Symbol": "TFF",
+    "Exchange": "PA",
+    "Name": "Tonnellerie Francois Freres SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "TFI",
+    "Exchange": "PA",
+    "Name": "Television Francaise 1 SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "THEP",
+    "Exchange": "PA",
+    "Name": "Thermador Groupe SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "TKO",
+    "Exchange": "PA",
+    "Name": "Tikehau Capital",
+    "Country": "France"
+  },
+  {
+    "Symbol": "TKTT",
+    "Exchange": "PA",
+    "Name": "Tarkett SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "TNG",
+    "Exchange": "PA",
+    "Name": "Transgene SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "TNO",
+    "Exchange": "PA",
+    "Name": "Multi Units Luxembourg - Amundi STOXX Europe 600 Technology UCITS ETF Acc EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "TNOW",
+    "Exchange": "PA",
+    "Name": "Amundi MSCI World Information Technology UCITS ETF EUR Acc EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "TOUP",
+    "Exchange": "PA",
+    "Name": "Touax SCA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "TPHC",
+    "Exchange": "PA",
+    "Name": "Amundi Index Solutions - Amundi Japan Topix UCITS ETF-C CHF Hedged",
+    "Country": "France"
+  },
+  {
+    "Symbol": "TPHU",
+    "Exchange": "PA",
+    "Name": "Amundi Index Solutions - Amundi Japan Topix UCITS ETF-C USD Hedged",
+    "Country": "France"
+  },
+  {
+    "Symbol": "TPXE",
+    "Exchange": "PA",
+    "Name": "Amundi Index Solutions - Amundi Japan Topix UCITS ETF-C EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "TPXH",
+    "Exchange": "PA",
+    "Name": "Amundi Index Solutions - Amundi Japan Topix UCITS ETF-C EUR Hedged",
+    "Country": "France"
+  },
+  {
+    "Symbol": "TRACT",
+    "Exchange": "PA",
+    "Name": "Teract S.A.",
+    "Country": "France"
+  },
+  {
+    "Symbol": "TRI",
+    "Exchange": "PA",
+    "Name": "Trigano S.A.",
+    "Country": "France"
+  },
+  {
+    "Symbol": "TRV",
+    "Exchange": "PA",
+    "Name": "Amundi STOXX Europe 600 Consumer Discretionary UCITS ETF Acc EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "TRYP",
+    "Exchange": "PA",
+    "Name": "HANetf ICAV - Airlines Hotels Cruise Lines UCITS ETF EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "TSYE",
+    "Exchange": "PA",
+    "Name": "SPDR Barclays Cap US Treasury Bond",
+    "Country": "France"
+  },
+  {
+    "Symbol": "TTE",
+    "Exchange": "PA",
+    "Name": "TotalEnergies SE",
+    "Country": "France"
+  },
+  {
+    "Symbol": "TUR",
+    "Exchange": "PA",
+    "Name": "MULTI UNITS LUXEMBOURG - Lyxor MSCI Turkey UCITS ETF",
+    "Country": "France"
+  },
+  {
+    "Symbol": "TVRB",
+    "Exchange": "PA",
+    "Name": "T\u00e9l\u00e9verbier SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "TWN",
+    "Exchange": "PA",
+    "Name": "Multi Units Luxembourg - Lyxor Msci Taiwan Ucits Etf",
+    "Country": "France"
+  },
+  {
+    "Symbol": "U10HK",
+    "Exchange": "PA",
+    "Name": "Lyxor US Treasury 10+Y (DR) UCITS ETF - Monthly Hedged to HKD - Acc",
+    "Country": "France"
+  },
+  {
+    "Symbol": "U13HK",
+    "Exchange": "PA",
+    "Name": "Lyxor US Treasury 1-3Y (DR) UCITS ETF - Monthly Hedged to HKD - Acc",
+    "Country": "France"
+  },
+  {
+    "Symbol": "U710H",
+    "Exchange": "PA",
+    "Name": "Lyxor US Treasury 7-10Y (DR) UCITS ETF - Monthly Hedged to HKD - Acc",
+    "Country": "France"
+  },
+  {
+    "Symbol": "UBBB",
+    "Exchange": "PA",
+    "Name": "Amundi Index Solutions - Amundi Global Corp SRI 1-5Y UCITS ETF DR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "UBI",
+    "Exchange": "PA",
+    "Name": "Ubisoft Entertainment",
+    "Country": "France"
+  },
+  {
+    "Symbol": "UCRP",
+    "Exchange": "PA",
+    "Name": "Amundi Index Solutions - Amundi Index US Corp SRI UCITS ETF DR Acc",
+    "Country": "France"
+  },
+  {
+    "Symbol": "UIFL",
+    "Exchange": "PA",
+    "Name": "Amundi Index Solutions - Amundi Index US Gov Inflation-Linked Bond UCITS ETF DR - USD (C)",
+    "Country": "France"
+  },
+  {
+    "Symbol": "UINE",
+    "Exchange": "PA",
+    "Name": "MULTI-UNITS LUXEMBOURG - Lyxor Inverse US$ 10Y Inflation Expectations UCITS ETF - Acc-USD EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "UKX",
+    "Exchange": "PA",
+    "Name": "HSBC FTSE 100 UCITS ETF",
+    "Country": "France"
+  },
+  {
+    "Symbol": "UNBL",
+    "Exchange": "PA",
+    "Name": "Unibel S.A",
+    "Country": "France"
+  },
+  {
+    "Symbol": "UNIC",
+    "Exchange": "PA",
+    "Name": "Lyxor Index Fund - Lyxor MSCI Disruptive Technology ESG Filtered (DR) UCITS ETF Acc EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "URW",
+    "Exchange": "PA",
+    "Name": "Unibail-Rodamco-Westfield",
+    "Country": "France"
+  },
+  {
+    "Symbol": "US10",
+    "Exchange": "PA",
+    "Name": "Lyxor US Treasury 10+Y (DR) UCITS ETF Dist",
+    "Country": "France"
+  },
+  {
+    "Symbol": "US13",
+    "Exchange": "PA",
+    "Name": "Lyxor UCITS iBoxx USD Treasuries 1-3Y DR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "US37",
+    "Exchange": "PA",
+    "Name": "Lyxor US Treasury 3-7Y (DR) UCITS ETF EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "USA",
+    "Exchange": "PA",
+    "Name": "Lyxor UCITS MSCI USA D-EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "USAC",
+    "Exchange": "PA",
+    "Name": "Amundi MSCI USA ESG Climate Net Zero Ambition CTB UCITS ETF Acc",
+    "Country": "France"
+  },
+  {
+    "Symbol": "USHY",
+    "Exchange": "PA",
+    "Name": "Lyxor BofAML $ High Yield Bond UCITS ETF",
+    "Country": "France"
+  },
+  {
+    "Symbol": "USIH",
+    "Exchange": "PA",
+    "Name": "Amundi USD Corporate Bond PAB Net Zero Ambition UCITS ETF EUR Hedged D",
+    "Country": "France"
+  },
+  {
+    "Symbol": "USRI",
+    "Exchange": "PA",
+    "Name": "AMUNDI MSCI USA SRI Climate Net Zero Ambition PAB UCITS ETF Acc EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "UST",
+    "Exchange": "PA",
+    "Name": "Multi Units Luxembourg- Lyxor Nasdaq-100 UCITS ETF",
+    "Country": "France"
+  },
+  {
+    "Symbol": "UTI",
+    "Exchange": "PA",
+    "Name": "Lyxor Index Fund - Lyxor Stoxx Europe 600 Utilities UCITS ETF",
+    "Country": "France"
+  },
+  {
+    "Symbol": "VAC",
+    "Exchange": "PA",
+    "Name": "Pierre et Vacances SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "VAL",
+    "Exchange": "PA",
+    "Name": "Lyxor Index Fund - Lyxor MSCI EMU Value (DR) UCITS ETF",
+    "Country": "France"
+  },
+  {
+    "Symbol": "VALD",
+    "Exchange": "PA",
+    "Name": "BNP Paribas Easy ESG Equity Value Europe UCITS ETF Dis",
+    "Country": "France"
+  },
+  {
+    "Symbol": "VANTI",
+    "Exchange": "PA",
+    "Name": "VANTIVA SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "VBTC",
+    "Exchange": "PA",
+    "Name": "VanEck Vectors Bitcoin ETN A EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "VCT",
+    "Exchange": "PA",
+    "Name": "Vicat S.A.",
+    "Country": "France"
+  },
+  {
+    "Symbol": "VETH",
+    "Exchange": "PA",
+    "Name": "VanEck Vectors Ethereum ETN A EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "VETO",
+    "Exchange": "PA",
+    "Name": "Vetoquinol",
+    "Country": "France"
+  },
+  {
+    "Symbol": "VIE",
+    "Exchange": "PA",
+    "Name": "Veolia Environnement VE SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "VIL",
+    "Exchange": "PA",
+    "Name": "VIEL & Cie soci\u00e9t\u00e9 anonyme",
+    "Country": "France"
+  },
+  {
+    "Symbol": "VIRI",
+    "Exchange": "PA",
+    "Name": "Viridien",
+    "Country": "France"
+  },
+  {
+    "Symbol": "VIRP",
+    "Exchange": "PA",
+    "Name": "Virbac SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "VIV",
+    "Exchange": "PA",
+    "Name": "Vivendi SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "VK",
+    "Exchange": "PA",
+    "Name": "Vallourec",
+    "Country": "France"
+  },
+  {
+    "Symbol": "VLA",
+    "Exchange": "PA",
+    "Name": "Valneva SE",
+    "Country": "France"
+  },
+  {
+    "Symbol": "VLED",
+    "Exchange": "PA",
+    "Name": "BNP Paribas Easy ESG Equity Low Vol Europe UCITS ETF Dis",
+    "Country": "France"
+  },
+  {
+    "Symbol": "VLTSA",
+    "Exchange": "PA",
+    "Name": "Voltalia SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "VMX",
+    "Exchange": "PA",
+    "Name": "Verimatrix",
+    "Country": "France"
+  },
+  {
+    "Symbol": "VRAP",
+    "Exchange": "PA",
+    "Name": "Vranken-Pommery Monopole Soci\u00e9t\u00e9 Anonyme",
+    "Country": "France"
+  },
+  {
+    "Symbol": "VRLA",
+    "Exchange": "PA",
+    "Name": "Verallia",
+    "Country": "France"
+  },
+  {
+    "Symbol": "VS0L",
+    "Exchange": "PA",
+    "Name": "VanEck Solana ETN A",
+    "Country": "France"
+  },
+  {
+    "Symbol": "VTR",
+    "Exchange": "PA",
+    "Name": "Vitura S.A.",
+    "Country": "France"
+  },
+  {
+    "Symbol": "VU",
+    "Exchange": "PA",
+    "Name": "VusionGroup",
+    "Country": "France"
+  },
+  {
+    "Symbol": "WAGA",
+    "Exchange": "PA",
+    "Name": "Waga Energy SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "WAT",
+    "Exchange": "PA",
+    "Name": "Multi Units France - Lyxor World Water UCITS ETF",
+    "Country": "France"
+  },
+  {
+    "Symbol": "WAVE",
+    "Exchange": "PA",
+    "Name": "Wavestone S.A.",
+    "Country": "France"
+  },
+  {
+    "Symbol": "WBTC",
+    "Exchange": "PA",
+    "Name": "WisdomTree Bitcoin EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "WEATP",
+    "Exchange": "PA",
+    "Name": "WisdomTree Wheat EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "WELL",
+    "Exchange": "PA",
+    "Name": "HAN-GINS Indxx Healthcare Megatrend Equal Weight UCITS ETF - Accumulating EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "WEMT2",
+    "Exchange": "PA",
+    "Name": "BNP PARIBAS EASY - MSCI World ESG Filtered Min TE UCITS ETF EUR Acc",
+    "Country": "France"
+  },
+  {
+    "Symbol": "WESE",
+    "Exchange": "PA",
+    "Name": "Lyxor MSCI World ESG Leaders Extra (DR) UCITS ETF - Monthly Hedged to EUR Acc",
+    "Country": "France"
+  },
+  {
+    "Symbol": "WLD",
+    "Exchange": "PA",
+    "Name": "Lyxor UCITS MSCI World D-EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "WLDH",
+    "Exchange": "PA",
+    "Name": "Amundi MSCI World II UCITS ETF EUR Hedged Dist",
+    "Country": "France"
+  },
+  {
+    "Symbol": "WLDHC",
+    "Exchange": "PA",
+    "Name": "Lyxor MSCI World UCITS ETF Monthly Hedged to EUR Acc",
+    "Country": "France"
+  },
+  {
+    "Symbol": "WLN",
+    "Exchange": "PA",
+    "Name": "Worldline SA",
+    "Country": "France"
+  },
+  {
+    "Symbol": "WPEA",
+    "Exchange": "PA",
+    "Name": "iShares MSCI World Swap PEA UCITS ETF",
+    "Country": "France"
+  },
+  {
+    "Symbol": "WRD",
+    "Exchange": "PA",
+    "Name": "HSBC MSCI World UCITS ETF",
+    "Country": "France"
+  },
+  {
+    "Symbol": "WSRI",
+    "Exchange": "PA",
+    "Name": "Amundi MSCI World SRI Climate Net Zero Ambition PAB UCITS ETF EUR Acc",
+    "Country": "France"
+  },
+  {
+    "Symbol": "X13G",
+    "Exchange": "PA",
+    "Name": "Amundi Index Solutions - Amundi Govt Bond Lowest Rated Euro Investment Grade 1-3 UCITS ETF-C",
+    "Country": "France"
+  },
+  {
+    "Symbol": "X1G",
+    "Exchange": "PA",
+    "Name": "Amundi Index Solutions - Amundi Govt Bond Lowest Rated Euro Investment Grade UCITS ETF-C",
+    "Country": "France"
+  },
+  {
+    "Symbol": "X1GD",
+    "Exchange": "PA",
+    "Name": "Amundi Govt Bond Lowest Rated EuroMTS Investment Grade UCITS D",
+    "Country": "France"
+  },
+  {
+    "Symbol": "XBTI",
+    "Exchange": "PA",
+    "Name": "DDA Physical Bitcoin ETP A EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "XEU",
+    "Exchange": "PA",
+    "Name": "Xtrackers MSCI Europe UCITS ETF 1C EUR",
+    "Country": "France"
+  },
+  {
+    "Symbol": "XFAB",
+    "Exchange": "PA",
+    "Name": "X Fab Silicon Foundries EV",
+    "Country": "France"
+  },
+  {
+    "Symbol": "XIL",
+    "Exchange": "PA",
+    "Name": "Xilam Animation",
+    "Country": "France"
+  },
+  {
+    "Symbol": "YIEL",
+    "Exchange": "PA",
+    "Name": "Lyxor UCITS iBoxx EUR Liquid High Yield 30 Ex-Financial",
+    "Country": "France"
+  },
+  {
+    "Symbol": "ZETH",
+    "Exchange": "PA",
+    "Name": "ETHetc - ETC Group Physical Ethereum EUR",
+    "Country": "France"
+  }
+]

@@ -1,0 +1,890 @@
+[
+  {
+    "Symbol": "AAPL",
+    "Exchange": "BA",
+    "Name": "Apple Inc DRC",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "ABEV",
+    "Exchange": "BA",
+    "Name": "Ambev S.A.",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "AGRO",
+    "Exchange": "BA",
+    "Name": "Agrometal S.A.I.",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "AKO-B",
+    "Exchange": "BA",
+    "Name": "Embotelladora Andina S.A. CEDEAR Series B",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "ALUA",
+    "Exchange": "BA",
+    "Name": "Aluar Aluminio Argentino",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "AMD",
+    "Exchange": "BA",
+    "Name": "Advanced Micro Devices, Inc.",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "AMDD",
+    "Exchange": "BA",
+    "Name": "Advanced Micro Devices, Inc.",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "AMGN",
+    "Exchange": "BA",
+    "Name": "Amgen Inc.",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "AMZN",
+    "Exchange": "BA",
+    "Name": "Amazon.com Inc.",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "AUSO",
+    "Exchange": "BA",
+    "Name": "Autopistas del Sol",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "AXP",
+    "Exchange": "BA",
+    "Name": "American Express Co DRC",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "BA",
+    "Exchange": "BA",
+    "Name": "Boeing Co. CEDEAR",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "BA-C",
+    "Exchange": "BA",
+    "Name": "BANK OF AMERICA CORPORATION CED",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "BABA",
+    "Exchange": "BA",
+    "Name": "Alibaba Group Holding Limited",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "BBAR",
+    "Exchange": "BA",
+    "Name": "BBVA Banco Frances SA",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "BBD",
+    "Exchange": "BA",
+    "Name": "Banco Bradesco DRC",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "BHIP",
+    "Exchange": "BA",
+    "Name": "Banco Hipotecario SA",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "BHP",
+    "Exchange": "BA",
+    "Name": "BHP Group Limited",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "BIDU",
+    "Exchange": "BA",
+    "Name": "Baidu, Inc.",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "BMA",
+    "Exchange": "BA",
+    "Name": "Banco Macro SA B",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "BOLT",
+    "Exchange": "BA",
+    "Name": "Boldt S.A",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "BPAT",
+    "Exchange": "BA",
+    "Name": "Banco Patagonia",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "BRIO",
+    "Exchange": "BA",
+    "Name": "Banco Santander R\u00edo S.A",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "BRIO6",
+    "Exchange": "BA",
+    "Name": "Banco Santander R\u00edo S.A",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "BRKB",
+    "Exchange": "BA",
+    "Name": "Berkshire Hathaway Inc.",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "BSBR",
+    "Exchange": "BA",
+    "Name": "Banco Santander Brasil SA",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "BYMA",
+    "Exchange": "BA",
+    "Name": "Bolsas y Mercados Argentinos SA",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "CADO",
+    "Exchange": "BA",
+    "Name": "Carlos Casado",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "CADO5",
+    "Exchange": "BA",
+    "Name": "Carlos Casado S.A.",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "CAPX",
+    "Exchange": "BA",
+    "Name": "Capex S.A",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "CARC",
+    "Exchange": "BA",
+    "Name": "Carboclor",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "CECO2",
+    "Exchange": "BA",
+    "Name": "Enel Generacion Costanera SA",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "CELU",
+    "Exchange": "BA",
+    "Name": "Celulosa Argentina SA",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "CEPU",
+    "Exchange": "BA",
+    "Name": "Central Puerto S.A.",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "CGPA2",
+    "Exchange": "BA",
+    "Name": "Camuzzi Gas Pampeana SA",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "COIN",
+    "Exchange": "BA",
+    "Name": "Coinbase Global, Inc.",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "COME",
+    "Exchange": "BA",
+    "Name": "Sociedad Comercial del Plata S.A.",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "CRE3W",
+    "Exchange": "BA",
+    "Name": "Cresud Wnt",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "CRES",
+    "Exchange": "BA",
+    "Name": "Cresud SA",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "CTIO",
+    "Exchange": "BA",
+    "Name": "Consultatio SA",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "CVH",
+    "Exchange": "BA",
+    "Name": "Cablevision Holding SA",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "CVX",
+    "Exchange": "BA",
+    "Name": "Chevron Corp. CEDEAR",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "DGCU2",
+    "Exchange": "BA",
+    "Name": "Distribuidora de Gas Cuyana SA",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "DISN",
+    "Exchange": "BA",
+    "Name": "Walt Disney Company DRC",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "DOME",
+    "Exchange": "BA",
+    "Name": "Domec Compania de Artefactos Domesticos SAIC y F",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "DYCA",
+    "Exchange": "BA",
+    "Name": "Dycasa SA",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "EDLH",
+    "Exchange": "BA",
+    "Name": "EDESAL Holding SA",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "EDN",
+    "Exchange": "BA",
+    "Name": "Empresa Distribuidora y Comercializadora Norte S.A.",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "EDSH",
+    "Exchange": "BA",
+    "Name": "Edesa Holding SA",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "EMDE",
+    "Exchange": "BA",
+    "Name": "Empresa Distribuidora Electrica Regional SA",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "EWZ",
+    "Exchange": "BA",
+    "Name": "iShares, Inc. - iShares MSCI Brazil ETF",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "FERR",
+    "Exchange": "BA",
+    "Name": "Ferrum S.A.",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "FIPL",
+    "Exchange": "BA",
+    "Name": "Fiplasto SA",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "GALI",
+    "Exchange": "BA",
+    "Name": "Banco de Galicia y Buenos Aires SA Class B 1 Vote",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "GAMI",
+    "Exchange": "BA",
+    "Name": "B-Gaming S.A.",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "GARO",
+    "Exchange": "BA",
+    "Name": "Garovaglio y Zorraquin S.A.",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "GBAN",
+    "Exchange": "BA",
+    "Name": "Naturgy BAN SA",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "GCLA",
+    "Exchange": "BA",
+    "Name": "Grupo Clarin S.A.",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "GFI",
+    "Exchange": "BA",
+    "Name": "Gold Fields Ltd DRC",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "GGAL",
+    "Exchange": "BA",
+    "Name": "Grupo Financiero Galicia S.A.",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "GLOB",
+    "Exchange": "BA",
+    "Name": "Globant S.A.",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "GOOGL",
+    "Exchange": "BA",
+    "Name": "Alphabet Inc Class A CEDEAR",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "GRIM",
+    "Exchange": "BA",
+    "Name": "Grimoldi SA",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "HAL",
+    "Exchange": "BA",
+    "Name": "Halliburton Co",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "HARG",
+    "Exchange": "BA",
+    "Name": "Holcim Argentina SA",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "HAVA",
+    "Exchange": "BA",
+    "Name": "Havanna Holding SA",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "HMY",
+    "Exchange": "BA",
+    "Name": "Harmony Gold Mining Company Ltd",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "IBM",
+    "Exchange": "BA",
+    "Name": "International Business Machines Corporation",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "INAG",
+    "Exchange": "BA",
+    "Name": "Insumos Agroquimicos SA",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "INTC",
+    "Exchange": "BA",
+    "Name": "Intel Corp. CEDEAR",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "INTR",
+    "Exchange": "BA",
+    "Name": "Compania Introductora de Buenos Aires SA",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "INVJ",
+    "Exchange": "BA",
+    "Name": "Inversora Juramento SA",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "IRCP",
+    "Exchange": "BA",
+    "Name": "IRSA Propiedades Comerciales S.A",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "IRS2W",
+    "Exchange": "BA",
+    "Name": "Irsa Wnt",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "IRSA",
+    "Exchange": "BA",
+    "Name": "IRSA Inversiones y Representaciones SA",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "JNJ",
+    "Exchange": "BA",
+    "Name": "Johnson & Johnson Co DRC",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "KO",
+    "Exchange": "BA",
+    "Name": "The Coca-Cola Company",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "LEDE",
+    "Exchange": "BA",
+    "Name": "Ledesma SAAI",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "LEID",
+    "Exchange": "BA",
+    "Name": "Leyden SAIC y F",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "LLY",
+    "Exchange": "BA",
+    "Name": "Eli Lilly and Company",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "LOMA",
+    "Exchange": "BA",
+    "Name": "Loma Negra Compania Industrial Argentina SA",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "LONG",
+    "Exchange": "BA",
+    "Name": "Longvie SA",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "MDLZ",
+    "Exchange": "BA",
+    "Name": "MONDELEZ INTL INC CEDEAR EACH 1",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "MELI",
+    "Exchange": "BA",
+    "Name": "MercadoLibre Inc.",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "MELID",
+    "Exchange": "BA",
+    "Name": "MercadoLibre, Inc.",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "META",
+    "Exchange": "BA",
+    "Name": "Meta Platforms, Inc.",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "METR",
+    "Exchange": "BA",
+    "Name": "Metrogas SA",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "MIRG",
+    "Exchange": "BA",
+    "Name": "Mirgor S.A.",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "MO",
+    "Exchange": "BA",
+    "Name": "Altria Group, Inc.",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "MOLA",
+    "Exchange": "BA",
+    "Name": "Molinos Agro SA",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "MOLI",
+    "Exchange": "BA",
+    "Name": "Molinos Rio de la Plata SA",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "MOLI5",
+    "Exchange": "BA",
+    "Name": "Molinos Rio de la Plata SA",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "MORI",
+    "Exchange": "BA",
+    "Name": "Morixe Hermanos SACI",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "MORI5",
+    "Exchange": "BA",
+    "Name": "Morixe Hermanos S.A. 5 Votes",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "MRK",
+    "Exchange": "BA",
+    "Name": "Merck & Company Inc",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "MSFT",
+    "Exchange": "BA",
+    "Name": "Microsoft Corporation",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "MTR",
+    "Exchange": "BA",
+    "Name": "Matba Rofex SA",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "NEM",
+    "Exchange": "BA",
+    "Name": "Newmont Corporation",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "NIO",
+    "Exchange": "BA",
+    "Name": "NIO Inc.",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "NKE",
+    "Exchange": "BA",
+    "Name": "NIKE Inc.",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "NUE",
+    "Exchange": "BA",
+    "Name": "Nucor Corporation",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "NVDA",
+    "Exchange": "BA",
+    "Name": "NVIDIA Corporation",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "OEST",
+    "Exchange": "BA",
+    "Name": "Grupo Concesionario del Oeste SA",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "OVOP",
+    "Exchange": "BA",
+    "Name": "Ovoprot International S.A",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "OXY",
+    "Exchange": "BA",
+    "Name": "Occidental Petroleum Corporation",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "PAMP",
+    "Exchange": "BA",
+    "Name": "Pampa Energia SA",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "PATA",
+    "Exchange": "BA",
+    "Name": "Importadora y Exportadora de la Patagonia SA",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "PBR",
+    "Exchange": "BA",
+    "Name": "Petr\u00f3leo Brasileiro S.A. - Petrobras",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "PETR",
+    "Exchange": "BA",
+    "Name": "Petrolera Pampa S.A",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "PFE",
+    "Exchange": "BA",
+    "Name": "Pfizer Inc",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "PG",
+    "Exchange": "BA",
+    "Name": "Procter & Gamble DRC",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "PLTR",
+    "Exchange": "BA",
+    "Name": "Palantir Technologies Inc.",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "POLL",
+    "Exchange": "BA",
+    "Name": "Polledo S.A.",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "QCOMD",
+    "Exchange": "BA",
+    "Name": "QUALCOMM Incorporated",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "QQQ",
+    "Exchange": "BA",
+    "Name": "Invesco QQQ Trust, Series 1",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "REGE",
+    "Exchange": "BA",
+    "Name": "Garcia Reguera S.A.",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "REP",
+    "Exchange": "BA",
+    "Name": "Repsol S.A",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "RICH",
+    "Exchange": "BA",
+    "Name": "Laboratorios Richmond SACIF",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "RIGO",
+    "Exchange": "BA",
+    "Name": "Rigolleau SA",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "RIO",
+    "Exchange": "BA",
+    "Name": "Rio Tinto PLC CEDEAR",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "ROSE",
+    "Exchange": "BA",
+    "Name": "Instituto Rosenbusch S.A.",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "SAMI",
+    "Exchange": "BA",
+    "Name": "San Miguel AG",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "SEMI",
+    "Exchange": "BA",
+    "Name": "Molinos Juan Semino SA",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "SID",
+    "Exchange": "BA",
+    "Name": "Companhia Sider\u00fargica Nacional",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "SNOW",
+    "Exchange": "BA",
+    "Name": "Snowflake Inc.",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "SPY",
+    "Exchange": "BA",
+    "Name": "Caja de Valores S.A.",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "STD",
+    "Exchange": "BA",
+    "Name": "Banco Santander S.A",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "SUPV",
+    "Exchange": "BA",
+    "Name": "Grupo Supervielle S.A. B",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "T",
+    "Exchange": "BA",
+    "Name": "AT&T Inc.",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "TECO2",
+    "Exchange": "BA",
+    "Name": "Telecom Argentina",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "TGNO4",
+    "Exchange": "BA",
+    "Name": "Transportadora de Gas del Norte SA Class C",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "TGSU2",
+    "Exchange": "BA",
+    "Name": "Transportadora de Gas del Sur SA B",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "TRAN",
+    "Exchange": "BA",
+    "Name": "Compania de Transporte de Energia Electrica en Alta Tension Transener SA",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "TSLA",
+    "Exchange": "BA",
+    "Name": "Tesla, Inc.",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "TV",
+    "Exchange": "BA",
+    "Name": "Grupo Televisa SAB DRC",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "TXAR",
+    "Exchange": "BA",
+    "Name": "Ternium Argentina SA",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "TXR",
+    "Exchange": "BA",
+    "Name": "Ternium SA DRC",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "UPST",
+    "Exchange": "BA",
+    "Name": "Upstart Holdings, Inc.",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "VALE",
+    "Exchange": "BA",
+    "Name": "Vale S.A",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "VALO",
+    "Exchange": "BA",
+    "Name": "Banco de Valores SA",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "VIST",
+    "Exchange": "BA",
+    "Name": "Vista Energy S.A.B. de C.V.",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "VISTD",
+    "Exchange": "BA",
+    "Name": "Vista Energy, S.A.B. de C.V.",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "VZ",
+    "Exchange": "BA",
+    "Name": "Verizon Communications Inc.",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "WBA",
+    "Exchange": "BA",
+    "Name": "Walgreens Boots Alliance, Inc.",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "WFC",
+    "Exchange": "BA",
+    "Name": "Wells Fargo & Company",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "WMT",
+    "Exchange": "BA",
+    "Name": "Walmart Inc",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "X",
+    "Exchange": "BA",
+    "Name": "United States Steel Corp",
+    "Country": "Argentina"
+  },
+  {
+    "Symbol": "YPFD",
+    "Exchange": "BA",
+    "Name": "YPF S.A. D",
+    "Country": "Argentina"
+  }
+]

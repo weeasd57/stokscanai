@@ -1,0 +1,380 @@
+[
+  {
+    "Symbol": "AMAC",
+    "Exchange": "XNAI",
+    "Name": "AFRICA MEGA AGRICORP PLC",
+    "Country": "Kenya"
+  },
+  {
+    "Symbol": "ATHI",
+    "Exchange": "XNAI",
+    "Name": "ARM CEMENT PLC",
+    "Country": "Kenya"
+  },
+  {
+    "Symbol": "BAMBURI",
+    "Exchange": "XNAI",
+    "Name": "BAMBURI CEMENT PLC",
+    "Country": "Kenya"
+  },
+  {
+    "Symbol": "BATK",
+    "Exchange": "XNAI",
+    "Name": "BRITISH AMERICAN TOBACCO KENYA LTD",
+    "Country": "Kenya"
+  },
+  {
+    "Symbol": "BBLK",
+    "Exchange": "XNAI",
+    "Name": "ABSA BANK OF KENYA LTD",
+    "Country": "Kenya"
+  },
+  {
+    "Symbol": "BKG",
+    "Exchange": "XNAI",
+    "Name": "BK GROUP PLC",
+    "Country": "Kenya"
+  },
+  {
+    "Symbol": "BOC",
+    "Exchange": "XNAI",
+    "Name": "BOC KENYA LTD",
+    "Country": "Kenya"
+  },
+  {
+    "Symbol": "BRITAM",
+    "Exchange": "XNAI",
+    "Name": "BRITAM HOLDINGS PLC",
+    "Country": "Kenya"
+  },
+  {
+    "Symbol": "C&G",
+    "Exchange": "XNAI",
+    "Name": "CAR & GENERAL (K) LTD",
+    "Country": "Kenya"
+  },
+  {
+    "Symbol": "CBKL",
+    "Exchange": "XNAI",
+    "Name": "CO-OPERATIVE BANK OF KENYA PLC",
+    "Country": "Kenya"
+  },
+  {
+    "Symbol": "CENTUM",
+    "Exchange": "XNAI",
+    "Name": "CENTUM INVESTMENT COMPANY PLC",
+    "Country": "Kenya"
+  },
+  {
+    "Symbol": "CFC",
+    "Exchange": "XNAI",
+    "Name": "STANBIC HOLDINGS PLC",
+    "Country": "Kenya"
+  },
+  {
+    "Symbol": "CFCI",
+    "Exchange": "XNAI",
+    "Name": "LIBERTY KENYA HOLDINGS LTD",
+    "Country": "Kenya"
+  },
+  {
+    "Symbol": "CIC",
+    "Exchange": "XNAI",
+    "Name": "CIC INSURANCE GROUP LTD",
+    "Country": "Kenya"
+  },
+  {
+    "Symbol": "CIL",
+    "Exchange": "XNAI",
+    "Name": "CARBACID INVESTMENTS LTD",
+    "Country": "Kenya"
+  },
+  {
+    "Symbol": "CPKL",
+    "Exchange": "XNAI",
+    "Name": "CROWN PAINTS KENYA PLC",
+    "Country": "Kenya"
+  },
+  {
+    "Symbol": "CTL",
+    "Exchange": "XNAI",
+    "Name": "I&M HOLDINGS LTD",
+    "Country": "Kenya"
+  },
+  {
+    "Symbol": "DEAP",
+    "Exchange": "XNAI",
+    "Name": "DEACONS (EAST AFRICA) PLC",
+    "Country": "Kenya"
+  },
+  {
+    "Symbol": "DTB",
+    "Exchange": "XNAI",
+    "Name": "DIAMOND TRUST BANK KENYA LTD",
+    "Country": "Kenya"
+  },
+  {
+    "Symbol": "EAAGADS",
+    "Exchange": "XNAI",
+    "Name": "EAAGADS LTD",
+    "Country": "Kenya"
+  },
+  {
+    "Symbol": "EABREW",
+    "Exchange": "XNAI",
+    "Name": "EAST AFRICAN BREWERIES LTD",
+    "Country": "Kenya"
+  },
+  {
+    "Symbol": "EACABLES",
+    "Exchange": "XNAI",
+    "Name": "E.A.CABLES LTD",
+    "Country": "Kenya"
+  },
+  {
+    "Symbol": "EAPORTLAND",
+    "Exchange": "XNAI",
+    "Name": "E.A.PORTLAND CEMENT LTD",
+    "Country": "Kenya"
+  },
+  {
+    "Symbol": "EBL",
+    "Exchange": "XNAI",
+    "Name": "EQUITY GROUP HOLDINGS LTD",
+    "Country": "Kenya"
+  },
+  {
+    "Symbol": "EVREADY",
+    "Exchange": "XNAI",
+    "Name": "EVEREADY EAST AFRICA LTD",
+    "Country": "Kenya"
+  },
+  {
+    "Symbol": "EXP",
+    "Exchange": "XNAI",
+    "Name": "EXPRESS KENYA LTD",
+    "Country": "Kenya"
+  },
+  {
+    "Symbol": "FTGH",
+    "Exchange": "XNAI",
+    "Name": "FLAME TREE GROUP HOLDINGS LTD",
+    "Country": "Kenya"
+  },
+  {
+    "Symbol": "HAL",
+    "Exchange": "XNAI",
+    "Name": "HOME AFRIKA LTD",
+    "Country": "Kenya"
+  },
+  {
+    "Symbol": "HEL",
+    "Exchange": "XNAI",
+    "Name": "HOMEBOYZ ENTERTAINMENT PLC",
+    "Country": "Kenya"
+  },
+  {
+    "Symbol": "HFCK",
+    "Exchange": "XNAI",
+    "Name": "HF GROUP PLC",
+    "Country": "Kenya"
+  },
+  {
+    "Symbol": "JUBILEE",
+    "Exchange": "XNAI",
+    "Name": "JUBILEE HOLDINGS LTD",
+    "Country": "Kenya"
+  },
+  {
+    "Symbol": "KAKUZI",
+    "Exchange": "XNAI",
+    "Name": "KAKUZI LTD",
+    "Country": "Kenya"
+  },
+  {
+    "Symbol": "KAL",
+    "Exchange": "XNAI",
+    "Name": "KENYA AIRWAYS LTD",
+    "Country": "Kenya"
+  },
+  {
+    "Symbol": "KCB",
+    "Exchange": "XNAI",
+    "Name": "KCB GROUP PLC",
+    "Country": "Kenya"
+  },
+  {
+    "Symbol": "KENGEN",
+    "Exchange": "XNAI",
+    "Name": "KENGEN CO. PLC",
+    "Country": "Kenya"
+  },
+  {
+    "Symbol": "KENRE",
+    "Exchange": "XNAI",
+    "Name": "KENYA RE-INSURANCE CORPORATION LTD",
+    "Country": "Kenya"
+  },
+  {
+    "Symbol": "KPLC",
+    "Exchange": "XNAI",
+    "Name": "KENYA POWER & LIGHTING LTD",
+    "Country": "Kenya"
+  },
+  {
+    "Symbol": "KTCL",
+    "Exchange": "XNAI",
+    "Name": "KAPCHORUA TEA CO. LTD ORD",
+    "Country": "Kenya"
+  },
+  {
+    "Symbol": "KVL",
+    "Exchange": "XNAI",
+    "Name": "KURWITU VENTURES LTD",
+    "Country": "Kenya"
+  },
+  {
+    "Symbol": "LAPTRUST",
+    "Exchange": "XNAI",
+    "Name": "LAPTRUST IMARA I-REIT",
+    "Country": "Kenya"
+  },
+  {
+    "Symbol": "LIMURU",
+    "Exchange": "XNAI",
+    "Name": "LIMURU TEA CO. LTD",
+    "Country": "Kenya"
+  },
+  {
+    "Symbol": "LKL",
+    "Exchange": "XNAI",
+    "Name": "LONGHORN PUBLISHERS LTD",
+    "Country": "Kenya"
+  },
+  {
+    "Symbol": "MUMIAS",
+    "Exchange": "XNAI",
+    "Name": "MUMIAS SUGAR CO. LTD",
+    "Country": "Kenya"
+  },
+  {
+    "Symbol": "NBVL",
+    "Exchange": "XNAI",
+    "Name": "NAIROBI BUSINESS VENTURES LTD",
+    "Country": "Kenya"
+  },
+  {
+    "Symbol": "NEWGOLDETF",
+    "Exchange": "XNAI",
+    "Name": "ABSA NEW GOLD ETF",
+    "Country": "Kenya"
+  },
+  {
+    "Symbol": "NIC",
+    "Exchange": "XNAI",
+    "Name": "NCBA GROUP PLC",
+    "Country": "Kenya"
+  },
+  {
+    "Symbol": "NMG",
+    "Exchange": "XNAI",
+    "Name": "NATION MEDIA GROUP PLC",
+    "Country": "Kenya"
+  },
+  {
+    "Symbol": "NSE",
+    "Exchange": "XNAI",
+    "Name": "NAIROBI SECURITIES EXCHANGE PLC",
+    "Country": "Kenya"
+  },
+  {
+    "Symbol": "OCH",
+    "Exchange": "XNAI",
+    "Name": "OLYMPIA CAPITAL HOLDINGS LTD",
+    "Country": "Kenya"
+  },
+  {
+    "Symbol": "PAN",
+    "Exchange": "XNAI",
+    "Name": "SANLAM KENYA PLC",
+    "Country": "Kenya"
+  },
+  {
+    "Symbol": "SAFARI",
+    "Exchange": "XNAI",
+    "Name": "SAFARICOM PLC",
+    "Country": "Kenya"
+  },
+  {
+    "Symbol": "SAMEER",
+    "Exchange": "XNAI",
+    "Name": "SAMEER AFRICA LTD",
+    "Country": "Kenya"
+  },
+  {
+    "Symbol": "SASINI",
+    "Exchange": "XNAI",
+    "Name": "SASINI LTD",
+    "Country": "Kenya"
+  },
+  {
+    "Symbol": "SCBK",
+    "Exchange": "XNAI",
+    "Name": "STANDARD CHARTERED BANK KENYA LTD",
+    "Country": "Kenya"
+  },
+  {
+    "Symbol": "SG",
+    "Exchange": "XNAI",
+    "Name": "WPP SCANGROUP PLC",
+    "Country": "Kenya"
+  },
+  {
+    "Symbol": "STANGROUP",
+    "Exchange": "XNAI",
+    "Name": "STANDARD GROUP  LTD",
+    "Country": "Kenya"
+  },
+  {
+    "Symbol": "TCL",
+    "Exchange": "XNAI",
+    "Name": "TRANS-CENTURY LTD ORD",
+    "Country": "Kenya"
+  },
+  {
+    "Symbol": "TOTAL",
+    "Exchange": "XNAI",
+    "Name": "TOTALENERGIES MARKETING KENYA PLC",
+    "Country": "Kenya"
+  },
+  {
+    "Symbol": "TPS",
+    "Exchange": "XNAI",
+    "Name": "TPS EASTERN AFRICA LTD",
+    "Country": "Kenya"
+  },
+  {
+    "Symbol": "UCHUMI",
+    "Exchange": "XNAI",
+    "Name": "UCHUMI SUPERMARKET PLC",
+    "Country": "Kenya"
+  },
+  {
+    "Symbol": "UMEME",
+    "Exchange": "XNAI",
+    "Name": "UMEME LTD",
+    "Country": "Kenya"
+  },
+  {
+    "Symbol": "UNGA",
+    "Exchange": "XNAI",
+    "Name": "UNGA GROUP LTD",
+    "Country": "Kenya"
+  },
+  {
+    "Symbol": "WTKL",
+    "Exchange": "XNAI",
+    "Name": "WILLIAMSON TEA KENYA LTD",
+    "Country": "Kenya"
+  }
+]

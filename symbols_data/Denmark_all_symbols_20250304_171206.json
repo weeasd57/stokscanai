@@ -1,0 +1,3314 @@
+[
+  {
+    "Symbol": "0P0001D7HZ",
+    "Exchange": "CO",
+    "Name": "Othania Invest",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "0P0001KORN",
+    "Exchange": "CO",
+    "Name": "Othania Balanceret Makro",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "AAB",
+    "Exchange": "CO",
+    "Name": "Aalborg Boldspilklub A/S",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "ACACIGDKK",
+    "Exchange": "CO",
+    "Name": "Accunia Invest EUR CLO Invest Grade DKK",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "ACAEUC",
+    "Exchange": "CO",
+    "Name": "Accunia Inv European CLO AAA/AA Akk DKK",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "ACT",
+    "Exchange": "CO",
+    "Name": "DecideAct A/S",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "AGAT",
+    "Exchange": "CO",
+    "Name": "Agat Ejendomme A/S",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "AGF-B",
+    "Exchange": "CO",
+    "Name": "AGF A/S",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "AGILC",
+    "Exchange": "CO",
+    "Name": "Agillic A/S",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "ALEFRM",
+    "Exchange": "CO",
+    "Name": "Alefarm Brewing AS",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "ALK-B",
+    "Exchange": "CO",
+    "Name": "ALK-Abell\u00f3 A/S",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "ALMB",
+    "Exchange": "CO",
+    "Name": "Alm. Brand",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "AMBU-B",
+    "Exchange": "CO",
+    "Name": "Ambu A/S",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "AOJ-B",
+    "Exchange": "CO",
+    "Name": "Broedrene A&O Johansen A/S Series B",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "AQP",
+    "Exchange": "CO",
+    "Name": "Aquaporin AS",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "ARAOPT",
+    "Exchange": "CO",
+    "Name": "Artha Optimum A/S",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "ASTK",
+    "Exchange": "CO",
+    "Name": "Asetek A/S",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "ATLA-DKK",
+    "Exchange": "CO",
+    "Name": "P/F Atlantic Petroleum",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "BACTIQ",
+    "Exchange": "CO",
+    "Name": "Bactiquant AS",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "BAIBDA",
+    "Exchange": "CO",
+    "Name": "BankInv B\u00e6redygtige Klimaakt A",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "BAIBKA",
+    "Exchange": "CO",
+    "Name": "BankInv B\u00e6redygtige Klimaob A",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "BAIDKAA",
+    "Exchange": "CO",
+    "Name": "BankInvest - Danske Aktier KL",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "BAIDKAAKA",
+    "Exchange": "CO",
+    "Name": "Bankinvest - Danske Aktier Akk. KL",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "BAIEMMAA",
+    "Exchange": "CO",
+    "Name": "BankInvest EM Aktier A",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "BAIEMOAKA",
+    "Exchange": "CO",
+    "Name": "BankInvest - Emerging Markets Obligationer Akk",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "BAIEMOBA",
+    "Exchange": "CO",
+    "Name": "BankInvest Hojrentelande",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "BAIEMOLVA",
+    "Exchange": "CO",
+    "Name": "BankInvest - Emerging Markets Obligationer Lokalvaluta",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "BAIEUAA",
+    "Exchange": "CO",
+    "Name": "BankInvest Europ\u00e6isk Akt A",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "BAIEUAAA",
+    "Exchange": "CO",
+    "Name": "BankInvest Europ\u00e6isk Akt Akk A",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "BAIGAAA",
+    "Exchange": "CO",
+    "Name": "BankInvest Globale Akt Akk A",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "BAIGAI",
+    "Exchange": "CO",
+    "Name": "Investeringsforeningen Bankinvest - Globale Aktier Indeks Kl",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "BAIGASCTA",
+    "Exchange": "CO",
+    "Name": "BankInvest Glb Akt Select A",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "BAIGASCTAA",
+    "Exchange": "CO",
+    "Name": "BankInvest Glb Akt Select AkA",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "BAIGOA",
+    "Exchange": "CO",
+    "Name": "BankInvest Globale Obl A",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "BAIGOAA",
+    "Exchange": "CO",
+    "Name": "BankInvest Globale Obl Akk A",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "BAIHU",
+    "Exchange": "CO",
+    "Name": "BankInvest H\u00f8jt Udbytte Aktier Akk. A",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "BAIHUAA",
+    "Exchange": "CO",
+    "Name": "BankInvest - H\u00f8jt Udbytte Aktier KL",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "BAIKDOBA",
+    "Exchange": "CO",
+    "Name": "BankInvest Korte Danske Obligationer",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "BAIKHYORLA",
+    "Exchange": "CO",
+    "Name": "BankInv Kort HY OblRoyLondon A",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "BAIKLA",
+    "Exchange": "CO",
+    "Name": "BankIn B\u00e6redygt Klimaakt Akk A",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "BAIKOA",
+    "Exchange": "CO",
+    "Name": "BankInvest EM Korte Obl A",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "BAILDKOAA",
+    "Exchange": "CO",
+    "Name": "BankInvest Lange Danske Obl. Akk. A",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "BAILDOBA",
+    "Exchange": "CO",
+    "Name": "BankInvest Lange Danske Obligationer",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "BAIMDOA",
+    "Exchange": "CO",
+    "Name": "BankInvest Mellemlange Danske Obl. A",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "BAIVGAA",
+    "Exchange": "CO",
+    "Name": "BankInvest Value Globale Aktier A",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "BAIVOHYJYCAPA",
+    "Exchange": "CO",
+    "Name": "BankInv Virk.obl HY Jy Cap A",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "BAIVOIGA",
+    "Exchange": "CO",
+    "Name": "BankInvest Virksomhedsobligatione",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "BAIVOIGAKA",
+    "Exchange": "CO",
+    "Name": "BankInvest - Virksomhedsobligationer IG Akk. KL",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "BAVA",
+    "Exchange": "CO",
+    "Name": "Bavarian Nordic",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "BIF",
+    "Exchange": "CO",
+    "Name": "Broendbyernes IF Fodbold AS",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "BIOPOR",
+    "Exchange": "CO",
+    "Name": "BioPorto",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "BIV10",
+    "Exchange": "CO",
+    "Name": "BankInvest Optima 10 KL",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "BIV10A",
+    "Exchange": "CO",
+    "Name": "BankInvest Optima 10 Akk. KL",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "BIV30",
+    "Exchange": "CO",
+    "Name": "BankInvest Optima 30 KL",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "BIV30A",
+    "Exchange": "CO",
+    "Name": "BankInvest Optima 30 Akk. KL",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "BIV55",
+    "Exchange": "CO",
+    "Name": "BankInvest Optima 55 KL",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "BIV55A",
+    "Exchange": "CO",
+    "Name": "BankInvest Optima 55 Akk. KL",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "BIV75",
+    "Exchange": "CO",
+    "Name": "BankInvest Optima 75 KL",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "BIVO30",
+    "Exchange": "CO",
+    "Name": "BankInvest Optima B\u00e6redygtig Omtanke 30",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "BIVO55",
+    "Exchange": "CO",
+    "Name": "BankInvest Optima B\u00e6redygtig Omtanke 55",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "BIVOAA",
+    "Exchange": "CO",
+    "Name": "BankInv Optima Aktier Akk. KL",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "BIVOPA",
+    "Exchange": "CO",
+    "Name": "BankInvest Optima Aktier KL",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "BIVOPRAA",
+    "Exchange": "CO",
+    "Name": "BankInvest Optima Rente Akk. A",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "BIVORA",
+    "Exchange": "CO",
+    "Name": "BankInvest Optima Rente A",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "BLIGAA",
+    "Exchange": "CO",
+    "Name": "BLS Invest Globale Aktier Akk",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "BLKDA",
+    "Exchange": "CO",
+    "Name": "Bls Invest Danske Aktier Kl",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "BLKGA",
+    "Exchange": "CO",
+    "Name": "Bls Invest Globale Aktier Kl",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "BO",
+    "Exchange": "CO",
+    "Name": "Bang & Olufsen",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "BOOZT-DKK",
+    "Exchange": "CO",
+    "Name": "Boozt AB (publ)",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "BRAINP",
+    "Exchange": "CO",
+    "Name": "Brain+ ApS",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "BSKSMCDKAKL",
+    "Exchange": "CO",
+    "Name": "BankInvest Select Small Cap DK Aktier KL",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "BXIDKAIA",
+    "Exchange": "CO",
+    "Name": "BIX Danske Aktier Indeks A",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "BXIDKAIAA",
+    "Exchange": "CO",
+    "Name": "BIX Danske Aktier Indeks Akk A",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "BXIGAI",
+    "Exchange": "CO",
+    "Name": "BIX Globale Aktier Indeks",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "BXIUSAAIA",
+    "Exchange": "CO",
+    "Name": "BIX USA Aktier Indeks A",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "CARL-A",
+    "Exchange": "CO",
+    "Name": "Carlsberg A/S",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "CARL-B",
+    "Exchange": "CO",
+    "Name": "Carlsberg A/S",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "CBRAIN",
+    "Exchange": "CO",
+    "Name": "cBrain A/S",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "CEMAT",
+    "Exchange": "CO",
+    "Name": "Cemat A/S",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "CESSA",
+    "Exchange": "CO",
+    "Name": "Cessatech A/S",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "CHEMM",
+    "Exchange": "CO",
+    "Name": "ChemoMetec A/S",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "CMINOA",
+    "Exchange": "CO",
+    "Name": "Carnegie Wealth Management Nordiske Akt",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "COIFOR",
+    "Exchange": "CO",
+    "Name": "Coop Opsparing Forsigtig",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "COIMOD",
+    "Exchange": "CO",
+    "Name": "Coop Opsparing Modig",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "COIMRA",
+    "Exchange": "CO",
+    "Name": "Coop Opsparing Moderat",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "COLO-B",
+    "Exchange": "CO",
+    "Name": "Coloplast A/S",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "COLUM",
+    "Exchange": "CO",
+    "Name": "Columbus A/S",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "CONFRZ",
+    "Exchange": "CO",
+    "Name": "Conferize A/S",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "CPHCAP-PREF32",
+    "Exchange": "CO",
+    "Name": "Copenhagen Capital A/S 40% Pfd.",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "CPHCAP-ST",
+    "Exchange": "CO",
+    "Name": "Copenhagen Capital A/S",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "CWIASKLA",
+    "Exchange": "CO",
+    "Name": "C WorldWide Asien KL A",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "CWIEMMKL",
+    "Exchange": "CO",
+    "Name": "C WorldWide Emerging Markets KL",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "CWIGAAKKKLA",
+    "Exchange": "CO",
+    "Name": "C WorldWide Globale Aktier - AKK KL A",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "CWIGAEKLUDL",
+    "Exchange": "CO",
+    "Name": "C WorldWide Globale Aktier Etik KL Udl",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "CWIGAKLA",
+    "Exchange": "CO",
+    "Name": "C WorldWide Globale Aktier KL A",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "CWIIA",
+    "Exchange": "CO",
+    "Name": "C WorldWide Indien KL A",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "CWISAKTKLA",
+    "Exchange": "CO",
+    "Name": "C WorldWide Stabile Aktier KL A",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "DAB",
+    "Exchange": "CO",
+    "Name": "Danske Andelskassers Bank A/S",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "DAC",
+    "Exchange": "CO",
+    "Name": "Danish Aerospace Company A/S",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "DANSKE",
+    "Exchange": "CO",
+    "Name": "Danske Bank A/S",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "DANT",
+    "Exchange": "CO",
+    "Name": "Dantax",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "DATA",
+    "Exchange": "CO",
+    "Name": "Dataproces Group A/S",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "DEMANT",
+    "Exchange": "CO",
+    "Name": "Demant A/S",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "DFDS",
+    "Exchange": "CO",
+    "Name": "DFDS A/S",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "DJUR",
+    "Exchange": "CO",
+    "Name": "Djurslands Bank",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "DKIDIO",
+    "Exchange": "CO",
+    "Name": "Investeringsforeningen Danske Invest - Danske Indeksobligationer KL",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "DKIDK",
+    "Exchange": "CO",
+    "Name": "Danske Invest Danmark",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "DKIDKA",
+    "Exchange": "CO",
+    "Name": "Investeringsforeningen Danske Invest - Danmark - Akkumulerende KL",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "DKIDKF",
+    "Exchange": "CO",
+    "Name": "Investeringsforeningen Danske Invest - Danmark Fokus KL",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "DKIDKIEXOMXC20D",
+    "Exchange": "CO",
+    "Name": "DI Danmark Indeks ex OMXC20 kl DKKd",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "DKIDKIX",
+    "Exchange": "CO",
+    "Name": "Danske Invest Danmark Indeks",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "DKIDKLOBL",
+    "Exchange": "CO",
+    "Name": "Danske Invest - Danske Lange Obligationer",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "DKIDMOBL",
+    "Exchange": "CO",
+    "Name": "Investeringsforeningen Danske Invest - Dannebrog Mellemlange Obligationer KL",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "DKIEAUHU",
+    "Exchange": "CO",
+    "Name": "Investeringsforeningen Danske Invest - Europa H\u00f8jt Udbytte KL",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "DKIEIGO",
+    "Exchange": "CO",
+    "Name": "Danske Invest Euro Investment Grade-Obligationer",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "DKIEU",
+    "Exchange": "CO",
+    "Name": "Danske Invest Europa",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "DKIEU2KL",
+    "Exchange": "CO",
+    "Name": "Danske Invest Europa 2 KL",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "DKIEUADKKH",
+    "Exchange": "CO",
+    "Name": "Danske Invest Europa Akkumulerende KL",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "DKIEUHUAKLDKK",
+    "Exchange": "CO",
+    "Name": "Investeringsforeningen Danske Invest - Europa H\u00f8jt Udbytte - Akkumulerende KL",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "DKIEUHYOAKKDKKH",
+    "Exchange": "CO",
+    "Name": "DK Inv EuroHY-Obl-Akk kl DKK h",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "DKIEUHYODKKDH",
+    "Exchange": "CO",
+    "Name": "DK Inv Euro HY Obl kl DKK d h",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "DKIEUIX",
+    "Exchange": "CO",
+    "Name": "Danske Invest Europa Indeks",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "DKIEUIXBNP",
+    "Exchange": "CO",
+    "Name": "Danske Invest - Europa Indeks BNP",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "DKIEUSC",
+    "Exchange": "CO",
+    "Name": "Danske Invest - Europa Small Cap",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "DKIEUSCADKK",
+    "Exchange": "CO",
+    "Name": "Danske Invest - Europa Small Cap - Akkumulerende KL",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "DKIFJIX",
+    "Exchange": "CO",
+    "Name": "Danske Invest Fjernosten",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "DKIFO",
+    "Exchange": "CO",
+    "Name": "Investeringsforeningen Danske Invest - Fonde KL",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "DKIGHYB",
+    "Exchange": "CO",
+    "Name": "Investeringsforeningen Danske Invest - Globale High Yield-Obligationer KL",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "DKIGI",
+    "Exchange": "CO",
+    "Name": "Danske Invest Global",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "DKIGIADKKH",
+    "Exchange": "CO",
+    "Name": "Investeringsforeningen Danske Invest - Global Indeks - Akkumulerende KL",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "DKIGLIADKKH",
+    "Exchange": "CO",
+    "Name": "Investeringsforeningen Danske Invest - Globale Lange Indeksobligationer - Akkumulerende KL",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "DKIGLIO",
+    "Exchange": "CO",
+    "Name": "Danske Invest Globale Lange Indeksobligationer Kl Dkk D H",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "DKIGLOVO",
+    "Exchange": "CO",
+    "Name": "Danske Invest - Globale Virksomhedsobligationer",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "DKIGMI",
+    "Exchange": "CO",
+    "Name": "Danske Invest - Globale Mellemlange Indeksobligationer KL",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "DKIGOM",
+    "Exchange": "CO",
+    "Name": "Investeringsforeningen Danske Invest - Globale Obligationsmarkeder KL",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "DKIGSFUT",
+    "Exchange": "CO",
+    "Name": "DI Global Sustainable Future-Akk kl DKK",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "DKIGSFUT2",
+    "Exchange": "CO",
+    "Name": "DI Global Sustainable Future 2 KL",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "DKIGSFUTDKKD",
+    "Exchange": "CO",
+    "Name": "DI Global Sustainable Future kl DKK d",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "DKIJAP",
+    "Exchange": "CO",
+    "Name": "Investeringsforeningen Danske Invest - Japan KL",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "DKIKI",
+    "Exchange": "CO",
+    "Name": "Danske Invest Kina",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "DKIKO",
+    "Exchange": "CO",
+    "Name": "Danske Invest - Danske Korte Obligationer",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "DKIMA",
+    "Exchange": "CO",
+    "Name": "Danske Invest Mix - Akkumulerende",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "DKIMDA",
+    "Exchange": "CO",
+    "Name": "Danske Invest Mix Defensiv - Akkumulerende",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "DKIMOAK",
+    "Exchange": "CO",
+    "Name": "Danske Invest Mix Offensiv - Akkumulerende",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "DKIMOB",
+    "Exchange": "CO",
+    "Name": "Investeringsforeningen Danske Invest - Mix Obligationer KL",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "DKIMOPA",
+    "Exchange": "CO",
+    "Name": "Danske Invest Mix Offensiv Plus - Akkumulerende",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "DKINM2",
+    "Exchange": "CO",
+    "Name": "Danske Invest Nye Markeder 2",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "DKINMAKK",
+    "Exchange": "CO",
+    "Name": "Investeringsforeningen Danske Invest - Nye Markeder - Akkumulerende KL",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "DKINMOBL",
+    "Exchange": "CO",
+    "Name": "Danske Invest - Nye Markeder Obligationer",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "DKINVO",
+    "Exchange": "CO",
+    "Name": "Investeringsforeningen Danske Invest - Nordiske Virksomhedsobligationer - Akkumulerende KL",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "DKINYM",
+    "Exchange": "CO",
+    "Name": "Investeringsforeningen Danske Invest - Nye Markeder KL",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "DKIUSAIAKKDKKH",
+    "Exchange": "CO",
+    "Name": "Danske Invest USA Indeks - Akk kl DKK h",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "DKIUSAIKLDKKD",
+    "Exchange": "CO",
+    "Name": "Danske Invest USA Indeks klasse DKK d",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "DNORD",
+    "Exchange": "CO",
+    "Name": "Dampskibsselskabet Norden AS",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "DONKEY",
+    "Exchange": "CO",
+    "Name": "Donkeyrepublic Holding AS",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "DSIGSFUT3DKKD",
+    "Exchange": "CO",
+    "Name": "Danske InvSelectGlSuFut3 DKK d",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "DSIKOM4",
+    "Exchange": "CO",
+    "Name": "Danske Invest Select Kommuner4",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "DSV",
+    "Exchange": "CO",
+    "Name": "DSV Panalpina A/S",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "EGNETY",
+    "Exchange": "CO",
+    "Name": "EgnsINVEST Ejendomme Tyskland A/S",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "EMBLA",
+    "Exchange": "CO",
+    "Name": "Embla Medical hf",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "ERRIA",
+    "Exchange": "CO",
+    "Name": "Erria A/S",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "ESG",
+    "Exchange": "CO",
+    "Name": "Ennogie Solar Group A/S",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "FED",
+    "Exchange": "CO",
+    "Name": "Fast Ejendom",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "FFARMS",
+    "Exchange": "CO",
+    "Name": "First Farms A/S",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "FIIFBF",
+    "Exchange": "CO",
+    "Name": "Falcon Invest Falcon Brighter Future",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "FIIFDA",
+    "Exchange": "CO",
+    "Name": "Falcon Inv. Falcon DK Aktier",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "FLS",
+    "Exchange": "CO",
+    "Name": "FLSmidth & Co.",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "FLUG-B",
+    "Exchange": "CO",
+    "Name": "Fl\u00fcgger group A/S",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "FOM",
+    "Exchange": "CO",
+    "Name": "FOM Technologies A/S",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "FPIBWEL",
+    "Exchange": "CO",
+    "Name": "Formuepleje Better World Environ Leaders",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "FPIBWG",
+    "Exchange": "CO",
+    "Name": "Formuepleje Better World Global Opportun",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "FPIEVO",
+    "Exchange": "CO",
+    "Name": "Formuepleje EM Virksomhedsobligationer",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "FPIGA",
+    "Exchange": "CO",
+    "Name": "Formuepleje Globale Aktier",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "FPIGAA",
+    "Exchange": "CO",
+    "Name": "Formuepleje Globale Aktier - Akk",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "FPIGFU",
+    "Exchange": "CO",
+    "Name": "Formuepleje Global Future",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "FPILIM",
+    "Exchange": "CO",
+    "Name": "Formuepleje Limittellus",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "FPILOB",
+    "Exchange": "CO",
+    "Name": "Formuepleje Lange Obligationer",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "FPIMHI",
+    "Exchange": "CO",
+    "Name": "Formuepleje Mix High",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "FPIMLO",
+    "Exchange": "CO",
+    "Name": "Formuepleje Mix Low",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "FPIMME",
+    "Exchange": "CO",
+    "Name": "Formuepleje Mix Medium",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "FPIOBL",
+    "Exchange": "CO",
+    "Name": "Formuepleje Obligationer",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "FPIVRE",
+    "Exchange": "CO",
+    "Name": "Formuepleje Variabel Rente",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "FREETR",
+    "Exchange": "CO",
+    "Name": "Freetrailer Group A/S",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "FUISP",
+    "Exchange": "CO",
+    "Name": "Fundamental Invest Stock Pick",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "FUISPA",
+    "Exchange": "CO",
+    "Name": "Fundamental Invest - Stock Pick II Akkumulerende",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "FYNBK",
+    "Exchange": "CO",
+    "Name": "Fynske Bank A/S",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "GABR",
+    "Exchange": "CO",
+    "Name": "Gabriel Holding",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "GDIGV",
+    "Exchange": "CO",
+    "Name": "Great Dane Global Value",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "GDIIND",
+    "Exchange": "CO",
+    "Name": "Great Dane INDEX+",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "GJ",
+    "Exchange": "CO",
+    "Name": "Glunz & Jensen",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "GMAB",
+    "Exchange": "CO",
+    "Name": "Genmab A/S",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "GN",
+    "Exchange": "CO",
+    "Name": "GN Store Nord",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "GREENH",
+    "Exchange": "CO",
+    "Name": "Green Hydrogen Systems AS",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "GREENM",
+    "Exchange": "CO",
+    "Name": "GreenMobility A/S",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "GRIEJD",
+    "Exchange": "CO",
+    "Name": "Gudme Raaschou Europ\u00e6iske Ejendomsaktier",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "GRLA",
+    "Exchange": "CO",
+    "Name": "Groenlandsbanken AS",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "GUBRA",
+    "Exchange": "CO",
+    "Name": "Gubra A/S",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "GYLD-A",
+    "Exchange": "CO",
+    "Name": "Gyldendal A/S",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "GYLD-B",
+    "Exchange": "CO",
+    "Name": "Gyldendal A/S",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "HAIDK",
+    "Exchange": "CO",
+    "Name": "Handelsinvest Danmark",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "HAIDKOBL",
+    "Exchange": "CO",
+    "Name": "Handelsinvest Danske Obligationer Fund",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "HARB-B",
+    "Exchange": "CO",
+    "Name": "Harboes Bryggeri A/S",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "HH",
+    "Exchange": "CO",
+    "Name": "H+H International A/S",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "HLUN-A",
+    "Exchange": "CO",
+    "Name": "H Lundbeck A/S",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "HLUN-B",
+    "Exchange": "CO",
+    "Name": "H Lundbeck A/S",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "HOVE",
+    "Exchange": "CO",
+    "Name": "Hove AS",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "HUSCO",
+    "Exchange": "CO",
+    "Name": "HusCompagniet AS",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "HVID",
+    "Exchange": "CO",
+    "Name": "Hvidbjerg Bank",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "HYDRCT",
+    "Exchange": "CO",
+    "Name": "Hydract AS",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "IAIACG",
+    "Exchange": "CO",
+    "Name": "IA Invest Advice Capital Glob",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "IAIACVF",
+    "Exchange": "CO",
+    "Name": "IA Invest Advice Cap Vis Fund",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "IAICBB",
+    "Exchange": "CO",
+    "Name": "IA Invest Advice CaBreakthrBio",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "IAIFFS",
+    "Exchange": "CO",
+    "Name": "IA Invest FormueFyn Skandi+",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "IAIGHI",
+    "Exchange": "CO",
+    "Name": "IA Invest Global Health Invest",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "IAIMCA",
+    "Exchange": "CO",
+    "Name": "IA Invest MW Compounders Akk",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "IAIMWC",
+    "Exchange": "CO",
+    "Name": "IA Invest MW Compounders",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "IAIPGA",
+    "Exchange": "CO",
+    "Name": "IA Invest Peruma Inv Glob Akt",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "IAIRIN",
+    "Exchange": "CO",
+    "Name": "IA Invest Regul\u00e6r Inv Nord Akt",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "IAISDKAKT",
+    "Exchange": "CO",
+    "Name": "IA Invest Strategic Danske Akt",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "IIKMIA",
+    "Exchange": "CO",
+    "Name": "Independent Mix Akk",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "IIVBON",
+    "Exchange": "CO",
+    "Name": "Independent Bond",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "IMPERO",
+    "Exchange": "CO",
+    "Name": "Impero AS",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "INIOPS",
+    "Exchange": "CO",
+    "Name": "Investin Optimal Stabil Fund",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "INIOVM",
+    "Exchange": "CO",
+    "Name": "Investin Optimal VerdensIndex Moderat",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "ISS",
+    "Exchange": "CO",
+    "Name": "ISS A/S",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "JDAN",
+    "Exchange": "CO",
+    "Name": "Jeudan",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "JYIAAU",
+    "Exchange": "CO",
+    "Name": "Jyske Invest Aktier AnsvUdv KL",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "JYIALVKL",
+    "Exchange": "CO",
+    "Name": "Jyske Invest Aktier Lav Volatilitet KL",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "JYIDKAKT",
+    "Exchange": "CO",
+    "Name": "Jyske Invest Danske Aktier",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "JYIFJASRIKL",
+    "Exchange": "CO",
+    "Name": "Jyske In Fjern\u00f8sten Akt SRI KL",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "JYIHRV",
+    "Exchange": "CO",
+    "Name": "Jyske Invest H\u00f8jt Ratede Virksomhedsobl",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "JYIKOB",
+    "Exchange": "CO",
+    "Name": "Jyske Invest Korte Obligationer",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "JYILOB",
+    "Exchange": "CO",
+    "Name": "Jyske Invest Lange Obligationer",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "JYINOB",
+    "Exchange": "CO",
+    "Name": "Jyske Invest Nye Obligationsmarkeder",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "JYINOBV",
+    "Exchange": "CO",
+    "Name": "Jyske Invest Nye Obl.markeder Valuta",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "JYINYAKL",
+    "Exchange": "CO",
+    "Name": "Jyske Invest Nye Aktiemarkeder KL",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "JYIOBAKKL",
+    "Exchange": "CO",
+    "Name": "Jyske Invest Obligationer og Aktier KL",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "JYIVIRK",
+    "Exchange": "CO",
+    "Name": "Jyske Invest Virksomhedsobligationer",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "JYIVOSRIKL",
+    "Exchange": "CO",
+    "Name": "Jyske Invest Virksomhedsobl SRI KL",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "JYSK",
+    "Exchange": "CO",
+    "Name": "Jyske Bank A/S",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "KBHL",
+    "Exchange": "CO",
+    "Name": "Copenhagen Airports AS",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "KLEE-B",
+    "Exchange": "CO",
+    "Name": "Brd. Klee A/S",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "KONSOL",
+    "Exchange": "CO",
+    "Name": "Konsolidator AS",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "KRE",
+    "Exchange": "CO",
+    "Name": "Kreditbanken A/S",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "LASP",
+    "Exchange": "CO",
+    "Name": "Laan & Spar Bank AS",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "LEDIBOND",
+    "Exchange": "CO",
+    "Name": "LED iBond International AS",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "LOLB",
+    "Exchange": "CO",
+    "Name": "Lollands Bank",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "LSIDAB",
+    "Exchange": "CO",
+    "Name": "L\u00e5n & Spar Invest Danske Aktier Basis",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "LSIDBA",
+    "Exchange": "CO",
+    "Name": "L\u00e5n & Spar Invest DK Akt Basis Akk",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "LSIGAA",
+    "Exchange": "CO",
+    "Name": "L\u00e5n & Spar Invest Globale Akt Basis Akk",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "LSIGAB",
+    "Exchange": "CO",
+    "Name": "L\u00e5n & Spar Invest Globale Aktier Basis",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "LUXOR-B",
+    "Exchange": "CO",
+    "Name": "Investeringsselskabet Luxor A/S",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "MAERSK-A",
+    "Exchange": "CO",
+    "Name": "A.P. M\u00f8ller - M\u00e6rsk A/S",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "MAERSK-B",
+    "Exchange": "CO",
+    "Name": "A.P. M\u00f8ller - M\u00e6rsk A/S",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "MAJAIS",
+    "Exchange": "CO",
+    "Name": "Maj Invest ETF UCITS AI & Semiconductor",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "MAJBPI",
+    "Exchange": "CO",
+    "Name": "Maj Invest Big Picture",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "MAJDCS",
+    "Exchange": "CO",
+    "Name": "Maj Invest UCITS ETF Defence&Cybersec.",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "MAJDKA",
+    "Exchange": "CO",
+    "Name": "Maj Invest Danske Aktier",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "MAJDKO",
+    "Exchange": "CO",
+    "Name": "Maj Invest - Danske Obligationer",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "MAJEMV",
+    "Exchange": "CO",
+    "Name": "Maj Invest Emerging Markets Value",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "MAJGANF",
+    "Exchange": "CO",
+    "Name": "Maj Invest Glob Akt non fossil",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "MAJGO",
+    "Exchange": "CO",
+    "Name": "Maj Invest - Globale Obligationer",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "MAJGOA",
+    "Exchange": "CO",
+    "Name": "Maj Invest Globale OblAkk",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "MAJGRO",
+    "Exchange": "CO",
+    "Name": "Maj Invest Gr\u00f8nne Obligationer",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "MAJGS",
+    "Exchange": "CO",
+    "Name": "Maj Invest - Global Sundhed KL",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "MAJHIO",
+    "Exchange": "CO",
+    "Name": "Maj Invest - High Income Obligationer",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "MAJLO",
+    "Exchange": "CO",
+    "Name": "Maj Invest UCITS ETF Lifestyle & Obesity",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "MAJMAK",
+    "Exchange": "CO",
+    "Name": "Maj Invest - Makro",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "MAJNZ",
+    "Exchange": "CO",
+    "Name": "Maj Invest Net Zero 2050",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "MAJPEN",
+    "Exchange": "CO",
+    "Name": "Maj Invest Pension",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "MAJPP",
+    "Exchange": "CO",
+    "Name": "Maj Invest Planet & People",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "MAJSWN",
+    "Exchange": "CO",
+    "Name": "Maj Invest UCITS ETF Solar Wind Nuclear",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "MAJVA",
+    "Exchange": "CO",
+    "Name": "Maj Invest - Maj Invest V\u00e6kstaktier KL",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "MAJVAA",
+    "Exchange": "CO",
+    "Name": "Maj Invest Value Aktier",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "MAJVAL",
+    "Exchange": "CO",
+    "Name": "Maj Invest Value Aktier",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "MAPS",
+    "Exchange": "CO",
+    "Name": "MapsPeople A/S",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "MATAS",
+    "Exchange": "CO",
+    "Name": "Matas A/S",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "MDUNDO",
+    "Exchange": "CO",
+    "Name": "Mdundo Com\u00a0As",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "MMIGA",
+    "Exchange": "CO",
+    "Name": "Multi Manager Invest - Globale Aktier",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "MMIGAA",
+    "Exchange": "CO",
+    "Name": "Multi Manager Invest - Globale Aktier Akk",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "MMINO",
+    "Exchange": "CO",
+    "Name": "Multi Manager Invest - Nye Obligationsmarkeder",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "MNBA",
+    "Exchange": "CO",
+    "Name": "Moens Bank A/S",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "MONSO",
+    "Exchange": "CO",
+    "Name": "Monsenso AS",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "MOVINN",
+    "Exchange": "CO",
+    "Name": "Movinn AS",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "MTHH",
+    "Exchange": "CO",
+    "Name": "MT Hoejgaard Holding A/S",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "NBIBMKL",
+    "Exchange": "CO",
+    "Name": "Nykredit Inv Balance B\u00e6redygtig Mod KL",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "NBIBOKL",
+    "Exchange": "CO",
+    "Name": "Nykredit Inv Balance B\u00e6redygtig Off KL",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "NBIDEKL",
+    "Exchange": "CO",
+    "Name": "Nykredit Invest Balance Def KL",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "NBIMOKL",
+    "Exchange": "CO",
+    "Name": "Nykredit Invest Balance Mod KL",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "NBIOFKL",
+    "Exchange": "CO",
+    "Name": "Nykredit Invest Balance Off KL",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "NDA-DK",
+    "Exchange": "CO",
+    "Name": "Nordea Bank Abp",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "NDI4KL1",
+    "Exchange": "CO",
+    "Name": "Nordea Invest Basis 4 KL 1",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "NDIAAKL1",
+    "Exchange": "CO",
+    "Name": "Nordea Invest Akt Ansvar KL 1",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "NDIAKL1",
+    "Exchange": "CO",
+    "Name": "Nordea Invest Aktier KL 1",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "NDIAKTIIKL1",
+    "Exchange": "CO",
+    "Name": "Nordea Invest Aktier II KL 1",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "NDIB1KL1",
+    "Exchange": "CO",
+    "Name": "Nordea Invest Basis 1 KL 1",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "NDIB2KL1",
+    "Exchange": "CO",
+    "Name": "Nordea Invest Basis 2 KL 1",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "NDIB3KL1",
+    "Exchange": "CO",
+    "Name": "Nordea Invest Basis 3 KL 1",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "NDIDAFKL1",
+    "Exchange": "CO",
+    "Name": "Nordea Invest Danske Aktier Fokus KL 1",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "NDIDKKL1",
+    "Exchange": "CO",
+    "Name": "Nordea Invest Danmark KL 1",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "NDIEHYKL1",
+    "Exchange": "CO",
+    "Name": "Nordea Invest European HY Bonds KL 1",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "NDIEMKL1",
+    "Exchange": "CO",
+    "Name": "Nordea Invest Emerging markets KL 1",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "NDIEMMAENKL1",
+    "Exchange": "CO",
+    "Name": "Nordea Invest Em Markets Enhanced KL 1",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "NDIESCSKL1",
+    "Exchange": "CO",
+    "Name": "Nordea Inv EU SmCap Stars KL1",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "NDIESKL1",
+    "Exchange": "CO",
+    "Name": "Nordea Invest Emerging Stars KL 1",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "NDIEUENHKL1",
+    "Exchange": "CO",
+    "Name": "Nordea Invest Europe Enhanced KL 1",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "NDIEUSTKL1",
+    "Exchange": "CO",
+    "Name": "Nordea Invest European Stars KL 1",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "NDIFONKL1",
+    "Exchange": "CO",
+    "Name": "Nordea Invest Fonde KL 1",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "NDIGAIKL1",
+    "Exchange": "CO",
+    "Name": "Nordea Inv. Globale Aktier Indeks KL 1",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "NDIGLENHKL1",
+    "Exchange": "CO",
+    "Name": "Nordea Invest Global Enhanced KL 1",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "NDIGOBLKL1",
+    "Exchange": "CO",
+    "Name": "Nordea Invest Globale Obligationer KL 1",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "NDIGSCKL1",
+    "Exchange": "CO",
+    "Name": "Nordea Invest Global Small Cap KL 1",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "NDIGSEKL1",
+    "Exchange": "CO",
+    "Name": "Nordea Invest Global SmCap Enhanced KL 1",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "NDIGSTKL1",
+    "Exchange": "CO",
+    "Name": "Nordea Invest Global Stars KL 1",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "NDIGUAKL1",
+    "Exchange": "CO",
+    "Name": "Nordea Invest Globale UdbytteAktier KL 1",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "NDIHOJLKL1",
+    "Exchange": "CO",
+    "Name": "Nordea Invest H\u00f8jrenteLande KL 1",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "NDIJAPENHKL1",
+    "Exchange": "CO",
+    "Name": "Nordea Invest Japan Enhanced KL 1",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "NDIKMKL1",
+    "Exchange": "CO",
+    "Name": "Nordea Invest Klima og Milj\u00f8 KL 1",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "NDIKOKL1",
+    "Exchange": "CO",
+    "Name": "Nordea Invest Korte Obl KL 1",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "NDIKOLKL1",
+    "Exchange": "CO",
+    "Name": "Nordea Invest Korte Obl Lagerb. KL 1",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "NDILAOKL1",
+    "Exchange": "CO",
+    "Name": "Nordea Invest Lange Obligationer KL 1",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "NDIMLOKL1",
+    "Exchange": "CO",
+    "Name": "Nordea Invest Mellemlange Ob KL 1",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "NDINAEKL1",
+    "Exchange": "CO",
+    "Name": "Nordea Invest North America Enh KL 1",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "NDINASTKL1",
+    "Exchange": "CO",
+    "Name": "Nordea Invest North American Stars KL 1",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "NDINOSKL1",
+    "Exchange": "CO",
+    "Name": "Nordea Invest Nordic Stars KL 1",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "NDINSCKL1",
+    "Exchange": "CO",
+    "Name": "Nordea Invest Nordic Small Cap KL 1",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "NDISTAAKL1",
+    "Exchange": "CO",
+    "Name": "Nordea Invest Stabile Aktier Akk KL 1",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "NDISTABAKL1",
+    "Exchange": "CO",
+    "Name": "Nordea Invest Stabile Aktier KL 1",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "NDISTABKL1",
+    "Exchange": "CO",
+    "Name": "Nordea Invest Stabil Balanceret KL 1",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "NDIVOBKL1",
+    "Exchange": "CO",
+    "Name": "Nordea Invest Virksomhedsobl KL 1",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "NDIVOHKL1",
+    "Exchange": "CO",
+    "Name": "Nordea Invest Virksomhedsobl H\u00f8j KL 1",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "NDIVOMKL1",
+    "Exchange": "CO",
+    "Name": "Nordea Inv. Verdens Obl.marked KL 1",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "NETC",
+    "Exchange": "CO",
+    "Name": "Netcompany Group A/S",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "NEWCAP",
+    "Exchange": "CO",
+    "Name": "Newcap Holding A/S",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "NEXCOM",
+    "Exchange": "CO",
+    "Name": "Nexcom AS",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "NKT",
+    "Exchange": "CO",
+    "Name": "NKT A/S",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "NLFSK",
+    "Exchange": "CO",
+    "Name": "Nilfisk Holding A/S",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "NNIT",
+    "Exchange": "CO",
+    "Name": "Nnit AS",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "NORD",
+    "Exchange": "CO",
+    "Name": "Nord.investments A/S",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "NORTHM",
+    "Exchange": "CO",
+    "Name": "North Media A/S",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "NOVO-B",
+    "Exchange": "CO",
+    "Name": "Novo Nordisk A/S",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "NRDF",
+    "Exchange": "CO",
+    "Name": "Nordfyns Bank A/S",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "NSIS-B",
+    "Exchange": "CO",
+    "Name": "Novonesis (Novozymes) A/S",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "NTG",
+    "Exchange": "CO",
+    "Name": "NTG Nordic Transport Group A/S",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "NTR-B",
+    "Exchange": "CO",
+    "Name": "NTR Holding A/S",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "NYIBDA",
+    "Exchange": "CO",
+    "Name": "Nykredit Invest B\u00e6redygtige Aktier",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "NYIBKO",
+    "Exchange": "CO",
+    "Name": "Nykredit Invest B\u00e6redygtige Kreditobl",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "NYIDA",
+    "Exchange": "CO",
+    "Name": "Nykredit Invest Danske Aktier",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "NYIDAA",
+    "Exchange": "CO",
+    "Name": "Nykredit Invest Danske aktier Akk",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "NYIGFA",
+    "Exchange": "CO",
+    "Name": "Multi Manager Invest - USA Akk",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "NYIGLA",
+    "Exchange": "CO",
+    "Name": "Nykredit Invest - Globale Fokusaktier",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "NYIKO",
+    "Exchange": "CO",
+    "Name": "Nykredit Invest Korte Obligationer",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "NYIKRO",
+    "Exchange": "CO",
+    "Name": "Nykredit Invest - Kreditobligationer",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "NYILO",
+    "Exchange": "CO",
+    "Name": "Nykredit Invest Lange Obligationer",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "NYILOAKLA",
+    "Exchange": "CO",
+    "Name": "Nykredit Inv Lange Ob Akk KL A",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "NYILOKLA",
+    "Exchange": "CO",
+    "Name": "Nykredit Invest Lange Obl KL A",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "ORSTED",
+    "Exchange": "CO",
+    "Name": "Orsted A/S",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "PAAL-B",
+    "Exchange": "CO",
+    "Name": "Per Aarsleff Holding A/S",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "PARKEN",
+    "Exchange": "CO",
+    "Name": "PARKEN Sport & Entertainment",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "PARKST-A",
+    "Exchange": "CO",
+    "Name": "Park Street A/S",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "PEG",
+    "Exchange": "CO",
+    "Name": "Pharma Equity Group A/S Cl A",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "PENNEO",
+    "Exchange": "CO",
+    "Name": "Penneo AS",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "PFIBAA",
+    "Exchange": "CO",
+    "Name": "PFA Invest Balance A",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "PFIBAB",
+    "Exchange": "CO",
+    "Name": "PFA Invest Balance B",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "PFIBAC",
+    "Exchange": "CO",
+    "Name": "PFA Invest Balance C",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "PFIDKA",
+    "Exchange": "CO",
+    "Name": "PFA Invest Danske Aktier Fund",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "PFIGLA",
+    "Exchange": "CO",
+    "Name": "PFA Invest Globale Aktier Fund",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "PFIKRB",
+    "Exchange": "CO",
+    "Name": "PFA Invest Kreditobligationer Fund",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "PMIAAN",
+    "Exchange": "CO",
+    "Name": "PortfolioMan AI Alpha Lab Glob Akt kl n",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "PMICTAAKLNEUR",
+    "Exchange": "CO",
+    "Name": "PortfolioMan PP Cap TactAssAlloc kl nEUR",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "PMIDEM",
+    "Exchange": "CO",
+    "Name": "PortfolioManager Demetra KL",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "PMIFRKLN",
+    "Exchange": "CO",
+    "Name": "PortfolioManager Fairrente kl n",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "PMIH3I",
+    "Exchange": "CO",
+    "Name": "PortfolioMan Horizon3 Inn kl n",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "PMIKGA",
+    "Exchange": "CO",
+    "Name": "PortfolioMan ANN KvantGloAk KL",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "PMILGICHIEUR",
+    "Exchange": "CO",
+    "Name": "PortfolioMan Lundgr Inv-China kl n EUR",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "PMINDI",
+    "Exchange": "CO",
+    "Name": "PortfolioManager NewDeal Invest kl n",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "PMIOUIB",
+    "Exchange": "CO",
+    "Name": "PortfolioMan \u00d8U Inv Balan kl n",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "PMIPCSPKLNO",
+    "Exchange": "CO",
+    "Name": "PortfolioManager PP Cap StockPick kl not",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "PMIPIN",
+    "Exchange": "CO",
+    "Name": "PortfolioManager Panorama Invest kl n",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "PMIPPSW",
+    "Exchange": "CO",
+    "Name": "Portfolioman Pet&Par SustWo KL",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "PMISBIAKKKLN",
+    "Exchange": "CO",
+    "Name": "PortfolioMan Snowb In Akk kl n",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "PNDORA",
+    "Exchange": "CO",
+    "Name": "Pandora A/S",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "PRIMOF",
+    "Exchange": "CO",
+    "Name": "Prime Office A/S",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "QINTER",
+    "Exchange": "CO",
+    "Name": "Q Interline AS",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "RBLN-B",
+    "Exchange": "CO",
+    "Name": "Roblon A/S",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "RBREW",
+    "Exchange": "CO",
+    "Name": "Royal Unibrew A/S",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "RIAS-B",
+    "Exchange": "CO",
+    "Name": "RIAS A/S",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "RILBA",
+    "Exchange": "CO",
+    "Name": "Ringkjoebing Landbobank A/S",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "RISMA",
+    "Exchange": "CO",
+    "Name": "Risma Systems AS",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "ROCK-A",
+    "Exchange": "CO",
+    "Name": "ROCKWOOL International A/S",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "ROCK-B",
+    "Exchange": "CO",
+    "Name": "ROCKWOOL International A/S",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "ROV",
+    "Exchange": "CO",
+    "Name": "Rovsing A/S",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "RTX",
+    "Exchange": "CO",
+    "Name": "RTX A/S",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "SAMPO-DKK",
+    "Exchange": "CO",
+    "Name": "Sampo Plc A",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "SBS",
+    "Exchange": "CO",
+    "Name": "Scandinavian Brake Systems A/S",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "SCHO",
+    "Exchange": "CO",
+    "Name": "Schouw & Co.",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "SDIBAL",
+    "Exchange": "CO",
+    "Name": "SparDanmark Invest Balance",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "SDIKON",
+    "Exchange": "CO",
+    "Name": "SparDanmark Invest Konservativ",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "SDIOFF",
+    "Exchange": "CO",
+    "Name": "SparDanmark Invest Offensiv",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "SDIVKS",
+    "Exchange": "CO",
+    "Name": "SparDanmark Invest V\u00e6kst",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "SDKGBA",
+    "Exchange": "CO",
+    "Name": "SDG Invest Globale B\u00e6redygtige Akt akk",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "SEIDAAP",
+    "Exchange": "CO",
+    "Name": "SEBinvest - Danske Aktier Akkumulerende AKL",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "SEIDKAP",
+    "Exchange": "CO",
+    "Name": "SEBinvest - Danske Aktier AKL",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "SEIESCP",
+    "Exchange": "CO",
+    "Name": "SEBinvest - Europa Small Cap AKL",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "SEIEUASP",
+    "Exchange": "CO",
+    "Name": "SEBinv AKL SEB Eur. Akt. SRI P",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "SHAPE",
+    "Exchange": "CO",
+    "Name": "Shape Robotics AS",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "SHIGVAKL",
+    "Exchange": "CO",
+    "Name": "Stonehenge Globale Valueaktier KL",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "SIF",
+    "Exchange": "CO",
+    "Name": "Silkeborg IF Invest A/S",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "SIG",
+    "Exchange": "CO",
+    "Name": "Scandinavian Investment Group A/S",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "SKAKO",
+    "Exchange": "CO",
+    "Name": "SKAKO A/S",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "SKIGLO",
+    "Exchange": "CO",
+    "Name": "SKAGEN Global A",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "SKIKON",
+    "Exchange": "CO",
+    "Name": "SKAGEN Kon-Tiki A",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "SKIM2",
+    "Exchange": "CO",
+    "Name": "SKAGEN - m\u00b2",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "SKIVEK",
+    "Exchange": "CO",
+    "Name": "SKAGEN Vekst A",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "SKJE",
+    "Exchange": "CO",
+    "Name": "Skjern Bank A/S",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "SMSMED",
+    "Exchange": "CO",
+    "Name": "Scandinavian Medical Solutions AS",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "SOLAR-B",
+    "Exchange": "CO",
+    "Name": "Solar A/S",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "SPG",
+    "Exchange": "CO",
+    "Name": "SP Group A/S",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "SPIBDA",
+    "Exchange": "CO",
+    "Name": "Sparinvest B\u00e6redygtige Aktier KL A",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "SPIBDAAKKKLA",
+    "Exchange": "CO",
+    "Name": "Sparinvest B\u00e6redy Akt Akk KL A",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "SPIBDVAA",
+    "Exchange": "CO",
+    "Name": "Sparinvest B\u00e6redygtige Value Aktier KL A",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "SPIBDVOIGKLA",
+    "Exchange": "CO",
+    "Name": "Sparinv B\u00e6redy Virkobl IG KL A",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "SPIBJAKL",
+    "Exchange": "CO",
+    "Name": "Sparindex INDEX B\u00e6redyg Jap KL",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "SPIC25KL",
+    "Exchange": "CO",
+    "Name": "Sparindex INDEX OMX C25 KL",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "SPIDJWKL",
+    "Exchange": "CO",
+    "Name": "Sparinvest DJSI World",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "SPIDKAKLA",
+    "Exchange": "CO",
+    "Name": "Sparinvest Danske Aktier KL",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "SPIEMIKL",
+    "Exchange": "CO",
+    "Name": "Sparinvest INDEX Emerging Markets KL",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "SPIEUCKL",
+    "Exchange": "CO",
+    "Name": "Sparinvest Europa Small Cap",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "SPIEUGKL",
+    "Exchange": "CO",
+    "Name": "Sparinvest Europa Growth",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "SPIEUVKL",
+    "Exchange": "CO",
+    "Name": "Sparinvest INDEX Europa Value KL",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "SPIGFA",
+    "Exchange": "CO",
+    "Name": "Sparinvest Globale Fokusaktier KL A",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "SPIGLAMRIKL",
+    "Exchange": "CO",
+    "Name": "Sparinvest INDEX Globale Akt Min Risiko KL",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "SPIJAGKL",
+    "Exchange": "CO",
+    "Name": "Sparinvest Japan Growth",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "SPIKOOKLA",
+    "Exchange": "CO",
+    "Name": "Sydinvest Korte Obligationer KL",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "SPILOLKLA",
+    "Exchange": "CO",
+    "Name": "Sparinvest - Lange Obligationer KL",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "SPIMAKLA",
+    "Exchange": "CO",
+    "Name": "Sparinvest Mix Aktier KL A",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "SPIMHRKLA",
+    "Exchange": "CO",
+    "Name": "Sparinvest - Mix Hoj Risiko KL",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "SPIMLOKLA",
+    "Exchange": "CO",
+    "Name": "Sparinvest - Mellemlange Obligationer KL",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "SPIMLRKLA",
+    "Exchange": "CO",
+    "Name": "Sparinvest Mix Lav Risiko KL",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "SPIMMRKLA",
+    "Exchange": "CO",
+    "Name": "Sparinvest - Mix Mellem Risiko KL",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "SPIMRA",
+    "Exchange": "CO",
+    "Name": "Sparinvest Mix Rente KL A",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "SPINOBKLA",
+    "Exchange": "CO",
+    "Name": "Sparinvest Nye Obligationsmarkeder KL",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "SPISOKLA",
+    "Exchange": "CO",
+    "Name": "Sparindex INDEX Stabile Obligationer KL A",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "SPIUSGKL",
+    "Exchange": "CO",
+    "Name": "Sparinvest US Growth",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "SPIUSSKL",
+    "Exchange": "CO",
+    "Name": "Sparinvest USA Small Cap",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "SPIUSVKL",
+    "Exchange": "CO",
+    "Name": "Sparinvest USA Value",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "SPIVAKLA",
+    "Exchange": "CO",
+    "Name": "Sparinvest Value Aktier KL",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "SPIVEMKLA",
+    "Exchange": "CO",
+    "Name": "Sparinvest Value Emerging Markets KL",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "SPIVEUKLA",
+    "Exchange": "CO",
+    "Name": "Sparinvest Value Europa KL",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "SPIVHYKLA",
+    "Exchange": "CO",
+    "Name": "SparInvest Virk.obl HY KL  A",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "SPIVHYKORTKLA",
+    "Exchange": "CO",
+    "Name": "Sparinv Virksomhedsobligationer HY KortA",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "SPKSJF",
+    "Exchange": "CO",
+    "Name": "Sparekassen Sjaelland-Fyn A/S",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "SPNO",
+    "Exchange": "CO",
+    "Name": "Spar Nord Bank",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "SPVBEUKL",
+    "Exchange": "CO",
+    "Name": "Sparindex INDEX B\u00e6redygtige Europa KL",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "SPVBUSAKL",
+    "Exchange": "CO",
+    "Name": "Sparindex INDEX B\u00e6redygtige USA KL",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "SPVIBGKL",
+    "Exchange": "CO",
+    "Name": "Sparindex INDEX B\u00e6redygtige Global KL",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "SPVIEMBLAKKKLA",
+    "Exchange": "CO",
+    "Name": "Sparindex INDEX EmMBL Akk KL A",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "SPVIEMMBLV",
+    "Exchange": "CO",
+    "Name": "Sparindex INDEX EmMarkBoLokval",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "SPVIGAKL",
+    "Exchange": "CO",
+    "Name": "Sparinvest INDEX Globale Aktier KL",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "SPVIGAMRAKL",
+    "Exchange": "CO",
+    "Name": "Sparinvest INDEX Global Aktier Min. Risiko Akk. KL",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "SPVIHRKL",
+    "Exchange": "CO",
+    "Name": "Sparinvest INDEX H\u00f8j Risiko KL",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "SPVILRKL",
+    "Exchange": "CO",
+    "Name": "Sparinvest INDEX Lav Risiko KL",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "SPVIMRKL",
+    "Exchange": "CO",
+    "Name": "Sparinvest INDEX Mellem Risiko KL",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "SRIGAU",
+    "Exchange": "CO",
+    "Name": "StockRate Invest - Globale Aktier Udloddende",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "SSIEGVEURR",
+    "Exchange": "CO",
+    "Name": "Sparinv SICAV",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "SSIEUVEURR",
+    "Exchange": "CO",
+    "Name": "Sparinv SICAV",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "SSIGEHYDKKRH",
+    "Exchange": "CO",
+    "Name": "Sparinvest SICAV Glob Ethical HY DKK R H",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "SSIPEURR",
+    "Exchange": "CO",
+    "Name": "Sparinvest SICAV Procedo",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "STENO",
+    "Exchange": "CO",
+    "Name": "Stenocare AS",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "STG",
+    "Exchange": "CO",
+    "Name": "Scandinavian Tobacco Group A/S",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "STIGM",
+    "Exchange": "CO",
+    "Name": "Storebrand Global Multifactor A5",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "STIIAM",
+    "Exchange": "CO",
+    "Name": "Storebrand Indeks - Alle Markeder",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "STRINV",
+    "Exchange": "CO",
+    "Name": "Strategic Investments A/S",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "SVITZR",
+    "Exchange": "CO",
+    "Name": "Svitzer Group A/S",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "SWISS",
+    "Exchange": "CO",
+    "Name": "Swiss Properties Invest A/S",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "SYDB",
+    "Exchange": "CO",
+    "Name": "Sydbank A/S",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "SYIEUVADKK",
+    "Exchange": "CO",
+    "Name": "Sydinv Europa Value A DKK",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "SYIFJERADKKA",
+    "Exchange": "CO",
+    "Name": "Sydinvest Fjern\u00f8sten Akkumulerende KL",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "SYIGEAADKK",
+    "Exchange": "CO",
+    "Name": "Sydinvest Globale EM-Aktier KL",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "SYIGLVADKK",
+    "Exchange": "CO",
+    "Name": "Sydinv Global Value A DKK",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "SYIGLVADKKAKK",
+    "Exchange": "CO",
+    "Name": "Sydinv Global Value A DKK Akk",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "SYIHRLADKK",
+    "Exchange": "CO",
+    "Name": "Sydinv H\u00f8jrenteLande A DKK",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "SYIHRLADKKAKK",
+    "Exchange": "CO",
+    "Name": "Sydinv H\u00f8jrenteLande A DKK Akk",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "SYIIDKADKK",
+    "Exchange": "CO",
+    "Name": "Sydinv Indeks Danmark A DKK",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "SYIIGALRKL",
+    "Exchange": "CO",
+    "Name": "Sydinv Indeks GloAktLavRisk KL",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "SYIIMSLKL",
+    "Exchange": "CO",
+    "Name": "Sydinv Indeks Morn.starLead KL",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "SYIITYADKK",
+    "Exchange": "CO",
+    "Name": "Sydinv Indeks Tyskland A DKK",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "SYIKOADKK",
+    "Exchange": "CO",
+    "Name": "Sydinvest Korte Obligationer KL",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "SYIKVAADKK",
+    "Exchange": "CO",
+    "Name": "Sydinv Kvalitetsaktier A DKK",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "SYIMEGADKK",
+    "Exchange": "CO",
+    "Name": "Sydinv Megatrends A DKK",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "SYIMEGADKKAKK",
+    "Exchange": "CO",
+    "Name": "Sydinv Megatrends A DKK Akk",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "SYIMOADKK",
+    "Exchange": "CO",
+    "Name": "Sydinvest Mellemlange Obligationer A DKK",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "SYIMOADKKA",
+    "Exchange": "CO",
+    "Name": "Sydinvest Mellemlange Obligationer A DKK Akk",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "SYIUSAVADKK",
+    "Exchange": "CO",
+    "Name": "Sydinv USA Value A DKK",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "SYIVLVADKK",
+    "Exchange": "CO",
+    "Name": "Sydinvest Verden Ligev\u00e6gt & Value KL",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "SYIVOHYADKK",
+    "Exchange": "CO",
+    "Name": "Sydinvest Virksomhedsobligationer HY KL",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "SYVAUA",
+    "Exchange": "CO",
+    "Name": "Sydinvest - Aggressiv Udb",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "SYVFBAKKA",
+    "Exchange": "CO",
+    "Name": "Sydinv Formue Balance Akk A",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "SYVFBUA",
+    "Exchange": "CO",
+    "Name": "Sydinv Formue Balanceret Udb A",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "SYVFKUDA",
+    "Exchange": "CO",
+    "Name": "Sydinv Formue Konservat Udb A",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "SYVFOAKKA",
+    "Exchange": "CO",
+    "Name": "Sydinv Formue Offensiv Akk A",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "SYVFOUA",
+    "Exchange": "CO",
+    "Name": "Sydinv Formue Offensiv Udb A",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "SYVFVOAKKA",
+    "Exchange": "CO",
+    "Name": "Sydinv Formue V\u00e6kstori Akk A",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "SYVFVOUA",
+    "Exchange": "CO",
+    "Name": "Sydinv Formue V\u00e6kstori Udb A",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "SYVKUA",
+    "Exchange": "CO",
+    "Name": "Sydinvest - Konservativ Udb",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "TCM",
+    "Exchange": "CO",
+    "Name": "TCM Group",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "TGAMES",
+    "Exchange": "CO",
+    "Name": "TROPHY GAMES Development AS",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "TIV",
+    "Exchange": "CO",
+    "Name": "Tivoli A/S",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "TOIBO",
+    "Exchange": "CO",
+    "Name": "TOBA Investments Bonds",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "TOIEQT",
+    "Exchange": "CO",
+    "Name": "TOBA Investments Equities",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "TRIFOR",
+    "Exchange": "CO",
+    "Name": "Trifork Holding AG",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "TRMD-A",
+    "Exchange": "CO",
+    "Name": "TORM plc",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "TRYG",
+    "Exchange": "CO",
+    "Name": "Tryg A/S",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "UIE",
+    "Exchange": "CO",
+    "Name": "UIE PLC",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "VAIGAKA",
+    "Exchange": "CO",
+    "Name": "ValueInvest Global Akk KL",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "VAIGLOA",
+    "Exchange": "CO",
+    "Name": "ValueInvest Global KL",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "VIRO",
+    "Exchange": "CO",
+    "Name": "ViroGates A/S",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "VJBA",
+    "Exchange": "CO",
+    "Name": "Vestjysk Bank A/S",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "VWS",
+    "Exchange": "CO",
+    "Name": "Vestas Wind Systems A/S",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "WEIAGA",
+    "Exchange": "CO",
+    "Name": "Wealth Invest Amalie Global AK",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "WEIASCA",
+    "Exchange": "CO",
+    "Name": "Wealth Inv Allspring SmaCapAkt",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "WEIBGA",
+    "Exchange": "CO",
+    "Name": "Wealth Invest Baron Glob Akt",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "WEIHPIDKOAKKKL",
+    "Exchange": "CO",
+    "Name": "Wealth Inv HP Inv DK Ob Akk KL",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "WEIHPILDKOBLKL",
+    "Exchange": "CO",
+    "Name": "Wealth Invest HP Invest Lange DK Obl KL",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "WEIITNAKTLC",
+    "Exchange": "CO",
+    "Name": "Wealth Inv I&T Nord AktLargeCa",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "WEIITOBL",
+    "Exchange": "CO",
+    "Name": "Wealth Invest I&T Obligationer KL",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "WEILPDF",
+    "Exchange": "CO",
+    "Name": "Wealth Invest Linde & Partners Div. Fond",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "WEILPGVF",
+    "Exchange": "CO",
+    "Name": "Wealth Invest Linde&Partners Gl Val Fond",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "WEIMGA",
+    "Exchange": "CO",
+    "Name": "Wealth Invest Metropolis GloAk",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "WEIOAI",
+    "Exchange": "CO",
+    "Name": "Wealth Inv OptiAct and Indx KL",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "WEIOAV",
+    "Exchange": "CO",
+    "Name": "Investin - Othania Etisk Formuev\u00e6kst KL",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "WEIOGA",
+    "Exchange": "CO",
+    "Name": "Wealth Inv AKL Othania GlobAkt",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "WEIOM",
+    "Exchange": "CO",
+    "Name": "Wealth Invest Optimal Mix KL",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "WEIOOF",
+    "Exchange": "CO",
+    "Name": "Wealth Inv Optimal Offensiv KL",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "WEIOS",
+    "Exchange": "CO",
+    "Name": "Wealth Invest Optimal Stabil",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "WEIOVM",
+    "Exchange": "CO",
+    "Name": "Wealth Inv Opti VerdIndx Mod",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "WEISA",
+    "Exchange": "CO",
+    "Name": "Wealth Invest Strategi Alternativer",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "WEISAK",
+    "Exchange": "CO",
+    "Name": "Wealth Invest SGA Globale Akt",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "WEISMP",
+    "Exchange": "CO",
+    "Name": "Wealth Invest Secure Market Power",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "WEISSA",
+    "Exchange": "CO",
+    "Name": "Wealth Invest Secure Select Aktier",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "WEISSO",
+    "Exchange": "CO",
+    "Name": "Wealth Invest Secure SelectObl",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "WEISTA",
+    "Exchange": "CO",
+    "Name": "Wealth Invest Strategi Aktier",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "WEISTS",
+    "Exchange": "CO",
+    "Name": "Wealth Invest Strategi Stabil",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "WEITISOP",
+    "Exchange": "CO",
+    "Name": "Wealth Invest AKL TimeInv Sust Opportu P",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "WEKAFKI",
+    "Exchange": "CO",
+    "Name": "Wealth Invest AKL Afkast+ I",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "WEKAKLOSI",
+    "Exchange": "CO",
+    "Name": "Kapitalforeningen Wealth Invest - Othania Stabil Investering AKL Fund",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "WEKSTPLSI",
+    "Exchange": "CO",
+    "Name": "Wealth Invest AKL St. Petri L/S I",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "WIRTEK",
+    "Exchange": "CO",
+    "Name": "Wirtek A/S",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "WMA",
+    "Exchange": "CO",
+    "Name": "WindowMaster International AS",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "XACTC25",
+    "Exchange": "CO",
+    "Name": "Xact Kapitalforvaltning",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "YOYO",
+    "Exchange": "CO",
+    "Name": "Orderyoyo AS",
+    "Country": "Denmark"
+  },
+  {
+    "Symbol": "ZEAL",
+    "Exchange": "CO",
+    "Name": "Zealand Pharma A/S",
+    "Country": "Denmark"
+  }
+]
