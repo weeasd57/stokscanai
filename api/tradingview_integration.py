@@ -133,17 +133,15 @@ def get_tradingview_exchange(symbol: str) -> str:
 
 def fetch_tradingview_prices(
     symbol: str,
-    cache_dir: str = "data_cache",
     max_days: int = 365
 ) -> Tuple[bool, str]:
     """
-    Fetch historical price data from TradingView and save to cache.
-    Incremental: If local file exists, fetch only new bars.
+    Fetch historical price data from TradingView and sync to Supabase.
+    Incremental: If cloud data exists, fetch only new bars.
     
     Args:
         symbol: Stock symbol with exchange suffix (e.g., "AAPL.US", "AIR.PA")
-        cache_dir: Base cache directory path
-        max_days: Max historical bars to keep in local data
+        max_days: Max historical bars to fetch if no cloud data exists
     
     Returns:
         Tuple of (success: bool, message: str)
@@ -221,15 +219,13 @@ def fetch_tradingview_prices(
 
 
 def fetch_tradingview_fundamentals_bulk(
-    tickers: List[str],
-    cache_dir: str = "data_cache"
+    tickers: List[str]
 ) -> Dict[str, Tuple[Dict[str, Any], Dict[str, Any]]]:
     """
     Bulk fetch fundamentals from TradingView screener.
     
     Args:
         tickers: List of stock symbols with exchange suffix
-        cache_dir: Base cache directory path
     
     Returns:
         Dict mapping ticker -> (data_dict, meta_dict)

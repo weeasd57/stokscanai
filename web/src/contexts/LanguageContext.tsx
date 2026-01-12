@@ -251,15 +251,8 @@ const translations: Record<string, Record<Language, string>> = {
     "compare.save": { en: "Save", ar: "حفظ" },
     "compare.saved": { en: "Saved", ar: "تم الحفظ" },
     "compare.chart": { en: "Chart", ar: "رسم بياني" },
-    "chart.title": { en: "{symbol} Analysis", ar: "تحليل {symbol}" },
     "chart.close": { en: "Close", ar: "إغلاق" },
 };
-Line: 241
-Line: 225
-Line: 205
-Line: 185
-Line: 176
-Line: 144
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
     const [language, setLanguage] = useState<Language>("en");

@@ -36,89 +36,6 @@ def _init_supabase():
 
 # Define absolute paths for reliability
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DEFAULT_CACHE_DIR = os.path.join(BASE_DIR, "api", "data_cache")
-DEFAULT_SYMBOLS_DIR = os.path.join(BASE_DIR, "symbols_data")
-
-
-def _resolve_cache_dir(cache_dir: str) -> str:
-    p = (cache_dir or "").strip()
-    if not p:
-        return DEFAULT_CACHE_DIR
-    if os.path.isabs(p):
-        return p
-    p_norm = p.replace("/", os.sep).replace("\\", os.sep)
-    direct = os.path.join(BASE_DIR, p_norm)
-    api_joined = os.path.join(BASE_DIR, "api", p_norm)
-    if os.path.isdir(direct):
-        return direct
-    if os.path.isdir(api_joined):
-        return api_joined
-    return api_joined
-
-
-def _cache_subdir_for_symbol(symbol: str) -> Optional[str]:
-    s = (symbol or "").strip().upper()
-    if "." not in s:
-        return None
-    suffix = s.split(".")[-1]
-    if suffix == "CC":
-        return "EGX"
-    if suffix.isalnum() and 1 <= len(suffix) <= 10:
-        return suffix
-    return None
-
-
-def _candidate_cache_paths(cache_dir: str, symbol: str) -> List[str]:
-    cache_dir = _resolve_cache_dir(cache_dir)
-    key = _safe_cache_key(symbol)
-    filename = f"{key}.csv"
-    subdir = _cache_subdir_for_symbol(symbol)
-    out: List[str] = []
-    if subdir:
-        out.append(os.path.join(cache_dir, subdir, "prices", filename))
-        out.append(os.path.join(cache_dir, subdir, filename))
-    else:
-        out.append(os.path.join(cache_dir, "prices", filename))
-    out.append(os.path.join(cache_dir, filename))
-    seen: List[str] = []
-    for p in out:
-        if p not in seen:
-            seen.append(p)
-    return seen
-
-
-def _preferred_cache_path(cache_dir: str, symbol: str) -> str:
-    cache_dir = _resolve_cache_dir(cache_dir)
-    key = _safe_cache_key(symbol)
-    filename = f"{key}.csv"
-    subdir = _cache_subdir_for_symbol(symbol)
-    if subdir:
-        return os.path.join(cache_dir, subdir, "prices", filename)
-    return os.path.join(cache_dir, "prices", filename)
-
-
-def _candidate_fund_cache_paths(cache_dir: str, symbol: str) -> List[str]:
-    cache_dir = _resolve_cache_dir(cache_dir)
-    filename = f"fund_{_safe_cache_key(symbol)}.json"
-    subdir = _cache_subdir_for_symbol(symbol)
-    out: List[str] = []
-    if subdir:
-        out.append(os.path.join(cache_dir, subdir, "fund", filename))
-    out.append(os.path.join(cache_dir, "fund", filename))
-    seen: List[str] = []
-    for p in out:
-        if p not in seen:
-            seen.append(p)
-    return seen
-
-
-def _preferred_fund_cache_path(cache_dir: str, symbol: str) -> str:
-    cache_dir = _resolve_cache_dir(cache_dir)
-    filename = f"fund_{_safe_cache_key(symbol)}.json"
-    subdir = _cache_subdir_for_symbol(symbol)
-    if subdir:
-        return os.path.join(cache_dir, subdir, "fund", filename)
-    return os.path.join(cache_dir, "fund", filename)
 
 
 def _finite_float(value: Any) -> Optional[float]:
@@ -150,9 +67,6 @@ def _last_trading_day(today: dt.date) -> dt.date:
     return today
 
 
-def _safe_mkdir(path: str) -> None:
-    if path and not os.path.exists(path):
-        os.makedirs(path, exist_ok=True)
 
 
 def _safe_cache_key(symbol: str) -> str:
@@ -191,7 +105,7 @@ def _infer_symbol_exchange(ticker: str, exchange_hint: Optional[str] = None) -> 
     return t, "US"
 
 
-def check_local_cache(symbol: str, exchange: Optional[str] = None, cache_dir: str = DEFAULT_CACHE_DIR) -> bool:
+def check_local_cache(symbol: str, exchange: Optional[str] = None) -> bool:
     """Checks if data exists in Supabase."""
     # 1. Check Supabase First
     _init_supabase()
@@ -211,8 +125,8 @@ _CACHED_TICKERS_SET = None
 _CACHED_TICKERS_TS = 0
 _CACHE_TTL_SECONDS = 30
 
-def get_cached_tickers(cache_dir: str = DEFAULT_CACHE_DIR) -> set:
-    """Returns a set of all ticker names. Prioritizes Supabase, then scans local cache. Cached for 30s."""
+def get_cached_tickers() -> set:
+    """Returns a set of all ticker names. Prioritizes Supabase. Cached for 30s."""
     global _CACHED_TICKERS_SET, _CACHED_TICKERS_TS
     
     import time
@@ -221,7 +135,6 @@ def get_cached_tickers(cache_dir: str = DEFAULT_CACHE_DIR) -> set:
     if _CACHED_TICKERS_SET is not None and (now - _CACHED_TICKERS_TS) < _CACHE_TTL_SECONDS:
         return _CACHED_TICKERS_SET
 
-    print(f"DEBUG: get_cached_tickers computing...")
     found = set()
 
     # 1. Try Supabase
@@ -229,8 +142,6 @@ def get_cached_tickers(cache_dir: str = DEFAULT_CACHE_DIR) -> set:
     if supabase:
         try:
             # Get unique symbol + exchange combinations
-            # Note: We use distinct on symbol,exchange if possible, or just symbols.
-            # For simplicity, let's get all symbols from fundamentals table as it's smaller.
             res = supabase.table("stock_fundamentals").select("symbol,exchange").execute()
             if res.data:
                 for row in res.data:
@@ -318,30 +229,12 @@ def get_stock_data_eodhd(
     api: APIClient,
     ticker: str,
     from_date: str,
-    cache_dir: str = DEFAULT_CACHE_DIR,
     tolerance_days: int = 0,
     exchange: Optional[str] = None,
     force_local: bool = False,
 ) -> pd.DataFrame:
-    cache_dir = _resolve_cache_dir(cache_dir)
-    _safe_mkdir(cache_dir)
     
-    # Try multiple possible filenames to favor local cache
     possible_names = [ticker]
-    if exchange:
-        mapping = {"EGX": "EGX", "US": "US", "NYSE": "US", "NASDAQ": "US"}
-        suffix = mapping.get(exchange.upper(), exchange.upper())
-        possible_names.append(f"{ticker.split('.')[0]}.{suffix}")
-        # Legacy/Fallback
-        if exchange.upper() == "EGX":
-            possible_names.append(f"{ticker.split('.')[0]}.CC")
-            possible_names.append(f"{ticker.split('.')[0]}.EGX")
-
-    if "." in ticker:
-        base = ticker.split(".")[0]
-        # Map back CC -> EGX or US
-        if ticker.endswith(".CC"): possible_names.append(f"{base}.EGX")
-        possible_names.append(base)
     
     # 0. Try Supabase
     _init_supabase()
@@ -368,7 +261,7 @@ def get_stock_data_eodhd(
             print(f"Supabase read error for {ticker}: {e}")
 
     if force_local:
-        raise ValueError(f"Symbol {ticker} not found in Supabase.")
+        return pd.DataFrame() # Return empty instead of raising error if cloud-only
 
     # No cloud data, try API
     try:
@@ -402,7 +295,6 @@ def get_stock_data_eodhd(
 def get_stock_data_yahoo(
     ticker: str,
     from_date: str = "2020-01-01",
-    cache_dir: str = DEFAULT_CACHE_DIR,
     force_local: bool = False
 ) -> pd.DataFrame:
     """
@@ -411,9 +303,7 @@ def get_stock_data_yahoo(
     # Disk-less: No local file check. 
     # Logic: Always fetch from Yahoo if get_stock_data-Supabase failed.
     if force_local:
-        # If force_local means 'only cloud', it should have been handled in get_stock_data.
-        # But here we assume we are the 'live' fallback.
-        raise ValueError(f"Symbol {ticker} missing in cloud.")
+        return pd.DataFrame()
 
     # 2. Fetch from Yahoo
     # Yahoo Ticker Normalization
@@ -492,13 +382,12 @@ def _get_supabase_last_date(ticker: str) -> Optional[dt.date]:
 def update_stock_data(
     api: APIClient,
     ticker: str,
-    cache_dir: str = DEFAULT_CACHE_DIR,
     source: str = "eodhd",
     max_days: int = 365
 ) -> Tuple[bool, str]:
     """
-    Updates stock data for a given ticker trying to be smart.
-    source: 'eodhd' or 'yahoo'
+    Updates stock data for a given ticker and upserts directly to Supabase.
+    source: 'eodhd'
     """
     print(f"DEBUG IN UPDATE: Ticker: {ticker}, Source received: {source}")
     if source.lower() != "eodhd":
@@ -506,16 +395,7 @@ def update_stock_data(
     if api is None:
         return False, "EODHD API client is not configured"
 
-    # cache_dir = _resolve_cache_dir(cache_dir) # Removed
-    # _safe_mkdir(cache_dir) # Removed
-
-    # existing_path = None # Removed
-    # for p in _candidate_cache_paths(cache_dir, ticker): # Removed
-    #     if os.path.exists(p): # Removed
-    #         existing_path = p # Removed
-    #         break # Removed
-    # file_path = existing_path or _preferred_cache_path(cache_dir, ticker) # Removed
-    # _safe_mkdir(os.path.dirname(file_path)) # Removed
+    today = dt.date.today()
     
     today = dt.date.today()
     
@@ -527,30 +407,6 @@ def update_stock_data(
 
     # Check existing (from Supabase)
     existing_df = pd.DataFrame()
-    # last_date = None # Now determined by _get_supabase_last_date
-    
-    # if os.path.exists(file_path): # Removed
-    #     try:
-    #         existing_df = pd.read_csv(file_path, index_col=0, parse_dates=True) # Removed
-    #         # Cleanup: Remove invalid rows from legacy TradingView data
-    #         if not existing_df.empty:
-    #             # Convert index to datetime, coercing errors
-    #             existing_df.index = pd.to_datetime(existing_df.index, errors='coerce')
-    #             # Drop rows with NaT index (invalid dates)
-    #             existing_df = existing_df[existing_df.index.notna()]
-                
-    #             if not existing_df.empty:
-    #                 last_date = existing_df.index[-1].date()
-    #                 if last_date >= _last_trading_day(today):
-    #                  # Even if up to date, we might need to trim
-    #                  if len(existing_df) > max_days:
-    #                      trimmed = existing_df.tail(max_days)
-    #                      trimmed.to_csv(file_path) # Removed
-    #                      sync_local_to_supabase(ticker, file_path) # Removed
-    #                      return True, f"Already up to date (Trimmed to {max_days} rows)"
-    #                  return True, "Already up to date"
-    #     except Exception:
-    #         pass
 
     # EODHD Logic
     try:
@@ -706,31 +562,6 @@ def sync_data_to_supabase(ticker: str, data: dict) -> tuple[bool, str]:
         return False, msg
 
 
-def sync_fundamentals_to_supabase(ticker: str, file_path: str) -> tuple[bool, str]:
-    """Read local JSON and upsert to Supabase stock_fundamentals."""
-    _init_supabase()
-    if not supabase:
-        return False, "Supabase not initialized"
-    if not os.path.exists(file_path):
-        return False, f"File not found: {file_path}"
-        
-    try:
-        with open(file_path, "r", encoding="utf-8") as f:
-            obj = json.load(f)
-            
-        if isinstance(obj, dict) and "data" in obj:
-            return sync_data_to_supabase(ticker, obj["data"])
-        elif isinstance(obj, dict):
-            return sync_data_to_supabase(ticker, obj)
-            
-        return False, "Invalid JSON format"
-    except Exception as e:
-        msg = f"Supabase fund sync error for {ticker}: {e}"
-        print(msg)
-        return False, msg
-    
-
-
 def clear_supabase_stock_prices() -> tuple[bool, str]:
     """Delete all records from Supabase stock_prices table."""
     _init_supabase()
@@ -738,8 +569,7 @@ def clear_supabase_stock_prices() -> tuple[bool, str]:
         return False, "Supabase not initialized"
     
     try:
-        # Supabase DELETE without .eq() or .match() will delete all rows if RLS/Permissions allow.
-        # However, many clients require a filter. Using .neq("symbol", "") as a catch-all.
+        # Using .neq("symbol", "") as a catch-all to delete all rows.
         res = supabase.table("stock_prices").delete().neq("symbol", "").execute()
         return True, "All stock prices cleared from Supabase"
     except Exception as e:
@@ -755,38 +585,24 @@ def clear_supabase_stock_prices() -> tuple[bool, str]:
 
 def get_company_fundamentals(
     ticker: str,
-    cache_dir: str = DEFAULT_CACHE_DIR,
     return_meta: bool = False,
     source: str = "auto",
 ) -> Any:
-    cache_dir = _resolve_cache_dir(cache_dir)
-    
     # 0. Try Supabase
     _init_supabase()
     if supabase:
         try:
-            # Try to match symbol/exchange
-            q = supabase.table("stock_fundamentals").select("data").eq("symbol", ticker)
-            # If we had exchange metadata, we could filter better.
-            res = q.limit(1).execute()
+            s, e = _infer_symbol_exchange(ticker)
+            res = supabase.table("stock_fundamentals").select("data").eq("symbol", s).eq("exchange", e).limit(1).execute()
             if res.data and res.data[0].get("data"):
                 data = res.data[0]["data"]
-                return _ret(data, {"source": "supabase", "servedFrom": "supabase"})
+                if return_meta:
+                    return data, {"source": "supabase", "servedFrom": "supabase"}
+                return data
         except Exception as e:
             print(f"Supabase fund read error: {e}")
 
-    # Check cache
-    cache_path = _preferred_fund_cache_path(cache_dir, ticker)
-    _safe_mkdir(os.path.dirname(cache_path))
-
-    fund_ttl_seconds = int(os.getenv("FUND_TTL_SECONDS", str(60 * 60 * 24 * 30)))
-    fund_error_ttl_seconds = int(os.getenv("FUND_ERROR_TTL_SECONDS", str(60 * 60 * 6)))
     now_ts = int(dt.datetime.utcnow().timestamp())
-
-    cached_data: Dict[str, Any] = {}
-    cached_meta: Dict[str, Any] = {}
-
-    # Normalize requested source early so cache logic can respect provider-specific errors.
     src = (source or "auto").lower()
 
     def _has_core_metrics(d: Dict[str, Any]) -> bool:
@@ -803,77 +619,16 @@ def get_company_fundamentals(
             return data, meta
         return data
 
-    for cand_path in _candidate_fund_cache_paths(cache_dir, ticker):
-        if not os.path.exists(cand_path):
-            continue
-        try:
-            with open(cand_path, "r") as f:
-                obj = json.load(f)
-
-            if isinstance(obj, dict) and "data" in obj and "_meta" in obj:
-                cached_data = obj.get("data") or {}
-                cached_meta = obj.get("_meta") or {}
-            elif isinstance(obj, dict):
-                cached_data = obj
-                cached_meta = {}
-
-            if cached_data and not cached_meta:
-                if _has_core_metrics(cached_data):
-                    return _ret(cached_data, {"servedFrom": "cache_legacy"})
-                cached_data = {}
-                cached_meta = {}
-                continue
-
-            if cached_data:
-                fetched_at = cached_meta.get("fetchedAt")
-                if isinstance(fetched_at, int) and (now_ts - fetched_at) <= fund_ttl_seconds:
-                    if _has_core_metrics(cached_data):
-                        return _ret(cached_data, {**cached_meta, "servedFrom": "cache_fresh"})
-                    cached_data = {}
-                    cached_meta = {}
-                    continue
-
-            if cached_meta.get("status") == "error":
-                fetched_at = cached_meta.get("fetchedAt")
-                error_source = str(cached_meta.get("source") or "").lower()
-                if (
-                    isinstance(fetched_at, int)
-                    and (now_ts - fetched_at) <= fund_error_ttl_seconds
-                    and error_source == src
-                ):
-                    # Only respect an error cache when it was produced by the same
-                    # provider that is being requested now. This allows switching
-                    # fundSource (e.g. from tradingview to mubasher) without being
-                    # stuck on a previous provider's error.
-                    return _ret({}, {**cached_meta, "servedFrom": "error_cached"})
-                # Otherwise ignore this error cache and try the requested provider.
-                continue
-        except Exception:
-            pass
-
     def _try_tradingview() -> Any:
         upper = (ticker or "").strip().upper()
-        if not upper:
-            return None
-        if upper.endswith(".EGX") or upper.endswith(".CC"):
-            return None
+        if not upper: return None
+        if upper.endswith(".EGX") or upper.endswith(".CC"): return None
 
-        # Try to use our new consolidated integration
-        from tradingview_integration import fetch_tradingview_fundamentals_bulk, fetch_tradingview_prices
-        
-        # 1. Fetch Fundamentals (Single symbol bulk wrapper)
-        bulk = fetch_tradingview_fundamentals_bulk([upper], cache_dir=cache_dir)
-        if upper not in bulk:
-            return None
+        from tradingview_integration import fetch_tradingview_fundamentals_bulk
+        bulk = fetch_tradingview_fundamentals_bulk([upper])
+        if upper not in bulk: return None
         
         data, meta = bulk[upper]
-        
-        # 2. Check if price history exists, if not, fetch it too
-        price_cache_exists = any(os.path.exists(p) for p in _candidate_cache_paths(cache_dir, upper))
-        if not price_cache_exists:
-            # Automatic price history fetch on fundamental request if using TradingView source
-            fetch_tradingview_prices(upper, cache_dir=cache_dir)
-            
         return _ret(data, {**meta, "servedFrom": "live_tradingview"})
 
     def _try_mubasher_egx() -> Any:
@@ -1015,71 +770,12 @@ def get_company_fundamentals(
             return got
 
         if src == "mubasher":
-            got = _try_eodhd()
-            if got is not None:
-                return got
-
-            if cached_data:
-                fetched_at = cached_meta.get("fetchedAt")
-                stale = bool(isinstance(fetched_at, int) and (now_ts - fetched_at) > fund_ttl_seconds)
-                return _ret(cached_data, {**cached_meta, "servedFrom": "cache_stale" if stale else "cache"})
-
-            # User request: Do not save error to cache
-            # try:
-            #     out_path = _preferred_fund_cache_path(cache_dir, ticker)
-            #     _safe_mkdir(os.path.dirname(out_path))
-            #     with open(out_path, "w") as f:
-            #         json.dump({"_meta": {"fetchedAt": now_ts, "status": "error", "source": "mubasher"}, "data": {}}, f)
-            # except Exception:
-            #     pass
-
             return _ret({}, {"fetchedAt": now_ts, "status": "error", "source": "mubasher", "servedFrom": "error"})
 
     if src in {"tradingview", "auto"}:
         got = _try_tradingview()
         if got is not None:
             return got
-
-        if src == "tradingview":
-            got = _try_eodhd()
-            if got is not None:
-                return got
-
-            if cached_data:
-                fetched_at = cached_meta.get("fetchedAt")
-                stale = bool(isinstance(fetched_at, int) and (now_ts - fetched_at) > fund_ttl_seconds)
-                return _ret(cached_data, {**cached_meta, "servedFrom": "cache_stale" if stale else "cache"})
-
-            # User request: Do not save error to cache
-            # try:
-            #     out_path = _preferred_fund_cache_path(cache_dir, ticker)
-            #     _safe_mkdir(os.path.dirname(out_path))
-            #     with open(out_path, "w") as f:
-            #         json.dump({"_meta": {"fetchedAt": now_ts, "status": "error", "source": "tradingview"}, "data": {}}, f)
-            # except Exception:
-            #     pass
-
-            return _ret({}, {"fetchedAt": now_ts, "status": "error", "source": "tradingview", "servedFrom": "error"})
-
-    if src == "eodhd" or src == "auto":
-        got = _try_eodhd()
-        if got is not None:
-            return got
-
-        if cached_data:
-            fetched_at = cached_meta.get("fetchedAt")
-            stale = bool(isinstance(fetched_at, int) and (now_ts - fetched_at) > fund_ttl_seconds)
-            return _ret(cached_data, {**cached_meta, "servedFrom": "cache_stale" if stale else "cache"})
-
-        try:
-            out_path = _preferred_fund_cache_path(cache_dir, ticker)
-            _safe_mkdir(os.path.dirname(out_path))
-            with open(out_path, "w") as f:
-                json.dump({"_meta": {"fetchedAt": now_ts, "status": "error", "source": "eodhd"}, "data": {}}, f)
-        except Exception:
-            pass
-
-        return _ret({}, {"fetchedAt": now_ts, "status": "error", "source": "eodhd", "servedFrom": "error"})
 
     return _ret({}, {"fetchedAt": now_ts, "status": "error", "source": src, "servedFrom": "error"})
 
@@ -1401,7 +1097,6 @@ def run_pipeline(
     api_key: str,
     ticker: str,
     from_date: str = "2020-01-01",
-    cache_dir: str = DEFAULT_CACHE_DIR,
     include_fundamentals: bool = True,
     tolerance_days: int = 0,
     exchange: Optional[str] = None,
@@ -1422,7 +1117,6 @@ def run_pipeline(
                 api, 
                 sym, 
                 from_date=from_date, 
-                cache_dir=cache_dir, 
                 tolerance_days=tolerance_days, 
                 exchange=exchange,
                 force_local=force_local
@@ -1571,7 +1265,7 @@ def run_pipeline(
         
         out_preds.append(row_data)
 
-    fundamentals = get_company_fundamentals(selected_symbol or ticker, cache_dir) if include_fundamentals else {}
+    fundamentals = get_company_fundamentals(selected_symbol or ticker) if include_fundamentals else {}
     fundamentals = _sanitize_fundamentals(fundamentals) if include_fundamentals else {}
     fundamentals_error = None
     if include_fundamentals and not fundamentals:

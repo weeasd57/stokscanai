@@ -15,7 +15,6 @@ load_dotenv(os.path.join(base_dir, ".env"))
 load_dotenv(os.path.join(base_dir, "web", ".env.local"), override=True)
 
 print(f"DEBUG: EODHD_API_KEY loaded: {'Yes' if os.getenv('EODHD_API_KEY') else 'No'}")
-print(f"DEBUG: SYMBOLS_DATA_DIR: {os.getenv('SYMBOLS_DATA_DIR')}")
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi import Query
@@ -189,11 +188,9 @@ def _fetch_eod_history_eodhd(ticker: str, api_key: str, from_date: str, to_date:
 
 @app.post("/positions/evaluate_open_history", response_model=List[EvaluatePositionOut])
 def evaluate_open_positions_history(req: EvaluatePositionsRequest):
-    from tradingview_integration import fetch_tradingview_prices, get_tradingview_exchange
-    from stock_ai import _candidate_cache_paths, _preferred_cache_path, _safe_mkdir
+    from tradingview_integration import fetch_tradingview_prices
     
     api_key = os.getenv("EODHD_API_KEY")
-    cache_dir = os.getenv("CACHE_DIR", "data_cache")
     today = dt.datetime.utcnow().date().isoformat()
     out: List[EvaluatePositionOut] = []
 
@@ -217,7 +214,7 @@ def evaluate_open_positions_history(req: EvaluatePositionsRequest):
         
         # Try to update from TradingView first (free)
         try:
-            fetch_tradingview_prices(full_symbol, cache_dir=cache_dir, max_days=500)
+            fetch_tradingview_prices(full_symbol, max_days=500)
         except Exception as ex:
             print(f"TradingView update failed for {full_symbol}: {ex}")
         
@@ -229,7 +226,6 @@ def evaluate_open_positions_history(req: EvaluatePositionsRequest):
                 api=api_client,
                 ticker=full_symbol,
                 from_date=start_date,
-                cache_dir=cache_dir,
                 exchange=e
             )
         except Exception as ex:
@@ -309,9 +305,8 @@ def health():
 
 @app.get("/symbols/countries")
 def symbols_countries():
-    symbols_dir = os.getenv("SYMBOLS_DATA_DIR")
     try:
-        return {"countries": list_countries(symbols_dir)}
+        return {"countries": list_countries()}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -323,9 +318,8 @@ def symbols_search(
     exchange: str | None = Query(default=None, max_length=24),
     limit: int = Query(default=25, ge=1, le=100000),
 ):
-    symbols_dir = os.getenv("SYMBOLS_DATA_DIR")
     try:
-        results = search_symbols(q=q, country=country, exchange=exchange, limit=limit, symbols_dir=symbols_dir)
+        results = search_symbols(q=q, country=country, exchange=exchange, limit=limit)
         return {"results": results}
     except FileNotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e))
@@ -341,14 +335,11 @@ def predict(req: PredictRequest):
     if not api_key:
         raise HTTPException(status_code=500, detail="EODHD_API_KEY is not configured")
 
-    cache_dir = os.getenv("CACHE_DIR", "data_cache")
-
     try:
         payload = run_pipeline(
             api_key=api_key,
             ticker=req.ticker.strip().upper(),
             from_date=req.from_date,
-            cache_dir=cache_dir,
             include_fundamentals=req.include_fundamentals,
             exchange=req.exchange,
             rf_preset=req.rf_preset,

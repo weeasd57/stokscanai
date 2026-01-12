@@ -26,23 +26,14 @@ def test_get_tradingview_exchange():
 
 # @pytest.mark.skip(reason="Requires network and can be slow")
 def test_fetch_tradingview_prices():
-    test_cache = "test_data_cache"
-    success, msg = fetch_tradingview_prices("AAPL.US", cache_dir=test_cache, n_bars=10)
+    success, msg = fetch_tradingview_prices("AAPL.US", n_bars=10)
     assert success is True
-    assert "OK" in msg
+    assert "OK" in msg or "TV Sync" in msg
     
-    price_path = os.path.join(test_cache, "US", "prices", "AAPL.US.csv")
-    assert os.path.exists(price_path)
-    
-    df = pd.read_csv(price_path)
-    assert not df.empty
-    assert "Close" in df.columns
-
 # @pytest.mark.skip(reason="Requires network and can be slow")
 def test_fetch_tradingview_fundamentals_bulk():
-    test_cache = "test_data_cache"
     symbols = ["AAPL.US", "AIR.PA"]
-    out = fetch_tradingview_fundamentals_bulk(symbols, cache_dir=test_cache)
+    out = fetch_tradingview_fundamentals_bulk(symbols)
     
     assert "AAPL.US" in out
     assert "AIR.PA" in out
@@ -50,6 +41,3 @@ def test_fetch_tradingview_fundamentals_bulk():
     data, meta = out["AAPL.US"]
     assert data["marketCap"] is not None
     assert meta["source"] == "tradingview"
-    
-    fund_path = os.path.join(test_cache, "US", "fund", "fund_AAPL.US.json")
-    assert os.path.exists(fund_path)

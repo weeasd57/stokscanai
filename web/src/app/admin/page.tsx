@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useAppState } from "@/contexts/AppStateContext";
 import { getCountries, searchSymbols, type SymbolResult } from "@/lib/api";
-import { Database, Download, Check, AlertTriangle, Loader2, Zap, BarChart3, Info, TrendingUp, History, Cloud } from "lucide-react";
+import { Database, Download, Check, AlertTriangle, Loader2, Zap, BarChart3, Info, TrendingUp, History, Cloud, Globe } from "lucide-react";
 import { Toaster, toast } from "sonner";
 
 import CountrySelectDialog from "@/components/CountrySelectDialog";
@@ -40,7 +40,6 @@ export default function AdminPage() {
     const [loadingFundPreview, setLoadingFundPreview] = useState(false);
 
     const [syncLogs, setSyncLogs] = useState<any[]>([]);
-    const [syncing, setSyncing] = useState(false);
 
     const [dbInventory, setDbInventory] = useState<any[]>([]);
     const [loadingInventory, setLoadingInventory] = useState(false);
@@ -48,6 +47,7 @@ export default function AdminPage() {
     const [selectedDbEx, setSelectedDbEx] = useState<string | null>(null);
     const [dbSymbols, setDbSymbols] = useState<any[]>([]);
     const [loadingDbSymbols, setLoadingDbSymbols] = useState(false);
+    const [dbSymbolsSort, setDbSymbolsSort] = useState<{ key: string, dir: 'asc' | 'desc' }>({ key: 'symbol', dir: 'asc' });
 
     const [recentDbFunds, setRecentDbFunds] = useState<any[]>([]);
     const [loadingRecentFunds, setLoadingRecentFunds] = useState(false);
@@ -342,30 +342,6 @@ export default function AdminPage() {
         });
     }
 
-    const handleSync = async (exchange?: string) => {
-        setSyncing(true);
-        try {
-            const res = await fetch("/api/admin/sync-data", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ exchange })
-            });
-            if (res.ok) {
-                toast.success("Sync started");
-                setTimeout(() => {
-                    fetch("/api/admin/sync-history").then(r => r.json()).then(setSyncLogs);
-                }, 1000);
-            } else {
-                toast.error("Sync failed");
-            }
-        } catch (e) {
-            console.error(e);
-            toast.error("Sync failed");
-        } finally {
-            setSyncing(false);
-        }
-    };
-
     const filteredSymbols = (() => {
 
         const q = symbolsQuery.trim().toLowerCase();
@@ -385,13 +361,28 @@ export default function AdminPage() {
                     Data Manager
                 </h1>
                 <p className="text-sm text-zinc-400">
-                    Manage local market data. Download updates or fetch history for offline analysis.
+                    Manage market data. All updates are synced directly to Supabase cloud.
                 </p>
             </header>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Left: Controls */}
                 <div className="lg:col-span-1 space-y-4">
+                    {/* Country Selector */}
+                    <div className="rounded-xl border border-zinc-800 bg-zinc-950 p-5 space-y-4">
+                        <div className="flex items-center justify-between">
+                            <h3 className="text-sm font-medium text-zinc-100">Market Select</h3>
+                            <Globe className="h-4 w-4 text-zinc-500" />
+                        </div>
+                        <button
+                            onClick={() => setCountryDialogOpen(true)}
+                            disabled={processing}
+                            className="w-full h-11 rounded-xl border border-zinc-800 bg-zinc-900 px-4 flex items-center justify-between text-sm text-zinc-300 hover:border-indigo-500 hover:bg-zinc-800/50 transition-all cursor-pointer group disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            <span className="font-medium">{selectedCountry}</span>
+                            <Globe className="h-4 w-4 text-zinc-500 group-hover:text-indigo-400 transition-colors" />
+                        </button>
+                    </div>
 
                     {/* Data Source Switcher */}
                     <div className="rounded-xl border border-zinc-800 bg-zinc-950 p-5 space-y-4">
@@ -509,101 +500,42 @@ export default function AdminPage() {
                             />
                         </div>
 
-
                     </div>
 
-
-
-                    <div className="rounded-xl border border-zinc-800 bg-zinc-950 p-5 space-y-6">
+                    <div className="space-y-4 pt-4">
                         <div className="flex items-center justify-between">
-                            <h3 className="text-sm font-medium text-zinc-100 flex items-center gap-2">
-                                <Cloud className="w-4 h-4 text-indigo-400" />
-                                Cloud Data Sync
-                            </h3>
-                            {syncing && <Loader2 className="h-4 w-4 animate-spin text-indigo-500" />}
+                            <span className="text-sm text-zinc-400">Selected Symbols</span>
+                            <span className="font-mono text-indigo-400">{selectedSymbols.size}</span>
                         </div>
 
-                        <div className="space-y-4">
-                            <div className="space-y-2">
-                                <label className="text-[10px] uppercase text-zinc-500 font-bold tracking-wider">Target Market</label>
-                                <button
-                                    onClick={() => setCountryDialogOpen(true)}
-                                    disabled={processing}
-                                    className="w-full h-10 flex items-center justify-between rounded-lg border border-zinc-700 bg-zinc-900 px-3 text-sm text-zinc-300 hover:bg-zinc-800 transition-colors"
-                                >
-                                    <span>{selectedCountry}</span>
-                                    <span className="text-zinc-500 text-[10px]">▼</span>
-                                </button>
-                            </div>
-
-                            <div className="flex gap-2">
-                                <button
-                                    onClick={() => handleSync()}
-                                    disabled={syncing}
-                                    className="flex-1 py-2 text-[10px] font-bold rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-50"
-                                >
-                                    Sync All
-                                </button>
-                                <button
-                                    onClick={() => {
-                                        const firstWithEx = symbols.find(s => s.exchange);
-                                        const ex = firstWithEx ? firstWithEx.exchange : (selectedCountry === "Egypt" ? "EGX" : "US");
-                                        handleSync(ex);
-                                    }}
-                                    disabled={syncing || symbols.length === 0}
-                                    className="flex-1 py-2 text-[10px] font-bold rounded-lg border border-zinc-800 bg-zinc-900 text-zinc-300 hover:bg-zinc-800 disabled:opacity-50"
-                                >
-                                    Sync {selectedCountry}
-                                </button>
-                            </div>
-                        </div>
-
-                        <CountrySelectDialog
-                            open={countryDialogOpen}
-                            onClose={() => setCountryDialogOpen(false)}
-                            onSelect={(c) => {
-                                setSelectedCountry(c);
-                                setCountryDialogOpen(false);
-                            }}
-                            countries={countries}
-                            selectedCountry={selectedCountry}
-                        />
-
-
-                        <div className="space-y-4 pt-4 border-t border-zinc-800">
-                            <div className="flex items-center justify-between">
-                                <span className="text-sm text-zinc-400">Selected Symbols</span>
-                                <span className="font-mono text-indigo-400">{selectedSymbols.size}</span>
-                            </div>
-
-                            <button
-                                onClick={runUpdate}
-                                disabled={processing || selectedSymbols.size === 0}
-                                className="w-full flex items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 py-3 text-sm font-bold text-white hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                            >
-                                {processing ? <Loader2 className="h-5 w-5 animate-spin" /> : <Download className="h-5 w-5" />}
-                                {processing ? "Updating..." : "Update Selected"}
-                            </button>
-                        </div>
-
-                        {progress && processing && (
-                            <div className="space-y-2 pt-2">
-                                <div className="flex justify-between text-xs text-zinc-500">
-                                    <span>Progress</span>
-                                    <span>{Math.round((progress.current / progress.total) * 100)}%</span>
-                                </div>
-                                <div className="h-2 w-full rounded-full bg-zinc-900 overflow-hidden">
-                                    <div
-                                        className="h-full bg-indigo-500 transition-all duration-300"
-                                        style={{ width: `${(progress.current / progress.total) * 100}%` }}
-                                    />
-                                </div>
-                                <div className="text-xs text-zinc-600 truncate font-mono">
-                                    {progress.lastMsg}
-                                </div>
-                            </div>
-                        )}
+                        <button
+                            onClick={runUpdate}
+                            disabled={processing || selectedSymbols.size === 0}
+                            className="w-full flex items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 py-3 text-sm font-bold text-white hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                        >
+                            {processing ? <Loader2 className="h-5 w-5 animate-spin" /> : <Download className="h-5 w-5" />}
+                            {processing ? "Updating..." : "Update Cloud"}
+                        </button>
                     </div>
+
+
+                    {progress && processing && (
+                        <div className="space-y-2 pt-2">
+                            <div className="flex justify-between text-xs text-zinc-500">
+                                <span>Progress</span>
+                                <span>{Math.round((progress.current / progress.total) * 100)}%</span>
+                            </div>
+                            <div className="h-2 w-full rounded-full bg-zinc-900 overflow-hidden">
+                                <div
+                                    className="h-full bg-indigo-500 transition-all duration-300"
+                                    style={{ width: `${(progress.current / progress.total) * 100}%` }}
+                                />
+                            </div>
+                            <div className="text-xs text-zinc-600 truncate font-mono">
+                                {progress.lastMsg}
+                            </div>
+                        </div>
+                    )}
 
                     {logs.length > 0 && (
                         <div className="rounded-xl border border-zinc-800 bg-zinc-950 p-4">
@@ -721,15 +653,20 @@ export default function AdminPage() {
                                         <Database className="w-4 h-4 text-indigo-400" />
                                         Database Inventory Summary
                                     </h3>
+                                    <p className="text-[10px] text-zinc-600 font-medium">Click an exchange to view symbol details</p>
                                 </div>
                                 <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
                                     {dbInventory.map((item) => (
                                         <div
                                             key={item.exchange}
-                                            className="p-4 rounded-2xl bg-zinc-900/30 border border-zinc-800/50 flex flex-col gap-1"
+                                            onClick={() => { setSelectedDbEx(item.exchange); fetchDbSymbols(item.exchange); }}
+                                            className={`p-4 rounded-2xl border transition-all cursor-pointer group ${selectedDbEx === item.exchange
+                                                ? 'bg-indigo-600/20 border-indigo-500/50'
+                                                : 'bg-zinc-900/30 border-zinc-800/50 hover:border-zinc-700 hover:bg-zinc-900/50'
+                                                }`}
                                         >
-                                            <div className="flex justify-between items-center text-[10px] font-bold text-zinc-500 uppercase">
-                                                {item.exchange}
+                                            <div className="flex justify-between items-center text-[10px] font-bold text-zinc-500 uppercase group-hover:text-zinc-300">
+                                                {item.exchange} {item.country !== 'N/A' ? `(${item.country})` : ''}
                                                 <div className={`w-1.5 h-1.5 rounded-full ${item.status === 'healthy' ? 'bg-green-500' : 'bg-zinc-700'}`} />
                                             </div>
                                             <div className="text-2xl font-black text-zinc-100">{item.symbolCount}</div>
@@ -741,62 +678,115 @@ export default function AdminPage() {
                                 </div>
                             </div>
 
+                            {/* Drill-down: Exchange Symbol List */}
+                            {selectedDbEx && (
+                                <div className="space-y-6 animate-in fade-in slide-in-from-top-2 duration-300">
+                                    <div className="flex items-center justify-between border-b border-zinc-800 pb-4">
+                                        <div className="flex items-center gap-4">
+                                            <h3 className="text-sm font-bold text-zinc-300 uppercase tracking-widest">
+                                                {selectedDbEx} Symbols
+                                            </h3>
+                                            <span className="text-xs px-2 py-0.5 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-500">
+                                                {dbSymbols.length} Total
+                                            </span>
+                                        </div>
+                                        <button
+                                            onClick={() => { setSelectedDbEx(null); setDbSymbols([]); }}
+                                            className="text-[10px] font-bold text-zinc-500 hover:text-zinc-300 uppercase tracking-widest"
+                                        >
+                                            Close View
+                                        </button>
+                                    </div>
+
+                                    {loadingDbSymbols ? (
+                                        <div className="flex justify-center py-10">
+                                            <Loader2 className="w-8 h-8 animate-spin text-indigo-500" />
+                                        </div>
+                                    ) : (
+                                        <div className="rounded-xl border border-zinc-800 overflow-hidden bg-zinc-900/20">
+                                            <table className="w-full text-left text-[11px]">
+                                                <thead className="bg-zinc-900 text-zinc-500 font-bold uppercase tracking-wider border-b border-zinc-800">
+                                                    <tr>
+                                                        <th className="px-6 py-4 cursor-pointer hover:text-indigo-400" onClick={() => setDbSymbolsSort(p => ({ key: 'symbol', dir: p.key === 'symbol' && p.dir === 'asc' ? 'desc' : 'asc' }))}>
+                                                            Ticker {dbSymbolsSort.key === 'symbol' ? (dbSymbolsSort.dir === 'asc' ? '↑' : '↓') : ''}
+                                                        </th>
+                                                        <th className="px-6 py-4">Name</th>
+                                                        <th className="px-6 py-4">Sector</th>
+                                                        <th className="px-6 py-4 cursor-pointer hover:text-indigo-400" onClick={() => setDbSymbolsSort(p => ({ key: 'last_sync', dir: p.key === 'last_sync' && p.dir === 'asc' ? 'desc' : 'asc' }))}>
+                                                            Last Sync {dbSymbolsSort.key === 'last_sync' ? (dbSymbolsSort.dir === 'asc' ? '↑' : '↓') : ''}
+                                                        </th>
+                                                        <th className="px-6 py-4 cursor-pointer hover:text-indigo-400" onClick={() => setDbSymbolsSort(p => ({ key: 'last_price_date', dir: p.key === 'last_price_date' && p.dir === 'asc' ? 'desc' : 'asc' }))}>
+                                                            Last Price {dbSymbolsSort.key === 'last_price_date' ? (dbSymbolsSort.dir === 'asc' ? '↑' : '↓') : ''}
+                                                        </th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-zinc-800/50">
+                                                    {[...dbSymbols].sort((a, b) => {
+                                                        const valA = a[dbSymbolsSort.key] || '';
+                                                        const valB = b[dbSymbolsSort.key] || '';
+                                                        return dbSymbolsSort.dir === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+                                                    }).map((s) => (
+                                                        <tr key={s.symbol} className="hover:bg-zinc-800/30 transition-colors">
+                                                            <td className="px-6 py-3 font-mono font-bold text-indigo-400">{s.symbol}</td>
+                                                            <td className="px-6 py-3 text-zinc-300">{s.name}</td>
+                                                            <td className="px-6 py-3 text-zinc-500">{s.sector}</td>
+                                                            <td className="px-6 py-3 text-zinc-400 font-mono">
+                                                                {s.last_sync ? new Date(s.last_sync).toLocaleString() : '-'}
+                                                            </td>
+                                                            <td className="px-6 py-3 text-zinc-500 font-mono">
+                                                                {s.last_price_date || '-'}
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
                             {!previewTicker ? (
                                 <div className="space-y-8">
                                     <div className="flex items-center justify-between">
                                         <h3 className="text-sm font-bold text-zinc-400 uppercase tracking-[0.2em] flex items-center gap-2">
-                                            <TrendingUp className="w-4 h-4 text-emerald-400" />
-                                            Recently Updated in Cloud
+                                            <Cloud className="w-4 h-4 text-emerald-400" />
+                                            Cloud Fundamentals Hub
                                         </h3>
+                                        <p className="text-[10px] text-zinc-600 font-medium">Recently updated data files</p>
                                     </div>
 
-                                    {loadingRecentFunds ? (
-                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
-                                            {[1, 2, 3, 4, 5].map(i => (
-                                                <div key={i} className="h-32 rounded-xl bg-zinc-900/50 border border-zinc-800 animate-pulse" />
+                                    {loadingInventory ? (
+                                        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                                            {[1, 2, 3, 4, 5, 6].map(i => (
+                                                <div key={i} className="h-24 rounded-2xl bg-zinc-900/50 border border-zinc-800 animate-pulse" />
                                             ))}
                                         </div>
-                                    ) : recentDbFunds.length === 0 ? (
+                                    ) : dbInventory.length === 0 ? (
                                         <div className="py-20 text-center border-2 border-dashed border-zinc-900 rounded-3xl">
                                             <Database className="w-12 h-12 text-zinc-800 mx-auto mb-4" />
                                             <p className="text-zinc-600 text-sm">No fundamental data found in Supabase.</p>
                                         </div>
                                     ) : (
-                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
-                                            {recentDbFunds.map((fund: any) => {
-                                                const d = fund.data || {};
-                                                return (
+                                        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                                            {[...dbInventory]
+                                                .filter(item => item.lastUpdate)
+                                                .sort((a, b) => new Date(b.lastUpdate).getTime() - new Date(a.lastUpdate).getTime())
+                                                .map((item) => (
                                                     <div
-                                                        key={`${fund.symbol}-${fund.exchange}`}
-                                                        onClick={() => setPreviewTicker(`${fund.symbol}.${fund.exchange}`)}
-                                                        className="group p-5 rounded-2xl bg-zinc-900/30 border border-zinc-800/50 hover:border-indigo-500/30 hover:bg-indigo-500/5 transition-all cursor-pointer"
+                                                        key={`recent-${item.exchange}`}
+                                                        onClick={() => { setSelectedDbEx(item.exchange); fetchDbSymbols(item.exchange); }}
+                                                        className={`p-4 rounded-2xl border transition-all cursor-pointer group hover:border-emerald-500/30 hover:bg-emerald-500/5 bg-zinc-900/30 border-zinc-800/50`}
                                                     >
-                                                        <div className="flex justify-between items-start mb-4">
-                                                            <div className="px-2.5 py-1 rounded-lg bg-zinc-800 text-[10px] font-bold text-zinc-100 group-hover:bg-indigo-600 transition-colors">
-                                                                {fund.symbol}
-                                                            </div>
-                                                            <span className="text-[9px] text-zinc-600 font-mono">{fund.exchange}</span>
+                                                        <div className="flex justify-between items-center text-[10px] font-bold text-zinc-500 uppercase group-hover:text-zinc-300">
+                                                            {item.exchange} {item.country !== 'N/A' ? `(${item.country})` : ''}
+                                                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                                                         </div>
-                                                        <div className="text-sm font-bold text-zinc-100 truncate mb-1">{d.name || "N/A"}</div>
-                                                        <div className="text-[10px] text-zinc-500 mb-4">{d.sector || "Unknown Sector"}</div>
-                                                        <div className="flex items-center gap-3 text-[10px] text-zinc-400 pt-3 border-t border-zinc-800/50">
-                                                            <div className="flex-1">
-                                                                <div className="text-zinc-600 mb-0.5">M.Cap</div>
-                                                                <div className="font-mono text-zinc-300">
-                                                                    {typeof d.marketCap === 'number'
-                                                                        ? (d.marketCap > 1e9 ? `${(d.marketCap / 1e9).toFixed(1)}B` : `${(d.marketCap / 1e6).toFixed(1)}M`)
-                                                                        : d.marketCap || "-"
-                                                                    }
-                                                                </div>
-                                                            </div>
-                                                            <div className="flex-1 text-right">
-                                                                <div className="text-zinc-600 mb-0.5">P/E</div>
-                                                                <div className="font-mono text-zinc-300">{d.peRatio || "-"}</div>
-                                                            </div>
+                                                        <div className="text-2xl font-black text-zinc-100">{item.symbolCount}</div>
+                                                        <div className="text-[9px] text-zinc-600 font-mono">
+                                                            {new Date(item.lastUpdate).toLocaleDateString()}
                                                         </div>
                                                     </div>
-                                                );
-                                            })}
+                                                ))}
                                         </div>
                                     )}
                                 </div>
@@ -905,6 +895,14 @@ export default function AdminPage() {
                     </div>
                 </div>
             </div>
+            <CountrySelectDialog
+                open={countryDialogOpen}
+                onClose={() => setCountryDialogOpen(false)}
+                onSelect={setSelectedCountry}
+                countries={countries}
+                selectedCountry={selectedCountry}
+            />
+
             <Toaster theme="dark" position="bottom-right" />
         </div >
     );

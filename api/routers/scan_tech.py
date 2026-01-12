@@ -244,7 +244,7 @@ async def get_scan_dashboard(request: Request, country: str = "Egypt", limit: in
         try:
             # We need historical predictions to calculate WR
             # Using run_pipeline which handles fetching + technicals
-            data = run_pipeline(api_key, symbol, exchange=exchange, cache_dir=os.getenv("CACHE_DIR", "data_cache"), include_fundamentals=False)
+            data = run_pipeline(api_key, symbol, exchange=exchange, include_fundamentals=False)
             if not data or "testPredictions" not in data: continue
             
             # Filter by days if specified

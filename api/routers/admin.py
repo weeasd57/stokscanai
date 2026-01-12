@@ -16,11 +16,7 @@ from supabase import create_client, Client
 
 from api.stock_ai import (
     get_stock_data, get_stock_data_eodhd, get_company_fundamentals,
-    _init_supabase, supabase, update_stock_data, sync_local_to_supabase,
-    _candidate_cache_paths,
-    _candidate_fund_cache_paths,
-    _preferred_fund_cache_path,
-    _safe_mkdir,
+    _init_supabase, supabase, update_stock_data,
     _finite_float,
 )
 
@@ -48,7 +44,6 @@ FUND_SOURCES = ["auto", "mubasher", "tradingview", "eodhd"]
 CONFIG_FILE = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "admin_config.json"))
 
 ENV_ROOT_FILE = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", ".env"))
-ENV_API_FILE = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".env"))
 
 supabase: Optional[Client] = None
 def _init_supabase():
@@ -63,7 +58,6 @@ def _init_supabase():
 
 def _reload_env() -> None:
     load_dotenv(ENV_ROOT_FILE, override=True)
-    load_dotenv(ENV_API_FILE, override=True)
 
 def _load_config():
     if os.path.exists(CONFIG_FILE):
@@ -145,17 +139,15 @@ def set_config(cfg: ConfigUpdate):
 @router.get("/fundamentals/{ticker}")
 def get_fundamentals(ticker: str, source: Optional[str] = None):
     _reload_env()
-    cache_dir = os.getenv("CACHE_DIR", "data_cache")
     cfg = _load_config()
     selected = (source or cfg.get("fundSource") or "auto")
-    data, meta = get_company_fundamentals(ticker, cache_dir=cache_dir, return_meta=True, source=selected)
+    data, meta = get_company_fundamentals(ticker, return_meta=True, source=selected)
     return {"ticker": ticker, "data": data, "meta": meta}
 
 @router.post("/update_batch")
 def update_batch(req: UpdateRequest, background_tasks: BackgroundTasks):
     _reload_env()
     api_key = os.getenv("EODHD_API_KEY")
-    cache_dir = os.getenv("CACHE_DIR", "data_cache")
     if not api_key:
         # Only strict if using eodhd?
         # For now, let's keep it safe.
@@ -221,7 +213,7 @@ def update_batch(req: UpdateRequest, background_tasks: BackgroundTasks):
     def _bulk_tradingview_fundamentals(tickers: List[str]) -> dict:
         """Bulk fetch fundamentals from TradingView - wrapper for module function."""
         from tradingview_integration import fetch_tradingview_fundamentals_bulk
-        return fetch_tradingview_fundamentals_bulk(tickers, cache_dir=cache_dir)
+        return fetch_tradingview_fundamentals_bulk(tickers)
 
     # 1) Prices stage (threaded)
     price_out: dict = {}
@@ -234,18 +226,14 @@ def update_batch(req: UpdateRequest, background_tasks: BackgroundTasks):
         if price_source == "tradingview":
             # Fetch from TradingView using new integration module
             from tradingview_integration import fetch_tradingview_prices
-            ok, msg = fetch_tradingview_prices(sym, cache_dir=cache_dir, max_days=req.maxPriceDays)
+            ok, msg = fetch_tradingview_prices(sym, max_days=req.maxPriceDays)
         elif price_source == "eodhd":
-            ok, msg = update_stock_data(client, sym, source="eodhd", cache_dir=cache_dir, max_days=req.maxPriceDays)
+            ok, msg = update_stock_data(client, sym, source="eodhd", max_days=req.maxPriceDays)
         else:
-            # Fallback to cache check for other sources
-            cache_ok = False
-            for p in _candidate_cache_paths(cache_dir, sym):
-                if os.path.exists(p):
-                    cache_ok = True
-                    break
-            ok = cache_ok
-            msg = f"OK ({price_source})" if cache_ok else "Missing local cache"
+            # Fallback to Supabase check
+            exists = check_local_cache(sym)
+            ok = exists
+            msg = f"OK ({price_source})" if exists else "Missing in Cloud"
 
         if (not ok) and ("401" in str(msg) or "Unauthorized" in str(msg)):
             saw_unauthorized = True
@@ -272,7 +260,8 @@ def update_batch(req: UpdateRequest, background_tasks: BackgroundTasks):
     now_ts = int(time.time())
 
     def _load_fund_cache(sym: str) -> Optional[tuple]:
-        for cand_path in _candidate_fund_cache_paths(cache_dir, sym):
+        return None
+        for cand_path in []: 
             if not os.path.exists(cand_path):
                 continue
             try:
@@ -354,7 +343,7 @@ def update_batch(req: UpdateRequest, background_tasks: BackgroundTasks):
 
         def _fund_one(sym: str) -> tuple:
             provider = per_symbol_provider.get(sym, fund_source_cfg)
-            data, meta = get_company_fundamentals(sym, cache_dir=cache_dir, return_meta=True, source=provider)
+            data, meta = get_company_fundamentals(sym, return_meta=True, source=provider)
             return sym, (data if isinstance(data, dict) else {}), (meta if isinstance(meta, dict) else {})
 
         if remaining:
@@ -439,167 +428,6 @@ def get_usage():
 
 
 
-@router.post("/sync-data")
-def sync_data(req: SyncRequest, background_tasks: BackgroundTasks):
-    _reload_env()
-    _init_supabase()
-    # api_key = os.getenv("EODHD_API_KEY") # No longer strictly required for sync
-    # if not api_key:
-    #     raise HTTPException(status_code=500, detail="EODHD_API_KEY not set")
-
-    # Start log
-    log_entry = {
-        "exchange": req.exchange or "ALL",
-        "started_at": datetime.utcnow().isoformat(),
-        "status": "running",
-        "triggered_by": "admin"
-    }
-    log_id = None
-    if supabase:
-        try:
-            res = supabase.table("data_sync_logs").insert(log_entry).execute()
-            if res.data:
-                log_id = res.data[0]['id']
-        except Exception as e:
-            print(f"Failed to create sync log: {e}")
-
-    # Background Task for Sync (Local Upload Only)
-    def _do_sync(log_id):
-        from api.stock_ai import _resolve_cache_dir
-        _init_supabase()
-        
-        env_cache = os.getenv("CACHE_DIR", "data_cache")
-        cache_dir = _resolve_cache_dir(env_cache)
-        print(f"DEBUG: Background sync started. LogId={log_id}, CacheDir={cache_dir}, Exchange={req.exchange or 'ALL'}")
-
-        symbols_updated = 0
-        prices_updated = 0
-        
-        # Collect all tasks first
-        tasks = []
-        
-        from api.symbols_local import list_countries, load_symbols_for_country
-        
-        # Discover symbols from symbols_data defining JSONs
-        discovery_countries = []
-        if not req.exchange or req.exchange == "ALL":
-            discovery_countries = list_countries()
-        else:
-            # Map exchange code to country name
-            mapping = {"EGX": "Egypt", "US": "USA"}
-            country = mapping.get(req.exchange.upper())
-            if country:
-                discovery_countries = [country]
-            else:
-                discovery_countries = [req.exchange] # Try as is
-            
-        print(f"DEBUG: Sync - Scanning countries: {discovery_countries}")
-        
-        total_files_scanned = 0
-        for country in discovery_countries:
-            try:
-                symbols_data = load_symbols_for_country(country)
-                ex_tickers = set()
-                
-                # Heuristic for exchange code from country
-                ex_mapping = {"Egypt": "EGX", "USA": "US"}
-                ex_code = ex_mapping.get(country, "US") # Default to US
-
-                for row in symbols_data:
-                    s = str(row.get("Code", row.get("Symbol", "")))
-                    if s:
-                        ex_tickers.add(s)
-                
-                print(f"DEBUG: Sync - Discovered {len(ex_tickers)} tickers for {country} (Mapped Ex: {ex_code})")
-                for ticker in ex_tickers:
-                    # Filter if specific exchange was requested and this ticker doesn't match
-                    if req.exchange and req.exchange != "ALL" and req.exchange.upper() != ex_code:
-                        continue
-                    tasks.append((ticker, ex_code))
-                    total_files_scanned += 1
-            except Exception as e:
-                print(f"DEBUG: Sync - Error loading symbols for {country}: {e}")
-                continue
-        
-        if not tasks:
-            print("DEBUG: Background sync finished. No tasks found.")
-            if log_id and supabase:
-                supabase.table("data_sync_logs").update({
-                    "completed_at": datetime.utcnow().isoformat(),
-                    "status": "success",
-                    "symbols_updated": 0,
-                    "prices_updated": 0,
-                    "notes": "No local cache files found to sync."
-                }).eq("id", log_id).execute()
-            return
-
-        print(f"DEBUG: Background sync executing {len(tasks)} tasks with 10 workers")
-        
-        # Run in threads
-        import concurrent.futures
-        max_workers = 10 
-        
-        with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
-            def _upload_task(s, e):
-                from api.stock_ai import update_stock_data, get_company_fundamentals, APIClient
-                
-                # EODHD Client for updates
-                token = os.getenv("EODHD_API_KEY")
-                api_client = APIClient(token) if token else None
-
-                price_updated = False
-                fund_updated = False
-                
-                # 1. Update/Sync Prices (In-memory)
-                if api_client:
-                    ok, _ = update_stock_data(api_client, f"{s}.{e}")
-                    if ok: price_updated = True
-                
-                # 2. Update/Sync Fundamentals (In-memory)
-                # get_company_fundamentals now calls sync_data_to_supabase internally
-                get_company_fundamentals(f"{s}.{e}", source="auto")
-                fund_updated = True # Assume success or it logged error
-                    
-                if price_updated or fund_updated:
-                    return True, "Synced to Cloud"
-                return False, "Failed to update from API"
-
-            future_to_sym = {
-                executor.submit(_upload_task, sym, ex): sym 
-                for (sym, ex) in tasks
-            }
-            
-            for future in concurrent.futures.as_completed(future_to_sym):
-                sym = future_to_sym[future]
-                try:
-                    ok, msg = future.result()
-                    if ok:
-                        symbols_updated += 1
-                        prices_updated += 1 # We'll use this as total count for now
-                        if symbols_updated % 50 == 0:
-                            print(f"DEBUG: Sync progress: {symbols_updated}/{len(tasks)} symbols processed...")
-                    else:
-                        if "Nothing" not in msg:
-                            print(f"DEBUG: Sync failed for {sym}: {msg}")
-                except Exception as e:
-                    print(f"DEBUG: Critical error syncing {sym}: {e}")
-
-        print(f"DEBUG: Background sync completed. Total success: {symbols_updated}/{len(tasks)}")
-
-        # Update log
-        if log_id and supabase:
-            try:
-                supabase.table("data_sync_logs").update({
-                    "completed_at": datetime.utcnow().isoformat(),
-                    "status": "success",
-                    "symbols_updated": symbols_updated,
-                    "prices_updated": prices_updated
-                }).eq("id", log_id).execute()
-            except Exception as e:
-                print(f"DEBUG: Error updating final log: {e}")
-
-    background_tasks.add_task(_do_sync, log_id)
-    return {"status": "started", "log_id": log_id}
 
 @router.get("/db-inventory")
 def get_db_inventory():
@@ -620,15 +448,23 @@ def get_db_inventory():
         # However, we'll try to get it via the client.
         
         # We'll get fundamentals as they are 1 row per symbol
-        res_fund = supabase.table("stock_fundamentals").select("exchange,updated_at").execute()
+        res_fund = supabase.table("stock_fundamentals").select("exchange,updated_at,data").execute()
         
-        inventory = defaultdict(lambda: {"prices": 0, "fundamentals": 0, "last_update": None})
+        inventory = defaultdict(lambda: {"prices": 0, "fundamentals": 0, "last_update": None, "country": "N/A"})
         
         if res_fund.data:
             for row in res_fund.data:
                 ex = row["exchange"] or "UNKNOWN"
                 inventory[ex]["fundamentals"] += 1
                 upd = row["updated_at"]
+                
+                # Fetch country from data if not already set for this exchange
+                if inventory[ex]["country"] == "N/A":
+                    d = row.get("data") or {}
+                    country = d.get("country")
+                    if country:
+                        inventory[ex]["country"] = country
+
                 if not inventory[ex]["last_update"] or (upd and upd > inventory[ex]["last_update"]):
                     inventory[ex]["last_update"] = upd
 
@@ -640,6 +476,7 @@ def get_db_inventory():
         for ex, stats in inventory.items():
             out.append({
                 "exchange": ex,
+                "country": stats["country"],
                 "symbolCount": stats["fundamentals"],
                 "lastUpdate": stats["last_update"],
                 "status": "healthy" if stats["fundamentals"] > 0 else "empty"
@@ -658,13 +495,38 @@ def get_db_symbols(exchange: str):
         return []
     
     try:
-        # Get fundamentals (1 row per symbol)
-        res = supabase.table("stock_fundamentals").select("symbol,updated_at").eq("exchange", exchange).execute()
+        # 1. Get fundamental records (provides names and last sync times)
+        res_fund = supabase.table("stock_fundamentals").select("symbol,updated_at,data").eq("exchange", exchange).execute()
         
-        if not res.data:
+        # 2. Try to get latest price dates for these symbols
+        # Since we can't easily group_by, we fetch recent price rows and pick the max per symbol
+        # We fetch a larger batch to improve chances of hitting all symbols
+        res_prices = supabase.table("stock_prices").select("symbol,date").eq("exchange", exchange).order("date", desc=True).limit(1000).execute()
+        
+        latest_dates = {}
+        if res_prices.data:
+            for row in res_prices.data:
+                s = row["symbol"]
+                d = row["date"]
+                if s not in latest_dates or d > latest_dates[s]:
+                    latest_dates[s] = d
+
+        if not res_fund.data:
             return []
             
-        return sorted(res.data, key=lambda x: x["symbol"])
+        out = []
+        for row in res_fund.data:
+            s_code = row["symbol"]
+            d = row.get("data") or {}
+            out.append({
+                "symbol": s_code,
+                "name": d.get("name", "N/A"),
+                "last_sync": row["updated_at"],
+                "last_price_date": latest_dates.get(s_code),
+                "sector": d.get("sector", "N/A"),
+            })
+
+        return sorted(out, key=lambda x: x["symbol"])
     except Exception as e:
         print(f"Error fetching symbols for {exchange}: {e}")
         raise HTTPException(status_code=500, detail=str(e))

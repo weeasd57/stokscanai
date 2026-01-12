@@ -21,13 +21,10 @@ def main() -> int:
     if not api_key:
         raise SystemExit("EODHD_API_KEY is not configured. Set it in api/.env")
 
-    cache_dir = os.getenv("CACHE_DIR", "data_cache")
-
     payload = run_pipeline(
         api_key=api_key,
         ticker=args.ticker.strip().upper(),
         from_date=args.from_date,
-        cache_dir=cache_dir,
         include_fundamentals=not args.no_fundamentals,
     )
 
