@@ -12,7 +12,7 @@ export async function POST(req: Request) {
   const incomingUrl = new URL(req.url);
   const search = incomingUrl.searchParams.toString();
 
-  const base = process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000";
+  const base = process.env.PYTHON_BACKEND_URL || "http://127.0.0.1:8000";
   const targetUrl = `${base.replace(/\/$/, "")}/scan/ai${search ? `?${search}` : ""}`;
 
   let bodyText = "{}";

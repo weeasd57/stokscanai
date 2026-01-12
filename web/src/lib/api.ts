@@ -396,8 +396,9 @@ export async function scanAiSingle(symbol: string, exchange?: string, min_precis
 }
 
 export async function getIndicatorDashboard(country: string = "Egypt", limit: number = 20, days: number = 60): Promise<any> {
-  const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "";
-  const res = await fetch(`${baseUrl}/scan/dashboard?country=${country}&limit=${limit}&days=${days}`);
+  const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
+  const url = baseUrl ? `${baseUrl}/scan/dashboard?country=${country}&limit=${limit}&days=${days}` : `/api/scan/dashboard?country=${country}&limit=${limit}&days=${days}`;
+  const res = await fetch(url);
   if (!res.ok) throw new Error("Failed to fetch indicator dashboard");
   return res.json();
 }

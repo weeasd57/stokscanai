@@ -2,6 +2,7 @@
 const nextConfig = {
   reactStrictMode: true,
   async rewrites() {
+    const BACKEND_URL = process.env.PYTHON_BACKEND_URL || 'http://127.0.0.1:8000';
     return [
       {
         source: '/api/scan/ai',
@@ -9,15 +10,15 @@ const nextConfig = {
       },
       {
         source: '/api/:path*',
-        destination: 'http://127.0.0.1:8000/:path*',
+        destination: `${BACKEND_URL}/:path*`,
       },
       {
         source: '/docs',
-        destination: 'http://127.0.0.1:8000/docs',
+        destination: `${BACKEND_URL}/docs`,
       },
       {
         source: '/openapi.json',
-        destination: 'http://127.0.0.1:8000/openapi.json',
+        destination: `${BACKEND_URL}/openapi.json`,
       },
     ];
   },
