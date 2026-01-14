@@ -2,7 +2,7 @@ import "./globals.css";
 import type { ReactNode } from "react";
 import Providers from "@/app/providers";
 import Header from "@/components/Header";
-
+import Footer from "@/components/Footer";
 import ChatWidget from "@/components/ChatWidget";
 
 export const metadata = {
@@ -23,6 +23,7 @@ export default function RootLayout({
           <main className="mx-auto w-full max-w-5xl px-6 pb-12">
             {children}
           </main>
+          <Footer />
         </Providers>
       </body>
     </html>

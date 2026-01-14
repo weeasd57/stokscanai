@@ -8,6 +8,7 @@ import { getCountries, predictStock, scanAiWithParams, scanTech, type ScanAiPara
 import { useAuth } from "@/contexts/AuthContext";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 
+
 type Updater<T> = Partial<T> | ((prev: T) => T);
 
 type HomeState = {
@@ -68,6 +69,12 @@ type TechScannerState = {
   aboveVwap20: boolean;
   volumeAboveSma20: boolean;
   goldenCross: boolean;
+
+  currentTab: 'overview' | 'performance' | 'valuation' | 'dividends' | 'financials';
+  marketCapMin: string;
+  marketCapMax: string;
+  sector: string;
+  industry: string;
 };
 
 type ComparisonScannerState = {
@@ -76,6 +83,7 @@ type ComparisonScannerState = {
   loadingSymbols: string[];
   errors: Record<string, string>;
 };
+
 
 type AppState = {
   home: HomeState;
@@ -89,6 +97,9 @@ type AppStateContextType = {
   countries: string[];
   countriesLoading: boolean;
   refreshCountries: (opts?: { force?: boolean }) => Promise<void>;
+  syncedSymbols: any[];
+  syncedSymbolsLoading: boolean;
+  refreshSyncedSymbols: (country?: string) => Promise<void>;
   setHome: (u: Updater<HomeState>) => void;
   setAiScanner: (u: Updater<AiScannerState>) => void;
   setTechScanner: (u: Updater<TechScannerState>) => void;
@@ -109,6 +120,12 @@ type AppStateContextType = {
   runTechScan: (opts?: { force?: boolean }) => Promise<void>;
   stopTechScan: () => void;
   clearTechScannerView: () => void;
+  inventory: any[];
+  inventoryLoading: boolean;
+  refreshInventory: () => Promise<void>;
+  isCountryActive: (country: string) => boolean;
+  isSymbolActive: (symbol: string, exchange: string) => boolean;
+  isAdmin: boolean;
   restoreLastTechScan: () => boolean;
   // Comparison
   addSymbolToCompare: (symbol: string) => Promise<void>;
@@ -183,6 +200,11 @@ const DEFAULT_STATE: AppState = {
     aboveVwap20: false,
     volumeAboveSma20: false,
     goldenCross: false,
+    currentTab: 'overview',
+    marketCapMin: "",
+    marketCapMax: "",
+    sector: "",
+    industry: "",
   },
   comparisonScanner: {
     symbols: [],
@@ -239,6 +261,11 @@ type PersistedAppState = {
     | "aboveVwap20"
     | "volumeAboveSma20"
     | "goldenCross"
+    | "currentTab"
+    | "marketCapMin"
+    | "marketCapMax"
+    | "sector"
+    | "industry"
   >;
   comparisonScanner: Pick<ComparisonScannerState, "symbols" | "results">;
 };
@@ -282,15 +309,21 @@ function maybeRestoreHomeData(prev: AppState): AppState {
   };
 }
 
-function safeParseCountries(raw: string | null): { countries: string[]; fetchedAt: number } | null {
+type CachedCountries = { countries: string[]; fetchedAt: number; source?: "supabase" | "local" };
+
+function safeParseCountries(raw: string | null): CachedCountries | null {
   if (!raw) return null;
   try {
-    const parsed = JSON.parse(raw) as { countries?: unknown; fetchedAt?: unknown };
+    const parsed = JSON.parse(raw) as { countries?: unknown; fetchedAt?: unknown; source?: unknown };
     if (!parsed || typeof parsed !== "object") return null;
     if (!Array.isArray(parsed.countries)) return null;
     const countries = (parsed.countries as unknown[]).filter((c) => typeof c === "string") as string[];
     const fetchedAt = typeof parsed.fetchedAt === "number" ? parsed.fetchedAt : 0;
-    return { countries, fetchedAt };
+    const source =
+      parsed.source === "supabase" || parsed.source === "local"
+        ? (parsed.source as "supabase" | "local")
+        : undefined;
+    return { countries, fetchedAt, source };
   } catch {
     return null;
   }
@@ -377,6 +410,11 @@ function toPersistedState(full: AppState): PersistedAppState {
       aboveVwap20: full.techScanner.aboveVwap20,
       volumeAboveSma20: full.techScanner.volumeAboveSma20,
       goldenCross: full.techScanner.goldenCross,
+      currentTab: full.techScanner.currentTab,
+      marketCapMin: full.techScanner.marketCapMin,
+      marketCapMax: full.techScanner.marketCapMax,
+      sector: full.techScanner.sector,
+      industry: full.techScanner.industry,
     },
     comparisonScanner: {
       symbols: full.comparisonScanner.symbols,
@@ -386,6 +424,9 @@ function toPersistedState(full: AppState): PersistedAppState {
 }
 
 export function AppStateProvider({ children }: { children: ReactNode }) {
+  const { user } = useAuth();
+  const supabase = useMemo(() => createSupabaseBrowserClient(), []);
+
   const [state, setState] = useState<AppState>(DEFAULT_STATE);
 
   const [countries, setCountries] = useState<string[]>(["Egypt", "USA"]);
@@ -405,11 +446,95 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   const [techScanError, setTechScanError] = useState<string | null>(null);
   const techScanAbortRef = useRef<AbortController | null>(null);
 
+  const [inventory, setInventory] = useState<any[]>([]);
+  const [inventoryLoading, setInventoryLoading] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const isInventoryFetchingRef = useRef(false);
+
+  useEffect(() => {
+    if (user) {
+      const email = user.email?.toLowerCase();
+      const isSystemAdmin = user.app_metadata?.role === "admin" || email === "weeeessd57@gmail.com";
+      setIsAdmin(isSystemAdmin);
+    } else {
+      setIsAdmin(false);
+    }
+  }, [user]);
+
+  const refreshInventory = useCallback(async () => {
+    if (isInventoryFetchingRef.current) return;
+    isInventoryFetchingRef.current = true;
+    setInventoryLoading(true);
+    try {
+      const { getInventory } = await import("@/lib/api");
+      const next = await getInventory();
+      setInventory(next);
+    } catch (e) {
+      console.error("Failed to fetch inventory:", e);
+    } finally {
+      setInventoryLoading(false);
+      isInventoryFetchingRef.current = false;
+    }
+  }, []);
+
+  const isCountryActive = useCallback((country: string) => {
+    if (isAdmin) return true;
+    // Country is active if any exchange for that country has price_count > 0
+    return inventory.some(item => item.country === country && item.price_count > 0);
+  }, [inventory, isAdmin]);
+
+  const isSymbolActive = useCallback((symbol: string, exchange: string) => {
+    if (isAdmin) return true;
+    if (symbol.toLowerCase().startsWith("fund_")) return false;
+    // Symbol is "active" if its exchange has price data
+    // (A more precise check would involve a lookup, but this is consistent with inventory logic)
+    return inventory.some(item => item.exchange === exchange && item.price_count > 0);
+  }, [inventory, isAdmin]);
+
+  useEffect(() => {
+    refreshInventory();
+  }, [refreshInventory]);
+
+  const [syncedSymbols, setSyncedSymbols] = useState<any[]>([]);
+  const [syncedSymbolsLoading, setSyncedSymbolsLoading] = useState(false);
+
+  const symbolCacheRef = useRef<Map<string, any[]>>(new Map());
+
+  const refreshSyncedSymbols = useCallback(async (country?: string) => {
+    const source = isAdmin ? "local" : "supabase";
+    const cacheKey = `${source}:${country || "all"}`;
+
+    // 1. Check if we have it in cache
+    if (symbolCacheRef.current.has(cacheKey)) {
+      setSyncedSymbols(symbolCacheRef.current.get(cacheKey)!);
+      return;
+    }
+
+    setSyncedSymbolsLoading(true);
+    try {
+      const { getSyncedSymbols } = await import("@/lib/api");
+      const next = await getSyncedSymbols(country, source);
+
+      // 2. Save to cache
+      symbolCacheRef.current.set(cacheKey, next);
+      setSyncedSymbols(next);
+    } catch (e) {
+      console.error("Failed to fetch synced symbols:", e);
+    } finally {
+      setSyncedSymbolsLoading(false);
+    }
+  }, [isAdmin]);
+
   const refreshCountries = useCallback(async (opts?: { force?: boolean }) => {
     const cacheTtlMs = 7 * 24 * 60 * 60 * 1000;
+    const source = isAdmin ? "local" : "supabase";
     if (!opts?.force) {
       const cached = safeParseCountries(localStorage.getItem(COUNTRIES_KEY));
-      if (cached?.countries?.length && Date.now() - cached.fetchedAt < cacheTtlMs) {
+      if (
+        cached?.countries?.length &&
+        cached.source === source &&
+        Date.now() - cached.fetchedAt < cacheTtlMs
+      ) {
         setCountries(cached.countries);
         return;
       }
@@ -417,15 +542,26 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
 
     setCountriesLoading(true);
     try {
-      const next = await getCountries();
+      // For Admins, always show local source. For users, show Supabase (which is filtered)
+      const next = await getCountries(source);
       if (Array.isArray(next) && next.length > 0) {
         setCountries(next);
-        localStorage.setItem(COUNTRIES_KEY, JSON.stringify({ countries: next, fetchedAt: Date.now() }));
+        localStorage.setItem(
+          COUNTRIES_KEY,
+          JSON.stringify({ countries: next, fetchedAt: Date.now(), source })
+        );
       }
     } finally {
       setCountriesLoading(false);
     }
-  }, []);
+  }, [isAdmin]);
+
+  // Refetch when admin status changes to ensure we have the right list
+  useEffect(() => {
+    if (isAdmin) {
+      void refreshCountries({ force: true });
+    }
+  }, [isAdmin, refreshCountries]);
 
   useEffect(() => {
     const cached = safeParseCountries(localStorage.getItem(COUNTRIES_KEY));
@@ -435,8 +571,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     void refreshCountries();
   }, [refreshCountries]);
 
-  const { user } = useAuth();
-  const supabase = useMemo(() => createSupabaseBrowserClient(), []);
+  // useAuth moved to top
 
   // Refs to prevent redundant API calls
   const hasSettingsInitializedRef = useRef(false);
@@ -531,6 +666,28 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     }));
   }, []);
 
+  const setAiScanner = useCallback((u: Updater<AiScannerState>) => {
+    setState((prev) => ({
+      ...prev,
+      aiScanner: typeof u === "function" ? (u as (p: AiScannerState) => AiScannerState)(prev.aiScanner) : { ...prev.aiScanner, ...u },
+    }));
+  }, []);
+
+  const setTechScanner = useCallback((u: Updater<TechScannerState>) => {
+    setState((prev) => ({
+      ...prev,
+      techScanner: typeof u === "function" ? (u as (p: TechScannerState) => TechScannerState)(prev.techScanner) : { ...prev.techScanner, ...u },
+    }));
+  }, []);
+
+  const setComparisonScanner = useCallback((u: Updater<ComparisonScannerState>) => {
+    setState((prev) => ({
+      ...prev,
+      comparisonScanner: typeof u === "function" ? (u as (p: ComparisonScannerState) => ComparisonScannerState)(prev.comparisonScanner) : { ...prev.comparisonScanner, ...u },
+    }));
+  }, []);
+
+
   const clearHomeView = useCallback(() => {
     setState((prev) => ({
       ...prev,
@@ -585,7 +742,27 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
         },
       }));
 
-      const res = await predictStock({ ticker: normalized });
+      let res;
+      try {
+        res = await predictStock({ ticker: normalized });
+      } catch (err) {
+        // On error, clear any old data for this symbol and rethrow
+        setState((prev) => {
+          const history = Array.isArray(prev.home.predictHistory) ? prev.home.predictHistory : [];
+          const filtered = history.filter((h) => h.key !== key);
+          return {
+            ...prev,
+            home: {
+              ...prev.home,
+              predictHistory: filtered,
+              data: null,
+            },
+          };
+        });
+        // Also clear localStorage cache for this symbol
+        localStorage.removeItem(HOME_PRED_KEY);
+        throw err;
+      }
       setState((prev) => {
         const history = Array.isArray(prev.home.predictHistory) ? prev.home.predictHistory : [];
         const snapshot = { key, createdAt: Date.now(), ticker: normalized, data: res };
@@ -607,13 +784,6 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     []
   );
 
-  const setAiScanner = useCallback((u: Updater<AiScannerState>) => {
-    setState((prev) => ({
-      ...prev,
-      aiScanner:
-        typeof u === "function" ? (u as (p: AiScannerState) => AiScannerState)(prev.aiScanner) : { ...prev.aiScanner, ...u },
-    }));
-  }, []);
 
   const clearAiScannerView = useCallback(() => {
     setState((prev) => ({
@@ -763,13 +933,8 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const setTechScanner = useCallback((u: Updater<TechScannerState>) => {
-    setState((prev) => ({
-      ...prev,
-      techScanner:
-        typeof u === "function" ? (u as (p: TechScannerState) => TechScannerState)(prev.techScanner) : { ...prev.techScanner, ...u },
-    }));
-  }, []);
+
+
 
   const clearTechScannerView = useCallback(() => {
     setState((prev) => ({
@@ -831,6 +996,11 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
         roc_max: s.rocMax ? parseFloat(s.rocMax) : undefined,
         above_vwap20: s.aboveVwap20,
         volume_above_sma20: s.volumeAboveSma20,
+        market_cap_min: s.marketCapMin ? parseFloat(s.marketCapMin) : undefined,
+        market_cap_max: s.marketCapMax ? parseFloat(s.marketCapMax) : undefined,
+        sector: s.sector || undefined,
+        industry: s.industry || undefined,
+        golden_cross: s.goldenCross,
       };
 
       const now = Date.now();
@@ -840,6 +1010,11 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
         limit: filter.limit,
         rsi_min: filter.rsi_min,
         rsi_max: filter.rsi_max,
+        market_cap_min: filter.market_cap_min,
+        market_cap_max: filter.market_cap_max,
+        sector: filter.sector,
+        industry: filter.industry,
+        golden_cross: filter.golden_cross,
         above_ema50: filter.above_ema50,
         above_ema200: filter.above_ema200,
         adx_min: filter.adx_min,
@@ -936,13 +1111,6 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     setState((prev) => ({ ...prev, techScanner: DEFAULT_STATE.techScanner }));
   }, []);
 
-  const setComparisonScanner = useCallback((u: Updater<ComparisonScannerState>) => {
-    setState((prev) => ({
-      ...prev,
-      comparisonScanner:
-        typeof u === "function" ? (u as (p: ComparisonScannerState) => ComparisonScannerState)(prev.comparisonScanner) : { ...prev.comparisonScanner, ...u },
-    }));
-  }, []);
 
   const addSymbolToCompare = useCallback(async (symbol: string) => {
     const s = symbol.toUpperCase().trim();
@@ -1068,6 +1236,10 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       setHome,
       setAiScanner,
       setTechScanner,
+      setComparisonScanner,
+      syncedSymbols,
+      syncedSymbolsLoading,
+      refreshSyncedSymbols,
       runHomePredict,
       clearHomeView,
       restoreLastHomePredict,
@@ -1086,7 +1258,6 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       clearTechScannerView,
       restoreLastTechScan,
       // Comparison
-      setComparisonScanner,
       addSymbolToCompare,
       addSymbolsToCompare,
       removeSymbolFromCompare,
@@ -1095,6 +1266,12 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       resetTechScanner,
       addSymbolToWatchlist,
       removeSymbolFromWatchlist,
+      inventory,
+      inventoryLoading,
+      refreshInventory,
+      isCountryActive,
+      isSymbolActive,
+      isAdmin,
     }),
     [
       state,
@@ -1104,6 +1281,10 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       setHome,
       setAiScanner,
       setTechScanner,
+      setComparisonScanner,
+      syncedSymbols,
+      syncedSymbolsLoading,
+      refreshSyncedSymbols,
       runHomePredict,
       clearHomeView,
       restoreLastHomePredict,
@@ -1119,7 +1300,6 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       stopTechScan,
       clearTechScannerView,
       restoreLastTechScan,
-      setComparisonScanner,
       addSymbolToCompare,
       addSymbolsToCompare,
       removeSymbolFromCompare,
@@ -1128,6 +1308,12 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       resetTechScanner,
       addSymbolToWatchlist,
       removeSymbolFromWatchlist,
+      inventory,
+      inventoryLoading,
+      refreshInventory,
+      isCountryActive,
+      isSymbolActive,
+      isAdmin,
     ]
   );
 

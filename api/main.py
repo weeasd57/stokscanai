@@ -136,6 +136,7 @@ class PredictRequest(BaseModel):
 class EvaluatePositionIn(BaseModel):
     id: str
     symbol: str
+    entry_price: Optional[float] = None
     entry_at: Optional[str] = Field(default=None, description="ISO timestamp")
     added_at: Optional[str] = Field(default=None, description="ISO timestamp")
     target_price: Optional[float] = None
@@ -152,6 +153,7 @@ class EvaluatePositionOut(BaseModel):
     status: Literal["open", "hit_target", "hit_stop"]
     as_of: Optional[str] = None
     price: Optional[float] = None
+    change_pct: Optional[float] = None
     reason: Optional[str] = None
 
 
@@ -291,8 +293,26 @@ def evaluate_open_positions_history(req: EvaluatePositionsRequest):
                 break
         
         if hit is None:
-            out.append(EvaluatePositionOut(id=p.id, symbol=p.symbol, status="open", reason="no_hit"))
+            # Always return the latest price/date even if no hit
+            last_idx = df_filtered.index[-1]
+            last_row = df_filtered.iloc[-1]
+            last_price = float(last_row.get('close', last_row.get('Close')))
+            last_date = last_idx.strftime('%Y-%m-%d')
+            
+            cp = None
+            if p.entry_price and last_price:
+                cp = ((last_price - float(p.entry_price)) / float(p.entry_price)) * 100
+
+            out.append(EvaluatePositionOut(
+                id=p.id, symbol=p.symbol, status="open",
+                as_of=last_date, price=last_price,
+                change_pct=cp,
+                reason="no_hit"
+            ))
         else:
+            # For hits, calculate change_pct based on the hit price
+            if p.entry_price and hit.price:
+                hit.change_pct = ((hit.price - float(p.entry_price)) / float(p.entry_price)) * 100
             out.append(hit)
 
     return out
@@ -303,10 +323,60 @@ def health():
     return {"ok": True}
 
 
+@app.get("/symbols/inventory")
+def symbols_inventory():
+    """Returns mapping of countries/exchanges to symbol/price counts."""
+    from stock_ai import get_supabase_inventory
+    return {"inventory": get_supabase_inventory()}
+
 @app.get("/symbols/countries")
-def symbols_countries():
+def symbols_countries(source: str = Query(default="supabase")):
     try:
-        return {"countries": list_countries()}
+        if source == "local":
+            return {"countries": list_countries()}
+        
+        from stock_ai import get_supabase_countries
+        sb_countries = get_supabase_countries()
+        if sb_countries:
+            return {"countries": sb_countries}
+        
+        return {"countries": list_countries()} # Fallback
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/symbols/synced")
+def symbols_synced(
+    country: Optional[str] = Query(default=None),
+    source: str = Query(default="supabase")
+):
+    """API for frontend to fetch all synced symbols once and cache."""
+    try:
+        if source == "local" and country:
+            from symbols_local import load_symbols_for_country
+            from stock_ai import is_ticker_synced, _init_supabase
+            _init_supabase()
+            raw = load_symbols_for_country(country)
+            # Map to consistent format, handling potential case differences in JSON keys
+            results = []
+            for r in raw:
+                # Try capitalized first (standard for these files), then lowercase
+                s = r.get("Symbol") or r.get("symbol")
+                ex = r.get("Exchange") or r.get("exchange")
+                n = r.get("Name") or r.get("name") or ""
+                if s and ex:
+                    results.append({
+                        "symbol": s,
+                        "exchange": ex,
+                        "name": n,
+                        "country": country,
+                        "hasLocal": is_ticker_synced(s, ex)
+                    })
+            return {"results": results}
+
+        from stock_ai import get_supabase_symbols
+        results = get_supabase_symbols(country=country)
+        return {"results": results}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -317,9 +387,30 @@ def symbols_search(
     country: str | None = Query(default=None, max_length=64),
     exchange: str | None = Query(default=None, max_length=24),
     limit: int = Query(default=25, ge=1, le=100000),
+    source: str = Query(default="supabase")
 ):
     try:
-        results = search_symbols(q=q, country=country, exchange=exchange, limit=limit)
+        if source == "local":
+            results = search_symbols(q=q, country=country, exchange=exchange, limit=limit)
+            return {"results": results}
+        
+        # Supabase search
+        from stock_ai import get_supabase_symbols
+        all_sb = get_supabase_symbols(country=country)
+        
+        q_low = q.lower().strip()
+        results = []
+        for s in all_sb:
+            if not q_low or q_low in s['symbol'].lower() or q_low in s['name'].lower():
+                # Apply exchange filter if provided
+                if exchange and s['exchange'].lower() != exchange.lower():
+                    continue
+                results.append(s)
+                if len(results) >= limit:
+                    break
+        
+        # If supabase has no results, maybe fallback to local or return empty
+        # but user specifically asked to use supabase for the app.
         return {"results": results}
     except FileNotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e))
@@ -376,3 +467,31 @@ def get_price(
     except Exception as e:
         print(f"Internal error in /price: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@app.get("/news")
+def get_news(symbol: str = Query(default="all_symbols")):
+    try:
+        # Use a general ticker for main news if none specified
+        ticker_str = "SPY" if symbol == "all_symbols" else symbol
+        yf_ticker = _normalize_yahoo_ticker(ticker_str)
+        t = yf.Ticker(yf_ticker)
+        
+        raw_news = getattr(t, "news", [])
+        articles = []
+        
+        for n in raw_news:
+            # Map Yahoo fields to a standard format
+            articles.append({
+                "title": n.get("title"),
+                "url": n.get("link"),
+                "source": {"name": n.get("publisher", "Yahoo Finance")},
+                "publishedAt": dt.datetime.fromtimestamp(n.get("providerPublishTime")).isoformat() if n.get("providerPublishTime") else None,
+                "description": n.get("type", "Market News"), # Yahoo news rarely has full description in this API
+                "image": n.get("thumbnail", {}).get("resolutions", [{}])[0].get("url") if n.get("thumbnail") else None
+            })
+            
+        return {"articles": articles}
+    except Exception as e:
+        print(f"News fetch error: {e}")
+        return {"articles": [], "error": str(e)}

@@ -1,0 +1,58 @@
+name: Data Synchronization (Smart Sync)
+
+on:
+  workflow_dispatch:
+    inputs:
+      exchange:
+        description: 'Exchange (e.g. US, EGX)'
+        required: true
+        default: 'US'
+      days:
+        description: 'Max days of history'
+        required: true
+        default: '365'
+      update_prices:
+        description: 'Update Prices'
+        type: boolean
+        default: true
+      update_funds:
+        description: 'Update Fundamentals'
+        type: boolean
+        default: true
+      unified_dates:
+        description: 'Enforce Unified Dates'
+        type: boolean
+        default: false
+  schedule:
+    - cron: '30 22 * * *' # Example: Daily at 22:30 (controlled via YAML edit)
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pandas numpy supabase python-dotenv tvDatafeed tradingview-screener
+          # Dependencies from the project
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+      - name: Run smart update script
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          python api/smart_update.py \
+            --exchange "${{ github.event.inputs.exchange || 'US' }}" \
+            --days ${{ github.event.inputs.days || '365' }} \
+            ${{ github.event.inputs.update_prices != 'false' && '--prices' || '' }} \
+            ${{ github.event.inputs.update_funds == 'true' && '--funds' || '' }} \
+            ${{ github.event.inputs.unified_dates == 'true' && '--unified' || '' }}

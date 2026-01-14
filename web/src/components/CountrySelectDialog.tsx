@@ -3,6 +3,7 @@
 import { X, Search, Globe, ChevronRight } from "lucide-react";
 import { useState, useMemo, useEffect } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useAppState } from "@/contexts/AppStateContext";
 
 interface CountrySelectDialogProps {
     open: boolean;
@@ -10,6 +11,7 @@ interface CountrySelectDialogProps {
     onSelect: (country: string) => void;
     countries: string[];
     selectedCountry: string;
+    forcedAdmin?: boolean;
 }
 
 export default function CountrySelectDialog({
@@ -18,16 +20,24 @@ export default function CountrySelectDialog({
     onSelect,
     countries,
     selectedCountry,
+    forcedAdmin = false,
 }: CountrySelectDialogProps) {
     const { t } = useLanguage();
+    const { isCountryActive, isAdmin: globalAdmin } = useAppState();
+    const isAdmin = forcedAdmin || globalAdmin;
     const [search, setSearch] = useState("");
 
     const filteredCountries = useMemo(() => {
-        if (!search) return countries;
-        return countries.filter((c) =>
+        let list = countries;
+        if (!isAdmin) {
+            list = list.filter(c => isCountryActive(c));
+        }
+
+        if (!search) return list;
+        return list.filter((c) =>
             c.toLowerCase().includes(search.toLowerCase())
         );
-    }, [countries, search]);
+    }, [countries, search, isCountryActive, isAdmin]);
 
     // Prevent body scroll when open
     useEffect(() => {
@@ -117,8 +127,8 @@ export default function CountrySelectDialog({
                                             onClose();
                                         }}
                                         className={`group relative flex items-center justify-between rounded-2xl px-5 py-4 text-sm font-semibold transition-all border ${isSelected
-                                                ? "bg-indigo-500/10 border-indigo-500/30 text-indigo-400"
-                                                : "bg-zinc-900/30 border-transparent text-zinc-400 hover:bg-zinc-800/80 hover:border-zinc-700 hover:text-zinc-100"
+                                            ? "bg-indigo-500/10 border-indigo-500/30 text-indigo-400"
+                                            : "bg-zinc-900/30 border-transparent text-zinc-400 hover:bg-zinc-800/80 hover:border-zinc-700 hover:text-zinc-100"
                                             }`}
                                     >
                                         <div className="flex items-center gap-4">
@@ -133,6 +143,11 @@ export default function CountrySelectDialog({
                                             <div className="flex items-center gap-2">
                                                 <span className="text-[10px] font-black uppercase text-indigo-500/60 tracking-widest">Active</span>
                                                 <div className="h-2 w-2 rounded-full bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.6)]" />
+                                            </div>
+                                        ) : isAdmin && !isCountryActive(country) ? (
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-[10px] font-black uppercase text-zinc-600 tracking-widest whitespace-nowrap">Empty / New</span>
+                                                <div className="h-2 w-2 rounded-full bg-zinc-700" />
                                             </div>
                                         ) : (
                                             <ChevronRight className="h-4 w-4 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all text-zinc-600" />

@@ -23,6 +23,7 @@ interface WatchlistContextType {
     watchlist: SavedSymbol[];
     saveSymbol: (item: Omit<SavedSymbol, "id" | "addedAt">) => void;
     removeSymbol: (id: string) => void;
+    removeSymbolBySymbol: (symbol: string) => void;
     isSaved: (symbol: string) => boolean;
 }
 
@@ -249,17 +250,26 @@ export const WatchlistProvider = ({ children }: { children: ReactNode }) => {
         ]);
     }, [pendingItem, user, supabase]);
 
-    const removeSymbol = (id: string) => {
+    const removeSymbol = useCallback((id: string) => {
         if (!user) return;
         void (async () => {
             const { error } = await supabase.from("positions").delete().eq("id", id);
             if (error) return;
             setWatchlist((prev) => prev.filter((item) => item.id !== id));
         })();
-    };
+    }, [user, supabase]);
+
+    const removeSymbolBySymbol = useCallback((symbol: string) => {
+        if (!user) return;
+        const normalized = symbol.toUpperCase().trim();
+        const item = watchlist.find(w => w.symbol.toUpperCase() === normalized);
+        if (item) {
+            removeSymbol(item.id);
+        }
+    }, [user, watchlist, removeSymbol]);
 
     return (
-        <WatchlistContext.Provider value={{ watchlist, saveSymbol, removeSymbol, isSaved }}>
+        <WatchlistContext.Provider value={{ watchlist, saveSymbol, removeSymbol, removeSymbolBySymbol, isSaved }}>
             {children}
             <TargetStopModal
                 isOpen={!!pendingItem}

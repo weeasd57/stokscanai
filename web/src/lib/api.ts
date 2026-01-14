@@ -97,8 +97,9 @@ export type SymbolSearchResponse = {
 };
 
 // Get list of available countries
-export async function getCountries(): Promise<string[]> {
+export async function getInventory(): Promise<any[]> {
   const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
+  const endpoint = "/symbols/inventory";
 
   async function doFetch(url: string) {
     return await fetch(url, { cache: "no-store" });
@@ -106,10 +107,40 @@ export async function getCountries(): Promise<string[]> {
 
   let res: Response;
   try {
-    res = baseUrl ? await doFetch(`${baseUrl}/symbols/countries`) : await doFetch("/api/symbols/countries");
+    res = baseUrl ? await doFetch(`${baseUrl}${endpoint}`) : await doFetch(`/api${endpoint}`);
   } catch (e) {
     if (baseUrl) {
-      res = await doFetch("/api/symbols/countries");
+      res = await doFetch(`/api${endpoint}`);
+    } else {
+      throw e;
+    }
+  }
+
+  if (!res.ok) {
+    throw new Error(`Failed to fetch inventory (${res.status})`);
+  }
+
+  const data = (await res.json()) as { inventory: any[] };
+  return data.inventory;
+}
+
+export async function getCountries(source?: "supabase" | "local"): Promise<string[]> {
+  const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
+  const params = new URLSearchParams();
+  if (source) params.set("source", source);
+
+  const endpoint = `/symbols/countries?${params.toString()}`;
+
+  async function doFetch(url: string) {
+    return await fetch(url, { cache: "no-store" });
+  }
+
+  let res: Response;
+  try {
+    res = baseUrl ? await doFetch(`${baseUrl}${endpoint}`) : await doFetch(`/api${endpoint}`);
+  } catch (e) {
+    if (baseUrl) {
+      res = await doFetch(`/api${endpoint}`);
     } else {
       throw e;
     }
@@ -128,12 +159,14 @@ export async function searchSymbols(
   query: string,
   country?: string,
   limit: number = 50,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  source?: "supabase" | "local"
 ): Promise<SymbolResult[]> {
   const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
 
   const params = new URLSearchParams({ q: query, limit: String(limit) });
   if (country) params.set("country", country);
+  if (source) params.set("source", source);
 
   async function doFetch(url: string) {
     return await fetch(url, { cache: "no-store", signal });
@@ -153,6 +186,37 @@ export async function searchSymbols(
 
   if (!res.ok) {
     throw new Error(`Failed to search symbols (${res.status})`);
+  }
+
+  const data = (await res.json()) as SymbolSearchResponse;
+  return data.results;
+}
+
+// Fetch all synced symbols for a country
+export async function getSyncedSymbols(country?: string, source?: "supabase" | "local"): Promise<SymbolResult[]> {
+  const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
+  const params = new URLSearchParams();
+  if (country) params.set("country", country);
+  if (source) params.set("source", source);
+
+  async function doFetch(url: string) {
+    return await fetch(url, { cache: "no-store" });
+  }
+
+  let res: Response;
+  try {
+    const endpoint = `/symbols/synced?${params.toString()}`;
+    res = baseUrl ? await doFetch(`${baseUrl}${endpoint}`) : await doFetch(`/api${endpoint}`);
+  } catch (e) {
+    if (baseUrl) {
+      res = await doFetch(`/api/symbols/synced?${params.toString()}`);
+    } else {
+      throw e;
+    }
+  }
+
+  if (!res.ok) {
+    throw new Error(`Failed to fetch synced symbols (${res.status})`);
   }
 
   const data = (await res.json()) as SymbolSearchResponse;
@@ -296,6 +360,11 @@ export type TechFilter = {
   roc_max?: number;
   above_vwap20?: boolean;
   volume_above_sma20?: boolean;
+  market_cap_min?: number;
+  market_cap_max?: number;
+  sector?: string;
+  industry?: string;
+  golden_cross?: boolean;
 };
 
 export type TechResult = {
@@ -315,6 +384,14 @@ export type TechResult = {
   vwap20?: number;
   roc12?: number;
   vol_sma20?: number;
+  change_p: number;
+  market_cap?: number;
+  pe_ratio?: number;
+  eps?: number;
+  dividend_yield?: number;
+  sector?: string;
+  industry?: string;
+  beta?: number;
 };
 
 export type TechResponse = {
@@ -347,7 +424,12 @@ export async function scanTech(filter: TechFilter, signal?: AbortSignal): Promis
         roc_min: filter.roc_min,
         roc_max: filter.roc_max,
         above_vwap20: filter.above_vwap20 ?? false,
-        volume_above_sma20: filter.volume_above_sma20 ?? false
+        volume_above_sma20: filter.volume_above_sma20 ?? false,
+        market_cap_min: filter.market_cap_min,
+        market_cap_max: filter.market_cap_max,
+        sector: filter.sector,
+        industry: filter.industry,
+        golden_cross: filter.golden_cross ?? false
       }),
       cache: "no-store",
       signal: signal
@@ -395,11 +477,44 @@ export async function scanAiSingle(symbol: string, exchange?: string, min_precis
   return await res.json();
 }
 
-export async function getIndicatorDashboard(country: string = "Egypt", limit: number = 20, days: number = 60): Promise<any> {
-  const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
-  const url = baseUrl ? `${baseUrl}/scan/dashboard?country=${country}&limit=${limit}&days=${days}` : `/api/scan/dashboard?country=${country}&limit=${limit}&days=${days}`;
-  const res = await fetch(url);
-  if (!res.ok) throw new Error("Failed to fetch indicator dashboard");
-  return res.json();
-}
 
+// News API
+export type NewsArticle = {
+  title: string;
+  description: string;
+  content: string;
+  url: string;
+  image: string;
+  publishedAt: string;
+  source: {
+    name: string;
+    url: string;
+  };
+};
+
+export type NewsResponse = {
+  totalArticles: number;
+  articles: NewsArticle[];
+};
+
+export async function fetchStockNews(query: string, limit: number = 3): Promise<NewsArticle[]> {
+  const apiKey = process.env.NEXT_PUBLIC_GNEWS_API_KEY;
+  if (!apiKey) {
+    // Return mock news or empty if no key
+    // For now, let's just return empty to fail gracefully
+    return [];
+  }
+
+  try {
+    const q = encodeURIComponent(query);
+    const url = `https://gnews.io/api/v4/search?q=${q}&lang=en&max=${limit}&token=${apiKey}`;
+    const res = await fetch(url);
+    if (!res.ok) return [];
+
+    const data = (await res.json()) as NewsResponse;
+    return data.articles || [];
+  } catch (e) {
+    console.error("Failed to fetch news:", e);
+    return [];
+  }
+}

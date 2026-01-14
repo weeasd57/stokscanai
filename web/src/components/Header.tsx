@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { Globe, BarChart2, Brain, Activity, Menu, X, User, ChevronDown, ArrowLeftRight } from "lucide-react";
+import { Globe, BarChart2, Brain, Activity, Menu, X, User, ChevronDown, ArrowLeftRight, Crown } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -28,6 +28,7 @@ export default function Header() {
         { href: "/scanner/ai", label: t("nav.scanner.ai"), icon: <Brain className="w-4 h-4" /> },
         { href: "/scanner/technical", label: t("nav.scanner.tech"), icon: <Activity className="w-4 h-4" /> },
         { href: "/scanner/comparison", label: t("nav.scanner.compare"), icon: <ArrowLeftRight className="w-4 h-4" /> },
+        { href: "/pro", label: "Pro", icon: <Crown className="w-4 h-4" /> },
     ];
 
     return (

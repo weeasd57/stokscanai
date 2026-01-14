@@ -11,3 +11,4 @@ requests==2.32.3
 beautifulsoup4==4.12.3
 tradingview-screener==3.0.0
 tvDatafeed==2.1.6
+lightgbm==4.3.0

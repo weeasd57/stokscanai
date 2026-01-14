@@ -171,12 +171,11 @@ export default function CompareTableView({ results, loadingSymbols, errors, onRe
                                                 {onSave && (
                                                     <button
                                                         onClick={() => onSave(item.symbol)}
-                                                        disabled={isSaved?.(item.symbol)}
                                                         className={`p-2 rounded-xl transition-all ${isSaved?.(item.symbol)
-                                                                ? 'text-yellow-400 bg-yellow-500/10 cursor-default'
-                                                                : 'text-zinc-600 hover:text-yellow-400 hover:bg-yellow-500/10'
+                                                            ? 'text-yellow-400 bg-yellow-500/10'
+                                                            : 'text-zinc-600 hover:text-yellow-400 hover:bg-yellow-500/10'
                                                             }`}
-                                                        title={isSaved?.(item.symbol) ? 'Saved' : t("compare.save")}
+                                                        title={isSaved?.(item.symbol) ? t("watchlist.remove") || 'Remove from Watchlist' : t("compare.save")}
                                                     >
                                                         <Star className={`h-4 w-4 ${isSaved?.(item.symbol) ? 'fill-yellow-400' : ''}`} />
                                                     </button>

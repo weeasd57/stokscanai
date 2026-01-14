@@ -290,9 +290,7 @@ begin
       values (p_position_id, auth.uid(), 'hit_target', p_as_of, jsonb_build_object('price', p_current_price));
 
     return v_row;
-  end if;
-
-  if v_row.stop_price is not null and p_current_price <= v_row.stop_price then
+  elsif v_row.stop_price is not null and p_current_price <= v_row.stop_price then
     update public.positions
       set status = 'hit_stop',
           status_at = p_as_of,
@@ -304,9 +302,16 @@ begin
       values (p_position_id, auth.uid(), 'hit_stop', p_as_of, jsonb_build_object('price', p_current_price));
 
     return v_row;
-  end if;
+  else
+    -- Still open, update observed price/date
+    update public.positions
+      set status_at = p_as_of,
+          status_price = p_current_price
+      where id = p_position_id
+      returning * into v_row;
 
-  return v_row;
+    return v_row;
+  end if;
 end;
 $$;
 
@@ -447,3 +452,322 @@ create table if not exists public.data_sync_logs (
 alter table public.data_sync_logs enable row level security;
 create policy "admin_only_all_logs" on public.data_sync_logs for all using (true); -- Simplified for admin use
 grant all on public.data_sync_logs to anon, authenticated, service_role;
+
+-- Inventory Stats RPC
+create or replace function public.get_inventory_stats()
+returns table (
+    exchange text,
+    price_count bigint,
+    fund_count bigint,
+    last_update timestamptz
+)
+language plpgsql
+security definer
+as $$
+BEGIN
+    RETURN QUERY
+    WITH p AS (
+        SELECT s.exchange, count(DISTINCT s.symbol) as p_count, max(s.updated_at) as last_ts
+        FROM public.stock_prices s
+        GROUP BY s.exchange
+    ),
+    f AS (
+        SELECT s.exchange, count(*) as f_count, max(s.updated_at) as last_upd
+        FROM public.stock_fundamentals s
+        GROUP BY s.exchange
+    )
+    SELECT 
+        COALESCE(p.exchange, f.exchange)::text as exchange,
+        COALESCE(p.p_count, 0)::bigint as price_count,
+        COALESCE(f.f_count, 0)::bigint as fund_count,
+        COALESCE(f.last_upd, p.last_ts) as last_update
+    FROM p
+    FULL OUTER JOIN f ON p.exchange = f.exchange;
+END;
+$$;
+
+create or replace function public.get_active_symbols(p_country text default null)
+returns table (symbol text, exchange text, name text, country text)
+language sql
+security definer
+as $$
+  select distinct 
+    p.symbol, 
+    p.exchange, 
+    (f.data->>'name')::text as name, 
+    (f.data->>'country')::text as country
+  from public.stock_prices p
+  left join public.stock_fundamentals f on p.symbol = f.symbol and p.exchange = f.exchange
+  where (p_country is null or (f.data->>'country' = p_country))
+    and not (p.symbol ilike 'fund_%');
+$$;
+
+create or replace function public.get_active_countries()
+returns table (country text)
+language sql
+security definer
+as $$
+  select distinct (f.data->>'country')::text as country
+  from public.stock_fundamentals f
+  where f.data->>'country' is not null;
+$$;
+
+grant execute on function public.get_inventory_stats() to anon, authenticated;
+grant execute on function public.get_active_symbols(text) to anon, authenticated;
+grant execute on function public.get_active_countries() to anon, authenticated;
+-- Pre-calculated Technical Indicators Table
+-- This table stores daily pre-calculated technical indicators for all stocks
+-- Updated by a background job running nightly
+
+create table if not exists public.stock_technical_indicators (
+    symbol text not null,
+    exchange text not null,
+    date date not null,
+    
+    -- Price data snapshot
+    close numeric(18,6),
+    volume bigint,
+    
+    -- Moving Averages
+    ema_20 numeric(18,6),
+    ema_50 numeric(18,6),
+    ema_200 numeric(18,6),
+    sma_20 numeric(18,6),
+    sma_50 numeric(18,6),
+    sma_200 numeric(18,6),
+    
+    -- Momentum Indicators
+    rsi_14 numeric(10,4),
+    rsi_9 numeric(10,4),
+    macd numeric(18,6),
+    macd_signal numeric(18,6),
+    macd_histogram numeric(18,6),
+    momentum_10 numeric(10,4),
+    roc_12 numeric(10,4),
+    
+    -- Volatility Indicators
+    atr_14 numeric(18,6),
+    bb_upper numeric(18,6),
+    bb_middle numeric(18,6),
+    bb_lower numeric(18,6),
+    
+    -- Trend Indicators
+    adx_14 numeric(10,4),
+    plus_di numeric(10,4),
+    minus_di numeric(10,4),
+    
+    -- Stochastic
+    stoch_k numeric(10,4),
+    stoch_d numeric(10,4),
+    
+    -- Volume Indicators
+    vol_sma20 bigint,
+    vwap_20 numeric(18,6),
+    r_vol numeric(10,4),  -- Relative volume (current vol / avg vol)
+    
+    -- Other
+    cci_20 numeric(10,4),
+    
+    -- Daily change
+    change_pct numeric(10,4),
+    
+    -- Metadata
+    calculated_at timestamptz not null default now(),
+    
+    primary key (symbol, exchange, date)
+);
+
+-- Index for fast lookups by symbol and recent dates
+create index if not exists idx_stock_tech_indicators_symbol_date 
+    on public.stock_technical_indicators(symbol, exchange, date desc);
+
+create index if not exists idx_stock_tech_indicators_latest 
+    on public.stock_technical_indicators(exchange, date desc);
+
+create index if not exists idx_stock_tech_indicators_rsi 
+    on public.stock_technical_indicators(rsi_14);
+
+create index if not exists idx_stock_tech_indicators_adx 
+    on public.stock_technical_indicators(adx_14);
+
+alter table public.stock_technical_indicators enable row level security;
+create policy "allow_read_all_indicators" on public.stock_technical_indicators for select using (true);
+grant select on public.stock_technical_indicators to anon, authenticated;
+
+-- Function to get latest technical indicators for a symbol
+create or replace function public.get_latest_tech_indicators(
+    p_symbol text,
+    p_exchange text
+)
+returns table (
+    symbol text,
+    exchange text,
+    date date,
+    close numeric,
+    volume bigint,
+    rsi_14 numeric,
+    ema_50 numeric,
+    ema_200 numeric,
+    macd numeric,
+    macd_signal numeric,
+    adx_14 numeric,
+    atr_14 numeric,
+    stoch_k numeric,
+    stoch_d numeric,
+    cci_20 numeric,
+    vwap_20 numeric,
+    roc_12 numeric,
+    vol_sma20 bigint,
+    momentum_10 numeric,
+    change_pct numeric
+)
+language sql
+security definer
+stable
+as $$
+    select 
+        t.symbol,
+        t.exchange,
+        t.date,
+        t.close,
+        t.volume,
+        t.rsi_14,
+        t.ema_50,
+        t.ema_200,
+        t.macd,
+        t.macd_signal,
+        t.adx_14,
+        t.atr_14,
+        t.stoch_k,
+        t.stoch_d,
+        t.cci_20,
+        t.vwap_20,
+        t.roc_12,
+        t.vol_sma20,
+        t.momentum_10,
+        t.change_pct
+    from public.stock_technical_indicators t
+    where t.symbol = p_symbol
+        and t.exchange = p_exchange
+    order by t.date desc
+    limit 1;
+$$;
+
+-- Function for technical scanner (optimized for performance)
+create or replace function public.scan_technical_indicators(
+    p_exchange text default 'CAIRO',
+    p_limit int default 50,
+    p_rsi_min numeric default null,
+    p_rsi_max numeric default null,
+    p_adx_min numeric default null,
+    p_adx_max numeric default null,
+    p_atr_min numeric default null,
+    p_atr_max numeric default null,
+    p_stoch_k_min numeric default null,
+    p_stoch_k_max numeric default null,
+    p_roc_min numeric default null,
+    p_roc_max numeric default null,
+    p_above_ema50 boolean default false,
+    p_above_ema200 boolean default false,
+    p_above_vwap20 boolean default false,
+    p_volume_above_sma20 boolean default false,
+    p_golden_cross boolean default false
+)
+returns table (
+    symbol text,
+    name text,
+    last_close numeric,
+    rsi numeric,
+    volume bigint,
+    ema50 numeric,
+    ema200 numeric,
+    momentum numeric,
+    roc12 numeric,
+    vol_sma20 bigint,
+    change_p numeric,
+    atr14 numeric,
+    adx14 numeric,
+    stoch_k numeric,
+    stoch_d numeric,
+    cci20 numeric,
+    vwap20 numeric
+)
+language plpgsql
+security definer
+stable
+as $$
+BEGIN
+    RETURN QUERY
+    WITH latest_indicators AS (
+        SELECT DISTINCT ON (t.symbol, t.exchange)
+            t.symbol,
+            t.exchange,
+            t.close,
+            t.volume,
+            t.rsi_14,
+            t.ema_50,
+            t.ema_200,
+            t.momentum_10,
+            t.roc_12,
+            t.vol_sma20,
+            t.change_pct,
+            t.atr_14,
+            t.adx_14,
+            t.stoch_k,
+            t.stoch_d,
+            t.cci_20,
+            t.vwap_20
+        FROM public.stock_technical_indicators t
+        WHERE t.exchange = p_exchange
+            AND t.date >= current_date - interval '3 days'
+            -- Apply filters
+            AND (p_rsi_min IS NULL OR t.rsi_14 >= p_rsi_min)
+            AND (p_rsi_max IS NULL OR t.rsi_14 <= p_rsi_max)
+            AND (p_adx_min IS NULL OR t.adx_14 >= p_adx_min)
+            AND (p_adx_max IS NULL OR t.adx_14 <= p_adx_max)
+            AND (p_atr_min IS NULL OR t.atr_14 >= p_atr_min)
+            AND (p_atr_max IS NULL OR t.atr_14 <= p_atr_max)
+            AND (p_stoch_k_min IS NULL OR t.stoch_k >= p_stoch_k_min)
+            AND (p_stoch_k_max IS NULL OR t.stoch_k <= p_stoch_k_max)
+            AND (p_roc_min IS NULL OR t.roc_12 >= p_roc_min)
+            AND (p_roc_max IS NULL OR t.roc_12 <= p_roc_max)
+            AND (NOT p_above_ema50 OR t.close > t.ema_50)
+            AND (NOT p_above_ema200 OR t.close > t.ema_200)
+            AND (NOT p_above_vwap20 OR t.close > t.vwap_20)
+            AND (NOT p_volume_above_sma20 OR t.volume > t.vol_sma20)
+            AND (NOT p_golden_cross OR (t.ema_50 > t.ema_200))
+        ORDER BY t.symbol, t.exchange, t.date DESC
+    )
+    SELECT 
+        l.symbol::text,
+        COALESCE(f.data->>'name', l.symbol)::text as name,
+        l.close,
+        l.rsi_14,
+        l.volume,
+        l.ema_50,
+        l.ema_200,
+        l.momentum_10,
+        l.roc_12,
+        l.vol_sma20,
+        l.change_pct,
+        l.atr_14,
+        l.adx_14,
+        l.stoch_k,
+        l.stoch_d,
+        l.cci_20,
+        l.vwap_20
+    FROM latest_indicators l
+    LEFT JOIN public.stock_fundamentals f 
+        ON l.symbol = f.symbol AND l.exchange = f.exchange
+    LIMIT p_limit;
+END;
+$$;
+
+grant execute on function public.get_latest_tech_indicators(text, text) to anon, authenticated;
+grant execute on function public.scan_technical_indicators(text, int, numeric, numeric, numeric, numeric, numeric, numeric, numeric, numeric, numeric, numeric, boolean, boolean, boolean, boolean, boolean) to anon, authenticated;
+
+-- Add comment for documentation
+comment on table public.stock_technical_indicators is 'Pre-calculated technical indicators updated daily by background job for fast scanner queries';
+comment on function public.scan_technical_indicators is 'High-performance technical scanner using pre-calculated indicators';
+
+

@@ -9,7 +9,6 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { useWatchlist } from "@/contexts/WatchlistContext";
 import CompareTableView from "@/components/CompareTableView";
 import CountrySymbolDialog from "@/components/CountrySymbolDialog";
-import StrategyDashboard from "@/components/StrategyDashboard";
 import IndicatorStatistics from "@/components/IndicatorStatistics";
 import ChartDialog from "@/components/ChartDialog";
 
@@ -24,7 +23,7 @@ export default function ComparisonScannerPage() {
     } = useAppState();
     const { user } = useAuth();
     const router = useRouter();
-    const { saveSymbol, isSaved } = useWatchlist();
+    const { saveSymbol, removeSymbolBySymbol, isSaved } = useWatchlist();
 
     const { results, loadingSymbols, errors } = state.comparisonScanner;
 
@@ -43,6 +42,11 @@ export default function ComparisonScannerPage() {
     const handleSave = (symbol: string) => {
         if (!user) {
             router.push("/login?redirect=/scanner/comparison");
+            return;
+        }
+
+        if (isSaved(symbol)) {
+            removeSymbolBySymbol(symbol);
             return;
         }
 
@@ -84,10 +88,6 @@ export default function ComparisonScannerPage() {
                 </div>
             </div>
 
-            {/* Dashboard Section */}
-            <section className="animate-in fade-in slide-in-from-top-4 duration-700">
-                <StrategyDashboard />
-            </section>
 
             {/* Indicator Statistics Section */}
             {Object.keys(results).length > 0 && (

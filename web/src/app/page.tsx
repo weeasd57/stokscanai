@@ -2,7 +2,7 @@
 
 import { useMemo, useRef, useState, useEffect, type FormEvent } from "react";
 import { useSearchParams } from "next/navigation";
-import { TrendingDown, TrendingUp, BarChart2, LineChart, Globe, Brain, AlertTriangle, CheckCircle2, Bookmark, BookmarkCheck, LayoutDashboard, Activity, Search } from "lucide-react";
+import { TrendingDown, TrendingUp, BarChart2, LineChart, Globe, Brain, AlertTriangle, CheckCircle2, Bookmark, BookmarkCheck, Activity, Search } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useWatchlist } from "@/contexts/WatchlistContext";
 import { useAppState } from "@/contexts/AppStateContext";
@@ -10,6 +10,7 @@ import { useAppState } from "@/contexts/AppStateContext";
 import CandleChart from "@/components/CandleChart";
 import TableView from "@/components/TableView";
 import CountrySymbolDialog from "@/components/CountrySymbolDialog";
+import NewsWidget from "@/components/NewsWidget";
 
 const DEFAULT_TICKER = "AAPL";
 
@@ -18,7 +19,7 @@ function formatPct(v: number) {
 }
 
 function formatNumber(v: number | null | undefined) {
-  if (v === null || v === undefined) return "-";
+  if (v === null || v === undefined || isNaN(v)) return "N/A";
   return new Intl.NumberFormat("en-US").format(v);
 }
 
@@ -222,7 +223,7 @@ export default function HomePage() {
                       data.fundamentals.peRatio < 15 ? t("home.insights.undervalued") :
                         data.fundamentals.peRatio < 30 ? t("home.insights.fair") :
                           data.fundamentals.peRatio < 100 ? t("home.insights.expensive") : t("home.insights.bubble")
-                    ) : "Data Unavailable"}
+                    ) : "N/A"}
                   </div>
                 </div>
 
@@ -233,7 +234,7 @@ export default function HomePage() {
                     {data.fundamentals.beta ? (
                       data.fundamentals.beta < 0.8 ? t("home.insights.low_vol") :
                         data.fundamentals.beta < 1.2 ? t("home.insights.avg_vol") : t("home.insights.high_vol")
-                    ) : "Data Unavailable"}
+                    ) : "N/A"}
                   </div>
                 </div>
 
@@ -246,7 +247,7 @@ export default function HomePage() {
                     {data.fundamentals.marketCap ? (
                       (data.fundamentals.marketCap / 1e9) > 10 ? t("home.insights.large_cap") :
                         (data.fundamentals.marketCap / 1e9) > 2 ? t("home.insights.mid_cap") : t("home.insights.small_cap")
-                    ) : "Data Unavailable"}
+                    ) : "N/A"}
                   </div>
                 </div>
               </div>
@@ -262,6 +263,9 @@ export default function HomePage() {
               )}
             </div>
           )}
+
+          {/* Market News Feed */}
+          <NewsWidget symbol={ticker || "all_symbols"} />
 
           {/* Powerful Visualization Layer */}
           <div className="rounded-[3rem] border border-white/5 bg-zinc-950/40 p-10 shadow-2xl backdrop-blur-xl space-y-10 overflow-hidden relative">
@@ -329,37 +333,6 @@ export default function HomePage() {
             <TableView rows={data.testPredictions} ticker={ticker} />
           </div>
 
-          {/* Fundamental Table Layer */}
-          {!(data as any).fundamentalsError && (
-            <div className="rounded-[3rem] border border-white/5 bg-zinc-950/40 p-10 shadow-2xl backdrop-blur-xl space-y-8">
-              <div className="flex items-center justify-between gap-6">
-                <div className="space-y-1">
-                  <h3 className="text-xl font-black text-white uppercase tracking-tight italic">{t("home.fundamentals.title")}</h3>
-                  <p className="text-[10px] font-black text-indigo-400/60 uppercase tracking-[0.3em]">{(data.fundamentals as any).name || ticker}</p>
-                </div>
-                <div className="p-3 rounded-xl bg-violet-600/10 border border-violet-500/20">
-                  <LayoutDashboard className="w-5 h-5 text-violet-400" />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-4">
-                {[
-                  { label: "Market Cap", val: formatNumber(data.fundamentals.marketCap) },
-                  { label: "P/E Ratio", val: formatNumber(data.fundamentals.peRatio ?? null), mono: true },
-                  { label: "EPS", val: formatNumber(data.fundamentals.eps ?? null), mono: true },
-                  { label: "Beta", val: formatNumber(data.fundamentals.beta ?? null), mono: true },
-                  { label: "Div Yield", val: (data.fundamentals as any).dividendYield ? formatPct((data.fundamentals as any).dividendYield) : "-" },
-                  { label: "52W Range", val: `${formatNumber((data.fundamentals as any).low52)} - ${formatNumber((data.fundamentals as any).high52)}`, small: true },
-                  { label: "Sector", val: data.fundamentals.sector ?? "-", span: 2 },
-                ].map((item, i) => (
-                  <div key={i} className={`rounded-[1.5rem] border border-white/5 bg-zinc-900/40 p-5 space-y-1.5 ${item.span ? "md:col-span-2" : ""}`}>
-                    <div className="text-[9px] font-black text-zinc-600 uppercase tracking-widest">{item.label}</div>
-                    <div className={`font-black text-zinc-100 truncate ${item.small ? "text-[11px]" : "text-sm"} ${item.mono ? "font-mono text-indigo-400/80" : ""}`}>{item.val}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
         </section>
       )}
 

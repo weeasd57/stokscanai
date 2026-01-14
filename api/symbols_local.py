@@ -54,25 +54,15 @@ def search_symbols(
     limit: int = 50,
 ) -> List[Dict[str, Any]]:
     query = (q or "").strip().lower()
-    limit = max(1, min(int(limit), 1000))
+    limit = max(1, min(int(limit), 100000))
 
     if country:
         haystack = load_symbols_for_country(country)
     else:
         haystack = load_all_symbols()
 
-    from api.stock_ai import get_cached_tickers, _safe_cache_key
-    cached_set = get_cached_tickers()
+    from api.stock_ai import is_ticker_synced
     
-    def _is_cached(s: str, e: str) -> bool:
-        if _safe_cache_key(s) in cached_set: return True
-        if e:
-            mapping = {"EGX": "EGX", "US": "US", "NYSE": "US", "NASDAQ": "US"}
-            suffix = mapping.get(e.upper(), e.upper())
-            base = s.split('.')[0]
-            if _safe_cache_key(f"{base}.{suffix}") in cached_set: return True
-        return False
-
     out = []
     ex_low = exchange.lower() if exchange else None
 
@@ -89,7 +79,7 @@ def search_symbols(
                 "exchange": ex,
                 "name": name,
                 "country": row.get("Country", row.get("country", "")),
-                "hasLocal": _is_cached(sym, ex)
+                "hasLocal": is_ticker_synced(sym, ex)
             })
             if len(out) >= limit: break
 

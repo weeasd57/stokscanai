@@ -12,7 +12,7 @@ import TableView from "@/components/TableView";
 
 export default function AIScannerPage() {
     const { t } = useLanguage();
-    const { saveSymbol, isSaved } = useWatchlist();
+    const { saveSymbol, removeSymbolBySymbol, isSaved } = useWatchlist();
     const { state, countries, setAiScanner, runAiScan, stopAiScan, aiScanLoading: loading, aiScanError: error, clearAiScannerView, restoreLastAiScan } = useAppState();
 
     const { country, scanAll, results, progress, hasScanned, showPrecisionInfo, selected, detailData, rfPreset, rfParamsJson, chartType, showEma50, showEma200, showBB, showRsi, showVolume, scanHistory } = state.aiScanner;
@@ -382,14 +382,20 @@ export default function AIScannerPage() {
                                             </td>
                                             <td className="px-8 py-5 text-right" onClick={(e) => e.stopPropagation()}>
                                                 <button
-                                                    onClick={() => !isSaved(r.symbol) && saveSymbol({
-                                                        symbol: r.symbol,
-                                                        name: r.name,
-                                                        source: "ai_scanner",
-                                                        metadata: { precision: r.precision, last_close: r.last_close }
-                                                    })}
+                                                    onClick={() => {
+                                                        if (isSaved(r.symbol)) {
+                                                            removeSymbolBySymbol(r.symbol);
+                                                        } else {
+                                                            saveSymbol({
+                                                                symbol: r.symbol,
+                                                                name: r.name,
+                                                                source: "ai_scanner",
+                                                                metadata: { precision: r.precision, last_close: r.last_close }
+                                                            });
+                                                        }
+                                                    }}
                                                     className={`p-2.5 rounded-xl transition-all ${isSaved(r.symbol)
-                                                        ? "text-indigo-400 bg-indigo-500/10 cursor-default"
+                                                        ? "text-indigo-400 bg-indigo-500/10"
                                                         : "text-zinc-600 hover:text-white hover:bg-zinc-800"
                                                         }`}
                                                 >

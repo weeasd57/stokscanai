@@ -1,3 +1,7 @@
+
+add cornjop in admin
+add tranning ai in admin
+
 # AI Stocks - Roadmap / TODO
 
 This file tracks planned features, architecture improvements, optimizations, and quality work.

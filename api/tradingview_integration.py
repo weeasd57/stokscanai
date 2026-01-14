@@ -152,7 +152,7 @@ def fetch_tradingview_prices(
         return False, "tvDatafeed library not installed. Run: pip install tvDatafeed"
     
     import datetime as dt
-    from stock_ai import _last_trading_day, sync_df_to_supabase, _get_supabase_last_date
+    from stock_ai import _last_trading_day, sync_df_to_supabase, _get_supabase_info
 
     # Parse symbol
     upper = symbol.strip().upper()
@@ -167,22 +167,27 @@ def fetch_tradingview_prices(
     tv_exchange = get_tradingview_exchange(symbol)
     
     today = dt.date.today()
-    last_date = _get_supabase_last_date(upper)
+    info = _get_supabase_info(upper)
+    last_date = info["last_date"]
+    current_count = info["count"]
     
-    if last_date and last_date >= _last_trading_day(today):
-        return True, "Already up to date in Cloud"
+    is_up_to_date = last_date and last_date >= _last_trading_day(today)
+    has_enough_history = current_count >= max_days
+    
+    if is_up_to_date and has_enough_history:
+        return True, "Already up to date and sufficient history in Cloud"
     
     try:
         # Initialize TvDatafeed
         tv = TvDatafeed()
         
         # Calculate how many bars we need
-        if last_date:
+        if not has_enough_history:
+            # FORCE BACKFILL: Need more history
+            n_bars = max_days + 100 # Extra buffer for non-trading days
+        elif last_date:
             delta = (today - last_date).days
-            if delta <= 0:
-                n_bars = 5 # Safety
-            else:
-                n_bars = delta + 10 # Buffer
+            n_bars = max(10, delta + 10) # Buffer
         else:
             n_bars = max_days + 30 # Buffer for weekends
 
@@ -204,8 +209,8 @@ def fetch_tradingview_prices(
         df_new['adjusted_close'] = df_new['close']
         
         # Sync Directly
-        sync_df_to_supabase(upper, df_new)
-        return True, f"OK (tradingview) - {len(df_new)} bars saved to Cloud"
+        ok, sync_msg = sync_df_to_supabase(upper, df_new)
+        return ok, f"OK (tradingview) - {sync_msg}"
         
     except Exception as e:
         error_msg = str(e)
@@ -257,6 +262,13 @@ def fetch_tradingview_fundamentals_bulk(
     market_groups: Dict[str, List[str]] = defaultdict(list)
     base_to_tickers_by_market: Dict[str, Dict[str, List[str]]] = defaultdict(lambda: defaultdict(list))
     
+    # Aliases for known mismatches (Local -> TradingView)
+    TV_SYMBOL_ALIASES = {
+        "AIND": "ADPC",  # Arab Dairy
+        "AIND.EGX": "ADPC",
+        # Add more as discovered
+    }
+
     for sym in tickers:
         up = (sym or "").strip().upper()
         if not up:
@@ -265,9 +277,28 @@ def fetch_tradingview_fundamentals_bulk(
         # We try TradingView for EGX symbols as fallback if Mubasher is failing
         # (TradingView has many EGX stocks now)
         
-        base = up.split(".")[0]
-        market = get_tradingview_market(up)
+        # Check alias first
+        alias_target = TV_SYMBOL_ALIASES.get(up)
+        if not alias_target:
+             # Try without suffix
+             base_only = up.split(".")[0]
+             if base_only in TV_SYMBOL_ALIASES:
+                 alias_target = TV_SYMBOL_ALIASES[base_only]
+
+        if alias_target:
+             base = alias_target
+             # We need to know which market the ALIAS belongs to. 
+             # For now assume same market as original derived, or just EGX if it was EGX
+             # Usually aliases are within same market.
+             market = get_tradingview_market(up) 
+        else:
+             base = up.split(".")[0]
+             market = get_tradingview_market(up)
+        
         market_groups[market].append(base)
+        
+        # KEY: Map the TRADINGVIEW BASE back to the ORIGINAL FULL SYMBOL
+        # So when we get result for "ADPC", we store it under "AIND.EGX"
         base_to_tickers_by_market[market][base].append(sym)
     
     out: Dict[str, Tuple[Dict[str, Any], Dict[str, Any]]] = {}

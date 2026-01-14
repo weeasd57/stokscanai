@@ -1,15 +1,16 @@
 import os
 import json
+import requests
 from typing import List, Optional
 from collections import defaultdict
-import time
 from fastapi import APIRouter, BackgroundTasks, HTTPException
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel
 from eodhd import APIClient
 from dotenv import load_dotenv
-from concurrent.futures import ThreadPoolExecutor, as_completed
 import threading
+import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from supabase import create_client, Client
 
@@ -17,7 +18,7 @@ from supabase import create_client, Client
 from api.stock_ai import (
     get_stock_data, get_stock_data_eodhd, get_company_fundamentals,
     _init_supabase, supabase, update_stock_data,
-    _finite_float,
+    _finite_float, add_technical_indicators, upsert_technical_indicators,
 )
 
 router = APIRouter(prefix="/admin", tags=["admin"])
@@ -32,6 +33,18 @@ class UpdateRequest(BaseModel):
 class SyncRequest(BaseModel):
     exchange: Optional[str] = None # If None, sync all
     force: bool = False # If True, re-upload even if no change (not used yet)
+
+class SmartSyncRequest(BaseModel):
+    exchange: str
+    days: int = 365
+    updatePrices: bool = True
+    updateFunds: bool = False
+    unified: bool = False
+
+class ScheduleRequest(BaseModel):
+    cron: str
+    startTime: str = "22:30"
+    endTime: str = "04:00"
 
 
 
@@ -55,6 +68,47 @@ def _init_supabase():
             supabase = create_client(url, key)
 
 
+
+@router.get("/plans")
+def get_plans():
+    _init_supabase()
+    if not supabase:
+        raise HTTPException(status_code=500, detail="Supabase not initialized")
+    try:
+        res = supabase.table("plans").select("*").order("price").execute()
+        return res.data
+    except Exception as e:
+        print(f"Error fetching plans: {e}")
+        # Return fallback plans if table doesn't exist yet to avoid breaking frontend
+        return [
+            {
+                "name": "Free",
+                "price": 0,
+                "period": "forever",
+                "desc": "For beginners exploring AI insights",
+                "features": ["Daily AI Predictions (limited)", "Basic Technical Indicators", "Public Market Data", "Community Support"],
+                "featured": False,
+                "button_text": "Current Plan"
+            },
+            {
+                "name": "Pro",
+                "price": 29,
+                "period": "month",
+                "desc": "For serious traders and analysts",
+                "features": ["Unlimited AI Predictions", "Advanced RandomForest Analysis", "Real-time Data Access", "Custom Watchlist Alerts", "Priority Support", "Early access to new features"],
+                "featured": True,
+                "button_text": "Go Pro"
+            },
+            {
+                "name": "Enterprise",
+                "price": 99,
+                "period": "month",
+                "desc": "For professional teams and hedge funds",
+                "features": ["API Access (Rest & Websocket)", "Custom Model Training", "Bulk Data Exports", "White-label Reports", "Dedicated Account Manager", "SLA Guarantee"],
+                "featured": False,
+                "button_text": "Contact Sales"
+            }
+        ]
 
 def _reload_env() -> None:
     load_dotenv(ENV_ROOT_FILE, override=True)
@@ -311,12 +365,15 @@ def update_batch(req: UpdateRequest, background_tasks: BackgroundTasks):
             is_egx = up.endswith(".EGX") or up.endswith(".CC")
 
             if fund_source_cfg == "auto":
-                provider = "mubasher" if is_egx else "tradingview"
+                # Do not force "mubasher" if auto. stock_ai.get_company_fundamentals handles the order (Mubasher -> TV).
+                # provider = "mubasher" if is_egx else "tradingview"
+                provider = "auto"
             else:
                 provider = fund_source_cfg
 
             per_symbol_provider[sym] = provider
-            if provider == "tradingview":
+            # If auto (or tradingview), add to TV list for bulk fetch attempt
+            if provider == "tradingview" or provider == "auto":
                 tv_symbols.append(sym)
             else:
                 other_symbols.append(sym)
@@ -431,104 +488,153 @@ def get_usage():
 
 @router.get("/db-inventory")
 def get_db_inventory():
-    """Retrieve summary stats for all exchanges currently in Supabase."""
-    _init_supabase()
-    if not supabase:
-        return []
-    
+    """Retrieve accurate summary stats for all exchanges in Supabase using unified logic."""
+    from api.stock_ai import get_supabase_inventory
     try:
-        # Get price stats
-        # Supabase doesn't support GROUP BY via the client easily for aggregations.
-        # We'll fetch the data and group in Python for simplicity, 
-        # or use a raw query if we had one. Since we don't have thousands of exchanges, this is fine.
+        inventory = get_supabase_inventory()
+        # Admin expects 'status' field for UI markers
+        for item in inventory:
+            item['status'] = "healthy" if item.get('price_count', 0) > 0 or item.get('fund_count', 0) > 0 else "empty"
+            # Maintain backward compatibility for symbolCount if needed
+            item['symbolCount'] = item.get('fund_count', 0)
         
-        # Actually, let's try a clever select to get some info.
-        # For a small-ish number of rows, we can just get all unique symbol/exchange pairs.
-        # But maybe better to just use a custom RPC if we want it perfect.
-        # However, we'll try to get it via the client.
-        
-        # We'll get fundamentals as they are 1 row per symbol
-        res_fund = supabase.table("stock_fundamentals").select("exchange,updated_at,data").execute()
-        
-        inventory = defaultdict(lambda: {"prices": 0, "fundamentals": 0, "last_update": None, "country": "N/A"})
-        
-        if res_fund.data:
-            for row in res_fund.data:
-                ex = row["exchange"] or "UNKNOWN"
-                inventory[ex]["fundamentals"] += 1
-                upd = row["updated_at"]
-                
-                # Fetch country from data if not already set for this exchange
-                if inventory[ex]["country"] == "N/A":
-                    d = row.get("data") or {}
-                    country = d.get("country")
-                    if country:
-                        inventory[ex]["country"] = country
-
-                if not inventory[ex]["last_update"] or (upd and upd > inventory[ex]["last_update"]):
-                    inventory[ex]["last_update"] = upd
-
-        # Also get price counts (rough)
-        # We can't easily count distinct symbols per exchange via client. 
-        # We'll just return the fundamental counts as the "symbol count" for now.
-        
-        out = []
-        for ex, stats in inventory.items():
-            out.append({
-                "exchange": ex,
-                "country": stats["country"],
-                "symbolCount": stats["fundamentals"],
-                "lastUpdate": stats["last_update"],
-                "status": "healthy" if stats["fundamentals"] > 0 else "empty"
-            })
-            
-        return sorted(out, key=lambda x: x["exchange"])
+        # Sort for admin UI consistency
+        inventory.sort(key=lambda x: (x["priceCount"] == 0 and x["fundCount"] == 0, x["exchange"]))
+        return inventory
     except Exception as e:
         print(f"Error fetching inventory: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/db-symbols/{exchange}")
-def get_db_symbols(exchange: str):
-    """List all symbols for a specific exchange and their status."""
+def get_db_symbols(exchange: str, mode: str = "prices"):
+    """List all symbols for a specific exchange based on mode (prices or fundamentals)."""
     _init_supabase()
     if not supabase:
         return []
     
     try:
-        # 1. Get fundamental records (provides names and last sync times)
-        res_fund = supabase.table("stock_fundamentals").select("symbol,updated_at,data").eq("exchange", exchange).execute()
+        symbols_info = {}
+        if mode == "fundamentals":
+            res = supabase.table("stock_fundamentals").select("symbol,updated_at,data").eq("exchange", exchange).execute()
+            if res.data:
+                for row in res.data:
+                    s = row["symbol"]
+                    d = row.get("data") or {}
+                    symbols_info[s] = {
+                        "symbol": s, "name": d.get("name", "N/A"), "sector": d.get("sector", "N/A"),
+                        "last_sync": row["updated_at"], "last_price_date": None
+                    }
+        else:
+            # Better logic: Fetch every unique symbol and its latest date for this exchange
+            # We use an RPC for speed OR a more targeted query
+            res = supabase.rpc("get_exchange_symbols_prices", {"p_exchange": exchange}).execute()
+            if res.data:
+                for row in res.data:
+                    s = row["symbol"]
+                    symbols_info[s] = {
+                        "symbol": s, 
+                        "name": "N/A", 
+                        "sector": "N/A", 
+                        "last_sync": None, 
+                        "last_price_date": row["last_date"],
+                        "row_count": row.get("count", 0)
+                    }
         
-        # 2. Try to get latest price dates for these symbols
-        # Since we can't easily group_by, we fetch recent price rows and pick the max per symbol
-        # We fetch a larger batch to improve chances of hitting all symbols
-        res_prices = supabase.table("stock_prices").select("symbol,date").eq("exchange", exchange).order("date", desc=True).limit(1000).execute()
-        
-        latest_dates = {}
-        if res_prices.data:
-            for row in res_prices.data:
-                s = row["symbol"]
-                d = row["date"]
-                if s not in latest_dates or d > latest_dates[s]:
-                    latest_dates[s] = d
+        missing_meta = [s for s, info in symbols_info.items() if info["name"] == "N/A"]
+        if missing_meta:
+            res_meta = supabase.table("stock_fundamentals").select("symbol,data").eq("exchange", exchange).in_("symbol", missing_meta[:500]).execute()
+            if res_meta.data:
+                for row in res_meta.data:
+                    s = row["symbol"]
+                    d = row.get("data") or {}
+                    if s in symbols_info:
+                        symbols_info[s]["name"] = d.get("name", d.get("Name", "N/A"))
+                        symbols_info[s]["sector"] = d.get("sector", d.get("Sector", "N/A"))
 
-        if not res_fund.data:
-            return []
-            
-        out = []
-        for row in res_fund.data:
-            s_code = row["symbol"]
-            d = row.get("data") or {}
-            out.append({
-                "symbol": s_code,
-                "name": d.get("name", "N/A"),
-                "last_sync": row["updated_at"],
-                "last_price_date": latest_dates.get(s_code),
-                "sector": d.get("sector", "N/A"),
-            })
+        if mode == "prices":
+            res_meta = supabase.table("stock_fundamentals").select("symbol,updated_at").eq("exchange", exchange).in_("symbol", list(symbols_info.keys())[:500]).execute()
+            if res_meta.data:
+                for row in res_meta.data:
+                    s = row["symbol"]
+                    if s in symbols_info: symbols_info[s]["last_sync"] = row["updated_at"]
 
-        return sorted(out, key=lambda x: x["symbol"])
+        return sorted(list(symbols_info.values()), key=lambda x: x["symbol"])
     except Exception as e:
         print(f"Error fetching symbols for {exchange}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/export-prices/{exchange}")
+def export_prices_csv(exchange: str, symbol: Optional[str] = None):
+    """Export historical prices for an exchange or symbol as CSV."""
+    _init_supabase()
+    if not supabase:
+        raise HTTPException(status_code=500, detail="Supabase not initialized")
+    
+    try:
+        query = supabase.table("stock_prices").select("*").eq("exchange", exchange)
+        if symbol:
+            query = query.eq("symbol", symbol)
+        
+        # Limit to avoid huge memory usage, though for one exchange it's usually fine
+        res = query.order("date", desc=True).limit(50000).execute()
+        
+        if not res.data:
+            raise HTTPException(status_code=404, detail="No price data found")
+            
+        import pandas as pd
+        df = pd.DataFrame(res.data)
+        
+        # Clean up for CSV
+        if 'id' in df.columns: df = df.drop(columns=['id'])
+        
+        csv_data = df.to_csv(index=False)
+        filename = f"{exchange}_{symbol or 'all'}_prices.csv"
+        
+        return StreamingResponse(
+            iter([csv_data]),
+            media_type="text/csv",
+            headers={"Content-Disposition": f"attachment; filename={filename}"}
+        )
+    except Exception as e:
+        print(f"Export error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/export-fundamentals/{exchange}")
+def export_fundamentals_csv(exchange: str):
+    """Export fundamentals for an exchange as CSV."""
+    _init_supabase()
+    if not supabase:
+        raise HTTPException(status_code=500, detail="Supabase not initialized")
+    
+    try:
+        res = supabase.table("stock_fundamentals").select("symbol, data, updated_at").eq("exchange", exchange).execute()
+        
+        if not res.data:
+            raise HTTPException(status_code=404, detail="No fundamental data found")
+            
+        rows = []
+        for item in res.data:
+            data = item.get("data") or {}
+            row = {
+                "symbol": item["symbol"],
+                "updated_at": item["updated_at"],
+                **data
+            }
+            rows.append(row)
+            
+        import pandas as pd
+        df = pd.DataFrame(rows)
+        csv_data = df.to_csv(index=False)
+        filename = f"{exchange}_fundamentals.csv"
+        
+        return StreamingResponse(
+            iter([csv_data]),
+            media_type="text/csv",
+            headers={"Content-Disposition": f"attachment; filename={filename}"}
+        )
+    except Exception as e:
+        print(f"Export fundamentals error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -563,3 +669,230 @@ def clear_prices():
     if not ok:
         raise HTTPException(status_code=500, detail=msg)
     return {"status": "success", "message": msg}
+
+class RecalculateTechRequest(BaseModel):
+    symbols: List[str]
+    exchange: Optional[str] = None
+
+@router.post("/recalculate-indicators")
+def recalculate_indicators(req: RecalculateTechRequest, background_tasks: BackgroundTasks):
+    """
+    Recalculate technical indicators for the given symbols and save them to Supabase.
+    Runs in background as it can be slow.
+    """
+    _reload_env()
+    _init_supabase()
+    api_key = os.getenv("EODHD_API_KEY")
+    client = APIClient(api_key) if api_key else None
+    
+    symbols = list(req.symbols)
+    if not symbols and req.exchange:
+        # Fetch all symbols from stock_prices for this exchange using reliable RPC
+        try:
+            res = supabase.rpc("get_exchange_symbols_prices", {"p_exchange": req.exchange}).execute()
+            if res.data:
+                # RPC returns list of dicts with 'symbol' key
+                symbols = [r["symbol"] for r in res.data]
+                print(f"Recalculating ALL {len(symbols)} symbols for {req.exchange}")
+            else:
+                print(f"No symbols found via RPC for exchange {req.exchange}")
+                return {"status": "error", "message": f"No symbols found for exchange {req.exchange}"}
+        except Exception as e:
+            print(f"Failed to fetch symbols for exchange {req.exchange} via RPC: {e}")
+            raise HTTPException(status_code=500, detail=str(e))
+
+    def _worker(symbols_to_process: List[str], exchange_hint: Optional[str]):
+        # Removed local symbols resolution as it's now handled in the main function
+
+        for symbol in symbols_to_process:
+            try:
+                # 1. Infer exchange if not provided
+                from api.stock_ai import _infer_symbol_exchange
+                s, e = _infer_symbol_exchange(symbol, exchange_hint=req.exchange)
+                full_symbol = f"{s}.{e}"
+                
+                # 2. Get historical data (force local if we already have it, otherwise fetch)
+                # We need enough history for SMA_200 (at least 200 days)
+                df = get_stock_data_eodhd(client, full_symbol, from_date="2023-01-01", exchange=e)
+                
+                if df is None or df.empty:
+                    print(f"No data for {full_symbol} during recalculation")
+                    continue
+                
+                # 3. Add technical indicators
+                df_tech = add_technical_indicators(df)
+                if df_tech.empty:
+                    continue
+                
+                # 4. Extract latest row and sync
+                last_row = df_tech.iloc[-1]
+                date_str = df_tech.index[-1].strftime('%Y-%m-%d')
+                
+                # Daily change calculation
+                close = float(last_row.get("Close", 0))
+                prev_close = float(df_tech.iloc[-2].get("Close", close)) if len(df_tech) > 1 else close
+                change_p = ((close - prev_close) / prev_close * 100) if prev_close != 0 else 0
+                
+                indicators = last_row.to_dict()
+                indicators["change_p"] = change_p
+                
+                ok, msg = upsert_technical_indicators(
+                    symbol=s,
+                    exchange=e,
+                    date=date_str,
+                    close=close,
+                    volume=int(last_row.get("Volume", 0)),
+                    indicators=indicators
+                )
+                
+                print(f"Recalculated {full_symbol}: {ok} - {msg}")
+                
+            except Exception as ex:
+                print(f"Error recalculating {symbol}: {ex}")
+                continue
+                
+    background_tasks.add_task(_worker, symbols, req.exchange)
+    return {"status": "success", "message": f"Recalculation started for {len(symbols)} symbols in background"}
+
+class TrainTriggerRequest(BaseModel):
+    exchange: str
+
+@router.post("/train/trigger")
+async def trigger_training(req: TrainTriggerRequest):
+    _reload_env()
+    github_pat = os.getenv("GITHUB_PAT")
+    if not github_pat:
+        # Fallback to checking if it's a local request, maybe we warn user?
+        # For now, just raise error but maybe we can suggest local training
+        raise HTTPException(status_code=500, detail="GITHUB_PAT not set. Configure it or use Local Training.")
+    
+    # Repository details
+    owner = "weeasd57"
+    repo = "stokscanai"
+    workflow_id = "ai-training.yml"
+    
+    url = f"https://api.github.com/repos/{owner}/{repo}/actions/workflows/{workflow_id}/dispatches"
+    headers = {
+        "Authorization": f"token {github_pat}",
+        "Accept": "application/vnd.github.v3+json"
+    }
+    payload = {
+        "ref": "main", # Or the current branch
+        "inputs": {
+            "exchange": req.exchange
+        }
+    }
+    
+    try:
+        response = requests.post(url, headers=headers, json=payload)
+        if response.status_code == 204:
+            return {"status": "success", "message": f"Training triggered for {req.exchange}"}
+        else:
+            print(f"GitHub API Error: {response.status_code} - {response.text}")
+            raise HTTPException(status_code=response.status_code, detail=f"Failed to trigger GitHub Action: {response.text}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/train/local")
+async def trigger_local_training(req: TrainTriggerRequest, background_tasks: BackgroundTasks):
+    try:
+        from train_exchange_model import train_model
+    except ImportError as e:
+        print(f"Import Error: {e}")
+        if "lightgbm" in str(e):
+             raise HTTPException(status_code=500, detail="LightGBM not installed. Server restarting... please try again in a moment.")
+        raise HTTPException(status_code=500, detail=f"Failed to import training module: {e}")
+    
+    url = os.getenv("NEXT_PUBLIC_SUPABASE_URL")
+    key = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+    
+    if not url or not key:
+         raise HTTPException(status_code=500, detail="Supabase credentials not configured")
+
+    def _train_worker(ex, u, k):
+        try:
+            print(f"Starting local training for {ex}")
+            train_model(ex, u, k)
+            print(f"Local training for {ex} completed")
+        except Exception as e:
+            print(f"Local training failed: {e}")
+
+    background_tasks.add_task(_train_worker, req.exchange, url, key)
+    return {"status": "success", "message": f"Local training started for {req.exchange}. Check server logs for progress."}
+
+@router.get("/train/models")
+async def list_models():
+    _init_supabase()
+    if not supabase:
+        raise HTTPException(status_code=500, detail="Supabase not initialized")
+    
+    try:
+        # List files in 'ai-models' bucket
+        files = supabase.storage.from_("ai-models").list()
+        # Filter for .pkl files
+        models = [f for f in files if f['name'].endswith('.pkl')]
+        return {"models": models}
+    except Exception as e:
+        print(f"Error listing models: {e}")
+        # If bucket doesn't exist, return empty list
+        return {"models": []}
+
+@router.get("/train/download/{filename}")
+async def get_model_download_url(filename: str):
+    _init_supabase()
+    if not supabase:
+        raise HTTPException(status_code=500, detail="Supabase not initialized")
+    
+    try:
+        # Create a signed URL for download (valid for 1 hour)
+        res = supabase.storage.from_("ai-models").create_signed_url(filename, 3600)
+        if 'signedURL' in res:
+            return {"url": res['signedURL']}
+        elif 'signedUrl' in res:
+            return {"url": res['signedUrl']}
+        else:
+            raise HTTPException(status_code=500, detail="Failed to generate signed URL")
+    except Exception as e:
+        raise HTTPException(status_code=404, detail=f"Model not found: {str(e)}")
+@router.post("/sync/trigger")
+async def trigger_smart_sync(req: SmartSyncRequest):
+    github_pat = os.getenv("GITHUB_PAT")
+    if not github_pat:
+        raise HTTPException(status_code=500, detail="GITHUB_PAT not configured")
+    
+    owner = "weeasd57"
+    repo = "stokscanai"
+    workflow_id = "data-sync.yml"
+    
+    url = f"https://api.github.com/repos/{owner}/{repo}/actions/workflows/{workflow_id}/dispatches"
+    headers = {
+        "Authorization": f"token {github_pat}",
+        "Accept": "application/vnd.github.v3+json"
+    }
+    payload = {
+        "ref": "main",
+        "inputs": {
+            "exchange": req.exchange,
+            "days": str(req.days),
+            "update_prices": "true" if req.updatePrices else "false",
+            "update_funds": "true" if req.updateFunds else "false",
+            "unified_dates": "true" if req.unified else "false"
+        }
+    }
+    
+    try:
+        response = requests.post(url, headers=headers, json=payload)
+        if response.status_code == 204:
+            return {"status": "success", "message": f"Smart Sync triggered for {req.exchange}"}
+        else:
+            raise HTTPException(status_code=response.status_code, detail=f"GH API Error: {response.text}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/sync/schedule")
+async def update_sync_schedule(req: ScheduleRequest):
+    # This is a placeholder for updating the GHA YAML.
+    # In a real scenario, this would involve git commit/push to the repo.
+    # For now, we'll log it and return success for UI verification.
+    print(f"Schedule update requested: {req.cron} (Window: {req.startTime} - {req.endTime})")
+    return {"status": "success", "message": "Schedule preference updated (Log recorded)."}

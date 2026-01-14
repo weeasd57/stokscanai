@@ -72,6 +72,8 @@ export default function ProfilePage() {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [positionToDelete, setPositionToDelete] = useState<string | null>(null);
   const [removing, setRemoving] = useState(false);
+  const [evalResults, setEvalResults] = useState<any[] | null>(null);
+  const [showEvalDialog, setShowEvalDialog] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) router.replace("/login");
@@ -166,12 +168,14 @@ export default function ProfilePage() {
     if (!user) return;
     setEvaluating(true);
     setEvalLog([]);
+    setEvalResults(null);
     try {
       const open = positions.filter((p) => p.status === "open");
       if (open.length === 0) {
         setEvalLog(["No open positions."]);
         return;
       }
+      setEvalLog([`Evaluating ${open.length} positions...`]);
       const res = await fetch("/api/positions/evaluate_open_history", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -180,6 +184,7 @@ export default function ProfilePage() {
           positions: open.map((p) => ({
             id: p.id,
             symbol: p.symbol,
+            entry_price: p.entry_price,
             entry_at: (p as any).entry_at ?? null,
             added_at: p.added_at,
             target_price: p.target_price,
@@ -192,12 +197,24 @@ export default function ProfilePage() {
         return;
       }
       const decisions = await res.json();
+      setEvalResults(decisions);
+      setShowEvalDialog(true);
+
+      setEvalLog((prev) => [...prev, "Saving results to database..."]);
       for (const d of decisions) {
-        if (d.status !== "open") {
-          await supabase.rpc("evaluate_position", { p_position_id: d.id, p_current_price: d.price });
+        // We always call RPC now to save the latest price even for 'open' ones
+        if (d.price) {
+          await supabase.rpc("evaluate_position", {
+            p_position_id: d.id,
+            p_current_price: d.price,
+            p_as_of: d.as_of
+          });
         }
       }
       await reloadAll();
+      setEvalLog((prev) => [...prev, "Done."]);
+    } catch (err: any) {
+      setEvalLog((prev) => [...prev, `Error: ${err.message}`]);
     } finally {
       setEvaluating(false);
     }
@@ -482,6 +499,73 @@ export default function ProfilePage() {
         confirmLabel="Remove"
         variant="danger"
       />
+
+      {/* Evaluation Results Dialog */}
+      {showEvalDialog && evalResults && (
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
+          <div className="w-full max-w-2xl bg-zinc-950 border border-white/10 rounded-[2rem] shadow-2xl overflow-hidden flex flex-col max-h-[80vh]">
+            <div className="flex items-center justify-between px-8 py-6 border-b border-white/5 bg-zinc-900/50">
+              <div className="flex items-center gap-3">
+                <Cpu className="w-5 h-5 text-indigo-400" />
+                <h3 className="text-xl font-bold text-white uppercase tracking-tight">Evaluation Results</h3>
+              </div>
+              <button
+                onClick={() => setShowEvalDialog(false)}
+                className="p-2 rounded-xl bg-zinc-800 text-zinc-400 hover:text-white transition-all"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-8 space-y-4 custom-scrollbar">
+              <table className="w-full text-left text-sm whitespace-nowrap">
+                <thead className="text-[10px] font-black uppercase tracking-widest text-zinc-500 border-b border-white/5">
+                  <tr>
+                    <th className="pb-4">Symbol</th>
+                    <th className="pb-4 text-center">Status</th>
+                    <th className="pb-4 text-right">Last Date</th>
+                    <th className="pb-4 text-right">Last Price</th>
+                    <th className="pb-4 text-right">% CHG</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5">
+                  {evalResults.map((r) => (
+                    <tr key={r.id} className="text-xs">
+                      <td className="py-4 font-mono font-bold text-indigo-400">{r.symbol}</td>
+                      <td className="py-4 text-center">
+                        <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase border ${r.status === 'hit_target' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
+                            r.status === 'hit_stop' ? 'bg-red-500/10 text-red-400 border-red-500/20' :
+                              'bg-blue-500/10 text-blue-400 border-blue-500/20'
+                          }`}>
+                          {r.status.replace("_", " ")}
+                        </span>
+                      </td>
+                      <td className="py-4 text-right font-mono text-zinc-400">{r.as_of ? new Date(r.as_of).toLocaleDateString() : "--"}</td>
+                      <td className="py-4 text-right font-mono font-bold text-white">{r.price?.toFixed(2) ?? "--"}</td>
+                      <td className="py-4 text-right font-mono font-bold">
+                        {r.change_pct !== null ? (
+                          <span className={r.change_pct >= 0 ? "text-emerald-400" : "text-red-400"}>
+                            {r.change_pct >= 0 ? "+" : ""}{r.change_pct.toFixed(2)}%
+                          </span>
+                        ) : "--"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="px-8 py-6 border-t border-white/5 bg-zinc-900/50 flex justify-end">
+              <button
+                onClick={() => setShowEvalDialog(false)}
+                className="px-6 py-2.5 rounded-xl bg-white text-zinc-950 text-xs font-black uppercase tracking-widest hover:bg-zinc-200 transition-all"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

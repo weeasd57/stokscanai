@@ -4,7 +4,7 @@ from fastapi import APIRouter, HTTPException, Body, Request
 from pydantic import BaseModel, field_validator
 from eodhd import APIClient
 
-from stock_ai import get_stock_data_eodhd, add_technical_indicators, check_local_cache
+from stock_ai import get_stock_data_eodhd, add_technical_indicators, check_local_cache, is_ticker_synced, get_company_fundamentals
 from symbols_local import load_symbols_for_country
 
 router = APIRouter(prefix="/scan", tags=["scan"])
@@ -28,6 +28,12 @@ class TechFilter(BaseModel):
     roc_max: Optional[float] = None
     above_vwap20: bool = False
     volume_above_sma20: bool = False
+    # New Fundamental Filters
+    market_cap_min: Optional[float] = None
+    market_cap_max: Optional[float] = None
+    sector: Optional[str] = None
+    industry: Optional[str] = None
+    golden_cross: bool = False
 
 class TechResult(BaseModel):
     symbol: str
@@ -46,6 +52,15 @@ class TechResult(BaseModel):
     vwap20: float
     roc12: float
     vol_sma20: float
+    # New Fundamental/Price Change Fields
+    change_p: float = 0.0
+    market_cap: Optional[float] = None
+    pe_ratio: Optional[float] = None
+    eps: Optional[float] = None
+    dividend_yield: Optional[float] = None
+    sector: Optional[str] = None
+    industry: Optional[str] = None
+    beta: Optional[float] = None
 
     @field_validator('*', mode='before')
     def check_nan(cls, v):
@@ -83,6 +98,9 @@ async def scan_technical(
     except FileNotFoundError:
         raise HTTPException(status_code=404, detail=f"No symbols found for country: {f.country}")
 
+    from stock_ai import is_ticker_synced
+    
+    # Pre-calculate sync status for ALL symbols in the country to avoid O(N) single queries
     # Sort candidates to prioritize those already in cache
     cached_candidates = []
     others = []
@@ -90,7 +108,7 @@ async def scan_technical(
     for row in symbols_data:
         sym = str(row.get("Code", row.get("Symbol", "")))
         ex = str(row.get("Exchange", ""))
-        if check_local_cache(sym, ex):
+        if is_ticker_synced(sym, ex):
             cached_candidates.append(row)
         else:
             others.append(row)
@@ -112,24 +130,15 @@ async def scan_technical(
         name = str(row.get("Name", ""))
         exchange = str(row.get("Exchange", ""))
         
-        # Skip if symbol is empty or NOT in local cache (Local-First enforcement)
-        if not symbol or not check_local_cache(symbol, exchange):
+        # Skip if symbol is empty or NOT in sync (Cloud-First optimization)
+        if not symbol or not is_ticker_synced(symbol, exchange):
             continue
 
         try:
-            # Try to find a working symbol suffix first
-            working_sym = None
-            from stock_ai import _candidate_symbols
-            for cand in _candidate_symbols(symbol, exchange):
-                try:
-                    df = get_stock_data_eodhd(api, cand, from_date="2023-01-01", tolerance_days=5, exchange=exchange, force_local=True)
-                    if not df.empty:
-                        working_sym = cand
-                        break
-                except Exception:
-                    continue
+            # We already verified it's synced, so we can fetch it directly
+            df = get_stock_data_eodhd(api, symbol, from_date="2023-01-01", tolerance_days=5, exchange=exchange, force_local=True)
             
-            if not working_sym or df.empty: continue
+            if df.empty: continue
 
             df = add_technical_indicators(df)
             if df.empty: continue
@@ -152,6 +161,26 @@ async def scan_technical(
             roc12 = float(last.get("ROC_12", 0))
             vol_sma20 = float(last.get("VOL_SMA20", 0))
 
+            # Daily change calculation
+            prev_close = float(df.iloc[-2].get("Close", close)) if len(df) > 1 else close
+            change_p = ((close - prev_close) / prev_close * 100) if prev_close != 0 else 0
+
+            # Get Fundamentals
+            funds = get_company_fundamentals(symbol) or {}
+            m_cap = funds.get("marketCap")
+            pe = funds.get("peRatio")
+            eps_val = funds.get("eps")
+            div_y = funds.get("dividendYield")
+            sec = funds.get("sector")
+            ind = funds.get("industry")
+            beta_val = funds.get("beta")
+
+            # Apply Fundamental Filters
+            if f.market_cap_min and (m_cap or 0) < f.market_cap_min: continue
+            if f.market_cap_max and (m_cap or 0) > f.market_cap_max: continue
+            if f.sector and f.sector.lower() not in (sec or "").lower(): continue
+            if f.industry and f.industry.lower() not in (ind or "").lower(): continue
+
             # Apply filters
             if f.min_price and close < f.min_price: continue
             if f.rsi_min and rsi < f.rsi_min: continue
@@ -169,6 +198,7 @@ async def scan_technical(
             if f.roc_max and roc12 > f.roc_max: continue
             if f.above_vwap20 and close <= vwap20: continue
             if f.volume_above_sma20 and volume <= vol_sma20: continue
+            if f.golden_cross and ema50 <= ema200: continue
 
             results.append(TechResult(
                 symbol=symbol,
@@ -179,14 +209,16 @@ async def scan_technical(
                 ema50=ema50,
                 ema200=ema200,
                 momentum=momentum,
-                atr14=atr14,
-                adx14=adx14,
-                stoch_k=stoch_k,
-                stoch_d=stoch_d,
-                cci20=cci20,
-                vwap20=vwap20,
                 roc12=roc12,
                 vol_sma20=vol_sma20,
+                change_p=change_p,
+                market_cap=m_cap,
+                pe_ratio=pe,
+                eps=eps_val,
+                dividend_yield=div_y,
+                sector=sec,
+                industry=ind,
+                beta=beta_val,
             ))
                     
         except Exception as e:

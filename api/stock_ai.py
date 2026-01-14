@@ -125,6 +125,9 @@ _CACHED_TICKERS_SET = None
 _CACHED_TICKERS_TS = 0
 _CACHE_TTL_SECONDS = 30
 
+def _safe_cache_key(ticker: str) -> str:
+    return ticker.strip().upper()
+
 def get_cached_tickers() -> set:
     """Returns a set of all ticker names. Prioritizes Supabase. Cached for 30s."""
     global _CACHED_TICKERS_SET, _CACHED_TICKERS_TS
@@ -141,18 +144,202 @@ def get_cached_tickers() -> set:
     _init_supabase()
     if supabase:
         try:
-            # Get unique symbol + exchange combinations
-            res = supabase.table("stock_fundamentals").select("symbol,exchange").execute()
+            # Use high-performance RPC to get all active symbols (with prices, no funds)
+            res = supabase.rpc("get_active_symbols").execute()
             if res.data:
                 for row in res.data:
-                    s, e = row['symbol'], row['exchange']
-                    found.add(f"{s}.{e}")
+                    found.add(f"{row['symbol']}.{row['exchange']}")
         except Exception as e:
-            print(f"DEBUG: Supabase ticker fetch failed: {e}")
+            print(f"Error fetching cached tickers RPC: {e}")
         
     _CACHED_TICKERS_SET = found
     _CACHED_TICKERS_TS = now
     return found
+
+def is_ticker_synced(symbol: str, exchange: Optional[str] = None) -> bool:
+    """Checks if a symbol.exchange combination exists in our cloud database."""
+    cached_set = get_cached_tickers()
+    s_upper = _safe_cache_key(symbol)
+    
+    # Try exact match first
+    if s_upper in cached_set: return True
+    
+    # Try with inferred/standardized suffix if exchange is provided
+    if exchange:
+        e_upper = exchange.upper()
+        if e_upper in ["CC", "CA"]: e_upper = "EGX"
+        mapping = {"EGX": "EGX", "US": "US", "NYSE": "US", "NASDAQ": "US"}
+        suffix = mapping.get(e_upper, e_upper)
+        
+        # Strip existing suffix if any to avoid DOUBLE suffixes
+        base = s_upper.split('.')[0]
+        if f"{base}.{suffix}" in cached_set: return True
+        
+    return False
+
+def get_supabase_inventory() -> List[Dict[str, Any]]:
+    """Call get_inventory_stats RPC and group by country for frontend use."""
+    _init_supabase()
+    if not supabase: return []
+
+    from api.symbols_local import load_country_summary
+    local_summary = load_country_summary()
+    expected_map = {}
+    for country, data in local_summary.items():
+        exchanges = data.get("Exchanges", {})
+        for ex, count in exchanges.items():
+            expected_map[ex] = {"count": count, "country": country}
+
+    try:
+        # 1. Get stats from RPC
+        res = supabase.rpc("get_inventory_stats").execute()
+        stats = res.data if res.data else []
+
+        # 2. Get exchange-to-country mapping from fundamentals if possible
+        # (Fall back to local summary for countries)
+        meta_res = supabase.table("stock_fundamentals").select("exchange, country:data->>country").execute()
+        mapping = {}
+        if meta_res.data:
+            for row in meta_res.data:
+                ex = row.get('exchange')
+                c = row.get('country')
+                if ex and c:
+                    mapping[ex] = c
+
+        # 3. Join and group
+        out = []
+        mapped_exchanges = set()
+
+        for row in stats:
+            ex = row['exchange']
+            expected = expected_map.get(ex, {})
+            # Enrich row
+            row['country'] = mapping.get(ex) or expected.get("country", "Unknown")
+            
+            # Dynamic expected count correction
+            country_name = row['country']
+            if country_name != "Unknown":
+                try:
+                    from api.symbols_local import load_symbols_for_country
+                    syms = load_symbols_for_country(country_name)
+                    # Count for this specific exchange
+                    actual_count = sum(1 for s in syms if str(s.get("Exchange", s.get("exchange", ""))).upper() == ex.upper())
+                    if actual_count > 0:
+                        expected["count"] = actual_count
+                except:
+                    pass
+
+            row['expected_count'] = expected.get("count", 0)
+            # Add camelCase aliases for the UI if needed
+            row['priceCount'] = row.get('price_count', 0)
+            row['fundCount'] = row.get('fund_count', 0)
+            row['expectedCount'] = row['expected_count']
+            row['lastUpdate'] = row.get('last_update')
+            out.append(row)
+            mapped_exchanges.add(ex)
+
+        # 4. Add missing exchanges from local summary
+        for ex, expected in expected_map.items():
+            if ex not in mapped_exchanges:
+                out.append({
+                    "exchange": ex,
+                    "country": expected["country"],
+                    "price_count": 0,
+                    "fund_count": 0,
+                    "expected_count": expected["count"],
+                    "priceCount": 0,
+                    "fundCount": 0,
+                    "expectedCount": expected["count"],
+                    "last_update": None,
+                    "lastUpdate": None
+                })
+            
+        return out
+    except Exception as e:
+        print(f"Error fetching inventory stats: {e}")
+    return []
+
+
+def get_supabase_countries() -> List[str]:
+    """Fetch unique countries from Supabase fundamentals that have price data."""
+    _init_supabase()
+    if not supabase: return []
+    try:
+        res = supabase.rpc("get_active_countries").execute()
+        if res.data:
+            return [r['country'] for r in res.data]
+    except Exception as e:
+        print(f"Error fetching active countries RPC: {e}")
+    return []
+
+
+def get_supabase_symbols(country: Optional[str] = None) -> List[Dict[str, Any]]:
+    """Fetch symbols from Supabase that have price data, ensuring high coverage."""
+    _init_supabase()
+    if not supabase: return []
+    
+    try:
+        # 1. Try RPC first (active symbols with metadata)
+        params = {}
+        if country:
+            params['p_country'] = country
+        
+        rpc_res = supabase.rpc("get_active_symbols", params).execute()
+        symbols_map = {}
+        
+        if rpc_res.data:
+            for r in rpc_res.data:
+                symbols_map[r['symbol']] = {
+                    "symbol": r['symbol'],
+                    "exchange": r['exchange'],
+                    "name": r.get('name', ''),
+                    "country": r.get('country', country or ''),
+                    "hasLocal": True
+                }
+
+        # 2. Add fallback for symbols that have prices but might be missing metadata (e.g. Brazil/Korea)
+        # Only do this if we have a country name to filter by, or if fetching all
+        try:
+            # Map countries to exchanges for direct querying if we have the info
+            # This is a bit of a hack but necessary given the data inconsistency
+            country_to_ex = {
+                "Brazil": "SA",
+                "South Korea": "KQ",
+                "Egypt": "EGX",
+                "USA": "US"
+            }
+            
+            ex_filter = country_to_ex.get(country) if country else None
+            
+            price_query = supabase.table("stock_prices").select("symbol, exchange")
+            if ex_filter:
+                price_query = price_query.eq("exchange", ex_filter)
+            
+            # Use limit to avoid overloading if country is None
+            if not country:
+                price_query = price_query.limit(1000)
+                
+            price_res = price_query.execute()
+            
+            if price_res.data:
+                for r in price_res.data:
+                    sym = r['symbol']
+                    if sym not in symbols_map:
+                        symbols_map[sym] = {
+                            "symbol": sym,
+                            "exchange": r['exchange'],
+                            "name": f"Unknown ({sym})",
+                            "country": country or 'Unknown',
+                            "hasLocal": True
+                        }
+        except Exception as price_err:
+            print(f"Fallback price query failed: {price_err}")
+
+        return sorted(list(symbols_map.values()), key=lambda x: x['symbol'])
+        
+    except Exception as e:
+        print(f"Error fetching symbols: {e}")
+    return []
 
 
 def _candidate_symbols(ticker: str, exchange: Optional[str] = None) -> List[str]:
@@ -350,11 +537,12 @@ def get_stock_data_yahoo(
         raise ValueError(f"Yahoo fetch failed for {yf_ticker}: {e}")
 
 
-def _get_supabase_last_date(ticker: str) -> Optional[dt.date]:
-    """Helper to find the latest available date for a ticker in Supabase."""
+def _get_supabase_info(ticker: str) -> Dict[str, Any]:
+    """Helper to find the latest available date and record count for a ticker in Supabase."""
     _init_supabase()
+    out = {"last_date": None, "count": 0}
     if not supabase:
-        return None
+        return out
     try:
         sb_symbol = ticker
         sb_exchange = "US"
@@ -362,10 +550,10 @@ def _get_supabase_last_date(ticker: str) -> Optional[dt.date]:
             parts = ticker.split(".")
             sb_symbol = parts[0]
             sb_exchange = parts[1]
-            if sb_exchange == "CC": sb_exchange = "EGX"
+            if sb_exchange in ["CC", "CA"]: sb_exchange = "EGX"
             
         res = supabase.table("stock_prices")\
-            .select("date")\
+            .select("date", count="exact")\
             .eq("symbol", sb_symbol)\
             .eq("exchange", sb_exchange)\
             .order("date", desc=True)\
@@ -373,10 +561,14 @@ def _get_supabase_last_date(ticker: str) -> Optional[dt.date]:
             .execute()
         
         if res.data:
-            return pd.to_datetime(res.data[0]["date"]).date()
+            out["last_date"] = pd.to_datetime(res.data[0]["date"]).date()
+            out["count"] = res.count or 0
     except Exception as e:
-        print(f"Error checking Supabase date for {ticker}: {e}")
-    return None
+        print(f"Error checking Supabase info for {ticker}: {e}")
+    return out
+
+def _get_supabase_last_date(ticker: str) -> Optional[dt.date]:
+    return _get_supabase_info(ticker)["last_date"]
 
 
 def update_stock_data(
@@ -397,21 +589,40 @@ def update_stock_data(
 
     today = dt.date.today()
     
-    today = dt.date.today()
+    # Disk-less: Check Supabase for last date and count
+    info = _get_supabase_info(ticker)
+    last_date = info["last_date"]
+    current_count = info["count"]
     
-    # Disk-less: Check Supabase for last date
-    last_date = _get_supabase_last_date(ticker)
+    is_up_to_date = last_date and last_date >= _last_trading_day(today)
+    has_enough_history = current_count >= max_days
     
-    if last_date and last_date >= _last_trading_day(today):
-         return True, "Already up to date in Cloud"
+    print(f"DEBUG SYNC: {ticker} | last_date={last_date} | count={current_count} | max_days={max_days} | up_to_date={is_up_to_date} | enough_history={has_enough_history}")
+    
+    if is_up_to_date and has_enough_history:
+         return True, "Already up to date and sufficient history in Cloud"
 
-    # Check existing (from Supabase)
-    existing_df = pd.DataFrame()
+    # Determine if we need a FULL backfill (history too short) or just APPEND (missing recent days)
+    needs_backfill = not has_enough_history
 
     # EODHD Logic
     try:
-        if last_date:
-            # Append from last date
+        if needs_backfill:
+            # Force a full historical download to get enough history
+            print(f"BACKFILL MODE: {ticker} has {current_count} records, need {max_days}. Downloading full history.")
+            start_date = today - dt.timedelta(days=max_days + 100)  # Extra buffer for weekends/holidays
+            df = api.get_eod_historical_stock_market_data(
+                symbol=ticker, period="d", order="a", from_date=str(start_date)
+            )
+            df = _normalize_eodhd_eod_result(df)
+            if df is None or df.empty:
+                return False, "No historical data available (EODHD Backfill)"
+            
+            sync_df_to_supabase(ticker, df)
+            return True, f"Backfilled {len(df)} rows to Cloud (was {current_count})"
+        
+        elif last_date:
+            # Append mode: only fetch new data after last_date
             start_date = last_date + dt.timedelta(days=1)
             new_df = api.get_eod_historical_stock_market_data(
                 symbol=ticker, period="d", order="a", from_date=str(start_date)
@@ -421,28 +632,24 @@ def update_stock_data(
             if new_df is None or new_df.empty:
                 return True, "No new data (EODHD)"
             
-            # Sync new rows directly
             sync_df_to_supabase(ticker, new_df)
             return True, f"Appended {len(new_df)} rows to Cloud"
             
         else:
-             # Fresh Download
-             start_date = today - dt.timedelta(days=max_days + 30) # Buffer
-             df = api.get_eod_historical_stock_market_data(
+            # Fresh download (no data at all)
+            start_date = today - dt.timedelta(days=max_days + 60)
+            df = api.get_eod_historical_stock_market_data(
                 symbol=ticker, period="d", order="a", from_date=str(start_date)
             )
-             df = _normalize_eodhd_eod_result(df)
-             if df is None or df.empty:
-                  return False, "No data (EODHD Fresh)"
-             
-             # Sync all directly
-             sync_df_to_supabase(ticker, df)
-             return True, f"Downloaded {len(df)} rows to Cloud"
+            df = _normalize_eodhd_eod_result(df)
+            if df is None or df.empty:
+                 return False, "No data (EODHD Download)"
+            
+            sync_df_to_supabase(ticker, df)
+            return True, f"Downloaded {len(df)} rows to Cloud"
 
     except Exception as e:
         return False, f"EODHD Error: {str(e)}"
-             
-    return True, "Data updated and synced"
 
 
 
@@ -466,7 +673,7 @@ def sync_df_to_supabase(ticker: str, df: pd.DataFrame) -> tuple[bool, str]:
 
         if 'date' in df.columns:
             df['date'] = pd.to_datetime(df['date'], errors='coerce')
-            df = df.dropna(subset=['date']).sort_values('date').tail(1000) # Buffer
+            df = df.dropna(subset=['date']).sort_values('date').tail(5000) # Increased buffer from 1000
                 
             rows = []
             sb_symbol = ticker
@@ -475,7 +682,7 @@ def sync_df_to_supabase(ticker: str, df: pd.DataFrame) -> tuple[bool, str]:
                 parts = ticker.split(".")
                 sb_symbol = parts[0]
                 sb_exchange = parts[1]
-                if sb_exchange == "CC": sb_exchange = "EGX"
+                if sb_exchange in ["CC", "CA"]: sb_exchange = "EGX"
             
             for _, row in df.iterrows():
                 adj_close = row.get('adjusted_close')
@@ -495,11 +702,18 @@ def sync_df_to_supabase(ticker: str, df: pd.DataFrame) -> tuple[bool, str]:
                 })
             
             if rows:
-                # Use chunks of 100 to avoid request size limits if needed
+                # Use chunks of 100 to avoid request size limits
                 for i in range(0, len(rows), 100):
                     supabase.table("stock_prices").upsert(rows[i:i+100], on_conflict="symbol,exchange,date").execute()
-                print(f"DEBUG: Synced {len(rows)} rows for {sb_symbol}.{sb_exchange} to Supabase")
-                return True, f"Synced {len(rows)} rows"
+                
+                # Fetch final count and range for verification
+                final_info = _get_supabase_info(ticker)
+                min_date = df['date'].min().date()
+                max_date = df['date'].max().date()
+                
+                msg = f"Synced {len(rows)} rows ({min_date} to {max_date}). Total in cloud: {final_info['count']}"
+                print(f"DEBUG: {msg}")
+                return True, msg
             else:
                 return False, "No valid rows found to sync"
     except Exception as e:
@@ -546,6 +760,11 @@ def sync_data_to_supabase(ticker: str, data: dict) -> tuple[bool, str]:
             sb_symbol = parts[0]
             sb_exchange = parts[1]
             if sb_exchange == "CC": sb_exchange = "EGX"
+        
+        # Clean symbol (remove fund_ prefix if present)
+        # This handles the user's issue where "fund_ANFI" was stored instead of "ANFI"
+        if sb_symbol.lower().startswith("fund_"):
+            sb_symbol = sb_symbol[5:]  # Remove 'fund_' (5 chars)
 
         row = {
             "symbol": sb_symbol,
@@ -553,6 +772,14 @@ def sync_data_to_supabase(ticker: str, data: dict) -> tuple[bool, str]:
             "data": data,
             "updated_at": dt.datetime.utcnow().isoformat()
         }
+        
+        # Populate optional columns if available in data
+        # Check for case-insensitive keys just in case
+        clean_data = {k.lower(): v for k, v in data.items()}
+        if "name" in clean_data:
+            row["name"] = clean_data["name"]
+        if "country" in clean_data:
+            row["country"] = clean_data["country"]
         
         supabase.table("stock_fundamentals").upsert(row, on_conflict="symbol,exchange").execute()
         return True, "Fundamentals synced"
@@ -574,6 +801,58 @@ def clear_supabase_stock_prices() -> tuple[bool, str]:
         return True, "All stock prices cleared from Supabase"
     except Exception as e:
         msg = f"Error clearing stock prices: {e}"
+        print(msg)
+        return False, msg
+
+def upsert_technical_indicators(
+    symbol: str,
+    exchange: str,
+    date: str,
+    close: float,
+    volume: int,
+    indicators: Dict[str, Any]
+) -> tuple[bool, str]:
+    """Upsert technical indicators to Supabase using RPC."""
+    _init_supabase()
+    if not supabase:
+        return False, "Supabase not initialized"
+    
+    try:
+        data = {
+            "p_symbol": symbol,
+            "p_exchange": exchange,
+            "p_date": date,
+            "p_close": close,
+            "p_volume": int(volume),
+            "p_ema_50": _finite_float(indicators.get("EMA_50")),
+            "p_ema_200": _finite_float(indicators.get("EMA_200")),
+            "p_sma_50": _finite_float(indicators.get("SMA_50")),
+            "p_sma_200": _finite_float(indicators.get("SMA_200")),
+            "p_rsi_14": _finite_float(indicators.get("RSI")),
+            "p_macd": _finite_float(indicators.get("MACD")),
+            "p_macd_signal": _finite_float(indicators.get("MACD_Signal")),
+            "p_macd_histogram": _finite_float(indicators.get("MACD_Histogram")), # If implemented
+            "p_adx_14": _finite_float(indicators.get("ADX_14")),
+            "p_atr_14": _finite_float(indicators.get("ATR_14")),
+            "p_bb_upper": _finite_float(indicators.get("BB_Upper")),
+            "p_bb_lower": _finite_float(indicators.get("BB_Lower")),
+            "p_stoch_k": _finite_float(indicators.get("STOCH_K")),
+            "p_stoch_d": _finite_float(indicators.get("STOCH_D")),
+            "p_roc_12": _finite_float(indicators.get("ROC_12")),
+            "p_momentum_10": _finite_float(indicators.get("Momentum")),
+            "p_vol_sma20": int(indicators.get("VOL_SMA20", 0)) if indicators.get("VOL_SMA20") else None,
+            "p_vwap_20": _finite_float(indicators.get("VWAP_20")),
+            "p_r_vol": _finite_float(indicators.get("R_VOL")),
+            "p_change_pct": _finite_float(indicators.get("change_p"))
+        }
+        
+        # Filter out keys with None to allow defaults in SQL if any
+        params = {k: v for k, v in data.items() if v is not None}
+        
+        supabase.rpc("admin_upsert_technical_indicator", params).execute()
+        return True, "Technical indicators upserted"
+    except Exception as e:
+        msg = f"Supabase tech upsert error for {symbol}: {e}"
         print(msg)
         return False, msg
 
@@ -622,7 +901,8 @@ def get_company_fundamentals(
     def _try_tradingview() -> Any:
         upper = (ticker or "").strip().upper()
         if not upper: return None
-        if upper.endswith(".EGX") or upper.endswith(".CC"): return None
+        # Allow EGX/CC in TradingView as fallback
+        # if upper.endswith(".EGX") or upper.endswith(".CC"): return None
 
         from tradingview_integration import fetch_tradingview_fundamentals_bulk
         bulk = fetch_tradingview_fundamentals_bulk([upper])
@@ -809,7 +1089,7 @@ def add_technical_indicators(df: pd.DataFrame) -> pd.DataFrame:
     if low_col: out["Low"] = df[low_col]
 
     out["SMA_50"] = out["Close"].rolling(window=50, min_periods=1).mean()
-    # out["SMA_200"] = out["Close"].rolling(window=200).mean() # Removed to prevent massive data drop on short histories
+    out["SMA_200"] = out["Close"].rolling(window=200, min_periods=1).mean()
     
     # EMA
     out["EMA_50"] = out["Close"].ewm(span=50, adjust=False).mean()
@@ -839,6 +1119,7 @@ def add_technical_indicators(df: pd.DataFrame) -> pd.DataFrame:
     out["Momentum"] = out["Close"].pct_change(fill_method=None).fillna(0)
 
     out["VOL_SMA20"] = out["Volume"].rolling(window=20, min_periods=1).mean()
+    out["R_VOL"] = (out["Volume"] / out["VOL_SMA20"].replace(0.0, np.nan)).fillna(0.0)
 
     if "High" in out.columns and "Low" in out.columns:
         high = out["High"].astype(float)
@@ -1285,3 +1566,33 @@ def run_pipeline(
 
 # Alias for compatibility
 get_stock_data = get_stock_data_eodhd
+
+def batch_check_local_cache(symbol_exchange_list: List[Tuple[str, Optional[str]]]) -> Dict[Tuple[str, Optional[str]], bool]:
+    """Efficiently checks multiple symbols in Supabase in a single batch (via cached_tickers)."""
+    cached_set = get_cached_tickers()
+    results = {}
+    for s, e in symbol_exchange_list:
+        results[(s, e)] = is_ticker_synced(s, e)
+    return results
+
+def batch_get_stock_data(
+    api: APIClient,
+    ticker_list: List[str],
+    from_date: str,
+    exchange_list: Optional[List[Optional[str]]] = None,
+    force_local: bool = True
+) -> Dict[str, pd.DataFrame]:
+    """
+    Fetches stock data for multiple tickers. 
+    Currently sequential but optimized for cloud-first lookups.
+    """
+    results = {}
+    for i, ticker in enumerate(ticker_list):
+        ex = exchange_list[i] if exchange_list else None
+        try:
+            df = get_stock_data_eodhd(api, ticker, from_date, exchange=ex, force_local=force_local)
+            if not df.empty:
+                results[ticker] = df
+        except Exception:
+            continue
+    return results
