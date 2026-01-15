@@ -184,11 +184,18 @@ def train_model(exchange, supabase_url, supabase_key):
     model.fit(df_train[predictors], df_train["Target"])
     
     # 4. Save and Upload
+    api_dir = os.path.dirname(os.path.abspath(__file__))
+    models_dir = os.path.join(api_dir, "models")
+    if not os.path.exists(models_dir):
+        os.makedirs(models_dir)
+        
     filename = f"model_{exchange}.pkl"
-    with open(filename, "wb") as f:
+    filepath = os.path.join(models_dir, filename)
+    
+    with open(filepath, "wb") as f:
         pickle.dump(model, f)
     
-    print(f"Model saved to {filename}")
+    print(f"Model saved to {filepath}")
     
     # Upload to Supabase Storage (bucket 'ai-models')
     try:

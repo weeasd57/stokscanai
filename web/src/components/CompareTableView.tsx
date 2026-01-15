@@ -5,6 +5,7 @@ import { TrendingUp, TrendingDown, Info, X, Loader2, AlertCircle, Star } from "l
 import type { PredictResponse } from "@/lib/types";
 import { calculateIndicatorStats, type IndicatorStats } from "@/lib/indicators";
 import { useLanguage } from "@/contexts/LanguageContext";
+import StockLogo from "@/components/StockLogo";
 
 function StatCell({ stats }: { stats: IndicatorStats }) {
     const winRate = parseFloat(stats.buyWinRate);
@@ -133,9 +134,12 @@ export default function CompareTableView({ results, loadingSymbols, errors, onRe
                                         onClick={() => onChart?.(item.symbol)}
                                     >
                                         <td className="px-6 py-4 sticky left-0 bg-zinc-950/90 group-hover:bg-zinc-900/90 z-10 backdrop-blur-md">
-                                            <div className="flex flex-col">
-                                                <span className="font-mono font-bold text-blue-400 text-sm tracking-tight">{item.symbol}</span>
-                                                <span className="text-[10px] text-zinc-500 truncate max-w-[140px] font-medium uppercase tracking-tighter">{data.fundamentals.name}</span>
+                                            <div className="flex items-center gap-4">
+                                                <StockLogo symbol={item.symbol} logoUrl={data.fundamentals.logoUrl} size="md" />
+                                                <div className="flex flex-col">
+                                                    <span className="font-mono font-bold text-blue-400 text-sm tracking-tight">{item.symbol}</span>
+                                                    <span className="text-[10px] text-zinc-500 truncate max-w-[140px] font-medium uppercase tracking-tighter">{data.fundamentals.name}</span>
+                                                </div>
                                             </div>
                                         </td>
                                         <td className="px-4 py-4 text-center">

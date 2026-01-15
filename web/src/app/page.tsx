@@ -11,6 +11,7 @@ import CandleChart from "@/components/CandleChart";
 import TableView from "@/components/TableView";
 import CountrySymbolDialog from "@/components/CountrySymbolDialog";
 import NewsWidget from "@/components/NewsWidget";
+import StockLogo from "@/components/StockLogo";
 
 const DEFAULT_TICKER = "AAPL";
 
@@ -181,7 +182,12 @@ export default function HomePage() {
                           symbol: ticker,
                           name: (data.fundamentals as any)?.name || ticker,
                           source: "home",
-                          metadata: { prediction: data.tomorrowPrediction, precision: data.precision, price: data.lastClose }
+                          metadata: {
+                            prediction: data.tomorrowPrediction,
+                            precision: data.precision,
+                            price: data.lastClose,
+                            logo_url: (data.fundamentals as any)?.logoUrl
+                          }
                         });
                       }
                     }}
@@ -205,8 +211,11 @@ export default function HomePage() {
               <div className="absolute bottom-0 right-0 w-full h-px bg-gradient-to-r from-transparent via-indigo-500/20 to-transparent" />
 
               <div className="flex items-center gap-6 mb-10 relative">
-                <div className="p-4 rounded-[1.5rem] bg-indigo-600/20 border border-indigo-500/30 shadow-2xl shadow-indigo-600/20">
-                  <Brain className="h-8 w-8 text-indigo-400" />
+                <div className="flex items-center gap-4">
+                  <StockLogo symbol={ticker} logoUrl={(data.fundamentals as any)?.logoUrl} size="xl" />
+                  <div className="p-4 rounded-[1.5rem] bg-indigo-600/20 border border-indigo-500/30 shadow-2xl shadow-indigo-600/20">
+                    <Brain className="h-8 w-8 text-indigo-400" />
+                  </div>
                 </div>
                 <div className="space-y-1">
                   <h2 className="text-2xl font-black text-white uppercase tracking-tighter italic">{t("home.insights.title")}</h2>

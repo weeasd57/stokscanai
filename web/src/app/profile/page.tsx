@@ -9,6 +9,7 @@ import { Trash2, LineChart, Cpu, X, Loader2, Save, Target, ShieldAlert, Award, C
 import { predictStock } from "@/lib/api";
 import CandleChart from "@/components/CandleChart";
 import ConfirmDialog from "@/components/ConfirmDialog";
+import StockLogo from "@/components/StockLogo";
 import type { PredictResponse } from "@/lib/types";
 
 type ProfileRow = {
@@ -346,11 +347,14 @@ export default function ProfilePage() {
                 {positions.map((p) => (
                   <tr key={p.id} onClick={() => openChart(p)} className="group hover:bg-white/[0.05] transition-colors cursor-pointer border-b border-white/5">
                     <td className="px-8 py-6">
-                      <div className="flex flex-col gap-1">
-                        <span className="font-mono font-black text-indigo-400 group-hover:text-indigo-300 transition-colors">{p.symbol}</span>
-                        <div className="flex items-center gap-2 text-[10px] font-black text-zinc-600 uppercase tracking-widest">
-                          <Clock className="w-2.5 h-2.5" />
-                          {new Date(p.added_at).toLocaleDateString()}
+                      <div className="flex items-center gap-4">
+                        <StockLogo symbol={p.symbol} logoUrl={p.metadata?.logo_url} size="md" />
+                        <div className="flex flex-col gap-1">
+                          <span className="font-mono font-black text-indigo-400 group-hover:text-indigo-300 transition-colors">{p.symbol}</span>
+                          <div className="flex items-center gap-2 text-[10px] font-black text-zinc-600 uppercase tracking-widest">
+                            <Clock className="w-2.5 h-2.5" />
+                            {new Date(p.added_at).toLocaleDateString()}
+                          </div>
                         </div>
                       </div>
                     </td>
@@ -428,6 +432,7 @@ export default function ProfilePage() {
             <div className="flex items-center justify-between px-10 py-8 border-b border-white/5">
               <div className="space-y-1">
                 <h3 className="text-3xl font-black text-white font-mono tracking-tighter flex items-center gap-4">
+                  <StockLogo symbol={chartPosition.symbol} logoUrl={chartPosition.metadata?.logo_url || chartData?.fundamentals?.logoUrl} size="lg" />
                   {chartPosition.symbol}
                   <span className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.3em] font-sans px-4 py-1.5 rounded-xl border border-white/5">
                     {new Date(chartPosition.added_at).toLocaleDateString()}
@@ -534,8 +539,8 @@ export default function ProfilePage() {
                       <td className="py-4 font-mono font-bold text-indigo-400">{r.symbol}</td>
                       <td className="py-4 text-center">
                         <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase border ${r.status === 'hit_target' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
-                            r.status === 'hit_stop' ? 'bg-red-500/10 text-red-400 border-red-500/20' :
-                              'bg-blue-500/10 text-blue-400 border-blue-500/20'
+                          r.status === 'hit_stop' ? 'bg-red-500/10 text-red-400 border-red-500/20' :
+                            'bg-blue-500/10 text-blue-400 border-blue-500/20'
                           }`}>
                           {r.status.replace("_", " ")}
                         </span>

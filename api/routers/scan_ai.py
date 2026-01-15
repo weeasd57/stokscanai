@@ -16,6 +16,7 @@ class ScanResult(BaseModel):
     precision: float
     signal: str  # "BUY" or "SELL/HOLD"
     confidence: str # High/Medium/Low based on precision
+    logo_url: Optional[str] = None
 
 class SingleScanRequest(BaseModel):
     symbol: str
@@ -104,7 +105,7 @@ async def scan_ai(
                     api_key=api_key,
                     ticker=symbol,
                     from_date="2020-01-01",
-                    include_fundamentals=False,
+                    include_fundamentals=True,
                     tolerance_days=5, # Allow cached data up to 5 days old for scanning speed
                     exchange=exchange,
                     force_local=True,
@@ -124,7 +125,8 @@ async def scan_ai(
                             last_close=prediction["lastClose"],
                             precision=prec,
                             signal="BUY",
-                            confidence="High" if prec > 0.7 else "Medium"
+                            confidence="High" if prec > 0.7 else "Medium",
+                            logo_url=prediction.get("fundamentals", {}).get("logoUrl")
                         ))
 
             except Exception:
@@ -157,7 +159,7 @@ async def scan_ai_single(req: SingleScanRequest):
             api_key=api_key,
             ticker=req.symbol,
             from_date="2020-01-01",
-            include_fundamentals=False,
+            include_fundamentals=True,
             tolerance_days=5,
             exchange=req.exchange,
             force_local=True,
@@ -175,7 +177,8 @@ async def scan_ai_single(req: SingleScanRequest):
                     last_close=prediction["lastClose"],
                     precision=prec,
                     signal="BUY",
-                    confidence="High" if prec > 0.7 else "Medium"
+                    confidence="High" if prec > 0.7 else "Medium",
+                    logo_url=prediction.get("fundamentals", {}).get("logoUrl")
                 )
     except Exception as e:
         print(f"Error scanning {req.symbol}: {e}")

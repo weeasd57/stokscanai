@@ -8,6 +8,7 @@ export type Fundamentals = {
   high52?: number | null;
   low52?: number | null;
   name?: string | null;
+  logoUrl?: string | null;
 };
 
 export type TestPredictionRow = {

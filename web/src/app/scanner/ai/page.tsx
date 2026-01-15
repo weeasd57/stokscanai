@@ -9,6 +9,7 @@ import { predictStock, type ScanResult } from "@/lib/api";
 import CountrySelectDialog from "@/components/CountrySelectDialog";
 import CandleChart from "@/components/CandleChart";
 import TableView from "@/components/TableView";
+import StockLogo from "@/components/StockLogo";
 
 export default function AIScannerPage() {
     const { t } = useLanguage();
@@ -364,7 +365,10 @@ export default function AIScannerPage() {
                                             className={`cursor-pointer group transition-all ${selected?.symbol === r.symbol ? "bg-indigo-600/10" : "hover:bg-white/[0.02]"}`}
                                         >
                                             <td className="px-8 py-5">
-                                                <span className="font-mono font-black text-indigo-400 group-hover:text-indigo-300 transition-colors">{r.symbol}</span>
+                                                <div className="flex items-center gap-4">
+                                                    <StockLogo symbol={r.symbol} logoUrl={r.logo_url} size="md" />
+                                                    <span className="font-mono font-black text-indigo-400 group-hover:text-indigo-300 transition-colors">{r.symbol}</span>
+                                                </div>
                                             </td>
                                             <td className="px-6 py-5">
                                                 <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-tighter truncate max-w-[200px] block">{r.name}</span>
@@ -390,7 +394,11 @@ export default function AIScannerPage() {
                                                                 symbol: r.symbol,
                                                                 name: r.name,
                                                                 source: "ai_scanner",
-                                                                metadata: { precision: r.precision, last_close: r.last_close }
+                                                                metadata: {
+                                                                    precision: r.precision,
+                                                                    last_close: r.last_close,
+                                                                    logo_url: r.logo_url
+                                                                }
                                                             });
                                                         }
                                                     }}

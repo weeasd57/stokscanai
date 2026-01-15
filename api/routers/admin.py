@@ -23,6 +23,11 @@ from api.stock_ai import (
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
+def _chunks(items: list, size: int):
+    """Yield successive n-sized chunks from items."""
+    for i in range(0, len(items), size):
+        yield items[i : i + size]
+
 class UpdateRequest(BaseModel):
     symbols: List[str]
     country: Optional[str] = None
@@ -40,6 +45,24 @@ class SmartSyncRequest(BaseModel):
     updatePrices: bool = True
     updateFunds: bool = False
     unified: bool = False
+
+class ScheduleDispatchRequest(BaseModel):
+    workflow: str  # 'ai-training' or 'data-sync'
+    when: str      # ISO datetime string (UTC or local; if naive, treated as UTC)
+    exchange: Optional[str] = None
+    days: Optional[int] = None
+    updatePrices: Optional[bool] = None
+    updateFunds: Optional[bool] = None
+    unified: Optional[bool] = None
+
+class LogoDownloadRequest(BaseModel):
+    exchange: Optional[str] = None
+    country: Optional[str] = None
+
+class CronTriggerRequest(BaseModel):
+    action: str # update_prices, update_funds, recalculate_technicals
+    secret: str
+    exchange: Optional[str] = None
 
 class ScheduleRequest(BaseModel):
     cron: str
@@ -253,11 +276,6 @@ def update_batch(req: UpdateRequest, background_tasks: BackgroundTasks):
             if d.get(k) is not None:
                 return True
         return False
-
-    def _chunks(items: List[str], size: int) -> List[List[str]]:
-        if size <= 0:
-            return [items]
-        return [items[i : i + size] for i in range(0, len(items), size)]
 
     def _tradingview_market_for_symbol(sym: str) -> str:
         """Get TradingView market name from symbol - wrapper for module function."""
@@ -542,21 +560,26 @@ def get_db_symbols(exchange: str, mode: str = "prices"):
         
         missing_meta = [s for s, info in symbols_info.items() if info["name"] == "N/A"]
         if missing_meta:
-            res_meta = supabase.table("stock_fundamentals").select("symbol,data").eq("exchange", exchange).in_("symbol", missing_meta[:500]).execute()
-            if res_meta.data:
-                for row in res_meta.data:
-                    s = row["symbol"]
-                    d = row.get("data") or {}
-                    if s in symbols_info:
-                        symbols_info[s]["name"] = d.get("name", d.get("Name", "N/A"))
-                        symbols_info[s]["sector"] = d.get("sector", d.get("Sector", "N/A"))
+            # Chunking to avoid Supabase 500-symbol .in_ limit
+            for chunk in _chunks(missing_meta, 500):
+                res_meta = supabase.table("stock_fundamentals").select("symbol,data").eq("exchange", exchange).in_("symbol", chunk).execute()
+                if res_meta.data:
+                    for row in res_meta.data:
+                        s = row["symbol"]
+                        d = row.get("data") or {}
+                        if s in symbols_info:
+                            symbols_info[s]["name"] = d.get("name", d.get("Name", "N/A"))
+                            symbols_info[s]["sector"] = d.get("sector", d.get("Sector", "N/A"))
 
         if mode == "prices":
-            res_meta = supabase.table("stock_fundamentals").select("symbol,updated_at").eq("exchange", exchange).in_("symbol", list(symbols_info.keys())[:500]).execute()
-            if res_meta.data:
-                for row in res_meta.data:
-                    s = row["symbol"]
-                    if s in symbols_info: symbols_info[s]["last_sync"] = row["updated_at"]
+            all_syms = list(symbols_info.keys())
+            for chunk in _chunks(all_syms, 500):
+                res_meta = supabase.table("stock_fundamentals").select("symbol,updated_at").eq("exchange", exchange).in_("symbol", chunk).execute()
+                if res_meta.data:
+                    for row in res_meta.data:
+                        s = row["symbol"]
+                        if s in symbols_info: 
+                            symbols_info[s]["last_sync"] = row["updated_at"]
 
         return sorted(list(symbols_info.values()), key=lambda x: x["symbol"])
     except Exception as e:
@@ -889,6 +912,68 @@ async def trigger_smart_sync(req: SmartSyncRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.post("/actions/schedule")
+async def schedule_action(req: ScheduleDispatchRequest, background_tasks: BackgroundTasks):
+    """Schedule a one-time GitHub Actions dispatch at a future datetime."""
+    _reload_env()
+    github_pat = os.getenv("GITHUB_PAT")
+    if not github_pat:
+        raise HTTPException(status_code=500, detail="GITHUB_PAT not configured")
+
+    owner = "weeasd57"
+    repo = "stokscanai"
+
+    wf = req.workflow.strip().lower()
+    if wf in ("ai-training", "ai_training", "training"):
+        workflow_id = "ai-training.yml"
+        inputs = {"exchange": req.exchange or "US"}
+    elif wf in ("data-sync", "data_sync", "sync"):
+        workflow_id = "data-sync.yml"
+        inputs = {
+            "exchange": req.exchange or "US",
+            "days": str(req.days or 365),
+            "update_prices": "true" if (req.updatePrices is None or req.updatePrices) else "false",
+            "update_funds": "true" if (req.updateFunds or False) else "false",
+            "unified_dates": "true" if (req.unified or False) else "false",
+        }
+    else:
+        raise HTTPException(status_code=400, detail="Invalid workflow. Use 'ai-training' or 'data-sync'.")
+
+    try:
+        # Parse the target datetime
+        when_str = req.when
+        target_dt = datetime.fromisoformat(when_str.replace("Z", "+00:00")) if when_str else datetime.utcnow()
+        # If naive, treat as UTC
+        if target_dt.tzinfo is None:
+            target_dt = target_dt.replace(tzinfo=None)
+            now_utc = datetime.utcnow()
+            delay = max(0, (target_dt - now_utc).total_seconds())
+        else:
+            now_utc_ts = datetime.utcnow().timestamp()
+            delay = max(0, target_dt.timestamp() - now_utc_ts)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid 'when' datetime format. Use ISO 8601.")
+
+    url = f"https://api.github.com/repos/{owner}/{repo}/actions/workflows/{workflow_id}/dispatches"
+    headers = {
+        "Authorization": f"token {github_pat}",
+        "Accept": "application/vnd.github.v3+json",
+    }
+    payload = {"ref": "main", "inputs": inputs}
+
+    def _delayed_dispatch(wait_s: float, u: str, h: dict, p: dict):
+        try:
+            if wait_s > 0:
+                time.sleep(wait_s)
+            resp = requests.post(u, headers=h, json=p)
+            if resp.status_code != 204:
+                print(f"Schedule dispatch failed: {resp.status_code} - {resp.text}")
+        except Exception as ex:
+            print(f"Error during scheduled dispatch: {ex}")
+
+    background_tasks.add_task(_delayed_dispatch, delay, url, headers, payload)
+    return {"status": "scheduled", "workflow": workflow_id, "delay_seconds": int(delay)}
+
 @router.post("/sync/schedule")
 async def update_sync_schedule(req: ScheduleRequest):
     # This is a placeholder for updating the GHA YAML.
@@ -896,3 +981,46 @@ async def update_sync_schedule(req: ScheduleRequest):
     # For now, we'll log it and return success for UI verification.
     print(f"Schedule update requested: {req.cron} (Window: {req.startTime} - {req.endTime})")
     return {"status": "success", "message": "Schedule preference updated (Log recorded)."}
+@router.post("/logos/download")
+def trigger_logo_download(req: LogoDownloadRequest, background_tasks: BackgroundTasks):
+    try:
+        from api.download_logos import download_logos
+        background_tasks.add_task(download_logos, exchange=req.exchange, country=req.country)
+        return {"status": "success", "message": "Logo download started in background"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/cron/trigger")
+async def trigger_cron(req: CronTriggerRequest, background_tasks: BackgroundTasks):
+    _reload_env()
+    secret = os.getenv("CRON_SECRET")
+    if not secret or req.secret != secret:
+        raise HTTPException(status_code=401, detail="Invalid cron secret")
+    
+    def _cron_worker(action, ex_target):
+        try:
+            from api.stock_ai import get_supabase_inventory, get_supabase_symbols
+            
+            exchanges = [ex_target] if ex_target else [i['exchange'] for i in get_supabase_inventory() if i['fund_count'] > 0]
+            
+            for ex in exchanges:
+                print(f"CRON [{action}]: Processing {ex}")
+                if action == "recalculate_technicals":
+                    # We call the existing logic
+                    from api.routers.admin import RecalculateTechRequest, recalculate_indicators
+                    recalculate_indicators(RecalculateTechRequest(symbols=[], exchange=ex), background_tasks)
+                elif action in ["update_prices", "update_funds"]:
+                    syms = [s['symbol'] for s in get_supabase_symbols(exchange=ex)]
+                    for chunk in _chunks(syms, 50):
+                        from api.routers.admin import UpdateRequest, update_batch
+                        update_batch(UpdateRequest(
+                            symbols=chunk, 
+                            updatePrices=(action == "update_prices"), 
+                            updateFundamentals=(action == "update_funds")
+                        ), background_tasks)
+                        time.sleep(1)
+        except Exception as e:
+            print(f"CRON Error: {e}")
+
+    background_tasks.add_task(_cron_worker, req.action, req.exchange)
+    return {"status": "success", "message": f"Cron action {req.action} started for {req.exchange or 'all exchanges'}"}

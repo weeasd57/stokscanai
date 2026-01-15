@@ -7,6 +7,7 @@ import { useWatchlist } from "@/contexts/WatchlistContext";
 import { useAppState } from "@/contexts/AppStateContext";
 import type { TechResult } from "@/lib/api";
 import CountrySelectDialog from "@/components/CountrySelectDialog";
+import StockLogo from "@/components/StockLogo";
 
 export default function TechnicalScannerPage() {
     const { t } = useLanguage();
@@ -316,9 +317,7 @@ export default function TechnicalScannerPage() {
                                     >
                                         <td className="px-8 py-4 border-r border-white/5">
                                             <div className="flex items-center gap-4">
-                                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-zinc-800 to-zinc-900 border border-white/5 flex items-center justify-center font-black text-xs text-zinc-500 shadow-lg group-hover:scale-110 transition-transform">
-                                                    {r.symbol.slice(0, 2)}
-                                                </div>
+                                                <StockLogo symbol={r.symbol} logoUrl={r.logo_url} size="md" />
                                                 <div className="flex flex-col min-w-0">
                                                     <span className="font-black text-white text-sm group-hover:text-blue-400 transition-colors uppercase tracking-tight">{r.symbol}</span>
                                                     <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest truncate">{r.name || 'Unknown'}</span>
@@ -392,7 +391,12 @@ export default function TechnicalScannerPage() {
                                             <button
                                                 onClick={() => {
                                                     if (isSaved(r.symbol)) removeSymbolBySymbol(r.symbol);
-                                                    else saveSymbol({ symbol: r.symbol, name: r.name, source: "tech_scanner", metadata: {} });
+                                                    else saveSymbol({
+                                                        symbol: r.symbol,
+                                                        name: r.name,
+                                                        source: "tech_scanner",
+                                                        metadata: { logo_url: r.logo_url }
+                                                    });
                                                 }}
                                                 className={`p-2 rounded-xl transition-all ${isSaved(r.symbol) ? "text-blue-400 bg-blue-500/10" : "text-zinc-600 hover:text-white hover:bg-zinc-800"}`}
                                             >
@@ -437,9 +441,12 @@ export default function TechnicalScannerPage() {
                         <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[200] animate-in fade-in duration-300" onClick={() => setTechScanner(prev => ({ ...prev, selectedStock: null }))} />
                         <div className="fixed inset-y-0 right-0 w-[450px] bg-zinc-950 border-l border-white/10 z-[201] animate-in slide-in-from-right duration-500 flex flex-col shadow-[0_0_100px_rgba(0,0,0,0.8)]">
                             <div className="p-8 pb-4 flex items-center justify-between border-b border-white/5 bg-white/[0.02]">
-                                <div className="flex flex-col gap-1">
-                                    <h2 className="text-4xl font-black text-white font-mono tracking-tighter leading-none">{selectedStock.symbol}</h2>
-                                    <p className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-500">{selectedStock.name}</p>
+                                <div className="flex items-center gap-5">
+                                    <StockLogo symbol={selectedStock.symbol} logoUrl={selectedStock.logo_url} size="xl" />
+                                    <div className="flex flex-col gap-1">
+                                        <h2 className="text-4xl font-black text-white font-mono tracking-tighter leading-none">{selectedStock.symbol}</h2>
+                                        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-500">{selectedStock.name}</p>
+                                    </div>
                                 </div>
                                 <button
                                     onClick={() => setTechScanner(prev => ({ ...prev, selectedStock: null }))}

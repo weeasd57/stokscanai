@@ -266,6 +266,12 @@ def fetch_tradingview_fundamentals_bulk(
     TV_SYMBOL_ALIASES = {
         "AIND": "ADPC",  # Arab Dairy
         "AIND.EGX": "ADPC",
+        "EKHOA": "EKHO", # Egyptian Kuwaiti Holding (USD/EGP variant)
+        "EKHOA.EGX": "EKHO",
+        "AIVCB": "AIFI", # Atlas Investment
+        "AIVCB.EGX": "AIFI",
+        "ODHN": "ODIN",  # Odin Investments
+        "ODHN.EGX": "ODIN",
         # Add more as discovered
     }
 
@@ -335,6 +341,7 @@ def fetch_tradingview_fundamentals_bulk(
                         "dividend_yield_recent",
                         "sector",
                         "industry",
+                        "logoid",
                     )
                 )
                 
@@ -369,6 +376,7 @@ def fetch_tradingview_fundamentals_bulk(
                         "sector": row.get("sector"),
                         "industry": row.get("industry"),
                         "name": row.get("description") or row.get("name"),
+                        "logoUrl": f"https://s3-symbol-logo.tradingview.com/{row['logoid']}.svg" if row.get("logoid") else None
                     }
                     
                     # Skip if no core metrics

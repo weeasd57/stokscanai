@@ -34,6 +34,8 @@ class TechFilter(BaseModel):
     sector: Optional[str] = None
     industry: Optional[str] = None
     golden_cross: bool = False
+    use_ai_filter: bool = False
+    min_ai_precision: float = 0.6
 
 class TechResult(BaseModel):
     symbol: str
@@ -61,6 +63,9 @@ class TechResult(BaseModel):
     sector: Optional[str] = None
     industry: Optional[str] = None
     beta: Optional[float] = None
+    ai_precision: Optional[float] = None
+    ai_signal: Optional[str] = None
+    logo_url: Optional[str] = None
 
     @field_validator('*', mode='before')
     def check_nan(cls, v):
@@ -200,6 +205,25 @@ async def scan_technical(
             if f.volume_above_sma20 and volume <= vol_sma20: continue
             if f.golden_cross and ema50 <= ema200: continue
 
+            # AI Filter
+            ai_prec = None
+            ai_sig = None
+            if f.use_ai_filter:
+                from stock_ai import run_pipeline
+                prediction = run_pipeline(
+                    api_key=api_key,
+                    ticker=symbol,
+                    from_date="2020-01-01",
+                    include_fundamentals=False,
+                    tolerance_days=5,
+                    exchange=exchange,
+                    force_local=True
+                )
+                if prediction["tomorrowPrediction"] != 1: continue
+                if prediction["precision"] < f.min_ai_precision: continue
+                ai_prec = prediction["precision"]
+                ai_sig = "BUY"
+
             results.append(TechResult(
                 symbol=symbol,
                 name=name,
@@ -219,6 +243,9 @@ async def scan_technical(
                 sector=sec,
                 industry=ind,
                 beta=beta_val,
+                ai_precision=ai_prec,
+                ai_signal=ai_sig,
+                logo_url=funds.get("logoUrl")
             ))
                     
         except Exception as e:

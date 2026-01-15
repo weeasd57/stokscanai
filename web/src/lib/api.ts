@@ -232,6 +232,7 @@ export type ScanResult = {
   precision: number;
   signal: string;
   confidence: string;
+  logo_url?: string | null;
 };
 
 export type ScanResponse = {
@@ -365,6 +366,8 @@ export type TechFilter = {
   sector?: string;
   industry?: string;
   golden_cross?: boolean;
+  use_ai_filter?: boolean;
+  min_ai_precision?: number;
 };
 
 export type TechResult = {
@@ -392,6 +395,7 @@ export type TechResult = {
   sector?: string;
   industry?: string;
   beta?: number;
+  logo_url?: string | null;
 };
 
 export type TechResponse = {
@@ -429,7 +433,9 @@ export async function scanTech(filter: TechFilter, signal?: AbortSignal): Promis
         market_cap_max: filter.market_cap_max,
         sector: filter.sector,
         industry: filter.industry,
-        golden_cross: filter.golden_cross ?? false
+        golden_cross: filter.golden_cross ?? false,
+        use_ai_filter: filter.use_ai_filter ?? false,
+        min_ai_precision: filter.min_ai_precision ?? 0.6
       }),
       cache: "no-store",
       signal: signal

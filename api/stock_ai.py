@@ -2,6 +2,7 @@ import datetime as dt
 import os
 import urllib.request
 import urllib.error
+import pickle
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple, Union
 
@@ -14,7 +15,28 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import precision_score
 from supabase import create_client, Client
 
+# Conditional import for LGBM to avoid failure if not installed (though it should be)
+try:
+    from lightgbm import LGBMClassifier
+except ImportError:
+    LGBMClassifier = None
+
 supabase: Optional[Client] = None
+
+# Predictors used by the pre-trained LightGBM models
+LGBM_PREDICTORS = [
+    "Close", "Volume", 
+    "SMA_50", "SMA_200", 
+    "EMA_50", "EMA_200", 
+    "RSI", "Momentum", "ROC_12", 
+    "MACD", "MACD_Signal",
+    "ATR_14", "ADX_14",
+    "STOCH_K", "STOCH_D",
+    "CCI_20", "VWAP_20", "VOL_SMA20"
+]
+
+# Standard predictors for default RandomForest (Legacy)
+RF_PREDICTORS = ["Close", "Volume", "SMA_50", "SMA_200", "RSI", "Momentum"]
 
 def _init_supabase():
     global supabase
@@ -1334,16 +1356,63 @@ def train_and_predict(
     df: pd.DataFrame,
     rf_params: Optional[Dict[str, Any]] = None,
     rf_preset: Optional[str] = None,
-) -> Tuple[RandomForestClassifier, List[str], pd.DataFrame, pd.Series, float]:
+    exchange: Optional[str] = None,
+) -> Tuple[Any, List[str], pd.DataFrame, pd.Series, float]:
+    """
+    Core prediction logic. 
+    1. Tries to load a pre-trained model for the exchange.
+    2. If not found, trains a fresh RandomForest model on the fly.
+    """
     preset = (rf_preset or "").lower()
+    
+    # Path for pre-trained model
+    api_dir = os.path.dirname(os.path.abspath(__file__))
+    model_filename = f"model_{exchange}.pkl" if exchange else None
+    model_path = os.path.join(api_dir, "models", model_filename) if model_filename else None
+    
+    loaded_model = None
+    predictors = RF_PREDICTORS
+    
+    if model_path and os.path.exists(model_path):
+        try:
+            with open(model_path, "rb") as f:
+                loaded_model = pickle.load(f)
+            
+            # Identify predictors based on model type
+            if LGBMClassifier and isinstance(loaded_model, LGBMClassifier):
+                predictors = [p for p in LGBM_PREDICTORS if p in df.columns]
+                print(f"Loaded pre-trained LightGBM model for {exchange}")
+            else:
+                predictors = [p for p in RF_PREDICTORS if p in df.columns]
+                print(f"Loaded pre-trained model for {exchange}")
+        except Exception as e:
+            print(f"Failed to load pre-trained model {model_path}: {e}")
+            loaded_model = None
 
     if preset == "fast" and len(df) > 600:
         df = df.iloc[-600:].copy()
 
-    # Possible predictors
-    all_predictors = ["Close", "Volume", "SMA_50", "SMA_200", "RSI", "Momentum"]
-    # Only use those that exist in the dataframe
-    predictors = [p for p in all_predictors if p in df.columns]
+    # If we have a loaded model, we don't need to "train" but we still need to generate 
+    # test predictions and precision for the UI.
+    if loaded_model:
+        if len(df) < 100: # Smaller threshold for pre-trained validation
+            # If really short, just return the last prediction with dummy precision
+            last_row = df.iloc[[-1]][predictors]
+            pred = int(loaded_model.predict(last_row)[0])
+            return loaded_model, predictors, df.iloc[[-1]], pd.Series([pred], index=[df.index[-1]]), 0.8
+            
+        test_size = min(100, int(len(df) * 0.2))
+        test = df.iloc[-test_size:]
+        
+        preds = loaded_model.predict(test[predictors])
+        preds = pd.Series(preds, index=test.index)
+        precision = precision_score(test["Target"], preds, zero_division=0)
+        
+        return loaded_model, predictors, test, preds, float(precision)
+
+    # Fallback to existing training logic
+    # Possible predictors for on-the-fly RF
+    predictors = [p for p in RF_PREDICTORS if p in df.columns]
 
     if len(df) < 120:
         raise ValueError("Not enough data to train. Need at least ~120 rows.")
@@ -1437,7 +1506,12 @@ def run_pipeline(
             f"Insufficient historical data or symbol not available on your API plan for {ticker}{suffix}. Try specifying exchange, e.g. AAPL.US"
         ) from last_error
 
-    model, predictors, test_df, preds, precision = train_and_predict(prices_ai, rf_params=rf_params, rf_preset=rf_preset)
+    model, predictors, test_df, preds, precision = train_and_predict(
+        prices_ai, 
+        rf_params=rf_params, 
+        rf_preset=rf_preset,
+        exchange=exchange
+    )
 
     last_row = prices_ai.iloc[[-1]][predictors]
     tomorrow_prediction = int(model.predict(last_row)[0])
