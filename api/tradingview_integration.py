@@ -177,6 +177,15 @@ def fetch_tradingview_prices(
     if is_up_to_date and has_enough_history:
         return True, "Already up to date and sufficient history in Cloud"
     
+    # Throttle slightly to avoid hammering TradingView / remote host when
+    # updating many symbols in a loop.
+    try:
+        delay = float(os.getenv("TRADINGVIEW_REQUEST_DELAY", "1.5"))
+        if delay > 0:
+            time.sleep(delay)
+    except Exception:
+        pass
+
     try:
         # Initialize TvDatafeed
         tv = TvDatafeed()

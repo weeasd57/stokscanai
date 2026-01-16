@@ -123,6 +123,7 @@ export default function AIScannerPage() {
                 </p>
             </header>
 
+
             <div className="rounded-[2.5rem] border border-white/5 bg-zinc-950/40 backdrop-blur-xl p-8 shadow-2xl overflow-hidden relative">
                 {/* Background Decor */}
                 <div className="absolute top-0 right-0 w-96 h-96 bg-indigo-600/5 blur-[120px] rounded-full -translate-y-1/2 translate-x-1/2" />

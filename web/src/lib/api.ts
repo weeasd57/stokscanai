@@ -7,6 +7,7 @@ export type PredictParams = {
   includeFundamentals?: boolean;
   rfPreset?: string;
   rfParams?: Record<string, unknown>;
+  modelName?: string;
 };
 
 export async function predictStock(params: PredictParams): Promise<PredictResponse> {
@@ -42,6 +43,7 @@ export async function predictStock(params: PredictParams): Promise<PredictRespon
     include_fundamentals: params.includeFundamentals ?? true,
     rf_preset: params.rfPreset ?? null,
     rf_params: params.rfParams ?? null,
+    model_name: params.modelName ?? null,
   };
 
   async function doFetch(url: string) {
@@ -95,6 +97,112 @@ export type CountriesResponse = {
 export type SymbolSearchResponse = {
   results: SymbolResult[];
 };
+
+export type LocalModelMeta = {
+  name: string;
+  size_bytes?: number;
+  size_mb?: number;
+  created_at?: string;
+  modified_at?: string;
+  type?: string;
+  num_features?: number;
+  num_parameters?: number;
+};
+
+export type LocalModelsResponse = {
+  models: (string | LocalModelMeta)[];
+};
+
+export async function getLocalModels(): Promise<(string | LocalModelMeta)[]> {
+  const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
+  const endpoint = "/models/local";
+
+  async function doFetch(url: string) {
+    return await fetch(url, { cache: "no-store" });
+  }
+
+  let res: Response;
+  try {
+    res = baseUrl ? await doFetch(`${baseUrl}${endpoint}`) : await doFetch(`/api${endpoint}`);
+  } catch (e) {
+    if (baseUrl) {
+      res = await doFetch(`/api${endpoint}`);
+    } else {
+      throw e;
+    }
+  }
+
+  if (!res.ok) {
+    throw new Error(`Failed to fetch models (${res.status})`);
+  }
+
+  const data = (await res.json()) as LocalModelsResponse;
+  return data.models ?? [];
+}
+
+export type DateSymbolResult = {
+  symbol: string;
+  exchange: string;
+  name: string;
+  rowCount?: number;
+};
+
+export async function getSymbolsByDate(params: {
+  start: string;
+  end: string;
+  exchange?: string;
+  limit?: number;
+  searchTerm?: string;
+}): Promise<DateSymbolResult[]> {
+  const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
+  const query = new URLSearchParams({ start: params.start, end: params.end });
+  if (params.exchange) query.set("exchange", params.exchange);
+  if (params.limit) query.set("limit", String(params.limit));
+  if (params.searchTerm) query.set("search_term", params.searchTerm);
+
+  async function doFetch(url: string) {
+    return await fetch(url, { cache: "no-store" });
+  }
+
+  let res: Response;
+  try {
+    const endpoint = `/symbols/by-date?${query.toString()}`;
+    res = baseUrl ? await doFetch(`${baseUrl}${endpoint}`) : await doFetch(`/api${endpoint}`);
+  } catch (e) {
+    if (baseUrl) {
+      res = await doFetch(`/api/symbols/by-date?${query.toString()}`);
+    } else {
+      throw e;
+    }
+  }
+
+  if (!res.ok) {
+    throw new Error(`Failed to fetch symbols (${res.status})`);
+  }
+
+  const data = (await res.json()) as { results: DateSymbolResult[] };
+  return data.results;
+}
+
+// Get symbols for an exchange (fallback from db-inventory)
+export async function getSymbolsForExchange(exchange: string): Promise<DateSymbolResult[]> {
+  try {
+    const res = await fetch(`/api/admin/db-symbols/${exchange}?mode=prices`, { cache: "no-store" });
+    if (!res.ok) {
+      throw new Error(`Failed to fetch symbols (${res.status})`);
+    }
+    const data = (await res.json()) as any[];
+    return data.map((item) => ({
+      symbol: item.symbol,
+      exchange: exchange,
+      name: item.name || "",
+      rowCount: item.rowCount || item.row_count || 0,
+    }));
+  } catch (error) {
+    console.error("Failed to fetch symbols from db-symbols:", error);
+    return [];
+  }
+}
 
 // Get list of available countries
 export async function getInventory(): Promise<any[]> {

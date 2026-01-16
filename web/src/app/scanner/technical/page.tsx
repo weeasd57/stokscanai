@@ -8,6 +8,7 @@ import { useAppState } from "@/contexts/AppStateContext";
 import type { TechResult } from "@/lib/api";
 import CountrySelectDialog from "@/components/CountrySelectDialog";
 import StockLogo from "@/components/StockLogo";
+import ScannerTemplates, { type ScannerTemplateId } from "@/components/ScannerTemplates";
 
 export default function TechnicalScannerPage() {
     const { t } = useLanguage();
@@ -86,6 +87,42 @@ export default function TechnicalScannerPage() {
         await runTechScan();
     }
 
+    function applyTemplate(id: ScannerTemplateId) {
+        const baseUpdate = {
+            searchTerm: "",
+            rsiMin: "",
+            rsiMax: "",
+            aboveEma50: false,
+            aboveEma200: false,
+            adxMin: "",
+            adxMax: "",
+            atrMin: "",
+            atrMax: "",
+            stochKMin: "",
+            stochKMax: "",
+            rocMin: "",
+            rocMax: "",
+            aboveVwap20: false,
+            volumeAboveSma20: false,
+            goldenCross: false,
+            marketCapMin: "",
+            marketCapMax: "",
+            sector: "",
+            industry: "",
+        };
+
+        const presets: Record<ScannerTemplateId, Partial<typeof baseUpdate>> = {
+            ai_growth: { aboveEma50: true, rsiMin: "45", rsiMax: "70" },
+            macd_cross: { goldenCross: true, aboveEma50: true },
+            rsi_oversold: { rsiMax: "30" },
+            volume_breakout: { volumeAboveSma20: true },
+            sma_200_breakout: { aboveEma200: true },
+        };
+
+        setTechScanner(prev => ({ ...prev, ...baseUpdate, ...presets[id] }));
+        setTimeout(() => void runTechScan({ force: true }), 0);
+    }
+
     const formatNum = (val: number | undefined | null, decimals = 2) => {
         if (val === undefined || val === null || isNaN(val)) return "N/A";
         return val.toLocaleString(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
@@ -133,6 +170,10 @@ export default function TechnicalScannerPage() {
                         </span>
                     )}
                 </div>
+            </div>
+
+            <div className="px-6 pt-6">
+                <ScannerTemplates onSelect={applyTemplate} />
             </div>
 
             {/* --- Inline Filter Bar --- */}

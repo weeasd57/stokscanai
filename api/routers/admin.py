@@ -91,6 +91,17 @@ def _init_supabase():
             supabase = create_client(url, key)
 
 
+# Simple in-memory state to track local training status
+LOCAL_TRAINING_STATE = {
+    "running": False,
+    "exchange": None,
+    "started_at": None,
+    "completed_at": None,
+    "error": None,
+    "last_message": None,
+}
+_local_training_lock = threading.Lock()
+
 
 @router.get("/plans")
 def get_plans():
@@ -471,39 +482,6 @@ def update_batch(req: UpdateRequest, background_tasks: BackgroundTasks):
     return {"results": results, "priceSource": price_source, "fundSource": fund_source_cfg, "debug_config_path": CONFIG_FILE}
 
 
-@router.get("/usage")
-def get_usage():
-    import requests
-    _reload_env()
-    api_key = os.getenv("EODHD_API_KEY")
-    if not api_key:
-        raise HTTPException(status_code=500, detail="EODHD_API_KEY not set")
-
-    try:
-        url = f"https://eodhd.com/api/user?api_token={api_key}&fmt=json"
-        res = requests.get(url)
-        res.raise_for_status()
-        data = res.json()
-
-        # Structure typically:
-        # { "apiRequests": 19, "dailyRateLimit": 20, ... }
-        # Extra credits might be in different field or inferred.
-        # But user specifically mentioned logic "100110 left".
-        # Let's return the whole object or mapped fields.
-
-        return {
-            "used": data.get("apiRequests", 0),
-            "limit": data.get("dailyRateLimit", 0),
-            "extraLeft": data.get("paymentTokens", 0) # Assuming this maps to extra credits usually
-        }
-    except Exception as e:
-        print(f"Error fetching usage: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-
-
-
 @router.get("/db-inventory")
 def get_db_inventory():
     """Retrieve accurate summary stats for all exchanges in Supabase using unified logic."""
@@ -779,6 +757,10 @@ def recalculate_indicators(req: RecalculateTechRequest, background_tasks: Backgr
 
 class TrainTriggerRequest(BaseModel):
     exchange: str
+    useEarlyStopping: bool = True
+    nEstimators: Optional[int] = None
+    modelName: Optional[str] = None
+    featurePreset: Optional[str] = None  # "core" | "extended" | "max"
 
 @router.post("/train/trigger")
 async def trigger_training(req: TrainTriggerRequest):
@@ -828,37 +810,85 @@ async def trigger_local_training(req: TrainTriggerRequest, background_tasks: Bac
     
     url = os.getenv("NEXT_PUBLIC_SUPABASE_URL")
     key = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
-    
+
     if not url or not key:
          raise HTTPException(status_code=500, detail="Supabase credentials not configured")
 
-    def _train_worker(ex, u, k):
+    with _local_training_lock:
+        LOCAL_TRAINING_STATE["running"] = True
+        LOCAL_TRAINING_STATE["exchange"] = req.exchange
+        LOCAL_TRAINING_STATE["started_at"] = datetime.utcnow().isoformat()
+        LOCAL_TRAINING_STATE["completed_at"] = None
+        LOCAL_TRAINING_STATE["error"] = None
+        LOCAL_TRAINING_STATE["last_message"] = f"Starting local training for {req.exchange}"
+
+    def _train_worker(ex, u, k, use_early_stopping: bool, n_estimators: Optional[int], model_name: Optional[str]):
         try:
             print(f"Starting local training for {ex}")
-            train_model(ex, u, k)
+            train_model(
+                ex,
+                u,
+                k,
+                use_early_stopping=use_early_stopping,
+                n_estimators=n_estimators,
+                model_name=model_name,
+                upload_to_cloud=False,
+                feature_preset=(req.featurePreset or "extended"),
+            )
             print(f"Local training for {ex} completed")
+            with _local_training_lock:
+                LOCAL_TRAINING_STATE["running"] = False
+                LOCAL_TRAINING_STATE["completed_at"] = datetime.utcnow().isoformat()
+                LOCAL_TRAINING_STATE["error"] = None
+                LOCAL_TRAINING_STATE["last_message"] = f"Local training for {ex} completed"
         except Exception as e:
             print(f"Local training failed: {e}")
+            with _local_training_lock:
+                LOCAL_TRAINING_STATE["running"] = False
+                LOCAL_TRAINING_STATE["completed_at"] = datetime.utcnow().isoformat()
+                LOCAL_TRAINING_STATE["error"] = str(e)
+                LOCAL_TRAINING_STATE["last_message"] = f"Local training failed: {e}"
 
-    background_tasks.add_task(_train_worker, req.exchange, url, key)
+    background_tasks.add_task(
+        _train_worker,
+        req.exchange,
+        url,
+        key,
+        req.useEarlyStopping,
+        req.nEstimators,
+        req.modelName,
+    )
     return {"status": "success", "message": f"Local training started for {req.exchange}. Check server logs for progress."}
+
+
+@router.get("/train/summary")
+async def get_last_training_summary():
+    """Return last training summary JSON written by train_exchange_model.py, if present."""
+    try:
+        api_dir = os.path.dirname(os.path.abspath(__file__))
+        summary_path = os.path.join(api_dir, "training_summary.json")
+        if not os.path.exists(summary_path):
+            return {"status": "empty"}
+        with open(summary_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        return {"status": "ok", "summary": data}
+    except Exception as e:
+        print(f"Failed to read training summary: {e}")
+        raise HTTPException(status_code=500, detail="Failed to read training summary")
+
+
+@router.get("/train/status")
+async def get_local_training_status():
+    with _local_training_lock:
+        return dict(LOCAL_TRAINING_STATE)
 
 @router.get("/train/models")
 async def list_models():
-    _init_supabase()
-    if not supabase:
-        raise HTTPException(status_code=500, detail="Supabase not initialized")
-    
-    try:
-        # List files in 'ai-models' bucket
-        files = supabase.storage.from_("ai-models").list()
-        # Filter for .pkl files
-        models = [f for f in files if f['name'].endswith('.pkl')]
-        return {"models": models}
-    except Exception as e:
-        print(f"Error listing models: {e}")
-        # If bucket doesn't exist, return empty list
-        return {"models": []}
+    """Expose local model artifacts for the admin UI using the same format as /admin/models/list.
+
+    This avoids hitting Supabase storage and keeps the admin panel focused on server-side .pkl files.
+    """
+    return list_local_models()
 
 @router.get("/train/download/{filename}")
 async def get_model_download_url(filename: str):
@@ -1024,3 +1054,198 @@ async def trigger_cron(req: CronTriggerRequest, background_tasks: BackgroundTask
 
     background_tasks.add_task(_cron_worker, req.action, req.exchange)
     return {"status": "success", "message": f"Cron action {req.action} started for {req.exchange or 'all exchanges'}"}
+
+@router.get("/models/list")
+def list_local_models():
+    """List local model files from api/models directory, with optional metadata.
+
+    Attempts to read basic metadata (num_features, num_parameters) when possible,
+    but never fails the listing if a model cannot be loaded.
+    """
+    try:
+        import pickle
+    except Exception:
+        pickle = None
+
+    try:
+        models_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "models"))
+
+        if not os.path.exists(models_dir):
+            return {"models": []}
+
+        models = []
+        for filename in os.listdir(models_dir):
+            if not filename.endswith(".pkl"):
+                continue
+
+            filepath = os.path.join(models_dir, filename)
+            if not os.path.isfile(filepath):
+                continue
+
+            stat = os.stat(filepath)
+            size_bytes = stat.st_size
+            size_mb = round(size_bytes / 1024 / 1024, 2)
+
+            info = {
+                "name": filename,
+                "size_bytes": size_bytes,
+                "size_mb": size_mb,
+                "created_at": datetime.fromtimestamp(stat.st_ctime).isoformat(),
+                "modified_at": datetime.fromtimestamp(stat.st_mtime).isoformat(),
+                "type": "pkl",
+            }
+
+            # Best-effort metadata extraction
+            if pickle is not None:
+                try:
+                    with open(filepath, "rb") as f:
+                        model = pickle.load(f)
+                    # sklearn-style models often expose n_features_in_
+                    num_features = getattr(model, "n_features_in_", None)
+                    if isinstance(num_features, (int, float)):
+                        num_features = int(num_features)
+                        info["num_features"] = num_features
+
+                    # Estimate an interpretable "parameter" count. The goal here is not exact
+                    # theoretical parameters, but a relative measure of model capacity so that
+                    # models with different n_estimators show different sizes in the UI.
+                    num_params = getattr(model, "n_parameters_", None)
+
+                    if isinstance(num_params, (int, float)):
+                        # Some estimators expose an explicit parameter count
+                        info["num_parameters"] = int(num_params)
+                    else:
+                        # Special handling for tree ensembles such as LightGBM / RandomForest
+                        cls_name = type(model).__name__.lower()
+                        if "lgbm" in cls_name or "gradientboost" in cls_name or "forest" in cls_name:
+                            # Prefer the learned number of trees if available, otherwise fall back
+                            # to the configured n_estimators.
+                            trees = getattr(model, "n_estimators_", None)
+                            if not isinstance(trees, (int, float)):
+                                trees = getattr(model, "n_estimators", None)
+
+                            if isinstance(trees, (int, float)):
+                                trees = int(trees)
+                                # Simple capacity proxy: trees * num_features (if we know it),
+                                # otherwise just the tree count.
+                                if isinstance(num_features, int) and num_features > 0:
+                                    info["num_parameters"] = int(trees * num_features)
+                                else:
+                                    info["num_parameters"] = trees
+                        else:
+                            # Linear-style models: fall back to coef_ size when present
+                            coef = getattr(model, "coef_", None)
+                            if hasattr(coef, "size"):
+                                try:
+                                    info["num_parameters"] = int(coef.size)
+                                except Exception:
+                                    pass
+                            else:
+                                # As a last resort, try feature_importances_ length for tree models.
+                                # This is less informative (usually == num_features), so only used
+                                # when nothing else is available.
+                                import numpy as _np  # local import to avoid top-level dependency if missing
+                                fi = getattr(model, "feature_importances_", None)
+                                if fi is not None:
+                                    try:
+                                        arr = _np.asarray(fi)
+                                        info["num_parameters"] = int(arr.size)
+                                    except Exception:
+                                        pass
+                except Exception as meta_err:
+                    # Metadata is optional; just log and continue
+                    print(f"Warning: failed to read metadata for model {filename}: {meta_err}")
+
+            models.append(info)
+
+        return {"models": sorted(models, key=lambda x: x["modified_at"], reverse=True)}
+    except Exception as e:
+        print(f"Error listing local models: {e}")
+        return {"models": []}
+    # HTTPException(status_code=500, detail=str(e))
+
+@router.get("/models/{model_name}/info")
+def get_model_info(model_name: str):
+    """Get model info including parameters and features count."""
+    try:
+        if ".." in model_name or "/" in model_name or "\\" in model_name:
+            raise HTTPException(status_code=400, detail="Invalid model name")
+        
+        if not model_name.endswith(".pkl"):
+            raise HTTPException(status_code=400, detail="Only .pkl files supported")
+        
+        models_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "models"))
+        filepath = os.path.join(models_dir, model_name)
+        
+        if not os.path.abspath(filepath).startswith(models_dir):
+            raise HTTPException(status_code=400, detail="Invalid model path")
+        
+        if not os.path.exists(filepath):
+            raise HTTPException(status_code=404, detail="Model not found")
+        
+        import pickle
+        
+        with open(filepath, 'rb') as f:
+            model = pickle.load(f)
+        
+        # Extract model info
+        info = {
+            "name": model_name,
+            "num_features": 0,
+            "num_parameters": 0,
+            "model_type": type(model).__name__,
+            "features": []
+        }
+        
+        # Get number of features
+        if hasattr(model, 'n_features_in_'):
+            info["num_features"] = int(model.n_features_in_)
+        
+        # Get feature names
+        if hasattr(model, 'feature_names_in_'):
+            info["features"] = list(model.feature_names_in_)
+        
+        # Get number of parameters/estimators
+        if hasattr(model, 'n_estimators'):
+            info["num_parameters"] = int(model.n_estimators)
+        elif hasattr(model, 'n_components_'):
+            info["num_parameters"] = int(model.n_components_)
+        elif hasattr(model, 'get_params'):
+            info["num_parameters"] = len(model.get_params())
+        
+        return info
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error getting model info: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.delete("/models/{model_name}")
+def delete_local_model(model_name: str):
+    """Delete a local model file."""
+    try:
+        # Validate filename to prevent path traversal
+        if ".." in model_name or "/" in model_name or "\\" in model_name:
+            raise HTTPException(status_code=400, detail="Invalid model name")
+        
+        if not model_name.endswith(".pkl"):
+            raise HTTPException(status_code=400, detail="Only .pkl files can be deleted")
+        
+        models_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "models"))
+        filepath = os.path.join(models_dir, model_name)
+        
+        # Ensure the filepath is within models_dir
+        if not os.path.abspath(filepath).startswith(models_dir):
+            raise HTTPException(status_code=400, detail="Invalid model path")
+        
+        if not os.path.exists(filepath):
+            raise HTTPException(status_code=404, detail="Model not found")
+        
+        os.remove(filepath)
+        return {"status": "success", "message": f"Model {model_name} deleted"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error deleting model: {e}")
+        raise HTTPException(status_code=500, detail=str(e))

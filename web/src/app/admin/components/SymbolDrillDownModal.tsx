@@ -80,7 +80,6 @@ export default function SymbolDrillDownModal({
         });
     }, [dbSymbols, rowCountMin, rowCountMax, lastSyncStart, lastSyncEnd, lastPriceStart, lastPriceEnd, dbSymbolsSort]);
 
-    const totalRowsAll = useMemo(() => dbSymbols.reduce((acc, s) => acc + (s.row_count || 0), 0), [dbSymbols]);
     const totalRowsFiltered = useMemo(() => filteredDbSymbols.reduce((acc, s) => acc + (s.row_count || 0), 0), [filteredDbSymbols]);
 
     if (!selectedDbEx) return null;

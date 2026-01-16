@@ -16,8 +16,7 @@ load_dotenv(os.path.join(base_dir, "web", ".env.local"), override=True)
 
 print(f"DEBUG: EODHD_API_KEY loaded: {'Yes' if os.getenv('EODHD_API_KEY') else 'No'}")
 
-from fastapi import FastAPI, HTTPException, Request
-from fastapi import Query
+from fastapi import FastAPI, HTTPException, Request, Query
 from fastapi.middleware.cors import CORSMiddleware
 from typing import Any, Dict, Optional, List, Literal
 
@@ -131,6 +130,7 @@ class PredictRequest(BaseModel):
     include_fundamentals: bool = Field(default=True)
     rf_preset: Optional[str] = Field(default=None)
     rf_params: Optional[Dict[str, Any]] = Field(default=None)
+    model_name: Optional[str] = Field(default=None)
 
 
 class EvaluatePositionIn(BaseModel):
@@ -323,6 +323,18 @@ def health():
     return {"ok": True}
 
 
+@app.get("/models/local")
+def list_local_models():
+    api_dir = os.path.dirname(os.path.abspath(__file__))
+    models_dir = os.path.join(api_dir, "models")
+    if not os.path.exists(models_dir):
+        return {"models": []}
+
+    files = [f for f in os.listdir(models_dir) if f.endswith(".pkl")]
+    files.sort()
+    return {"models": files}
+
+
 @app.get("/symbols/inventory")
 def symbols_inventory():
     """Returns mapping of countries/exchanges to symbol/price counts."""
@@ -342,6 +354,101 @@ def symbols_countries(source: str = Query(default="supabase")):
         
         return {"countries": list_countries()} # Fallback
     except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/symbols/by-date")
+def symbols_by_date(
+    request: Request,
+    start: str = Query(..., description="Start date YYYY-MM-DD"),
+    end: str = Query(..., description="End date YYYY-MM-DD"),
+    exchange: Optional[str] = Query(default=None),
+    limit: int = Query(default=200, ge=1, le=5000),
+    search_term: Optional[str] = Query(default=None),
+):
+    from stock_ai import _init_supabase, supabase
+
+    def _chunks(items: list, size: int):
+        for i in range(0, len(items), size):
+            yield items[i : i + size]
+
+    _init_supabase()
+    if not supabase:
+        return {"results": []}
+
+    try:
+        # Use RPC to efficiently get unique symbols with price data in the date range
+        # RPC function get_exchange_symbols_prices:
+        # SELECT DISTINCT ON (symbol) symbol, MAX(date) as last_date, MIN(date) as first_date, COUNT(*) as count FROM stock_prices
+        # WHERE exchange = p_exchange AND date >= p_start AND date <= p_end
+        # GROUP BY symbol ORDER BY symbol, date DESC;
+
+        rpc_args = {
+            "p_exchange": exchange,
+            "p_start": start,
+            "p_end": end,
+            "p_limit": limit * 5 # Fetch more initially for filtering
+        }
+
+        # If exchange is None, this RPC won't work well without modifications.
+        # For now, we assume exchange is always provided as per frontend logic.
+        if not exchange:
+            return {"results": []}
+
+        rpc_res = supabase.rpc("get_exchange_symbols_prices", rpc_args).execute()
+        if not rpc_res.data:
+            return {"results": []}
+
+        # rpc_res.data will contain unique symbols along with their date range counts.
+        # We need to transform this into the format expected by the frontend.
+        symbols_from_db = []
+        for row in rpc_res.data:
+            symbols_from_db.append({
+                "symbol": row["symbol"],
+                "exchange": exchange, # Exchange is implicit from the RPC call
+                "name": "", # Will be enriched later
+                "last_date": row["last_date"],
+                "first_date": row["first_date"],
+                "row_count": row["count"]
+            })
+
+        # Enrich with names from stock_fundamentals in chunks
+        symbols_to_process = []
+        if symbols_from_db:
+            names_map: dict[str, str] = {}
+            symbol_list = [s["symbol"] for s in symbols_from_db]
+            
+            for chunk in _chunks(symbol_list, 500):
+                res = (
+                    supabase.table("stock_fundamentals")
+                    .select("symbol,data")
+                    .in_("symbol", chunk)
+                    .eq("exchange", exchange) # Filter fundamentals by exchange too
+                    .execute()
+                )
+                if res.data:
+                    for r in res.data:
+                        d = r.get("data") or {}
+                        names_map[r.get("symbol")] = d.get("name", d.get("Name", ""))
+
+            for s in symbols_from_db:
+                s["name"] = names_map.get(s["symbol"], "")
+                symbols_to_process.append(s)
+
+        # Apply search_term filter if provided
+        if search_term:
+            search_term_lower = search_term.lower()
+            symbols_to_process = [
+                s for s in symbols_to_process 
+                if search_term_lower in s["name"].lower() or search_term_lower in s["symbol"].lower()
+            ]
+        
+        # Apply limit after all filtering and sorting
+        symbols_to_process = symbols_to_process[:limit]
+        symbols_to_process.sort(key=lambda x: x["symbol"])
+        return {"results": symbols_to_process}
+    except Exception as e:
+        print(f"Error in symbols_by_date: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -435,6 +542,7 @@ def predict(req: PredictRequest):
             exchange=req.exchange,
             rf_preset=req.rf_preset,
             rf_params=req.rf_params,
+            model_name=req.model_name,
         )
         return payload
     except ValueError as e:

@@ -24,15 +24,32 @@ except ImportError:
 supabase: Optional[Client] = None
 
 # Predictors used by the pre-trained LightGBM models
+# Note: the actual predictors used at inference time are the intersection of
+# this list and the columns present in the feature dataframe.
 LGBM_PREDICTORS = [
-    "Close", "Volume", 
-    "SMA_50", "SMA_200", 
-    "EMA_50", "EMA_200", 
-    "RSI", "Momentum", "ROC_12", 
+    "Close", "Volume",
+    "SMA_50", "SMA_200",
+    "EMA_50", "EMA_200",
+    "RSI", "Momentum", "ROC_12",
     "MACD", "MACD_Signal",
     "ATR_14", "ADX_14",
     "STOCH_K", "STOCH_D",
-    "CCI_20", "VWAP_20", "VOL_SMA20"
+    "CCI_20", "VWAP_20", "VOL_SMA20",
+    # Bollinger / volatility context
+    "BB_PctB", "BB_Width",
+    # Volume structure
+    "OBV", "OBV_Slope",
+    # Price context vs rolling extremes
+    "Dist_From_High", "Dist_From_Low",
+    # Standardization and candle geometry
+    "Z_Score", "Body_Size", "Upper_Shadow", "Lower_Shadow",
+    # Time features
+    "Day_Of_Week", "Day_Of_Month",
+    # Lagged features and differences
+    "Close_Lag1", "Close_Diff",
+    "RSI_Lag1", "RSI_Diff",
+    "Volume_Lag1", "Volume_Diff",
+    "OBV_Lag1", "OBV_Diff",
 ]
 
 # Standard predictors for default RandomForest (Legacy)
@@ -1199,7 +1216,91 @@ def add_technical_indicators(df: pd.DataFrame) -> pd.DataFrame:
         out["VWAP_20"] = 0.0
 
     out["ROC_12"] = out["Close"].pct_change(periods=12, fill_method=None).mul(100).fillna(0.0)
-    
+
+    # Bollinger-derived features (percent B and relative width)
+    if "BB_Upper" in out.columns and "BB_Lower" in out.columns:
+        width = out["BB_Upper"] - out["BB_Lower"]
+        out["BB_PctB"] = (
+            (out["Close"] - out["BB_Lower"]) / width.replace(0.0, np.nan)
+        ).fillna(0.0)
+        out["BB_Width"] = (
+            width / out["Close"].replace(0.0, np.nan)
+        ).fillna(0.0)
+    else:
+        out["BB_PctB"] = 0.0
+        out["BB_Width"] = 0.0
+
+    # On-Balance Volume and simple slope
+    price_delta = out["Close"].diff()
+    direction = np.sign(price_delta).fillna(0.0)
+    obv = (direction * out["Volume"]).cumsum()
+    out["OBV"] = obv.fillna(0.0)
+    out["OBV_Slope"] = out["OBV"].diff().fillna(0.0)
+
+    # Distance from rolling high/low (context window)
+    rolling_high = out["Close"].rolling(window=100, min_periods=1).max()
+    rolling_low = out["Close"].rolling(window=100, min_periods=1).min()
+    out["Dist_From_High"] = (
+        (out["Close"] / rolling_high.replace(0.0, np.nan)) - 1.0
+    ).fillna(0.0)
+    out["Dist_From_Low"] = (
+        (out["Close"] / rolling_low.replace(0.0, np.nan)) - 1.0
+    ).fillna(0.0)
+
+    # Z-score of price vs rolling mean/std
+    rolling_mean = out["Close"].rolling(window=50, min_periods=1).mean()
+    rolling_std = out["Close"].rolling(window=50, min_periods=1).std()
+    out["Z_Score"] = (
+        (out["Close"] - rolling_mean) / rolling_std.replace(0.0, np.nan)
+    ).fillna(0.0)
+
+    # Candle geometry: body and shadows (if OHLC are available)
+    if "Open" in out.columns and "High" in out.columns and "Low" in out.columns:
+        open_ = out["Open"].astype(float)
+        high = out["High"].astype(float)
+        low = out["Low"].astype(float)
+        close = out["Close"].astype(float)
+
+        body = close - open_
+        out["Body_Size"] = (body / open_.replace(0.0, np.nan)).fillna(0.0)
+        upper_shadow = high - np.maximum(close, open_)
+        lower_shadow = np.minimum(close, open_) - low
+        out["Upper_Shadow"] = (
+            upper_shadow / open_.replace(0.0, np.nan)
+        ).fillna(0.0)
+        out["Lower_Shadow"] = (
+            lower_shadow / open_.replace(0.0, np.nan)
+        ).fillna(0.0)
+    else:
+        out["Body_Size"] = 0.0
+        out["Upper_Shadow"] = 0.0
+        out["Lower_Shadow"] = 0.0
+
+    # Calendar/time features
+    if isinstance(out.index, pd.DatetimeIndex):
+        out["Day_Of_Week"] = out.index.dayofweek.astype(int)
+        out["Day_Of_Month"] = out.index.day.astype(int)
+    else:
+        out["Day_Of_Week"] = 0
+        out["Day_Of_Month"] = 0
+
+    # Lagged values and differences (memory features)
+    out["Close_Lag1"] = out["Close"].shift(1)
+    out["Close_Diff"] = out["Close"].diff().fillna(0.0)
+
+    if "RSI" in out.columns:
+        out["RSI_Lag1"] = out["RSI"].shift(1)
+        out["RSI_Diff"] = out["RSI"].diff().fillna(0.0)
+    else:
+        out["RSI_Lag1"] = np.nan
+        out["RSI_Diff"] = 0.0
+
+    out["Volume_Lag1"] = out["Volume"].shift(1)
+    out["Volume_Diff"] = out["Volume"].diff().fillna(0.0)
+
+    out["OBV_Lag1"] = out["OBV"].shift(1)
+    out["OBV_Diff"] = out["OBV"].diff().fillna(0.0)
+
     # Do not dropna here, let prepare_for_ai handle it so we can drop columns if needed
     return out
 
@@ -1357,6 +1458,7 @@ def train_and_predict(
     rf_params: Optional[Dict[str, Any]] = None,
     rf_preset: Optional[str] = None,
     exchange: Optional[str] = None,
+    model_name: Optional[str] = None,
 ) -> Tuple[Any, List[str], pd.DataFrame, pd.Series, float]:
     """
     Core prediction logic. 
@@ -1365,10 +1467,14 @@ def train_and_predict(
     """
     preset = (rf_preset or "").lower()
     
-    # Path for pre-trained model
+    # Path for pre-trained model. Prefer explicit model_name if provided,
+    # otherwise fall back to model_{exchange}.pkl convention.
     api_dir = os.path.dirname(os.path.abspath(__file__))
-    model_filename = f"model_{exchange}.pkl" if exchange else None
-    model_path = os.path.join(api_dir, "models", model_filename) if model_filename else None
+    if model_name:
+        model_path = os.path.join(api_dir, "models", model_name)
+    else:
+        model_filename = f"model_{exchange}.pkl" if exchange else None
+        model_path = os.path.join(api_dir, "models", model_filename) if model_filename else None
     
     loaded_model = None
     predictors = RF_PREDICTORS
@@ -1380,8 +1486,33 @@ def train_and_predict(
             
             # Identify predictors based on model type
             if LGBMClassifier and isinstance(loaded_model, LGBMClassifier):
-                predictors = [p for p in LGBM_PREDICTORS if p in df.columns]
-                print(f"Loaded pre-trained LightGBM model for {exchange}")
+                model_features = None
+                # Prefer the feature names stored with the trained model to avoid
+                # shape mismatches when the global feature list changes.
+                try:
+                    model_features = getattr(loaded_model, "feature_name_", None)
+                except Exception:
+                    model_features = None
+
+                if (not model_features) and hasattr(loaded_model, "booster_"):
+                    try:
+                        booster = getattr(loaded_model, "booster_", None)
+                        if booster is not None:
+                            model_features = booster.feature_name()
+                    except Exception:
+                        model_features = None
+
+                if model_features:
+                    predictors = [p for p in model_features if p in df.columns]
+                else:
+                    predictors = [p for p in LGBM_PREDICTORS if p in df.columns]
+
+                if not predictors:
+                    raise ValueError(
+                        "No overlapping predictors between trained LightGBM model and current feature set. Please retrain the model."
+                    )
+
+                print(f"Loaded pre-trained LightGBM model from {model_path} with {len(predictors)} predictors")
             else:
                 predictors = [p for p in RF_PREDICTORS if p in df.columns]
                 print(f"Loaded pre-trained model for {exchange}")
@@ -1453,6 +1584,7 @@ def run_pipeline(
     force_local: bool = False,
     rf_params: Optional[Dict[str, Any]] = None,
     rf_preset: Optional[str] = None,
+    model_name: Optional[str] = None,
 ) -> Dict[str, Any]:
     api = APIClient(api_key)
 
@@ -1507,10 +1639,11 @@ def run_pipeline(
         ) from last_error
 
     model, predictors, test_df, preds, precision = train_and_predict(
-        prices_ai, 
-        rf_params=rf_params, 
+        df=prices_ai,
+        rf_params=rf_params,
         rf_preset=rf_preset,
-        exchange=exchange
+        exchange=exchange,
+        model_name=model_name,
     )
 
     last_row = prices_ai.iloc[[-1]][predictors]

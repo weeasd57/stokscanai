@@ -4,13 +4,14 @@ import { useState, useEffect } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useAppState } from "@/contexts/AppStateContext";
 import { getCountries, searchSymbols, type SymbolResult } from "@/lib/api";
-import { Database, Download, Check, AlertTriangle, Loader2, Zap, BarChart3, Info, TrendingUp, History, Cloud, Globe, ChevronLeft, ChevronRight, ChevronDown, FileText, X, Search } from "lucide-react";
+import { Database, Download, Check, AlertTriangle, Loader2, Zap, Info, TrendingUp, History, Cloud, Globe, ChevronLeft, ChevronRight, ChevronDown, FileText, X, Search } from "lucide-react";
 import { Toaster, toast } from "sonner";
 
 import CountrySelectDialog from "@/components/CountrySelectDialog";
 import AdminHeader from "./components/AdminHeader";
 import DataManagerTab from "./components/DataManagerTab";
 import AIAutomationTab from "./components/AIAutomationTab";
+import TestModelTab from "./components/TestModelTab";
 import SymbolDrillDownModal from "./components/SymbolDrillDownModal";
 import RecalculateDialog from "./components/RecalculateDialog";
 
@@ -39,7 +40,7 @@ export default function AdminPage() {
     const [currentPage, setCurrentPage] = useState(1);
     const [pageSize, setPageSize] = useState(100);
 
-    const [activeMainTab, setActiveMainTab] = useState<"data" | "ai">("data");
+    const [activeMainTab, setActiveMainTab] = useState<"data" | "ai" | "test">("data");
     const [dataSourcesTab, setDataSourcesTab] = useState<"prices" | "funds">("prices");
 
     // State restoration
@@ -47,7 +48,6 @@ export default function AdminPage() {
     const [processing, setProcessing] = useState(false);
     const [progress, setProgress] = useState<{ current: number, total: number, lastMsg: string } | null>(null);
     const [logs, setLogs] = useState<string[]>([]);
-    const [usage, setUsage] = useState<{ used: number, limit: number, extraLeft: number } | null>(null);
     const [maxPriceDays, setMaxPriceDays] = useState(365);
     const [updateFundamentals, setUpdateFundamentals] = useState(false);
 
@@ -86,32 +86,53 @@ export default function AdminPage() {
     const [isExchangeDropdownOpen, setIsExchangeDropdownOpen] = useState(false);
 
     // Fetchers
-    const fetchUsage = () => {
-        fetch("/api/admin/usage")
-            .then(res => res.json())
-            .then(setUsage)
-            .catch(console.error);
-    };
-
     const fetchSyncHistory = () => {
         fetch("/api/admin/sync-history")
-            .then(res => res.json())
-            .then(data => {
+            .then(async (res) => {
+                if (!res.ok) {
+                    console.error("Failed to fetch sync history, status", res.status);
+                    return [];
+                }
+                try {
+                    return await res.json();
+                } catch (e) {
+                    console.error("Failed to parse sync history JSON:", e);
+                    return [];
+                }
+            })
+            .then((data) => {
                 if (Array.isArray(data)) setSyncLogs(data);
                 else setSyncLogs([]);
             })
-            .catch(console.error);
+            .catch((e) => {
+                console.error("Failed to fetch sync history:", e);
+                setSyncLogs([]);
+            });
     };
 
     const fetchInventory = () => {
         setLoadingInventory(true);
         fetch("/api/admin/db-inventory")
-            .then(res => res.json())
-            .then(data => {
+            .then(async (res) => {
+                if (!res.ok) {
+                    console.error("Failed to fetch DB inventory, status", res.status);
+                    return [];
+                }
+                try {
+                    return await res.json();
+                } catch (e) {
+                    console.error("Failed to parse DB inventory JSON:", e);
+                    return [];
+                }
+            })
+            .then((data) => {
                 if (Array.isArray(data)) setDbInventory(data);
                 else setDbInventory([]);
             })
-            .catch(console.error)
+            .catch((e) => {
+                console.error("Failed to fetch DB inventory:", e);
+                setDbInventory([]);
+            })
             .finally(() => setLoadingInventory(false));
     };
 
@@ -119,11 +140,23 @@ export default function AdminPage() {
         setLoadingRecentFunds(true);
         try {
             const res = await fetch("/api/admin/recent-fundamentals");
-            const data = await res.json();
+            if (!res.ok) {
+                console.error("Failed to fetch recent funds, status", res.status);
+                setRecentDbFunds([]);
+                return;
+            }
+            let data: any = [];
+            try {
+                data = await res.json();
+            } catch (e) {
+                console.error("Failed to parse recent funds JSON:", e);
+                data = [];
+            }
             if (Array.isArray(data)) setRecentDbFunds(data);
             else setRecentDbFunds([]);
         } catch (e) {
             console.error("Failed to fetch recent funds:", e);
+            setRecentDbFunds([]);
         } finally {
             setLoadingRecentFunds(false);
         }
@@ -133,12 +166,26 @@ export default function AdminPage() {
         setLoadingModels(true);
         try {
             const res = await fetch("/api/admin/train/models");
-            const data = await res.json();
-            if (data.models && Array.isArray(data.models)) {
+            if (!res.ok) {
+                console.error("Failed to fetch models, status", res.status);
+                setTrainedModels([]);
+                return;
+            }
+            let data: any = null;
+            try {
+                data = await res.json();
+            } catch (e) {
+                console.error("Failed to parse models JSON:", e);
+                data = null;
+            }
+            if (data?.models && Array.isArray(data.models)) {
                 setTrainedModels(data.models);
+            } else {
+                setTrainedModels([]);
             }
         } catch (e) {
             console.error("Failed to fetch models:", e);
+            setTrainedModels([]);
         } finally {
             setLoadingModels(false);
         }
@@ -153,7 +200,6 @@ export default function AdminPage() {
     }, [countries]);
 
     useEffect(() => {
-        fetchUsage();
         fetchSyncHistory();
         fetchInventory();
         fetchRecentDbFunds();
@@ -164,12 +210,26 @@ export default function AdminPage() {
         setLoadingDbSymbols(true);
         setSelectedDrillSymbols(new Set());
         fetch(`/api/admin/db-symbols/${ex}?mode=${mode}`)
-            .then(res => res.json())
-            .then(data => {
+            .then(async (res) => {
+                if (!res.ok) {
+                    console.error("Failed to fetch DB symbols, status", res.status);
+                    return [];
+                }
+                try {
+                    return await res.json();
+                } catch (e) {
+                    console.error("Failed to parse DB symbols JSON:", e);
+                    return [];
+                }
+            })
+            .then((data) => {
                 if (Array.isArray(data)) setDbSymbols(data);
                 else setDbSymbols([]);
             })
-            .catch(console.error)
+            .catch((e) => {
+                console.error("Failed to fetch DB symbols:", e);
+                setDbSymbols([]);
+            })
             .finally(() => setLoadingDbSymbols(false));
     };
 
@@ -278,8 +338,20 @@ export default function AdminPage() {
     useEffect(() => {
         // Fetch config
         fetch("/api/admin/config")
-            .then(res => res.json())
+            .then(async (res) => {
+                if (!res.ok) {
+                    console.error("Failed to fetch admin config, status", res.status);
+                    return null;
+                }
+                try {
+                    return await res.json();
+                } catch (e) {
+                    console.error("Failed to parse admin config JSON:", e);
+                    return null;
+                }
+            })
             .then((c) => {
+                if (!c) return;
                 let priceSource = c?.priceSource ?? c?.source ?? "eodhd";
                 let fundSource = c?.fundSource ?? "tradingview";
                 const maxWorkers = typeof c?.maxWorkers === "number" && c.maxWorkers > 0 ? c.maxWorkers : 8;
@@ -303,11 +375,6 @@ export default function AdminPage() {
             if (res.ok) {
                 setConfig((prev) => ({ ...prev, priceSource }));
                 toast.success(`Price source: ${priceSource.toUpperCase()}`);
-                if (priceSource === "eodhd") {
-                    fetch("/api/admin/usage").then(r => r.json()).then(setUsage);
-                } else {
-                    setUsage(null);
-                }
             } else {
                 const err = await res.json().catch(() => null);
                 toast.error(err?.detail || "Failed to update price source");
@@ -509,7 +576,6 @@ export default function AdminPage() {
             <AdminHeader
                 activeMainTab={activeMainTab}
                 setActiveMainTab={setActiveMainTab}
-                usage={usage}
             />
 
             {/* Main Content Area */}
@@ -561,7 +627,7 @@ export default function AdminPage() {
                         setMaxWorkers={setMaxWorkers}
                         setConfig={setConfig}
                     />
-                ) : (
+                ) : activeMainTab === "ai" ? (
                     <AIAutomationTab
                         dbInventory={dbInventory}
                         trainingExchange={trainingExchange}
@@ -575,6 +641,8 @@ export default function AdminPage() {
                         handleDownloadModel={handleDownloadModel}
                         setIsTraining={setIsTraining}
                     />
+                ) : (
+                    <TestModelTab />
                 )}
             </main>
 

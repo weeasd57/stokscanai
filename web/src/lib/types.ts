@@ -1,3 +1,10 @@
+export type DateSymbolResult = {
+  symbol: string;
+  exchange: string;
+  name: string;
+  rowCount?: number;
+};
+
 export type Fundamentals = {
   marketCap?: number | null;
   peRatio?: number | null;
@@ -41,4 +48,5 @@ export type PredictResponse = {
   lastDate: string;
   fundamentals: Fundamentals;
   testPredictions: TestPredictionRow[];
+  executionTime?: number; // milliseconds
 };

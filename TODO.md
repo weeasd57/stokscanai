@@ -1,7 +1,4 @@
 
-add cornjop in admin
-add tranning ai in admin
-
 # AI Stocks - Roadmap / TODO
 
 This file tracks planned features, architecture improvements, optimizations, and quality work.
@@ -34,6 +31,24 @@ This file tracks planned features, architecture improvements, optimizations, and
   - [x] Add "Evaluate positions" button in profile
   - [x] Mark a position as win (hit_target) OR loss (hit_stop), never both
   - [ ] Show per-position progress (current price vs target/stop)
+
+- [ ] Model Test & ML Classification Visuals
+  - [ ] Add machine-learning classification charts in Model Test for both single-model and multi-model modes.
+  - [ ] Visualize classification performance (precision/recall, confusion-style summaries) alongside price charts.
+
+- [ ] AI Model Training & Optimization Strategy
+  - [ ] Implement small-dataset training mode (single-symbol ~1,700 rows): enable full LightGBM GridSearchCV (≈108 combinations) optimized for precision; expected runtime ~1 minute.
+  - [ ] Implement large-dataset training mode (Global Model ~400k+ rows): avoid full grid search.
+  - [ ] Add a "Golden Mix" default LightGBM configuration for global training:
+    - `n_estimators = 500`
+    - `learning_rate = 0.05`
+    - `num_leaves = 31`
+    - `max_depth = -1`
+    - `class_weight = "balanced"`
+    - `n_jobs = -1`
+    - with early stopping enabled on a validation split.
+  - [ ] Add optional lightweight RandomizedSearch (RandomizedSearchCV) for global models with `n_iter ≈ 5` focused on precision.
+  - [ ] Expose training strategy choices in the admin UI: "Full Grid Search (small data)", "Golden Mix (default)", and "Random Search (fast tuning)".
 
 - [ ] Alerts (indicator-based and AI-based)
   - [ ] Create alert rules (RSI/MACD/EMA crosses, AI BUY with min precision)

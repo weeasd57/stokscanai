@@ -1,0 +1,1 @@
+{"exchange": "EGX", "useEarlyStopping": true, "nEstimators": 1000, "trainingSamples": 844, "numFeatures": 37, "featurePreset": "max", "timestamp": "2026-01-16T13:52:56.599021Z"}
