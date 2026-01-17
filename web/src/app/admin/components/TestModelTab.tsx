@@ -98,6 +98,43 @@ function calculateKPIs(predictions: any[]) {
   };
 }
 
+function calculateClassification(predictions: any[]) {
+  let tp = 0;
+  let fp = 0;
+  let tn = 0;
+  let fn = 0;
+
+  for (const p of predictions || []) {
+    const pred = p?.pred;
+    const target = p?.target;
+    if (pred === 1 && target === 1) tp++;
+    else if (pred === 1 && target === 0) fp++;
+    else if (pred === 0 && target === 0) tn++;
+    else if (pred === 0 && target === 1) fn++;
+  }
+
+  const precisionBuy = tp + fp > 0 ? tp / (tp + fp) : 0;
+  const recallBuy = tp + fn > 0 ? tp / (tp + fn) : 0;
+  const f1Buy = precisionBuy + recallBuy > 0 ? (2 * precisionBuy * recallBuy) / (precisionBuy + recallBuy) : 0;
+
+  const precisionSell = tn + fn > 0 ? tn / (tn + fn) : 0;
+  const recallSell = tn + fp > 0 ? tn / (tn + fp) : 0;
+  const f1Sell = precisionSell + recallSell > 0 ? (2 * precisionSell * recallSell) / (precisionSell + recallSell) : 0;
+
+  return {
+    tp,
+    fp,
+    tn,
+    fn,
+    precisionBuy,
+    recallBuy,
+    f1Buy,
+    precisionSell,
+    recallSell,
+    f1Sell,
+  };
+}
+
 function renderResultContent(result: any) {
   if (!result?.testPredictions?.length) {
     return <div className="text-xs text-zinc-500">No predictions available.</div>;
@@ -205,6 +242,21 @@ export default function TestModelTab() {
 
     items.sort((a, b) => b.kpis.winRate - a.kpis.winRate);
     return items;
+  }, [testResults]);
+
+  const multiClassificationChart = useMemo(() => {
+    if (!testResults.size) return [] as any[];
+    return Array.from(testResults.entries())
+      .map(([modelName, result]) => {
+        const cls = calculateClassification(result.testPredictions || []);
+        return {
+          name: modelName.replace(/^model_|\.pkl$/gi, ""),
+          precision: cls.precisionBuy * 100,
+          recall: cls.recallBuy * 100,
+          f1: cls.f1Buy * 100,
+        };
+      })
+      .sort((a, b) => (b.f1 ?? 0) - (a.f1 ?? 0));
   }, [testResults]);
 
   const modelExchange = useMemo(() => parseModelExchange(selectedModel), [selectedModel]);
@@ -653,6 +705,45 @@ export default function TestModelTab() {
                     </div>
                   </div>
 
+                  <div className="bg-zinc-950/40 rounded-xl border border-white/5 p-4 mb-4">
+                    <h4 className="text-[10px] sm:text-xs font-bold uppercase tracking-[0.2em] text-zinc-500 mb-3">
+                      Classification (BUY) by Model
+                    </h4>
+                    <div className="h-56">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={multiClassificationChart} margin={{ top: 10, right: 20, left: 0, bottom: 30 }}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
+                          <XAxis
+                            dataKey="name"
+                            stroke="rgba(255,255,255,0.4)"
+                            tick={{ fontSize: 10 }}
+                            angle={-20}
+                            textAnchor="end"
+                            height={40}
+                          />
+                          <YAxis
+                            stroke="rgba(255,255,255,0.4)"
+                            tick={{ fontSize: 10 }}
+                            tickFormatter={(v) => `${Number(v).toFixed(0)}%`}
+                          />
+                          <Tooltip
+                            formatter={(value: any) => (typeof value === "number" ? `${value.toFixed(1)}%` : value)}
+                            contentStyle={{
+                              backgroundColor: "rgba(9,9,11,0.98)",
+                              border: "1px solid rgba(99,102,241,0.3)",
+                              borderRadius: 10,
+                              padding: "8px 12px",
+                            }}
+                          />
+                          <Legend wrapperStyle={{ fontSize: 10 }} />
+                          <Bar dataKey="precision" name="Precision" fill="#22c55e" radius={[4, 4, 0, 0]} />
+                          <Bar dataKey="recall" name="Recall" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                          <Bar dataKey="f1" name="F1" fill="#f59e0b" radius={[4, 4, 0, 0]} />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                     {multiSummaries.map(({ modelName, result, kpis }, idx) => (
                       <div
@@ -819,6 +910,64 @@ export default function TestModelTab() {
                       </div>
                     </div>
                   )}
+
+                  <div className="bg-zinc-950/40 rounded-xl p-4 sm:p-6 border border-white/5">
+                    <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-zinc-500 mb-4">
+                      Classification Performance
+                    </h3>
+                    {(() => {
+                      const cls = calculateClassification(testResult!.testPredictions || []);
+                      const prData = [
+                        { name: "BUY", precision: cls.precisionBuy * 100, recall: cls.recallBuy * 100, f1: cls.f1Buy * 100 },
+                        { name: "SELL", precision: cls.precisionSell * 100, recall: cls.recallSell * 100, f1: cls.f1Sell * 100 },
+                      ];
+                      return (
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                          <div className="h-56">
+                            <ResponsiveContainer width="100%" height="100%">
+                              <BarChart data={prData} margin={{ top: 10, right: 20, left: 0, bottom: 10 }}>
+                                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
+                                <XAxis dataKey="name" stroke="rgba(255,255,255,0.4)" tick={{ fontSize: 11 }} />
+                                <YAxis stroke="rgba(255,255,255,0.4)" tick={{ fontSize: 11 }} tickFormatter={(v) => `${Number(v).toFixed(0)}%`} />
+                                <Tooltip
+                                  formatter={(value: any) => (typeof value === "number" ? `${value.toFixed(1)}%` : value)}
+                                  contentStyle={{
+                                    backgroundColor: "rgba(9,9,11,0.98)",
+                                    border: "1px solid rgba(99,102,241,0.3)",
+                                    borderRadius: 10,
+                                    padding: "8px 12px",
+                                  }}
+                                />
+                                <Legend wrapperStyle={{ fontSize: 10 }} />
+                                <Bar dataKey="precision" name="Precision" fill="#22c55e" radius={[4, 4, 0, 0]} />
+                                <Bar dataKey="recall" name="Recall" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                                <Bar dataKey="f1" name="F1" fill="#f59e0b" radius={[4, 4, 0, 0]} />
+                              </BarChart>
+                            </ResponsiveContainer>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-3">
+                            <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3">
+                              <div className="text-[10px] uppercase tracking-[0.2em] text-emerald-400">TP (BUY correct)</div>
+                              <div className="mt-1 text-2xl font-black text-emerald-300">{cls.tp}</div>
+                            </div>
+                            <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-3">
+                              <div className="text-[10px] uppercase tracking-[0.2em] text-rose-400">FP (BUY wrong)</div>
+                              <div className="mt-1 text-2xl font-black text-rose-300">{cls.fp}</div>
+                            </div>
+                            <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3">
+                              <div className="text-[10px] uppercase tracking-[0.2em] text-amber-400">FN (missed BUY)</div>
+                              <div className="mt-1 text-2xl font-black text-amber-300">{cls.fn}</div>
+                            </div>
+                            <div className="rounded-xl border border-sky-500/30 bg-sky-500/10 p-3">
+                              <div className="text-[10px] uppercase tracking-[0.2em] text-sky-400">TN (SELL correct)</div>
+                              <div className="mt-1 text-2xl font-black text-sky-300">{cls.tn}</div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </div>
 
                   {/* Chart */}
                   <div className="bg-zinc-950/40 rounded-xl p-4 sm:p-6 border border-white/5">

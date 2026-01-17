@@ -761,6 +761,9 @@ class TrainTriggerRequest(BaseModel):
     nEstimators: Optional[int] = None
     modelName: Optional[str] = None
     featurePreset: Optional[str] = None  # "core" | "extended" | "max"
+    trainingStrategy: Optional[str] = None  # "golden" | "grid_small" | "random"
+    randomSearchIter: Optional[int] = None
+    maxFeatures: Optional[int] = None
 
 @router.post("/train/trigger")
 async def trigger_training(req: TrainTriggerRequest):
@@ -822,9 +825,29 @@ async def trigger_local_training(req: TrainTriggerRequest, background_tasks: Bac
         LOCAL_TRAINING_STATE["error"] = None
         LOCAL_TRAINING_STATE["last_message"] = f"Starting local training for {req.exchange}"
 
-    def _train_worker(ex, u, k, use_early_stopping: bool, n_estimators: Optional[int], model_name: Optional[str]):
+    def _train_worker(
+        ex,
+        u,
+        k,
+        use_early_stopping: bool,
+        n_estimators: Optional[int],
+        model_name: Optional[str],
+        training_strategy: Optional[str],
+        random_search_iter: Optional[int],
+        max_features: Optional[int],
+    ):
         try:
             print(f"Starting local training for {ex}")
+
+            def _progress_cb(msg: str) -> None:
+                # Keep the admin UI responsive by updating last_message frequently.
+                # This is best-effort and should never fail the training.
+                try:
+                    with _local_training_lock:
+                        LOCAL_TRAINING_STATE["last_message"] = str(msg)
+                except Exception:
+                    pass
+
             train_model(
                 ex,
                 u,
@@ -834,6 +857,10 @@ async def trigger_local_training(req: TrainTriggerRequest, background_tasks: Bac
                 model_name=model_name,
                 upload_to_cloud=False,
                 feature_preset=(req.featurePreset or "extended"),
+                training_strategy=(training_strategy or "golden"),
+                random_search_iter=random_search_iter,
+                max_features=max_features,
+                progress_cb=_progress_cb,
             )
             print(f"Local training for {ex} completed")
             with _local_training_lock:
@@ -857,6 +884,9 @@ async def trigger_local_training(req: TrainTriggerRequest, background_tasks: Bac
         req.useEarlyStopping,
         req.nEstimators,
         req.modelName,
+        req.trainingStrategy,
+        req.randomSearchIter,
+        req.maxFeatures,
     )
     return {"status": "success", "message": f"Local training started for {req.exchange}. Check server logs for progress."}
 
@@ -865,7 +895,7 @@ async def trigger_local_training(req: TrainTriggerRequest, background_tasks: Bac
 async def get_last_training_summary():
     """Return last training summary JSON written by train_exchange_model.py, if present."""
     try:
-        api_dir = os.path.dirname(os.path.abspath(__file__))
+        api_dir = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
         summary_path = os.path.join(api_dir, "training_summary.json")
         if not os.path.exists(summary_path):
             return {"status": "empty"}
@@ -1063,6 +1093,12 @@ def list_local_models():
     but never fails the listing if a model cannot be loaded.
     """
     try:
+        with _local_training_lock:
+            is_training = bool(LOCAL_TRAINING_STATE.get("running"))
+    except Exception:
+        is_training = False
+
+    try:
         import pickle
     except Exception:
         pickle = None
@@ -1096,10 +1132,30 @@ def list_local_models():
             }
 
             # Best-effort metadata extraction
-            if pickle is not None:
+            if pickle is not None and (not is_training):
                 try:
                     with open(filepath, "rb") as f:
                         model = pickle.load(f)
+
+                    # Lightweight artifact format (fast to load)
+                    if isinstance(model, dict) and model.get("kind") == "lgbm_booster":
+                        nf = model.get("num_features")
+                        nt = model.get("num_trees")
+                        ne = model.get("n_estimators")
+                        if isinstance(nf, (int, float)):
+                            info["num_features"] = int(nf)
+                        # Prefer n_estimators (what the user configured) as Params; fall back to num_trees
+                        if isinstance(ne, (int, float)):
+                            info["num_parameters"] = int(ne)
+                        elif isinstance(nt, (int, float)):
+                            info["num_parameters"] = int(nt)
+                        ts = model.get("trainingSamples")
+                        if isinstance(ts, (int, float)):
+                            info["trainingSamples"] = int(ts)
+                        # Done; avoid deeper inspection
+                        models.append(info)
+                        continue
+
                     # sklearn-style models often expose n_features_in_
                     num_features = getattr(model, "n_features_in_", None)
                     if isinstance(num_features, (int, float)):
@@ -1118,20 +1174,14 @@ def list_local_models():
                         # Special handling for tree ensembles such as LightGBM / RandomForest
                         cls_name = type(model).__name__.lower()
                         if "lgbm" in cls_name or "gradientboost" in cls_name or "forest" in cls_name:
-                            # Prefer the learned number of trees if available, otherwise fall back
-                            # to the configured n_estimators.
+                            # For tree ensembles, surface the effective number of trees so that
+                            # changing n_estimators (and early stopping) is visible in the UI.
                             trees = getattr(model, "n_estimators_", None)
                             if not isinstance(trees, (int, float)):
                                 trees = getattr(model, "n_estimators", None)
 
                             if isinstance(trees, (int, float)):
-                                trees = int(trees)
-                                # Simple capacity proxy: trees * num_features (if we know it),
-                                # otherwise just the tree count.
-                                if isinstance(num_features, int) and num_features > 0:
-                                    info["num_parameters"] = int(trees * num_features)
-                                else:
-                                    info["num_parameters"] = trees
+                                info["num_parameters"] = int(trees)
                         else:
                             # Linear-style models: fall back to coef_ size when present
                             coef = getattr(model, "coef_", None)
@@ -1155,6 +1205,26 @@ def list_local_models():
                 except Exception as meta_err:
                     # Metadata is optional; just log and continue
                     print(f"Warning: failed to read metadata for model {filename}: {meta_err}")
+            
+            # Attach per-model metadata from sidecar JSON when available
+            try:
+                meta_path = os.path.join(models_dir, f"{filename}.meta.json")
+                if os.path.exists(meta_path):
+                    with open(meta_path, "r", encoding="utf-8") as mf:
+                        meta = json.load(mf)
+                    if isinstance(meta, dict):
+                        ts = meta.get("trainingSamples")
+                        if isinstance(ts, (int, float)):
+                            info["trainingSamples"] = int(ts)
+                        # Optionally surface other fields like exchange or featurePreset if useful later
+                        ex = meta.get("exchange")
+                        if isinstance(ex, str):
+                            info.setdefault("exchange", ex)
+                        fp = meta.get("featurePreset")
+                        if isinstance(fp, str):
+                            info.setdefault("featurePreset", fp)
+            except Exception as meta_err:
+                print(f"Warning: failed to read per-model meta for {filename}: {meta_err}")
 
             models.append(info)
 
@@ -1187,6 +1257,30 @@ def get_model_info(model_name: str):
         
         with open(filepath, 'rb') as f:
             model = pickle.load(f)
+
+        # Lightweight artifact format
+        if isinstance(model, dict) and model.get("kind") == "lgbm_booster":
+            features = model.get("feature_names")
+            if not isinstance(features, list):
+                features = []
+            nf = model.get("num_features")
+            nt = model.get("num_trees")
+            ne = model.get("n_estimators")
+            info = {
+                "name": model_name,
+                "num_features": int(nf) if isinstance(nf, (int, float)) else len(features),
+                "num_parameters": int(ne) if isinstance(ne, (int, float)) else int(nt) if isinstance(nt, (int, float)) else 0,
+                "model_type": "lgbm_booster",
+                "features": features,
+            }
+
+            # Optional metadata
+            for k in ("exchange", "featurePreset", "trainingStrategy", "timestamp", "trainingSamples"):
+                v = model.get(k)
+                if v is not None:
+                    info[k] = v
+
+            return info
         
         # Extract model info
         info = {

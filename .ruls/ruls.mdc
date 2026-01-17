@@ -1,0 +1,250 @@
+---
+description:
+globs:
+alwaysApply: true
+---
+
+🔧 Cursor AI Assistant Rules
+
+🗣️ Communication
+- Speak Arabic (Egyptian dialect) when explaining concepts.
+- dont write arabic in files project .
+- Provide step-by-step explanations with clarity.
+- Suggest better system designs and algorithms, not just code fixes.
+- Respect the existing codebase structure and coding style.
+
+
+⚡ Next.js Specific Rules
+- Always handle server-side rendering (SSR) vs client-side rendering (CSR) differences.
+- Use `"use client"` directive for components that need browser APIs.
+- Implement proper hydration strategies for authentication providers.
+- Handle middleware authentication checks properly for API routes.
+- Use dynamic imports with `ssr: false` for client-only components when needed.
+- Monitor and debug useEffect execution in both server and client contexts.
+- Implement fallback loading states for client-side mounted components.
+
+🚫 Constraints
+- Do NOT run or suggest running a local server.
+- Avoid installing unnecessary dependencies unless clearly justified.
+- Never ignore hydration mismatches - always fix them properly.
+
+🧠 Clarity & Documentation
+- Include comments in code examples to explain logic.
+- Suggest better naming conventions and improve code readability.
+- Break large logic blocks into small, purposeful functions.
+- Ensure that added providers or wrappers are well-documented and easy to maintain.
+- Document authentication flow and state management clearly.
+
+💡 Code Quality & Design
+- Follow React and Next.js best practices.
+- Use modern, responsive, clean architecture for frontend and backend.
+- Write modular, reusable, and well-structured components.
+- Follow SOLID and DRY principles.
+- Use modern JavaScript/TypeScript syntax (ES6+).
+- Avoid anti-patterns; suggest cleaner alternatives.
+- Add appropriate **providers** (e.g., Context, Zustand, Redux) to manage and persist state efficiently.
+- Ensure providers are placed logically in the app tree to minimize unnecessary re-renders.
+
+🔐 Security & Error Handling
+- Apply security best practices (e.g. XSS, CSRF protection, input sanitization).
+- Always suggest secure and defensive coding techniques.
+- Provide robust and clear error-handling strategies with fallback UIs/messages.
+
+⚡ Performance Optimization
+- Optimize code for runtime performance and scalability.
+- Minimize unnecessary re-renders and optimize rendering logic.
+- Recommend best caching and data-fetching strategies (ISR, SSG, SSR).
+- Use memoization (React.memo, useMemo, useCallback) where appropriate.
+- Detect and reduce memory leaks or bottlenecks.
+- Suggest performance-optimized state management strategies (e.g., selective re-rendering, atomic stores).
+
+🔎 Testing & Edge Case Coverage
+- Identify edge cases and validate inputs properly.
+- Suggest appropriate unit, integration, and E2E testing strategies.
+- Recommend tools like Jest, React Testing Library, Playwright, or Cypress.
+
+🧪 Testing & Development
+- Use `curl` commands to test API endpoints and server responses.
+- Always verify authentication states with browser console logs.
+- Test client-side hydration by checking browser Developer Tools (F12).
+- Use browser preview tools instead of `curl` for full JavaScript applications.
+- Monitor server-side vs client-side rendering issues carefully.
+- Validate real-time subscriptions and WebSocket connections.
+
+📡 Comprehensive Curl Testing Commands
+- **Home Page**: `curl -I http://localhost:3000` (Should return 200 OK)
+- **Landing Page**: `curl -I http://localhost:3000/landing` (Should return 200 OK)  
+- **Login Page**: `curl -I http://localhost:3000/login` (Should return 200 OK)
+- **Traders Page**: `curl -I http://localhost:3000/traders` (Should return 200 OK)
+- **Profile Page**: `curl -I http://localhost:3000/profile` (Should return 200 OK)
+- **Pricing Page**: `curl -I http://localhost:3000/pricing` (Should return 200 OK)
+- **API Subscription**: `curl -X GET http://localhost:3000/api/subscription/info` (Should return 401 Unauthorized when not logged in)
+- **API Health Check**: `curl -I http://localhost:3000/api/health` (If health endpoint exists)
+- **Authentication Callback**: `curl -I http://localhost:3000/auth/callback` (Should return 200 OK)
+- **Content Security Policy**: Check CSP headers in curl responses for security compliance
+- **Response Times**: Monitor response times for performance issues (should be under 5 seconds)
+- **Error Pages**: Test 404 routes with `curl -I http://localhost:3000/nonexistent` (Should return 404)
+
+🤖 Automated Testing Protocol
+- **ALWAYS implement automated self-testing** for any new feature or background function
+- **DO NOT ask user to run console commands** - create automated test functions instead
+- **Auto-validate** all background processes (profile edit, price checks, post creation, etc.)
+- **Implement error recovery** with automatic retry mechanisms
+- **Monitor console outputs** and handle errors programmatically
+- **Create test scenarios** that simulate real user interactions
+- **Add debug modes** with comprehensive logging for troubleshooting
+- **Use synthetic test data** when real data is not available
+- **Implement health checks** for all critical background functions
+- **Auto-report test results** with clear pass/fail status and error details
+
+🔄 Background Function Testing Requirements
+- **Profile Edit Testing**: Auto-test avatar upload, background upload, profile data saving
+- **Price Check Testing**: Auto-test API calls, data parsing, database updates
+- **Post Creation Testing**: Auto-test image compression, content validation, database insertion
+- **Subscription Testing**: Auto-test plan limits, usage tracking, billing status
+- **Authentication Testing**: Auto-test login flows, session management, token refresh
+- **API Integration Testing**: Auto-test all external API endpoints with mock data
+- **Database Testing**: Auto-test CRUD operations with transaction rollback
+- **Error Handling Testing**: Auto-test failure scenarios and recovery mechanisms
+
+🎯 Testing Automation Strategy
+- **Self-contained tests** that run without user intervention
+- **Mock external dependencies** to ensure reliable testing
+- **Automatic test execution** on feature implementation
+- **Comprehensive error reporting** with actionable insights
+- **Performance benchmarking** with automatic alerts for degradation
+- **Cross-browser compatibility** testing for frontend features
+- **Load testing** for backend functions under stress
+- **Security testing** for authentication and authorization flows
+
+🌳 WordPress Theme & ThemeForest Standards
+- **Code Quality Check (PHPCS):**
+    - Always use `WordPress-Extra` standard.
+    - Zero tolerance for Errors (`E`) or Warnings (`W`).
+    - Use `./local-phpcs.bat` to scan and `./vendor/bin/phpcbf` to auto-fix.
+- **Security & Escaping:**
+    - **Output:** NEVER use `echo $var` directly. MUST use escaping functions:
+        - `esc_html()` for plain text.
+        - `esc_attr()` for HTML attributes.
+        - `esc_url()` for URLs.
+        - `wp_kses_post()` for allowed HTML.
+    - **Input:** ALWAYS sanitize inputs using `sanitize_text_field()`, `absint()`, etc.
+    - **Nonces:** ALL forms and AJAX requests MUST be secured with nonces.
+- **Plugin Territory Rule:**
+    - Themes MUST NOT register Custom Post Types (CPTs).
+    - Themes MUST NOT register Custom Taxonomies.
+    - Themes MUST NOT add Shortcodes.
+    - *Action:* Move these to a separate plugin (e.g., `inc/plugins-source/autocompare-core`).
+- **Naming Conventions:**
+    - ALL functions, classes, and global variables MUST have a unique prefix (e.g., `autocompare_`).
+    - No generic names like `get_posts()` or `render_view()`.
+- **Internationalization (i18n):**
+    - `text_domain` MUST match the theme slug exactly (`autocompare`).
+    - ALL strings must be translatable (`__('Text', 'autocompare')`, `_e(...)`, `esc_html_e(...)`).
+
+    
+### ✅ CodeCanyon Code Quality Standards (Next.js Edition)
+
+**1. Linting & Formatting:**
+- **** Strict ESLint:** Must use `next/core-web-vitals` + `plugin:security/recommended` + `plugin:jsx-a11y/recommended` + `plugin:sonarjs/recommended`.
+- **** Prettier:** All files must be formatted using Prettier.
+- **Zero Errors:** Run `npm run lint` and `npm run lint:count`. Must have **0 Errors** before submission.
+- **TypeScript:** Use officially supported TypeScript versions (pinned to `5.3.3` to avoid tool conflicts).
+
+**2. Security Requirement:**
+- **npm audit:** Must be clean of high/critical vulnerabilities.
+- **Input Validation:** Sanitize all user inputs (though React handles XSS by default, validate API inputs).
+- **Environment Variables:** Never commit `.env` files. using `.env.local` / `.env.example`.
+
+**3. Performance & Best Practices:**
+- **Image Optimization:** Use `next/image` for all images.
+- **Lazy Loading:** Use `next/dynamic` for heavy components.
+- **Accessibility:** Must pass `jsx-a11y` rules (Alt text, ARIA labels).
+
+**4. Project Structure:**
+- **No Unused Files:** Clean up unused components/pages before zipping.
+- **Documentation:** `README.md` must be clear and detailed.
+
+- **Files & Assets:**
+    - Use `wp_enqueue_script` / `wp_enqueue_style` for all assets.
+    - NO hardcoded `<script>` or `<style>` tags in templates.
+    - NO development files (`node_modules`, `composer.json`, `phpcs.xml`) in the production zip.
+172: 
+173: 
+174: ### ☕ Java Code Quality & Testing Standards
+175: 
+176: **1. Unit & Integration Testing:**
+177: - **JUnit 5 (Jupiter):** The standard for writing and running tests.
+178: - **AssertJ:** Use for fluent and readable assertions.
+179: - **Mockito:** Use for mocking dependencies in unit tests.
+180: - **Testcontainers:** (Optional) For integration tests requiring real databases or services.
+181: 
+182: **2. Static Analysis & Linting:**
+183: - **Checkstyle:** Use `google_checks.xml` or `sun_checks.xml` to enforce coding standards.
+184: - **PMD:** To detect common programming flaws and anti-patterns.
+185: - **SpotBugs:** To find potential bugs in Java code.
+186: - **SonarLint:** Recommended IDE extension for real-time feedback.
+187: 
+188: **3. Code Coverage:**
+189: - **JaCoCo:** Minimum **80% code coverage** required for submission.
+190: - **Maven/Gradle:** Ensure coverage reports are generated during the build process.
+191: 
+192: **4. Security:**
+193: - **OWASP Dependency-Check:** To identify project dependencies with known vulnerabilities.
+194: - **SpotBugs (with FindSecBugs):** For security-specific static analysis.
+195: 
+196: **5. Build & CI:**
+197: - **Maven/Gradle:** Stick to standard project structures.
+198: - **Zero Warnings:** Build must pass with zero compiler warnings and zero quality gate failures in SonarQube.
+
+
+.eslintrc.json
+
+{
+    "extends": [
+        "next/core-web-vitals",
+        "plugin:jsx-a11y/recommended",
+        "plugin:sonarjs/recommended",
+        "prettier"
+    ],
+    "plugins": [
+        "security",
+        "unused-imports",
+        "prettier"
+    ],
+    "rules": {
+        "prettier/prettier": "error",
+        "security/detect-object-injection": "off",
+        "unused-imports/no-unused-imports": "error",
+        "unused-imports/no-unused-vars": [
+            "warn",
+            {
+                "vars": "all",
+                "varsIgnorePattern": "^_",
+                "args": "after-used",
+                "argsIgnorePattern": "^_"
+            }
+        ],
+        "jsx-a11y/anchor-is-valid": [
+            "error",
+            {
+                "components": [
+                    "Link"
+                ],
+                "specialLink": [
+                    "hrefLeft",
+                    "hrefRight"
+                ],
+                "aspects": [
+                    "invalidHref",
+                    "preferButton"
+                ]
+            }
+        ]
+    }
+}
+
+- for test code quality run:
+    * npm run lint && npm run format:checknpm run lint && npm run format:check
+    * npm run lint && npm run format:check
+    * npm run lint:count

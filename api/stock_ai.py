@@ -21,6 +21,24 @@ try:
 except ImportError:
     LGBMClassifier = None
 
+try:
+    import lightgbm as lgb
+except Exception:
+    lgb = None
+
+
+class _LgbmBoosterClassifier:
+    def __init__(self, booster, threshold: float = 0.5):
+        self.booster = booster
+        try:
+            self.threshold = float(threshold)
+        except Exception:
+            self.threshold = 0.5
+
+    def predict(self, X):
+        raw = self.booster.predict(X)
+        return (np.asarray(raw) >= self.threshold).astype(int)
+
 supabase: Optional[Client] = None
 
 # Predictors used by the pre-trained LightGBM models
@@ -1483,9 +1501,41 @@ def train_and_predict(
         try:
             with open(model_path, "rb") as f:
                 loaded_model = pickle.load(f)
-            
+
+            # New lightweight model artifact format from train_exchange_model.py
+            lgbm_artifact_loaded = False
+            if isinstance(loaded_model, dict) and loaded_model.get("kind") == "lgbm_booster":
+                if lgb is None:
+                    raise ValueError("lightgbm is required to load lgbm_booster artifacts")
+
+                artifact = loaded_model
+                model_str = artifact.get("model_str")
+                if not isinstance(model_str, str) or not model_str.strip():
+                    raise ValueError("Invalid lgbm_booster artifact: missing model_str")
+
+                booster = lgb.Booster(model_str=model_str)
+                threshold = artifact.get("threshold")
+                loaded_model = _LgbmBoosterClassifier(booster, threshold if isinstance(threshold, (int, float)) else 0.5)
+                lgbm_artifact_loaded = True
+
+                f_names = artifact.get("feature_names")
+                if isinstance(f_names, list):
+                    predictors = [p for p in f_names if p in df.columns]
+                else:
+                    try:
+                        predictors = [p for p in booster.feature_name() if p in df.columns]
+                    except Exception:
+                        predictors = [p for p in LGBM_PREDICTORS if p in df.columns]
+
+                if not predictors:
+                    raise ValueError(
+                        "No overlapping predictors between trained LightGBM booster and current feature set. Please retrain the model."
+                    )
+
+                print(f"Loaded LightGBM booster artifact from {model_path} with {len(predictors)} predictors")
+
             # Identify predictors based on model type
-            if LGBMClassifier and isinstance(loaded_model, LGBMClassifier):
+            if (not lgbm_artifact_loaded) and LGBMClassifier and isinstance(loaded_model, LGBMClassifier):
                 model_features = None
                 # Prefer the feature names stored with the trained model to avoid
                 # shape mismatches when the global feature list changes.
@@ -1513,7 +1563,7 @@ def train_and_predict(
                     )
 
                 print(f"Loaded pre-trained LightGBM model from {model_path} with {len(predictors)} predictors")
-            else:
+            elif not lgbm_artifact_loaded:
                 predictors = [p for p in RF_PREDICTORS if p in df.columns]
                 print(f"Loaded pre-trained model for {exchange}")
         except Exception as e:

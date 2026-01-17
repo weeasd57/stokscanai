@@ -8,6 +8,7 @@ from typing import Optional
 import pandas as pd
 import numpy as np
 from datetime import datetime
+from ta import add_all_ta_features
 from lightgbm import LGBMClassifier
 import lightgbm as lgb
 from sklearn.model_selection import train_test_split, GridSearchCV
@@ -57,6 +58,72 @@ def optimize_and_train_model(X_train, y_train):
     print("Best parameters (precision):", search.best_params_)
     print("Best precision score:", search.best_score_)
     return search.best_estimator_
+
+def add_massive_features(df):
+    """
+    Generate over 250 features using:
+    1. TA library (~90 features)
+    2. Rolling Stats
+    3. Lagged historical data
+    """
+    # Create a copy to avoid modifying the original DataFrame
+    df = df.copy()
+    
+    # ---------------------------------------------------------
+    # 1. Ready-made Technical Indicators (Base: ~80-90 features)
+    # ---------------------------------------------------------
+    # This step alone adds RSI, MACD, Bollinger, Ichimoku, etc.
+    df = add_all_ta_features(
+        df, open="open", high="high", low="low", close="close", volume="volume", fillna=True
+    )
+    
+    # ---------------------------------------------------------
+    # 2. Generate Rolling Windows - The magic multiplier
+    # ---------------------------------------------------------
+    # Calculate mean and standard deviation for different periods
+    # (3 days for speculation, 7 weekly, 14, 30 for monthly)
+    windows = [3, 7, 14, 30]
+    target_cols = ['close', 'volume', 'momentum_rsi'] # Important columns for analysis
+    
+    for w in windows:
+        for col in target_cols:
+            if col in df.columns:
+                # Moving Average
+                df[f'{col}_SMA_{w}'] = df[col].rolling(window=w).mean()
+                # Standard Deviation (for volatility)
+                df[f'{col}_STD_{w}'] = df[col].rolling(window=w).std()
+                # Max value in period (Breakout)
+                df[f'{col}_MAX_{w}'] = df[col].rolling(window=w).max()
+                # Min value (Support)
+                df[f'{col}_MIN_{w}'] = df[col].rolling(window=w).min()
+
+    # ---------------------------------------------------------
+    # 3. Historical Memory (Lag Features)
+    # ---------------------------------------------------------
+    # What happened yesterday and the day before yesterday? (Very important for AI)
+    lags = [1, 2, 3, 5]
+    for lag in lags:
+        df[f'Close_Lag_{lag}'] = df['close'].shift(lag)
+        df[f'Vol_Lag_{lag}'] = df['volume'].shift(lag)
+        # Percentage change from previous days
+        df[f'Return_{lag}d'] = df['close'].pct_change(lag)
+
+    # ---------------------------------------------------------
+    # 4. Custom Advanced Indicators (Custom Math)
+    # ---------------------------------------------------------
+    # Log Returns (Better for statistical models)
+    df['Log_Ret'] = np.log(df['close'] / df['close'].shift(1))
+    
+    # Z-Score (Normalize price for the model to understand expensive and cheap stocks in the same way)
+    df['Z_Score_20'] = (df['close'] - df['close'].rolling(20).mean()) / df['close'].rolling(20).std()
+    
+    # Price x Volume interaction
+    df['PV_Trend'] = df['close'].pct_change() * df['volume'].pct_change()
+
+    # Clean data (remove NaN values resulting from Lags)
+    df = df.replace([np.inf, -np.inf], np.nan).fillna(0)
+    
+    return df
 
 def add_technical_indicators(df):
     cols = {c.lower(): c for c in df.columns}
@@ -264,6 +331,7 @@ def train_model(
     model_name: Optional[str] = None,
     upload_to_cloud: bool = True,
     feature_preset: str = "extended",  # "core" | "extended" | "max"
+    max_features_override: Optional[int] = None,
 ):
     print(f"Starting training for exchange: {exchange}")
     supabase: Client = create_client(supabase_url, supabase_key)
@@ -293,7 +361,8 @@ def train_model(
         df["date"] = pd.to_datetime(df["date"])
         df = df.set_index("date")
         
-        feat = add_technical_indicators(df)
+        feat = add_massive_features(df)
+        print(f"  Features Generated: {len(feat.columns)}")
         ready = prepare_for_ai(feat)
         
         if len(ready) >= 120:
@@ -388,6 +457,11 @@ def train_model(
 
     # Ensure all chosen columns exist (in case of legacy data)
     predictors = [c for c in chosen if c in df_train.columns]
+    
+    # Apply max_features_override if provided and positive
+    if max_features_override is not None and max_features_override > 0:
+        predictors = predictors[:max_features_override]
+
     print(f"Using feature preset '{preset}' with {len(predictors)} predictors")
 
     X = df_train[predictors]
@@ -492,6 +566,7 @@ def train_model(
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--exchange", required=True, help="Exchange name to train on")
+    parser.add_argument("--max_features", type=int, help="Optional: maximum number of features to use for training")
     args = parser.parse_args()
     
     url = os.getenv("NEXT_PUBLIC_SUPABASE_URL")
@@ -501,4 +576,4 @@ if __name__ == "__main__":
         print("Error: NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY environment variables are required.")
         sys.exit(1)
         
-    train_model(args.exchange, url, key)
+    train_model(args.exchange, url, key, max_features_override=args.max_features)

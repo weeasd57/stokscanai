@@ -27,6 +27,7 @@ interface LocalModel {
     type: string;
     num_features?: number;
     num_parameters?: number;
+    trainingSamples?: number;
 }
 
 export default function AIAutomationTab({
@@ -52,6 +53,8 @@ export default function AIAutomationTab({
     const [triggeringTraining, setTriggeringTraining] = useState<boolean>(false);
     const [useEarlyStopping, setUseEarlyStopping] = useState<boolean>(true);
     const [nEstimators, setNEstimators] = useState<number>(1000);
+    const [trainingStrategy, setTrainingStrategy] = useState<"golden" | "grid_small" | "random">("golden");
+    const [randomSearchIter, setRandomSearchIter] = useState<number>(5);
     const [lastTrainingSummary, setLastTrainingSummary] = useState<{
         exchange: string;
         useEarlyStopping: boolean;
@@ -71,73 +74,39 @@ export default function AIAutomationTab({
         error: string | null;
         last_message: string | null;
     } | null>(null);
+    const [trainingLogs, setTrainingLogs] = useState<Array<{ ts: string; msg: string }>>([]);
+    const [lastLoggedMessage, setLastLoggedMessage] = useState<string | null>(null);
     const [lastStatusCompletedAt, setLastStatusCompletedAt] = useState<string | null>(null);
     const [modelName, setModelName] = useState<string>("");
     const [featurePreset, setFeaturePreset] = useState<"core" | "extended" | "max">("extended");
+    const [maxFeatures, setMaxFeatures] = useState<number | null>(null);
 
     // Fetch local models once on mount (further updates happen on training completion or manual refresh)
     useEffect(() => {
         fetchLocalModels();
     }, []);
 
+    // Keep a small client-side log of training status messages for UI visibility.
     useEffect(() => {
-        let cancelled = false;
+        if (!trainingStatus?.last_message) return;
+        const msg = String(trainingStatus.last_message);
+        if (!msg.trim()) return;
+        if (msg === lastLoggedMessage) return;
+        setLastLoggedMessage(msg);
+        setTrainingLogs((prev) => {
+            const next = [...prev, { ts: new Date().toISOString(), msg }];
+            return next.length > 250 ? next.slice(next.length - 250) : next;
+        });
+    }, [trainingStatus?.last_message, lastLoggedMessage]);
 
-        const fetchStatus = async () => {
-            try {
-                const res = await fetch("/api/admin/train/status");
-                if (!res.ok) return;
-                const data = await res.json();
-                if (cancelled) return;
-
-                setTrainingStatus(data);
-
-                if (typeof data.running === "boolean") {
-                    setIsTraining(data.running);
-                }
-
-                if (!data.running && data.completed_at && data.completed_at !== lastStatusCompletedAt) {
-                    setLastStatusCompletedAt(data.completed_at);
-                    try {
-                        const sRes = await fetch("/api/admin/train/summary");
-                        if (sRes.ok) {
-                            const sData = await sRes.json();
-                            if (sData.status === "ok" && sData.summary) {
-                                setLastTrainingSummary(sData.summary);
-                            }
-                        }
-                    } catch {
-                        // ignore UI summary errors
-                    }
-
-                    // Refresh local models so the new model appears quickly
-                    try {
-                        fetchLocalModels();
-                    } catch {
-                        // ignore refresh errors
-                    }
-                }
-            } catch {
-                // ignore connection errors for status polling
-            }
-        };
-
-        // When not actively training, do at most a single sync fetch and no polling
-        if (!isTraining) {
-            fetchStatus();
-            return () => {
-                cancelled = true;
-            };
-        }
-
-        // While training is active, poll every 5s
-        fetchStatus();
-        const interval = setInterval(fetchStatus, 5000);
-        return () => {
-            cancelled = true;
-            clearInterval(interval);
-        };
-    }, [isTraining, lastStatusCompletedAt, setIsTraining]);
+    // Poll status while training is running to update logs and UI.
+    useEffect(() => {
+        if (!trainingStatus?.running) return;
+        const id = setInterval(() => {
+            refreshTrainingStatus();
+        }, 2000);
+        return () => clearInterval(id);
+    }, [trainingStatus?.running]);
 
     const fetchLocalModels = async () => {
         setLoadingLocalModels(true);
@@ -151,6 +120,43 @@ export default function AIAutomationTab({
             setLocalModels([]);
         } finally {
             setLoadingLocalModels(false);
+        }
+    };
+
+    const refreshTrainingStatus = async () => {
+        try {
+            const res = await fetch("/api/admin/train/status");
+            if (!res.ok) return;
+            const data = await res.json();
+
+            setTrainingStatus(data);
+
+            if (typeof data.running === "boolean") {
+                setIsTraining(data.running);
+            }
+
+            if (!data.running && data.completed_at && data.completed_at !== lastStatusCompletedAt) {
+                setLastStatusCompletedAt(data.completed_at);
+                try {
+                    const sRes = await fetch("/api/admin/train/summary");
+                    if (sRes.ok) {
+                        const sData = await sRes.json();
+                        if (sData.status === "ok" && sData.summary) {
+                            setLastTrainingSummary(sData.summary);
+                        }
+                    }
+                } catch {
+                    // ignore UI summary errors
+                }
+
+                try {
+                    fetchLocalModels();
+                } catch {
+                    // ignore refresh errors
+                }
+            }
+        } catch {
+            // ignore connection errors for status fetch
         }
     };
 
@@ -261,26 +267,47 @@ export default function AIAutomationTab({
                                 </div>
                             </div>
 
-                            <div className="space-y-2">
-                                <label className="text-[10px] text-zinc-500 uppercase font-black px-1">Target Exchange</label>
-                                <div className="relative">
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+                            <div className="space-y-1 mt-2">
+                                <label className="text-[10px] text-zinc-500 uppercase font-black px-1">
+                                    Max Features (optional)
+                                </label>
+                                <input
+                                    type="number"
+                                    min={1}
+                                    max={200}
+                                    step={1}
+                                    value={maxFeatures ?? ""}
+                                    onChange={(e) => {
+                                        const val = e.target.value;
+                                        if (!val) {
+                                            setMaxFeatures(null);
+                                            return;
+                                        }
+                                        const num = Number(val);
+                                        setMaxFeatures(Number.isFinite(num) && num > 0 ? num : null);
+                                    }}
+                                    className="w-full h-11 rounded-xl border border-zinc-800 bg-black px-3 text-sm text-zinc-300 focus:border-indigo-500"
+                                    placeholder="Leave empty to use all preset features"
+                                />
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
                                 <div className="flex items-center gap-3">
                                     <input
                                         id="useEarlyStopping"
                                         type="checkbox"
                                         checked={useEarlyStopping}
                                         onChange={(e) => setUseEarlyStopping(e.target.checked)}
-                                        className="h-4 w-4 rounded border-zinc-700 bg-black"
+                                        disabled={trainingStrategy !== "golden"}
+                                        className="h-4 w-4 rounded border-zinc-700 bg-black disabled:opacity-50"
                                     />
                                     <label htmlFor="useEarlyStopping" className="text-xs text-zinc-400">
                                         Enable Early Stopping
                                     </label>
                                 </div>
+
                                 <div className="space-y-1">
-                                    <label className="text-[10px] text-zinc-500 uppercase font-black px-1">
-                                        n_estimators
-                                    </label>
+                                    <label className="text-[10px] text-zinc-500 uppercase font-black px-1">n_estimators</label>
                                     <input
                                         type="number"
                                         min={50}
@@ -288,13 +315,44 @@ export default function AIAutomationTab({
                                         step={50}
                                         value={nEstimators}
                                         onChange={(e) => setNEstimators(Number(e.target.value) || 100)}
-                                        disabled={useEarlyStopping}
+                                        disabled={trainingStrategy !== "golden" || useEarlyStopping}
                                         className="w-full h-11 rounded-xl border border-zinc-800 bg-black px-3 text-sm text-zinc-300 focus:border-indigo-500 disabled:opacity-50"
                                     />
                                 </div>
+
+                                <div className="space-y-1 sm:col-span-2">
+                                    <label className="text-[10px] text-zinc-500 uppercase font-black px-1">Training Strategy</label>
+                                    <select
+                                        value={trainingStrategy}
+                                        onChange={(e) => setTrainingStrategy(e.target.value as any)}
+                                        className="w-full h-11 rounded-xl border border-zinc-800 bg-black px-3 text-sm text-zinc-300 focus:border-indigo-500"
+                                    >
+                                        <option value="golden">Golden Mix (default)</option>
+                                        <option value="grid_small">Full Grid Search (small data)</option>
+                                        <option value="random">Random Search (fast tuning)</option>
+                                    </select>
+                                </div>
+
+                                {trainingStrategy === "random" && (
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] text-zinc-500 uppercase font-black px-1">Random Search Iterations</label>
+                                        <input
+                                            type="number"
+                                            min={1}
+                                            max={50}
+                                            step={1}
+                                            value={randomSearchIter}
+                                            onChange={(e) => setRandomSearchIter(Number(e.target.value) || 5)}
+                                            className="w-full h-11 rounded-xl border border-zinc-800 bg-black px-3 text-sm text-zinc-300 focus:border-indigo-500"
+                                        />
+                                    </div>
+                                )}
                             </div>
 
-                            <button
+                            <div className="space-y-2 mt-4">
+                                <label className="text-[10px] text-zinc-500 uppercase font-black px-1">Target Exchange</label>
+                                <div className="relative">
+                                    <button
                                         onClick={() => setIsExchangeDropdownOpen(!isExchangeDropdownOpen)}
                                         className={`w-full bg-black border ${isExchangeDropdownOpen ? 'border-indigo-500 ring-1 ring-indigo-500/50' : 'border-zinc-800'} rounded-2xl p-4 text-sm text-left transition-all flex items-center justify-between group hover:border-zinc-700`}
                                     >
@@ -313,36 +371,6 @@ export default function AIAutomationTab({
                                         </span>
                                         <ChevronDown className={`w-4 h-4 text-zinc-500 transition-transform duration-300 ${isExchangeDropdownOpen ? 'rotate-180 text-indigo-500' : 'group-hover:text-zinc-300'}`} />
                                     </button>
-
-                            {lastTrainingSummary && (
-                                <div className="mt-4 rounded-2xl border border-zinc-800 bg-zinc-950 p-4 text-xs text-zinc-400 flex flex-col gap-1">
-                                    <div className="flex items-center justify-between">
-                                        <span className="font-bold text-zinc-200">Last Training Summary</span>
-                                        <span className="text-[10px] text-zinc-500">
-                                            {new Date(lastTrainingSummary.timestamp).toLocaleString()}
-                                        </span>
-                                    </div>
-                                    <div className="flex flex-wrap gap-3 mt-1">
-                                        <span className="px-2 py-1 rounded-full bg-zinc-900 border border-zinc-700 text-[10px]">
-                                            Exchange: <span className="text-zinc-200">{lastTrainingSummary.exchange}</span>
-                                        </span>
-                                        <span className="px-2 py-1 rounded-full bg-zinc-900 border border-zinc-700 text-[10px]">
-                                            Mode: <span className="text-zinc-200">{lastTrainingSummary.useEarlyStopping ? "Early Stopping" : "Fixed n_estimators"}</span>
-                                        </span>
-                                        <span className="px-2 py-1 rounded-full bg-zinc-900 border border-zinc-700 text-[10px]">
-                                            n_estimators: <span className="text-zinc-200">{lastTrainingSummary.nEstimators}</span>
-                                        </span>
-                                        <span className="px-2 py-1 rounded-full bg-zinc-900 border border-zinc-700 text-[10px]">
-                                            Samples: <span className="text-zinc-200">{lastTrainingSummary.trainingSamples}</span>
-                                        </span>
-                                        {typeof (lastTrainingSummary as any).numFeatures === "number" && (
-                                            <span className="px-2 py-1 rounded-full bg-zinc-900 border border-zinc-700 text-[10px]">
-                                                Features: <span className={((lastTrainingSummary as any).numFeatures ?? 0) > 20 ? "text-emerald-300" : "text-red-300"}>{(lastTrainingSummary as any).numFeatures}</span>
-                                            </span>
-                                        )}
-                                    </div>
-                                </div>
-                            )}
 
                                     {/* Dropdown Menu */}
                                     <div className={`absolute z-20 top-full left-0 right-0 mt-2 bg-zinc-900 border border-zinc-800 rounded-2xl shadow-2xl shadow-black/50 overflow-hidden transition-all duration-200 origin-top transform ${isExchangeDropdownOpen ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-95 -translate-y-2 pointer-events-none'}`}>
@@ -377,11 +405,42 @@ export default function AIAutomationTab({
                                         </div>
                                     </div>
                                 </div>
+
                                 {/* Backdrop to close */}
                                 {isExchangeDropdownOpen && (
                                     <div className="fixed inset-0 z-10 bg-transparent" onClick={() => setIsExchangeDropdownOpen(false)} />
                                 )}
                             </div>
+
+                            {lastTrainingSummary && (
+                                <div className="mt-4 rounded-2xl border border-zinc-800 bg-zinc-950 p-4 text-xs text-zinc-400 flex flex-col gap-1">
+                                    <div className="flex items-center justify-between">
+                                        <span className="font-bold text-zinc-200">Last Training Summary</span>
+                                        <span className="text-[10px] text-zinc-500">
+                                            {new Date(lastTrainingSummary.timestamp).toLocaleString()}
+                                        </span>
+                                    </div>
+                                    <div className="flex flex-wrap gap-3 mt-1">
+                                        <span className="px-2 py-1 rounded-full bg-zinc-900 border border-zinc-700 text-[10px]">
+                                            Exchange: <span className="text-zinc-200">{lastTrainingSummary.exchange}</span>
+                                        </span>
+                                        <span className="px-2 py-1 rounded-full bg-zinc-900 border border-zinc-700 text-[10px]">
+                                            Mode: <span className="text-zinc-200">{lastTrainingSummary.useEarlyStopping ? "Early Stopping" : "Fixed n_estimators"}</span>
+                                        </span>
+                                        <span className="px-2 py-1 rounded-full bg-zinc-900 border border-zinc-700 text-[10px]">
+                                            n_estimators: <span className="text-zinc-200">{lastTrainingSummary.nEstimators}</span>
+                                        </span>
+                                        <span className="px-2 py-1 rounded-full bg-zinc-900 border border-zinc-700 text-[10px]">
+                                            Samples: <span className="text-zinc-200">{lastTrainingSummary.trainingSamples}</span>
+                                        </span>
+                                        {typeof (lastTrainingSummary as any).numFeatures === "number" && (
+                                            <span className="px-2 py-1 rounded-full bg-zinc-900 border border-zinc-700 text-[10px]">
+                                                Features: <span className={((lastTrainingSummary as any).numFeatures ?? 0) > 20 ? "text-emerald-300" : "text-red-300"}>{(lastTrainingSummary as any).numFeatures}</span>
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
 
                             <button
                                 onClick={async () => {
@@ -397,6 +456,9 @@ export default function AIAutomationTab({
                                                 nEstimators,
                                                 modelName: modelName.trim() || undefined,
                                                 featurePreset,
+                                                trainingStrategy,
+                                                randomSearchIter: trainingStrategy === "random" ? randomSearchIter : undefined,
+                                                maxFeatures: maxFeatures ?? undefined,
                                             }),
                                         });
                                         const data = await res.json();
@@ -465,6 +527,37 @@ export default function AIAutomationTab({
                                     )}
                                 </div>
                             )}
+
+                            <div className="mt-4 rounded-2xl border border-zinc-800 bg-zinc-950 p-4">
+                                <div className="flex items-center justify-between">
+                                    <div className="text-xs font-black text-white">Local Training Logs</div>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setTrainingLogs([]);
+                                            setLastLoggedMessage(null);
+                                        }}
+                                        className="text-[10px] font-black uppercase tracking-widest text-zinc-500 hover:text-zinc-200 transition-colors"
+                                    >
+                                        Clear
+                                    </button>
+                                </div>
+
+                                <div className="mt-3 max-h-48 overflow-y-auto pr-2 custom-scrollbar space-y-2">
+                                    {trainingLogs.length === 0 ? (
+                                        <div className="text-[11px] text-zinc-600">No logs yet.</div>
+                                    ) : (
+                                        trainingLogs
+                                            .slice()
+                                            .reverse()
+                                            .map((l, idx) => (
+                                                <div key={`${l.ts}-${idx}`} className="text-[11px] text-zinc-500 font-mono break-words">
+                                                    <span className="text-zinc-700">[{new Date(l.ts).toLocaleTimeString()}]</span> {l.msg}
+                                                </div>
+                                            ))
+                                    )}
+                                </div>
+                            </div>
 
                             <button
                                 onClick={async () => {
@@ -653,9 +746,16 @@ export default function AIAutomationTab({
                                 </div>
                             </div>
                             <button
-                                onClick={() => {
-                                    fetchTrainedModels();
-                                    fetchLocalModels();
+                                onClick={async () => {
+                                    // Refresh remote-trained models (if any)
+                                    try {
+                                        await fetchTrainedModels();
+                                    } catch {
+                                        // ignore errors in this manual refresh
+                                    }
+
+                                    // Single-shot refresh of local training status + summary + local models
+                                    await refreshTrainingStatus();
                                 }}
                                 className="p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-zinc-500 hover:text-indigo-400 transition-all"
                             >
@@ -706,6 +806,14 @@ export default function AIAutomationTab({
                                                                         <span className="w-1 h-1 rounded-full bg-zinc-800" />
                                                                         <span className="text-[10px] bg-amber-600/20 text-amber-300 px-2 py-0.5 rounded-md font-bold">
                                                                             {model.num_parameters} Params
+                                                                        </span>
+                                                                    </>
+                                                                )}
+                                                                {typeof model.trainingSamples === "number" && model.trainingSamples > 0 && (
+                                                                    <>
+                                                                        <span className="w-1 h-1 rounded-full bg-zinc-800" />
+                                                                        <span className="text-[10px] bg-emerald-600/20 text-emerald-300 px-2 py-0.5 rounded-md font-bold">
+                                                                            {model.trainingSamples} Samples
                                                                         </span>
                                                                     </>
                                                                 )}
