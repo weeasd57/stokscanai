@@ -20,3 +20,16 @@ This file tracks planned features, architecture improvements, optimizations, and
     - with early stopping enabled on a validation split.
   - [x] Add optional lightweight RandomizedSearch (RandomizedSearchCV) for global models with `n_iter ≈ 5` focused on precision.
   - [x] Expose training strategy choices in the admin UI: "Full Grid Search (small data)", "Golden Mix (default)", and "Random Search (fast tuning)".
+
+
+- [ ] Admin UI: AI & Automation Training Sub-Tabs
+  - [x] Add internal sub-tabs: "Classic" (default) + "Genetic Algorithms".
+  - [ ] Keep Classic tab as the current LightGBM workflow.
+  - [ ] Genetic Algorithms tab: dedicated workspace for evolutionary algorithms.
+  - [ ] Add placeholders for controls (population, mutation rate, generations), live charts, and state timeline.
+
+- [ ] Live Training Visualization (Classic)
+  - [ ] Stream training iteration metrics via SSE (target: RMSE over iterations).
+  - [ ] Add live chart area in Classic tab (learning curve).
+  - [ ] Add iteration bar (trees built / total) and phase timeline.
+  - [ ] Add an optional "Stop Training" mechanism (cancel flag + safe checkpoints).

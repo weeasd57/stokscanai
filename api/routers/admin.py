@@ -99,6 +99,10 @@ LOCAL_TRAINING_STATE = {
     "completed_at": None,
     "error": None,
     "last_message": None,
+    "phase": None,
+    "stats": {},
+    "version": 0,
+    "last_update": None,
 }
 _local_training_lock = threading.Lock()
 
@@ -839,12 +843,25 @@ async def trigger_local_training(req: TrainTriggerRequest, background_tasks: Bac
         try:
             print(f"Starting local training for {ex}")
 
-            def _progress_cb(msg: str) -> None:
+            def _progress_cb(msg) -> None:
                 # Keep the admin UI responsive by updating last_message frequently.
                 # This is best-effort and should never fail the training.
                 try:
                     with _local_training_lock:
-                        LOCAL_TRAINING_STATE["last_message"] = str(msg)
+                        if isinstance(msg, dict):
+                            message = msg.get("message")
+                            if message is not None:
+                                LOCAL_TRAINING_STATE["last_message"] = str(message)
+                            phase = msg.get("phase")
+                            if phase is not None:
+                                LOCAL_TRAINING_STATE["phase"] = str(phase)
+                            stats = msg.get("stats")
+                            if isinstance(stats, dict):
+                                LOCAL_TRAINING_STATE["stats"] = stats
+                        else:
+                            LOCAL_TRAINING_STATE["last_message"] = str(msg)
+                        LOCAL_TRAINING_STATE["version"] = int(LOCAL_TRAINING_STATE.get("version") or 0) + 1
+                        LOCAL_TRAINING_STATE["last_update"] = datetime.utcnow().isoformat()
                 except Exception:
                     pass
 
@@ -868,6 +885,8 @@ async def trigger_local_training(req: TrainTriggerRequest, background_tasks: Bac
                 LOCAL_TRAINING_STATE["completed_at"] = datetime.utcnow().isoformat()
                 LOCAL_TRAINING_STATE["error"] = None
                 LOCAL_TRAINING_STATE["last_message"] = f"Local training for {ex} completed"
+                LOCAL_TRAINING_STATE["version"] = int(LOCAL_TRAINING_STATE.get("version") or 0) + 1
+                LOCAL_TRAINING_STATE["last_update"] = datetime.utcnow().isoformat()
         except Exception as e:
             print(f"Local training failed: {e}")
             with _local_training_lock:
@@ -875,6 +894,8 @@ async def trigger_local_training(req: TrainTriggerRequest, background_tasks: Bac
                 LOCAL_TRAINING_STATE["completed_at"] = datetime.utcnow().isoformat()
                 LOCAL_TRAINING_STATE["error"] = str(e)
                 LOCAL_TRAINING_STATE["last_message"] = f"Local training failed: {e}"
+                LOCAL_TRAINING_STATE["version"] = int(LOCAL_TRAINING_STATE.get("version") or 0) + 1
+                LOCAL_TRAINING_STATE["last_update"] = datetime.utcnow().isoformat()
 
     background_tasks.add_task(
         _train_worker,
@@ -911,6 +932,25 @@ async def get_last_training_summary():
 async def get_local_training_status():
     with _local_training_lock:
         return dict(LOCAL_TRAINING_STATE)
+
+
+@router.get("/train/stream")
+async def stream_local_training_status():
+    def _event_stream():
+        while True:
+            with _local_training_lock:
+                payload = dict(LOCAL_TRAINING_STATE)
+            yield f"data: {json.dumps(payload)}\n\n"
+            time.sleep(1)
+
+    return StreamingResponse(
+        _event_stream(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+        },
+    )
 
 @router.get("/train/models")
 async def list_models():
@@ -1315,8 +1355,7 @@ def get_model_info(model_name: str):
         print(f"Error getting model info: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.delete("/models/{model_name}")
-def delete_local_model(model_name: str):
+def _delete_local_model(model_name: str):
     """Delete a local model file."""
     try:
         # Validate filename to prevent path traversal
@@ -1341,5 +1380,12 @@ def delete_local_model(model_name: str):
     except HTTPException:
         raise
     except Exception as e:
-        print(f"Error deleting model: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.delete("/models/{model_name}")
+def delete_local_model(model_name: str):
+    return _delete_local_model(model_name)
+
+@router.delete("/train/models/{model_name}")
+def delete_local_model_from_train(model_name: str):
+    return _delete_local_model(model_name)

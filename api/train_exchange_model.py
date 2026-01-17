@@ -3,7 +3,7 @@ import sys
 import argparse
 import pickle
 import json
-from typing import Optional
+from typing import Optional, Callable, Any, Dict
 
 import pandas as pd
 import numpy as np
@@ -68,6 +68,12 @@ def add_massive_features(df):
     """
     # Create a copy to avoid modifying the original DataFrame
     df = df.copy()
+    cols = {c.lower(): c for c in df.columns}
+    for key in ("open", "high", "low", "close", "volume"):
+        if key in cols and cols[key] != key:
+            df.rename(columns={cols[key]: key}, inplace=True)
+    if "close" not in df.columns or "volume" not in df.columns:
+        return df
     
     # ---------------------------------------------------------
     # 1. Ready-made Technical Indicators (Base: ~80-90 features)
@@ -84,18 +90,15 @@ def add_massive_features(df):
     # (3 days for speculation, 7 weekly, 14, 30 for monthly)
     windows = [3, 7, 14, 30]
     target_cols = ['close', 'volume', 'momentum_rsi'] # Important columns for analysis
+    extra_cols = {}
     
     for w in windows:
         for col in target_cols:
             if col in df.columns:
-                # Moving Average
-                df[f'{col}_SMA_{w}'] = df[col].rolling(window=w).mean()
-                # Standard Deviation (for volatility)
-                df[f'{col}_STD_{w}'] = df[col].rolling(window=w).std()
-                # Max value in period (Breakout)
-                df[f'{col}_MAX_{w}'] = df[col].rolling(window=w).max()
-                # Min value (Support)
-                df[f'{col}_MIN_{w}'] = df[col].rolling(window=w).min()
+                extra_cols[f'{col}_SMA_{w}'] = df[col].rolling(window=w).mean()
+                extra_cols[f'{col}_STD_{w}'] = df[col].rolling(window=w).std()
+                extra_cols[f'{col}_MAX_{w}'] = df[col].rolling(window=w).max()
+                extra_cols[f'{col}_MIN_{w}'] = df[col].rolling(window=w).min()
 
     # ---------------------------------------------------------
     # 3. Historical Memory (Lag Features)
@@ -103,22 +106,34 @@ def add_massive_features(df):
     # What happened yesterday and the day before yesterday? (Very important for AI)
     lags = [1, 2, 3, 5]
     for lag in lags:
-        df[f'Close_Lag_{lag}'] = df['close'].shift(lag)
-        df[f'Vol_Lag_{lag}'] = df['volume'].shift(lag)
-        # Percentage change from previous days
-        df[f'Return_{lag}d'] = df['close'].pct_change(lag)
+        extra_cols[f'Close_Lag_{lag}'] = df['close'].shift(lag)
+        extra_cols[f'Vol_Lag_{lag}'] = df['volume'].shift(lag)
+        extra_cols[f'Return_{lag}d'] = df['close'].pct_change(lag)
 
     # ---------------------------------------------------------
     # 4. Custom Advanced Indicators (Custom Math)
     # ---------------------------------------------------------
     # Log Returns (Better for statistical models)
-    df['Log_Ret'] = np.log(df['close'] / df['close'].shift(1))
+    extra_cols['Log_Ret'] = np.log(df['close'] / df['close'].shift(1))
     
     # Z-Score (Normalize price for the model to understand expensive and cheap stocks in the same way)
-    df['Z_Score_20'] = (df['close'] - df['close'].rolling(20).mean()) / df['close'].rolling(20).std()
+    extra_cols['Z_Score_20'] = (df['close'] - df['close'].rolling(20).mean()) / df['close'].rolling(20).std()
     
     # Price x Volume interaction
-    df['PV_Trend'] = df['close'].pct_change() * df['volume'].pct_change()
+    extra_cols['PV_Trend'] = df['close'].pct_change() * df['volume'].pct_change()
+
+    extra_cols["Close"] = df["close"]
+    extra_cols["Volume"] = df["volume"]
+    if "open" in df.columns:
+        extra_cols["Open"] = df["open"]
+    if "high" in df.columns:
+        extra_cols["High"] = df["high"]
+    if "low" in df.columns:
+        extra_cols["Low"] = df["low"]
+
+    if extra_cols:
+        df = pd.concat([df, pd.DataFrame(extra_cols, index=df.index)], axis=1)
+        df = df.copy()
 
     # Clean data (remove NaN values resulting from Lags)
     df = df.replace([np.inf, -np.inf], np.nan).fillna(0)
@@ -332,51 +347,141 @@ def train_model(
     upload_to_cloud: bool = True,
     feature_preset: str = "extended",  # "core" | "extended" | "max"
     max_features_override: Optional[int] = None,
+    training_strategy: Optional[str] = None,
+    random_search_iter: Optional[int] = None,
+    max_features: Optional[int] = None,
+    progress_cb: Optional[Callable[[Any], None]] = None,
 ):
     print(f"Starting training for exchange: {exchange}")
     supabase: Client = create_client(supabase_url, supabase_key)
+    def _progress(msg: str) -> None:
+        print(msg)
+        if progress_cb:
+            try:
+                progress_cb(msg)
+            except Exception:
+                pass
+    def _progress_stats(phase: str, message: str, stats: Dict[str, Any]) -> None:
+        if not progress_cb:
+            return
+        payload = {
+            "phase": phase,
+            "message": message,
+            "stats": stats,
+        }
+        try:
+            progress_cb(payload)
+        except Exception:
+            pass
     
-    # 1. Fetch symbols for this exchange
-    res = supabase.table("stock_prices").select("symbol").eq("exchange", exchange).execute()
-    if not res.data:
-        print(f"No price data found for exchange {exchange}")
+    # 1. Bulk fetch all price data for this exchange
+    _progress(f"Loading price data for exchange {exchange}...")
+    rows_total = None
+    try:
+        count_res = (
+            supabase.table("stock_prices")
+            .select("symbol", count="exact")
+            .eq("exchange", exchange)
+            .limit(1)
+            .execute()
+        )
+        rows_total = count_res.count
+    except Exception:
+        rows_total = None
+    all_rows = []
+    page_size = 1000
+    offset = 0
+    while True:
+        res = (
+            supabase.table("stock_prices")
+            .select("*")
+            .eq("exchange", exchange)
+            .order("date", desc=False)
+            .range(offset, offset + page_size - 1)
+            .execute()
+        )
+        batch = res.data or []
+        if not batch:
+            break
+        all_rows.extend(batch)
+        msg = f"Loaded {len(all_rows):,} rows so far"
+        _progress_stats(
+            "loading_rows",
+            msg,
+            {"rows_loaded": len(all_rows), "rows_total": rows_total},
+        )
+        if len(batch) < page_size:
+            break
+        offset += page_size
+
+    if not all_rows:
+        _progress(f"No price data found for exchange {exchange}")
         return
-    
-    all_symbols = sorted(list(set(r["symbol"] for r in res.data)))
-    print(f"Found {len(all_symbols)} symbols for exchange {exchange}")
-    
-    # 2. Collect data from symbols (previously limited for performance)
-    # Now we use all symbols for richer training data.
-    sample_symbols = all_symbols
+
+    df_all = pd.DataFrame(all_rows)
+    if df_all.empty:
+        _progress(f"No price data found for exchange {exchange}")
+        return
+
+    all_symbols = sorted(df_all["symbol"].dropna().unique().tolist())
+    raw_rows = len(df_all)
+    msg = f"Loaded {raw_rows:,} rows for {len(all_symbols):,} symbols ({exchange})"
+    _progress(msg)
+    _progress_stats(
+        "data_loaded",
+        msg,
+        {"raw_rows": raw_rows, "symbols_total": len(all_symbols), "rows_total": raw_rows},
+    )
 
     combined_data = []
-    
-    for symbol in sample_symbols:
-        print(f"Fetching data for {symbol}...")
-        res = supabase.table("stock_prices").select("*").eq("symbol", symbol).eq("exchange", exchange).order("date", desc=False).execute()
-        if not res.data or len(res.data) < 200:
+    symbols_used = 0
+    symbols_total = len(all_symbols)
+    symbols_processed = 0
+    progress_step = max(1, symbols_total // 50) if symbols_total else 1
+    for symbol, df_symbol in df_all.groupby("symbol"):
+        symbols_processed += 1
+        if df_symbol is None or df_symbol.empty:
             continue
-        
-        df = pd.DataFrame(res.data)
+        if len(df_symbol) < 200:
+            continue
+
+        df = df_symbol.copy()
         df["date"] = pd.to_datetime(df["date"])
         df = df.set_index("date")
-        
+
+        if symbols_processed % progress_step == 0 or symbols_processed == symbols_total:
+            msg = f"Processing symbol {symbol} ({symbols_processed}/{symbols_total})"
+            _progress(msg)
+            _progress_stats(
+                "processing_symbols",
+                msg,
+                {"symbols_processed": symbols_processed, "symbols_total": symbols_total},
+            )
+
         feat = add_massive_features(df)
-        print(f"  Features Generated: {len(feat.columns)}")
+        tech = add_technical_indicators(df)
+        if not tech.empty:
+            feat = feat.drop(columns=[c for c in tech.columns if c in feat.columns], errors="ignore")
+            feat = pd.concat([feat, tech], axis=1)
         ready = prepare_for_ai(feat)
-        
+
         if len(ready) >= 120:
             combined_data.append(ready)
-            
+            symbols_used += 1
+
     if not combined_data:
-        print("No valid data collected for training")
+        _progress("No valid data collected for training")
         return
 
     df_train = pd.concat(combined_data)
     total_samples = len(df_train)
-    print(f"Total training samples: {total_samples}")
-    # Debug: explicit training samples count
-    print("Training samples:", total_samples)
+    msg = f"Prepared training data: {symbols_used:,} symbols used, {total_samples:,} samples"
+    _progress(msg)
+    _progress_stats(
+        "data_prepared",
+        msg,
+        {"symbols_used": symbols_used, "samples": total_samples},
+    )
 
     # 3. Select feature set based on preset
     core_predictors = [
@@ -458,25 +563,40 @@ def train_model(
     # Ensure all chosen columns exist (in case of legacy data)
     predictors = [c for c in chosen if c in df_train.columns]
     
+    if max_features_override is None and max_features is not None:
+        max_features_override = max_features
+
     # Apply max_features_override if provided and positive
     if max_features_override is not None and max_features_override > 0:
         predictors = predictors[:max_features_override]
 
-    print(f"Using feature preset '{preset}' with {len(predictors)} predictors")
+    msg = f"Feature preset '{preset}' -> {len(predictors)} predictors"
+    _progress(msg)
+    _progress_stats(
+        "features_ready",
+        msg,
+        {"features": len(predictors), "feature_preset": preset},
+    )
 
     X = df_train[predictors]
     y = df_train["Target"]
 
     # Use a large number of estimators with early stopping to prevent overfitting.
     if use_early_stopping:
+        final_n_estimators = n_estimators or 1000
+        msg = f"Training LightGBM (early_stopping=True, n_estimators={final_n_estimators})"
+        _progress(msg)
+        _progress_stats(
+            "training",
+            msg,
+            {"n_estimators": final_n_estimators, "early_stopping": True},
+        )
         X_train, X_val, y_train, y_val = train_test_split(
             X,
             y,
             test_size=0.2,
             shuffle=False,
         )
-
-        final_n_estimators = n_estimators or 1000
         # Debug: log final n_estimators for early-stopping mode
         print("Final n_estimators:", final_n_estimators)
         model = LGBMClassifier(
@@ -498,6 +618,13 @@ def train_model(
     else:
         # Plain training without early stopping, n_estimators fully controlled by caller.
         final_n_estimators = n_estimators or 200
+        msg = f"Training LightGBM (early_stopping=False, n_estimators={final_n_estimators})"
+        _progress(msg)
+        _progress_stats(
+            "training",
+            msg,
+            {"n_estimators": final_n_estimators, "early_stopping": False},
+        )
         # Debug: log final n_estimators for non-early-stopping mode
         print("Final n_estimators:", final_n_estimators)
         model = LGBMClassifier(
@@ -520,6 +647,8 @@ def train_model(
             "trainingSamples": int(total_samples),
             "numFeatures": num_features,
             "featurePreset": preset,
+            "symbolsUsed": int(symbols_used),
+            "rawRows": int(raw_rows),
             "timestamp": datetime.utcnow().isoformat() + "Z",
         }
         _write_training_summary(summary)
@@ -543,21 +672,49 @@ def train_model(
 
     filepath = os.path.join(models_dir, filename)
     
-    with open(filepath, "wb") as f:
-        pickle.dump(model, f)
-    
-    print(f"Model saved to {filepath}")
+    booster = getattr(model, "booster_", None)
+    if booster is not None:
+        artifact = {
+            "kind": "lgbm_booster",
+            "model_str": booster.model_to_string(),
+            "feature_names": predictors,
+            "n_estimators": int(final_n_estimators),
+            "num_features": int(len(predictors)),
+            "num_trees": int(getattr(booster, "num_trees", lambda: 0)()),
+            "exchange": exchange,
+            "featurePreset": preset,
+            "trainingSamples": int(total_samples),
+            "timestamp": datetime.utcnow().isoformat() + "Z",
+        }
+        with open(filepath, "wb") as f:
+            pickle.dump(artifact, f)
+    else:
+        with open(filepath, "wb") as f:
+            pickle.dump(model, f)
+
+    msg = f"Model saved locally: {filepath}"
+    _progress(msg)
+    _progress_stats(
+        "saved",
+        msg,
+        {"model_path": filepath},
+    )
     
     # Upload to Supabase Storage (bucket 'ai-models') if enabled
     if upload_to_cloud:
         try:
+            msg = "Uploading model to Supabase storage..."
+            _progress(msg)
+            _progress_stats("uploading", msg, {})
             with open(filepath, "rb") as f:
                 supabase.storage.from_("ai-models").upload(
                     path=filename,
                     file=f,
                     file_options={"cache-control": "3600", "upsert": "true"}
                 )
-            print(f"Model successfully uploaded to Supabase Storage: ai-models/{filename}")
+            msg = f"Model uploaded to Supabase Storage: ai-models/{filename}"
+            _progress(msg)
+            _progress_stats("uploaded", msg, {"model_path": filename})
         except Exception as e:
             print(f"Failed to upload model: {e}")
             # If bucket doesn't exist, this might fail. In reality, the user should create it.

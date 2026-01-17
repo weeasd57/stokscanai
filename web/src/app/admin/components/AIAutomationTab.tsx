@@ -3,6 +3,7 @@
 import { Zap, ChevronDown, Check, Loader2, Download, Database, Info, History, Trash2 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
+import ConfirmDialog from "@/components/ConfirmDialog";
 
 interface AIAutomationTabProps {
     dbInventory: any[];
@@ -44,6 +45,7 @@ export default function AIAutomationTab({
     setIsTraining
 }: AIAutomationTabProps) {
     const [workflow, setWorkflow] = useState<"ai-training" | "data-sync">("ai-training");
+    const [trainingTab, setTrainingTab] = useState<"classic" | "genetic">("classic");
     const [when, setWhen] = useState<string>(""); // datetime-local value
     const [days, setDays] = useState<number>(365);
     const [updatePrices, setUpdatePrices] = useState<boolean>(true);
@@ -61,6 +63,9 @@ export default function AIAutomationTab({
         nEstimators: number;
         trainingSamples: number;
         timestamp: string;
+        numFeatures?: number;
+        symbolsUsed?: number;
+        rawRows?: number;
     } | null>(null);
     const [localModels, setLocalModels] = useState<LocalModel[]>([]);
     const [loadingLocalModels, setLoadingLocalModels] = useState<boolean>(false);
@@ -73,13 +78,71 @@ export default function AIAutomationTab({
         completed_at: string | null;
         error: string | null;
         last_message: string | null;
+        last_update?: string | null;
+        phase?: string | null;
+        stats?: Record<string, any> | null;
     } | null>(null);
+    const liveStats = trainingStatus?.stats ?? null;
+    const symbolsProcessed = typeof liveStats?.symbols_processed === "number" ? liveStats.symbols_processed : null;
+    const symbolsTotal = typeof liveStats?.symbols_total === "number" ? liveStats.symbols_total : null;
+    const symbolProgressPct = symbolsProcessed !== null && symbolsTotal ? Math.min(100, Math.round((symbolsProcessed / symbolsTotal) * 100)) : null;
+    const rowsLoaded = typeof liveStats?.rows_loaded === "number" ? liveStats.rows_loaded : null;
+    const rowsTotal = typeof liveStats?.rows_total === "number" ? liveStats.rows_total : null;
+    const rowsProgressPct = rowsLoaded !== null && rowsTotal ? Math.min(100, Math.round((rowsLoaded / rowsTotal) * 100)) : null;
+    const phaseProgressMap: Record<string, number> = {
+        data_loaded: 10,
+        processing_symbols: 40,
+        data_prepared: 60,
+        features_ready: 70,
+        training: 85,
+        saved: 95,
+        uploaded: 100,
+    };
+    const phaseTimeline = ["loading_rows", "data_loaded", "processing_symbols", "data_prepared", "features_ready", "training", "saved", "uploaded"];
+    const phaseLabels: Record<string, string> = {
+        loading_rows: "Loading",
+        data_loaded: "Loaded",
+        processing_symbols: "Symbols",
+        data_prepared: "Prepared",
+        features_ready: "Features",
+        training: "Training",
+        saved: "Saved",
+        uploaded: "Uploaded",
+    };
+    const overallProgressPct = (() => {
+        const phase = trainingStatus?.phase ?? null;
+        if (!phase) return null;
+        if (phase === "processing_symbols" && symbolProgressPct !== null) {
+            return Math.min(60, 10 + Math.round(symbolProgressPct * 0.5));
+        }
+        return phaseProgressMap[phase] ?? null;
+    })();
+    const etaSeconds = (() => {
+        if (!trainingStatus?.last_update) return null;
+        const elapsed = (Date.now() - new Date(trainingStatus.last_update).getTime()) / 1000;
+        if (!Number.isFinite(elapsed)) return null;
+        if (symbolProgressPct !== null && symbolProgressPct > 0 && symbolProgressPct < 100) {
+            return Math.max(0, Math.round((elapsed / symbolProgressPct) * (100 - symbolProgressPct)));
+        }
+        if (rowsProgressPct !== null && rowsProgressPct > 0 && rowsProgressPct < 100) {
+            return Math.max(0, Math.round((elapsed / rowsProgressPct) * (100 - rowsProgressPct)));
+        }
+        return null;
+    })();
+    const formatEta = (secs: number | null) => {
+        if (!secs && secs !== 0) return null;
+        const minutes = Math.floor(secs / 60);
+        const seconds = Math.floor(secs % 60);
+        return minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`;
+    };
     const [trainingLogs, setTrainingLogs] = useState<Array<{ ts: string; msg: string }>>([]);
     const [lastLoggedMessage, setLastLoggedMessage] = useState<string | null>(null);
     const [lastStatusCompletedAt, setLastStatusCompletedAt] = useState<string | null>(null);
     const [modelName, setModelName] = useState<string>("");
     const [featurePreset, setFeaturePreset] = useState<"core" | "extended" | "max">("extended");
     const [maxFeatures, setMaxFeatures] = useState<number | null>(null);
+    const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+    const [pendingDeleteModel, setPendingDeleteModel] = useState<string | null>(null);
 
     // Fetch local models once on mount (further updates happen on training completion or manual refresh)
     useEffect(() => {
@@ -99,14 +162,44 @@ export default function AIAutomationTab({
         });
     }, [trainingStatus?.last_message, lastLoggedMessage]);
 
-    // Poll status while training is running to update logs and UI.
+    // Live status via SSE with fallback polling.
     useEffect(() => {
-        if (!trainingStatus?.running) return;
-        const id = setInterval(() => {
-            refreshTrainingStatus();
-        }, 2000);
-        return () => clearInterval(id);
-    }, [trainingStatus?.running]);
+        let pollId: ReturnType<typeof setInterval> | null = null;
+        const startPolling = () => {
+            if (pollId) return;
+            pollId = setInterval(() => {
+                refreshTrainingStatus();
+            }, 2000);
+        };
+
+        if (typeof window === "undefined") return () => undefined;
+
+        const es = new EventSource("/api/admin/train/stream");
+        es.onmessage = (event) => {
+            try {
+                const data = JSON.parse(event.data);
+                setTrainingStatus(data);
+                if (typeof data?.running === "boolean") {
+                    setIsTraining(data.running);
+                }
+            } catch {
+                startPolling();
+            }
+        };
+        es.onerror = () => {
+            es.close();
+            startPolling();
+        };
+
+        if (trainingStatus?.running || isTraining) {
+            startPolling();
+        }
+
+        return () => {
+            es.close();
+            if (pollId) clearInterval(pollId);
+        };
+    }, [trainingStatus?.running, isTraining]);
 
     const fetchLocalModels = async () => {
         setLoadingLocalModels(true);
@@ -161,20 +254,37 @@ export default function AIAutomationTab({
     };
 
     const deleteLocalModel = async (modelName: string) => {
-        if (!confirm(`Delete ${modelName}?`)) return;
-        
+        setPendingDeleteModel(modelName);
+        setConfirmDeleteOpen(true);
+    };
+
+    const confirmDeleteLocalModel = async () => {
+        if (!pendingDeleteModel) return;
+        const modelName = pendingDeleteModel;
         setDeletingModels(prev => new Set(prev).add(modelName));
         try {
-            const res = await fetch(`/api/models/${encodeURIComponent(modelName)}`, {
+            const res = await fetch(`/api/admin/train/models/${encodeURIComponent(modelName)}`, {
                 method: "DELETE"
             });
             
             if (res.ok) {
-                toast.success(`${modelName} deleted`);
+                toast.success("Model removed", {
+                    description: modelName
+                });
                 await fetchLocalModels();
             } else {
-                const error = await res.json();
-                toast.error(error.message || "Failed to delete model");
+                const contentType = res.headers.get("content-type") || "";
+                let errorMessage = "Failed to remove model";
+                if (contentType.includes("application/json")) {
+                    const error = await res.json();
+                    errorMessage = error.detail || error.message || errorMessage;
+                } else {
+                    const text = await res.text();
+                    if (text) {
+                        errorMessage = text;
+                    }
+                }
+                toast.error(errorMessage);
             }
         } catch (error) {
             toast.error("Connection error");
@@ -184,6 +294,8 @@ export default function AIAutomationTab({
                 newSet.delete(modelName);
                 return newSet;
             });
+            setConfirmDeleteOpen(false);
+            setPendingDeleteModel(null);
         }
     };
 
@@ -199,6 +311,32 @@ export default function AIAutomationTab({
                 </p>
             </header>
 
+            <div className="flex items-center gap-2">
+                <button
+                    type="button"
+                    onClick={() => setTrainingTab("classic")}
+                    className={`h-10 px-4 rounded-2xl border text-[11px] font-black uppercase tracking-widest transition-all ${
+                        trainingTab === "classic"
+                            ? "bg-zinc-100 text-black border-zinc-100"
+                            : "bg-zinc-900 border-zinc-800 text-zinc-400 hover:border-zinc-600"
+                    }`}
+                >
+                    Classic
+                </button>
+                <button
+                    type="button"
+                    onClick={() => setTrainingTab("genetic")}
+                    className={`h-10 px-4 rounded-2xl border text-[11px] font-black uppercase tracking-widest transition-all ${
+                        trainingTab === "genetic"
+                            ? "bg-zinc-100 text-black border-zinc-100"
+                            : "bg-zinc-900 border-zinc-800 text-zinc-400 hover:border-zinc-600"
+                    }`}
+                >
+                    Genetic Algorithms
+                </button>
+            </div>
+
+            {trainingTab === "classic" ? (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 <div className="space-y-6">
                     {/* Training Control Cluster */}
@@ -413,30 +551,74 @@ export default function AIAutomationTab({
                             </div>
 
                             {lastTrainingSummary && (
-                                <div className="mt-4 rounded-2xl border border-zinc-800 bg-zinc-950 p-4 text-xs text-zinc-400 flex flex-col gap-1">
+                                <div className="mt-4 rounded-2xl border border-zinc-800 bg-zinc-950 p-4 text-xs text-zinc-400 flex flex-col gap-4">
                                     <div className="flex items-center justify-between">
                                         <span className="font-bold text-zinc-200">Last Training Summary</span>
                                         <span className="text-[10px] text-zinc-500">
                                             {new Date(lastTrainingSummary.timestamp).toLocaleString()}
                                         </span>
                                     </div>
-                                    <div className="flex flex-wrap gap-3 mt-1">
+                                    <div className="flex flex-wrap gap-3">
                                         <span className="px-2 py-1 rounded-full bg-zinc-900 border border-zinc-700 text-[10px]">
                                             Exchange: <span className="text-zinc-200">{lastTrainingSummary.exchange}</span>
                                         </span>
                                         <span className="px-2 py-1 rounded-full bg-zinc-900 border border-zinc-700 text-[10px]">
                                             Mode: <span className="text-zinc-200">{lastTrainingSummary.useEarlyStopping ? "Early Stopping" : "Fixed n_estimators"}</span>
                                         </span>
-                                        <span className="px-2 py-1 rounded-full bg-zinc-900 border border-zinc-700 text-[10px]">
-                                            n_estimators: <span className="text-zinc-200">{lastTrainingSummary.nEstimators}</span>
-                                        </span>
-                                        <span className="px-2 py-1 rounded-full bg-zinc-900 border border-zinc-700 text-[10px]">
-                                            Samples: <span className="text-zinc-200">{lastTrainingSummary.trainingSamples}</span>
-                                        </span>
-                                        {typeof (lastTrainingSummary as any).numFeatures === "number" && (
-                                            <span className="px-2 py-1 rounded-full bg-zinc-900 border border-zinc-700 text-[10px]">
-                                                Features: <span className={((lastTrainingSummary as any).numFeatures ?? 0) > 20 ? "text-emerald-300" : "text-red-300"}>{(lastTrainingSummary as any).numFeatures}</span>
-                                            </span>
+                                    </div>
+
+                                    {formatEta(etaSeconds) && (
+                                        <div className="flex items-center justify-between text-[10px] text-zinc-500">
+                                            <span>ETA</span>
+                                            <span className="text-zinc-300 font-bold">{formatEta(etaSeconds)}</span>
+                                        </div>
+                                    )}
+                                    <div className="flex flex-wrap gap-2">
+                                        {phaseTimeline.map((phaseKey) => {
+                                            const active = trainingStatus?.phase === phaseKey;
+                                            const completed = phaseProgressMap[phaseKey] !== undefined && (phaseProgressMap[phaseKey] ?? 0) <= (overallProgressPct ?? 0);
+                                            return (
+                                                <span
+                                                    key={phaseKey}
+                                                    className={`px-2 py-1 rounded-full border text-[10px] font-bold uppercase tracking-widest ${active
+                                                        ? "bg-indigo-600/20 text-indigo-300 border-indigo-500/40"
+                                                        : completed
+                                                            ? "bg-emerald-600/10 text-emerald-300 border-emerald-500/30"
+                                                            : "bg-zinc-900 text-zinc-500 border-zinc-800"}`}
+                                                >
+                                                    {phaseLabels[phaseKey] ?? phaseKey}
+                                                </span>
+                                            );
+                                        })}
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div className="rounded-xl border border-zinc-800 bg-black/40 p-3">
+                                            <div className="text-[10px] text-zinc-500 uppercase font-black">Estimators</div>
+                                            <div className="text-sm font-black text-zinc-100 mt-1">{lastTrainingSummary.nEstimators}</div>
+                                        </div>
+                                        <div className="rounded-xl border border-zinc-800 bg-black/40 p-3">
+                                            <div className="text-[10px] text-zinc-500 uppercase font-black">Samples</div>
+                                            <div className="text-sm font-black text-zinc-100 mt-1">{lastTrainingSummary.trainingSamples}</div>
+                                        </div>
+                                        {typeof lastTrainingSummary.numFeatures === "number" && (
+                                            <div className="rounded-xl border border-zinc-800 bg-black/40 p-3">
+                                                <div className="text-[10px] text-zinc-500 uppercase font-black">Features</div>
+                                                <div className={`text-sm font-black mt-1 ${lastTrainingSummary.numFeatures > 20 ? "text-emerald-300" : "text-red-300"}`}>
+                                                    {lastTrainingSummary.numFeatures}
+                                                </div>
+                                            </div>
+                                        )}
+                                        {typeof lastTrainingSummary.symbolsUsed === "number" && (
+                                            <div className="rounded-xl border border-zinc-800 bg-black/40 p-3">
+                                                <div className="text-[10px] text-zinc-500 uppercase font-black">Symbols Used</div>
+                                                <div className="text-sm font-black text-zinc-100 mt-1">{lastTrainingSummary.symbolsUsed}</div>
+                                            </div>
+                                        )}
+                                        {typeof lastTrainingSummary.rawRows === "number" && (
+                                            <div className="rounded-xl border border-zinc-800 bg-black/40 p-3 col-span-2">
+                                                <div className="text-[10px] text-zinc-500 uppercase font-black">Raw Rows</div>
+                                                <div className="text-sm font-black text-zinc-100 mt-1">{lastTrainingSummary.rawRows.toLocaleString()}</div>
+                                            </div>
                                         )}
                                     </div>
                                 </div>
@@ -466,6 +648,7 @@ export default function AIAutomationTab({
                                             toast.success("Local training started", {
                                                 description: data.message
                                             });
+                                            await refreshTrainingStatus();
                                         } else {
                                             toast.error(data.detail || "Failed to start local training");
                                             setIsTraining(false);
@@ -525,6 +708,101 @@ export default function AIAutomationTab({
                                             Error: {trainingStatus.error}
                                         </p>
                                     )}
+                                </div>
+                            )}
+
+                            {trainingStatus?.running && trainingStatus.stats && (
+                                <div className="mt-4 rounded-2xl border border-zinc-800 bg-zinc-950 p-4 text-xs text-zinc-400 flex flex-col gap-4">
+                                    <div className="flex items-center justify-between">
+                                        <span className="font-bold text-zinc-200">Live Training Stats</span>
+                                        {trainingStatus.phase && (
+                                            <span className="text-[10px] text-zinc-500 uppercase tracking-widest">
+                                                {trainingStatus.phase}
+                                            </span>
+                                        )}
+                                    </div>
+                                    {rowsProgressPct !== null && (
+                                        <div className="space-y-2">
+                                            <div className="flex items-center justify-between text-[10px] text-zinc-500">
+                                                <span>Rows Loaded</span>
+                                                <span>{rowsLoaded?.toLocaleString()}/{rowsTotal?.toLocaleString()}</span>
+                                            </div>
+                                            <div className="h-2 rounded-full bg-zinc-900 border border-zinc-800 overflow-hidden">
+                                                <div
+                                                    className="h-full bg-sky-500 transition-all"
+                                                    style={{ width: `${rowsProgressPct}%` }}
+                                                />
+                                            </div>
+                                        </div>
+                                    )}
+                                    {symbolProgressPct !== null && (
+                                        <div className="space-y-2">
+                                            <div className="flex items-center justify-between text-[10px] text-zinc-500">
+                                                <span>Symbols Progress</span>
+                                                <span>{symbolsProcessed}/{symbolsTotal}</span>
+                                            </div>
+                                            <div className="h-2 rounded-full bg-zinc-900 border border-zinc-800 overflow-hidden">
+                                                <div
+                                                    className="h-full bg-indigo-500 transition-all"
+                                                    style={{ width: `${symbolProgressPct}%` }}
+                                                />
+                                            </div>
+                                        </div>
+                                    )}
+                                    {overallProgressPct !== null && (
+                                        <div className="space-y-2">
+                                            <div className="flex items-center justify-between text-[10px] text-zinc-500">
+                                                <span>Overall Progress</span>
+                                                <span>{overallProgressPct}%</span>
+                                            </div>
+                                            <div className="h-2 rounded-full bg-zinc-900 border border-zinc-800 overflow-hidden">
+                                                <div
+                                                    className="h-full bg-emerald-500 transition-all"
+                                                    style={{ width: `${overallProgressPct}%` }}
+                                                />
+                                            </div>
+                                        </div>
+                                    )}
+                                    <div className="grid grid-cols-2 gap-3">
+                                        {typeof trainingStatus.stats?.n_estimators === "number" && (
+                                            <div className="rounded-xl border border-zinc-800 bg-black/40 p-3">
+                                                <div className="text-[10px] text-zinc-500 uppercase font-black">Estimators</div>
+                                                <div className="text-sm font-black text-zinc-100 mt-1">{trainingStatus.stats.n_estimators}</div>
+                                            </div>
+                                        )}
+                                        {typeof trainingStatus.stats?.samples === "number" && (
+                                            <div className="rounded-xl border border-zinc-800 bg-black/40 p-3">
+                                                <div className="text-[10px] text-zinc-500 uppercase font-black">Samples</div>
+                                                <div className="text-sm font-black text-zinc-100 mt-1">{trainingStatus.stats.samples}</div>
+                                            </div>
+                                        )}
+                                        {typeof trainingStatus.stats?.features === "number" && (
+                                            <div className="rounded-xl border border-zinc-800 bg-black/40 p-3">
+                                                <div className="text-[10px] text-zinc-500 uppercase font-black">Features</div>
+                                                <div className={`text-sm font-black mt-1 ${trainingStatus.stats.features > 20 ? "text-emerald-300" : "text-red-300"}`}>
+                                                    {trainingStatus.stats.features}
+                                                </div>
+                                            </div>
+                                        )}
+                                        {typeof trainingStatus.stats?.symbols_used === "number" && (
+                                            <div className="rounded-xl border border-zinc-800 bg-black/40 p-3">
+                                                <div className="text-[10px] text-zinc-500 uppercase font-black">Symbols Used</div>
+                                                <div className="text-sm font-black text-zinc-100 mt-1">{trainingStatus.stats.symbols_used}</div>
+                                            </div>
+                                        )}
+                                        {typeof trainingStatus.stats?.symbols_total === "number" && (
+                                            <div className="rounded-xl border border-zinc-800 bg-black/40 p-3">
+                                                <div className="text-[10px] text-zinc-500 uppercase font-black">Symbols Total</div>
+                                                <div className="text-sm font-black text-zinc-100 mt-1">{trainingStatus.stats.symbols_total}</div>
+                                            </div>
+                                        )}
+                                        {typeof trainingStatus.stats?.raw_rows === "number" && (
+                                            <div className="rounded-xl border border-zinc-800 bg-black/40 p-3 col-span-2">
+                                                <div className="text-[10px] text-zinc-500 uppercase font-black">Raw Rows</div>
+                                                <div className="text-sm font-black text-zinc-100 mt-1">{trainingStatus.stats.raw_rows.toLocaleString()}</div>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                             )}
 
@@ -841,6 +1119,104 @@ export default function AIAutomationTab({
                     </div>
                 </div>
             </div>
+            ) : (
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    <div className="rounded-3xl bg-zinc-900 border border-zinc-800 p-8 space-y-6">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <div className="text-xs text-zinc-500 font-black uppercase tracking-widest">Genetic Controls</div>
+                                <div className="text-lg font-black text-white mt-1">Experiment Setup</div>
+                            </div>
+                        </div>
+
+                        <div className="space-y-4">
+                            <div className="space-y-1">
+                                <label className="text-[10px] text-zinc-500 uppercase font-black px-1">Population Size</label>
+                                <input
+                                    type="number"
+                                    value={200}
+                                    readOnly
+                                    className="w-full h-11 rounded-xl border border-zinc-800 bg-black px-3 text-sm text-zinc-500"
+                                />
+                            </div>
+                            <div className="space-y-1">
+                                <label className="text-[10px] text-zinc-500 uppercase font-black px-1">Mutation Rate</label>
+                                <input
+                                    type="text"
+                                    value="0.05"
+                                    readOnly
+                                    className="w-full h-11 rounded-xl border border-zinc-800 bg-black px-3 text-sm text-zinc-500"
+                                />
+                            </div>
+                            <div className="space-y-1">
+                                <label className="text-[10px] text-zinc-500 uppercase font-black px-1">Generations</label>
+                                <input
+                                    type="number"
+                                    value={100}
+                                    readOnly
+                                    className="w-full h-11 rounded-xl border border-zinc-800 bg-black px-3 text-sm text-zinc-500"
+                                />
+                            </div>
+
+                            <button
+                                type="button"
+                                disabled
+                                className="w-full py-5 bg-zinc-800 text-zinc-500 rounded-2xl text-xs font-black flex items-center justify-center gap-3 opacity-60 cursor-not-allowed"
+                            >
+                                Coming Soon
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="lg:col-span-2 rounded-3xl bg-zinc-900 border border-zinc-800 p-8 space-y-6">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <div className="text-xs text-zinc-500 font-black uppercase tracking-widest">Live Charts</div>
+                                <div className="text-lg font-black text-white mt-1">Fitness & Evolution</div>
+                            </div>
+                            <div className="text-[10px] text-zinc-500 font-black uppercase tracking-widest">placeholder</div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="rounded-2xl border border-zinc-800 bg-black/40 p-4">
+                                <div className="text-[10px] text-zinc-500 uppercase font-black">Best Fitness</div>
+                                <div className="mt-3 h-28 rounded-xl border border-zinc-800 bg-zinc-950" />
+                            </div>
+                            <div className="rounded-2xl border border-zinc-800 bg-black/40 p-4">
+                                <div className="text-[10px] text-zinc-500 uppercase font-black">Average Fitness</div>
+                                <div className="mt-3 h-28 rounded-xl border border-zinc-800 bg-zinc-950" />
+                            </div>
+                        </div>
+
+                        <div className="rounded-2xl border border-zinc-800 bg-black/40 p-4">
+                            <div className="flex items-center justify-between">
+                                <div className="text-[10px] text-zinc-500 uppercase font-black">States</div>
+                                <div className="text-[10px] text-zinc-600 font-mono">idle</div>
+                            </div>
+                            <div className="mt-3 text-xs text-zinc-500">
+                                This tab is a dedicated workspace for evolutionary algorithms. You can add more algorithms here later without mixing with Classic training.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            <ConfirmDialog
+                isOpen={confirmDeleteOpen}
+                title="Remove Model"
+                message={`You're about to remove ${pendingDeleteModel ?? "this model"}. This action cannot be undone.`}
+                onClose={() => {
+                    if (!pendingDeleteModel || !deletingModels.has(pendingDeleteModel)) {
+                        setConfirmDeleteOpen(false);
+                        setPendingDeleteModel(null);
+                    }
+                }}
+                onConfirm={confirmDeleteLocalModel}
+                isLoading={!!pendingDeleteModel && deletingModels.has(pendingDeleteModel)}
+                confirmLabel="Remove Model"
+                cancelLabel="Keep Model"
+                variant="danger"
+            />
         </div>
     );
 }
