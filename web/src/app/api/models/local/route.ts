@@ -4,7 +4,7 @@ export const runtime = "nodejs";
 
 export async function GET() {
   const base = process.env.PYTHON_BACKEND_URL || "http://127.0.0.1:8000";
-  const targetUrl = `${base.replace(/\/$/, "")}/models/local`;
+  const targetUrl = `${base.replace(/\/$/, "")}/admin/models/list`;
 
   try {
     const upstream = await fetch(targetUrl, {
