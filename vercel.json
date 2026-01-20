@@ -1,4 +1,44 @@
 {
+    "builds": [
+        {
+            "src": "api/index.py",
+            "use": "@vercel/python"
+        },
+        {
+            "src": "web/package.json",
+            "use": "@vercel/next"
+        }
+    ],
+    "routes": [
+        {
+            "src": "/symbols/(.*)",
+            "dest": "/api/index.py"
+        },
+        {
+            "src": "/scan/(.*)",
+            "dest": "/api/index.py"
+        },
+        {
+            "src": "/models/(.*)",
+            "dest": "/api/index.py"
+        },
+        {
+            "src": "/predict",
+            "dest": "/api/index.py"
+        },
+        {
+            "src": "/health",
+            "dest": "/api/index.py"
+        },
+        {
+            "src": "/admin/(.*)",
+            "dest": "/api/index.py"
+        },
+        {
+            "src": "/(.*)",
+            "dest": "/web/$1"
+        }
+    ],
     "functions": {
         "api/**/*.py": {
             "includeFiles": "api/models/**"

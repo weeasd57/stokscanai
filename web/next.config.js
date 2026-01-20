@@ -2,6 +2,12 @@
 const nextConfig = {
   reactStrictMode: true,
   async rewrites() {
+    // On Vercel, routing is handled by vercel.json routes - skip rewrites to avoid conflicts
+    if (process.env.VERCEL) {
+      console.log("Running on Vercel - using vercel.json routes instead of next rewrites");
+      return [];
+    }
+
     console.log("Using Python Path:", process.env.PYTHON_PATH || "Default System Python");
     const BACKEND_URL = process.env.PYTHON_BACKEND_URL || 'http://127.0.0.1:8000';
     console.log("Using Python Backend URL:", BACKEND_URL);
