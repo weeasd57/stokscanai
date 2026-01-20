@@ -1,5 +1,6 @@
 import os
 import warnings
+import time
 
 # Suppress specific FutureWarnings from libraries like 'ta'
 warnings.filterwarnings("ignore", category=FutureWarning)
@@ -358,6 +359,7 @@ def train_model(
     progress_cb: Optional[Callable[[Any], None]] = None,
 ):
     print(f"Starting training for exchange: {exchange}")
+    start_time_total = time.time()
     supabase: Client = create_client(supabase_url, supabase_key)
     def _progress(msg: str) -> None:
         print(msg)
@@ -381,6 +383,7 @@ def train_model(
     
     # 1. Bulk fetch all price data for this exchange
     _progress(f"Loading price data for exchange {exchange}...")
+    start_time_loading = time.time()
     rows_total = None
     try:
         count_res = (
@@ -428,6 +431,9 @@ def train_model(
         _progress(f"No price data found for exchange {exchange}")
         return
 
+    duration_loading = time.time() - start_time_loading
+    print(f"DEBUG: Data loading took {duration_loading:.2f}s for {len(all_rows)} rows")
+
     all_symbols = sorted(df_all["symbol"].dropna().unique().tolist())
     raw_rows = len(df_all)
     msg = f"Loaded {raw_rows:,} rows for {len(all_symbols):,} symbols ({exchange})"
@@ -443,6 +449,8 @@ def train_model(
     symbols_total = len(all_symbols)
     symbols_processed = 0
     progress_step = max(1, symbols_total // 50) if symbols_total else 1
+    
+    start_time_features = time.time()
     for symbol, df_symbol in df_all.groupby("symbol"):
         symbols_processed += 1
         if df_symbol is None or df_symbol.empty:
@@ -477,6 +485,9 @@ def train_model(
     if not combined_data:
         _progress("No valid data collected for training")
         return
+
+    duration_features = time.time() - start_time_features
+    print(f"DEBUG: Feature engineering took {duration_features:.2f}s ({duration_features/symbols_total:.3f}s/symbol avg)")
 
     df_train = pd.concat(combined_data)
     total_samples = len(df_train)
@@ -595,6 +606,8 @@ def train_model(
     X = df_train[predictors]
     y = df_train["Target"]
 
+    start_time_train = time.time()
+
     # Use a large number of estimators with early stopping to prevent overfitting.
     if use_early_stopping:
         final_n_estimators = n_estimators or 1000
@@ -649,6 +662,12 @@ def train_model(
         )
         model.fit(X, y)
     
+    duration_train = time.time() - start_time_train
+    print(f"DEBUG: Training took {duration_train:.2f}s")
+    
+    total_duration = time.time() - start_time_total
+    print(f"DEBUG: Total pipeline took {total_duration:.2f}s")
+    
     # Persist a lightweight summary for the UI
     try:
         num_features = int(getattr(model, "n_features_in_", X.shape[1]))
@@ -664,6 +683,12 @@ def train_model(
             "symbolsUsed": int(symbols_used),
             "rawRows": int(raw_rows),
             "timestamp": datetime.utcnow().isoformat() + "Z",
+            "timing": {
+                "loading": duration_loading,
+                "features": duration_features,
+                "training": duration_train,
+                "total": total_duration
+            }
         }
         _write_training_summary(summary)
     except Exception as e:
