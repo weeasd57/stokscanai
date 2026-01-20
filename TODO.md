@@ -9,6 +9,7 @@
   - 70%-80% Probability -> **Buy (7-8/10)**
 - [ ] Update frontend UI to display this score prominently for each signal.
 
+
 ### 2. Explainable AI (Transparency)
 - [ ] Implement `feature_importance` extraction from LightGBM after each prediction.
 - [ ] Display the **Top 3 Reasons** why a stock was selected (e.g., "Low RSI", "Bullish MACD Cross", "High Volume Spark").
