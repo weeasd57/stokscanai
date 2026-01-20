@@ -1,3 +1,6 @@
+// Force Node.js runtime to avoid Edge Runtime __dirname incompatibility
+export const runtime = "nodejs";
+
 export async function GET() {
   try {
     const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/models/list`, {
@@ -12,7 +15,7 @@ export async function GET() {
     }
 
     const data = await res.json();
-    
+
     // Fetch additional info for each model
     const modelsWithInfo = await Promise.all(
       (data.models || []).map(async (model: any) => {
