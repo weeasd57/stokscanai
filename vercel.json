@@ -7,6 +7,46 @@
         {
             "source": "/admin/models/list",
             "destination": "/api/models/list"
+        },
+        {
+            "source": "/symbols/(.*)",
+            "destination": "/api/index.py"
+        },
+        {
+            "source": "/scan/(.*)",
+            "destination": "/api/index.py"
+        },
+        {
+            "source": "/predict",
+            "destination": "/api/index.py"
+        },
+        {
+            "source": "/models/(.*)",
+            "destination": "/api/index.py"
+        },
+        {
+            "source": "/news",
+            "destination": "/api/index.py"
+        },
+        {
+            "source": "/price",
+            "destination": "/api/index.py"
+        },
+        {
+            "source": "/health",
+            "destination": "/api/index.py"
+        },
+        {
+            "source": "/positions/(.*)",
+            "destination": "/api/index.py"
+        },
+        {
+            "source": "/docs",
+            "destination": "/api/index.py"
+        },
+        {
+            "source": "/openapi.json",
+            "destination": "/api/index.py"
         }
     ],
     "functions": {
