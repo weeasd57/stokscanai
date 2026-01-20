@@ -1,1 +1,1 @@
-{"source": "tradingview", "priceSource": "tradingview", "fundSource": "tradingview", "maxWorkers": 8}
+{"source": "eodhd", "priceSource": "eodhd", "fundSource": "tradingview", "maxWorkers": 8}

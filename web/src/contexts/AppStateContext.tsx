@@ -69,6 +69,20 @@ type AppState = {
   home: HomeState;
   techScanner: TechScannerState;
   comparisonScanner: ComparisonScannerState;
+  aiScanner: AiScannerState;
+};
+
+type AiScannerState = {
+  country: string;
+  results: ScanResult[];
+  hasScanned: boolean;
+  scannedCount: number;
+  scanHistory: Array<{ key: string; createdAt: number; results: ScanResult[]; scannedCount: number }>;
+
+  minPrecision: string;
+  modelName: string;
+  rfPreset: "fast" | "default" | "accurate";
+  rfParamsJson: string; // Stored as string to easy edit
 };
 
 type AppStateContextType = {
@@ -82,6 +96,7 @@ type AppStateContextType = {
   setHome: (u: Updater<HomeState>) => void;
   setTechScanner: (u: Updater<TechScannerState>) => void;
   setComparisonScanner: (u: Updater<ComparisonScannerState>) => void;
+  setAiScanner: (u: Updater<AiScannerState>) => void;
   runHomePredict: (ticker: string, opts?: { signal?: AbortSignal; force?: boolean }) => Promise<void>;
   clearHomeView: () => void;
   restoreLastHomePredict: () => boolean;
@@ -163,6 +178,17 @@ const DEFAULT_STATE: AppState = {
     loadingSymbols: [],
     errors: {},
   },
+  aiScanner: {
+    country: "Egypt",
+    results: [],
+    hasScanned: false,
+    scannedCount: 0,
+    scanHistory: [],
+    minPrecision: "0.6",
+    modelName: "",
+    rfPreset: "default",
+    rfParamsJson: "",
+  }
 };
 
 const AppStateContext = createContext<AppStateContextType | undefined>(undefined);
@@ -200,6 +226,18 @@ type PersistedAppState = {
     | "industry"
   >;
   comparisonScanner: Pick<ComparisonScannerState, "symbols" | "results">;
+  aiScanner: Pick<
+    AiScannerState,
+    | "country"
+    | "results"
+    | "hasScanned"
+    | "scannedCount"
+    | "scanHistory"
+    | "minPrecision"
+    | "modelName"
+    | "rfPreset"
+    | "rfParamsJson"
+  >;
 };
 
 function safeParseState(raw: string | null): PersistedAppState | null {
@@ -278,6 +316,10 @@ function mergeDefaults(saved: PersistedAppState): AppState {
       loadingSymbols: [], // Only clear loading state
       errors: {},         // Only clear errors
     },
+    aiScanner: {
+      ...DEFAULT_STATE.aiScanner,
+      ...saved.aiScanner,
+    },
   };
 }
 
@@ -326,6 +368,17 @@ function toPersistedState(full: AppState): PersistedAppState {
       symbols: full.comparisonScanner.symbols,
       results: full.comparisonScanner.results,
     },
+    aiScanner: {
+      country: full.aiScanner.country,
+      results: full.aiScanner.results,
+      hasScanned: full.aiScanner.hasScanned,
+      scannedCount: full.aiScanner.scannedCount,
+      scanHistory: full.aiScanner.scanHistory,
+      minPrecision: full.aiScanner.minPrecision,
+      modelName: full.aiScanner.modelName,
+      rfPreset: full.aiScanner.rfPreset,
+      rfParamsJson: full.aiScanner.rfParamsJson,
+    }
   };
 }
 
@@ -579,6 +632,13 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     setState((prev) => ({
       ...prev,
       comparisonScanner: typeof u === "function" ? (u as (p: ComparisonScannerState) => ComparisonScannerState)(prev.comparisonScanner) : { ...prev.comparisonScanner, ...u },
+    }));
+  }, []);
+
+  const setAiScanner = useCallback((u: Updater<AiScannerState>) => {
+    setState((prev) => ({
+      ...prev,
+      aiScanner: typeof u === "function" ? (u as (p: AiScannerState) => AiScannerState)(prev.aiScanner) : { ...prev.aiScanner, ...u },
     }));
   }, []);
 
@@ -976,6 +1036,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       setHome,
       setTechScanner,
       setComparisonScanner,
+      setAiScanner,
       syncedSymbols,
       syncedSymbolsLoading,
       refreshSyncedSymbols,
@@ -1012,6 +1073,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       setHome,
       setTechScanner,
       setComparisonScanner,
+      setAiScanner,
       syncedSymbols,
       syncedSymbolsLoading,
       refreshSyncedSymbols,

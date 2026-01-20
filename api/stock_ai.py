@@ -47,6 +47,12 @@ class _LgbmBoosterClassifier:
         raw = self.booster.predict(X)
         return (np.asarray(raw) >= self.threshold).astype(int)
 
+    def predict_proba(self, X):
+        raw = self.booster.predict(X)
+        probs = np.asarray(raw)
+        # Return 2-column format: [prob_class_0, prob_class_1]
+        return np.column_stack([1 - probs, probs])
+
 supabase: Optional[Client] = None
 
 # Predictors used by the pre-trained LightGBM models
