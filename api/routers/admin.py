@@ -1144,10 +1144,19 @@ def list_local_models():
         pickle = None
 
     try:
-        models_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "models"))
-
+        # 1. Determine the models directory path robustly for local and Vercel environments
+        # Start with the path relative to this file
+        base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+        models_dir = os.path.join(base_dir, "models")
+        
+        # Fallback: check relative to current working directory (Vercel /var/task)
         if not os.path.exists(models_dir):
-            return {"models": []}
+            models_dir = os.path.join(os.getcwd(), "api", "models")
+            
+        # 2. Check if the directory exists
+        if not os.path.exists(models_dir):
+            print(f"Warning: Models directory not found at {models_dir}")
+            return {"models": [], "error": "Models directory not found on server"}
 
         models = []
         for filename in os.listdir(models_dir):
