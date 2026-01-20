@@ -7,6 +7,8 @@ export async function middleware(request: NextRequest) {
       return NextResponse.next();
     }
 
+    // Temporarily disabled for debugging Vercel 500 error
+    /*
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY;
 
@@ -38,7 +40,7 @@ export async function middleware(request: NextRequest) {
           try {
             response.cookies.set({ name, value: "", ...options, maxAge: 0 });
           } catch (e) {
-            // Ignore cookie errors
+             // Ignore cookie errors
           }
         },
       },
@@ -48,6 +50,8 @@ export async function middleware(request: NextRequest) {
     await supabase.auth.getUser();
 
     return response;
+    */
+    return NextResponse.next();
   } catch (e) {
     // If anything fails in middleware, don't crash the app, just let the request through
     console.error("Middleware failed:", e);
