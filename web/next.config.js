@@ -2,14 +2,16 @@
 const nextConfig = {
   reactStrictMode: true,
   async rewrites() {
+    // On Vercel, routing is handled by vercel.json routes/rewrites - skip next.config.js rewrites to avoid conflicts
+    if (process.env.VERCEL) {
+      console.log("Running on Vercel - using vercel.json rewrites instead of next.config.js rewrites");
+      return [];
+    }
+
     console.log("Using Python Path:", process.env.PYTHON_PATH || "Default System Python");
     const BACKEND_URL = process.env.PYTHON_BACKEND_URL || 'http://127.0.0.1:8000';
     console.log("Using Python Backend URL:", BACKEND_URL);
     return [
-      {
-        source: '/api/scan/ai',
-        destination: '/api/scan/ai',
-      },
       {
         source: '/api/:path*',
         destination: `${BACKEND_URL}/:path*`,

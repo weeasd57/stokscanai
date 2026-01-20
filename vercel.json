@@ -14,5 +14,10 @@
             "source": "/api/(.*)",
             "destination": "/api/index.py"
         }
-    ]
+    ],
+    "functions": {
+        "api/**/*.py": {
+            "includeFiles": "api/models/**"
+        }
+    }
 }
