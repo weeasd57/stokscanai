@@ -9,39 +9,10 @@
             "use": "@vercel/next"
         }
     ],
-    "routes": [
+    "rewrites": [
         {
-            "src": "/symbols/(.*)",
-            "dest": "/api/index.py"
-        },
-        {
-            "src": "/scan/(.*)",
-            "dest": "/api/index.py"
-        },
-        {
-            "src": "/models/(.*)",
-            "dest": "/api/index.py"
-        },
-        {
-            "src": "/predict",
-            "dest": "/api/index.py"
-        },
-        {
-            "src": "/health",
-            "dest": "/api/index.py"
-        },
-        {
-            "src": "/admin/(.*)",
-            "dest": "/api/index.py"
-        },
-        {
-            "src": "/(.*)",
-            "dest": "/web/$1"
+            "source": "/api/(.*)",
+            "destination": "/api/index.py"
         }
-    ],
-    "functions": {
-        "api/**/*.py": {
-            "includeFiles": "api/models/**"
-        }
-    }
+    ]
 }
