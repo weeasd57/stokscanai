@@ -6,10 +6,7 @@ const nextConfig = {
     const BACKEND_URL = process.env.PYTHON_BACKEND_URL || 'http://127.0.0.1:8000';
     console.log("Using Python Backend URL:", BACKEND_URL);
     return [
-      {
-        source: '/api/scan/ai',
-        destination: '/api/scan/ai',
-      },
+      // Note: /api/scan/ai is handled by Next.js API route, not proxied to backend
       {
         source: '/api/:path*',
         destination: `${BACKEND_URL}/:path*`,
