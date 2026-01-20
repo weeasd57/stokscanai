@@ -1389,3 +1389,135 @@ def delete_local_model(model_name: str):
 @router.delete("/train/models/{model_name}")
 def delete_local_model_from_train(model_name: str):
     return _delete_local_model(model_name)
+
+@router.post("/update-symbols-inventory")
+async def update_symbols_inventory(background_tasks: BackgroundTasks, country: Optional[str] = None):
+    """
+    Fetch latest exchange list and symbols inventory from EODHD.
+    Updates files in symbols_data.
+    """
+    api_key = os.getenv("EODHD_API_KEY")
+    if not api_key:
+        raise HTTPException(status_code=500, detail="EODHD_API_KEY not set")
+
+    def _inventory_worker():
+        base_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "..", "symbols_data")
+        os.makedirs(base_dir, exist_ok=True)
+        
+        def _cleanup_old_files(prefix: str):
+            """Delete old files with the same prefix to prevent duplicates."""
+            try:
+                for f in os.listdir(base_dir):
+                    if f.startswith(prefix) and f.endswith(".json") and "_all_symbols_" in f:
+                        os.remove(os.path.join(base_dir, f))
+                # Also cleanup summary if updating global
+                if prefix in ["country_summary", "all_symbols_by_country"]:
+                    for f in os.listdir(base_dir):
+                        if f.startswith(prefix) and f.endswith(".json"):
+                            os.remove(os.path.join(base_dir, f))
+            except Exception as e:
+                print(f"Cleanup error for {prefix}: {e}")
+
+        try:
+            # 1. Fetch Exchange List
+            url = f"https://eodhd.com/api/exchanges-list/?api_token={api_key}&fmt=json"
+            print(f"Fetching exchange list from EODHD...")
+            import urllib.request
+            with urllib.request.urlopen(url, timeout=30) as resp:
+                data = json.loads(resp.read().decode("utf-8"))
+            
+            # Save raw exchange list (always overwrite or cleanup)
+            ex_list_path = os.path.join(base_dir, "exchanges_list.json")
+            with open(ex_list_path, "w", encoding="utf-8") as f:
+                json.dump(data, f, indent=2)
+            
+            # 2. Process into a country summary
+            from api.symbols_local import load_country_summary
+            country_summary = load_country_summary() or {}
+            all_symbols = [] # This will be the new global list if full update
+            
+            is_full_update = country is None
+            target_country = country.strip() if country else None
+            
+            # Major exchanges to fetch by default in full update
+            major_exchanges = ["US", "EGX", "LSE", "TO", "V", "PA", "F", "MI"] if is_full_update else []
+
+            for ex in data:
+                c_name = ex.get("Country", "Unknown")
+                ex_code = ex.get("Code", "")
+                
+                # Filter logic
+                should_fetch = False
+                if not is_full_update:
+                    if target_country and c_name.lower() == target_country.lower():
+                        should_fetch = True
+                elif ex_code in major_exchanges:
+                    should_fetch = True
+                
+                if should_fetch:
+                     try:
+                         sym_url = f"https://eodhd.com/api/exchange-symbol-list/{ex_code}?api_token={api_key}&fmt=json"
+                         print(f"Fetching symbol list for {ex_code} ({c_name})...")
+                         with urllib.request.urlopen(sym_url, timeout=60) as sresp:
+                             syms = json.loads(sresp.read().decode("utf-8"))
+                             
+                             # Normalization: Map 'Code' to 'Symbol' for legacy compatibility
+                             normalized_syms = []
+                             for s in syms:
+                                 n = {
+                                     "Symbol": s.get("Code"),
+                                     "Name": s.get("Name"),
+                                     "Exchange": ex_code,
+                                     "Country": c_name,
+                                     "Type": s.get("Type"),
+                                     "Currency": s.get("Currency"),
+                                     "Isin": s.get("Isin")
+                                 }
+                                 normalized_syms.append(n)
+                             
+                             # Cleanup old version of this country's file
+                             _cleanup_old_files(f"{c_name}_all_symbols")
+                             
+                             # Save individual country file
+                             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                             ex_file = os.path.join(base_dir, f"{c_name}_all_symbols_{timestamp}.json")
+                             with open(ex_file, "w", encoding="utf-8") as f:
+                                 json.dump(normalized_syms, f, indent=2)
+                                 
+                             # Update counts in summary
+                             if c_name not in country_summary:
+                                 country_summary[c_name] = {"TotalSymbols": 0, "Exchanges": {}}
+                             
+                             ex_count = len(normalized_syms)
+                             # Reset count for this specific exchange to avoid double counting if partial update
+                             old_ex_count = country_summary[c_name]["Exchanges"].get(ex_code, 0)
+                             country_summary[c_name]["Exchanges"][ex_code] = ex_count
+                             country_summary[c_name]["TotalSymbols"] = country_summary[c_name]["TotalSymbols"] - old_ex_count + ex_count
+                             
+                             if is_full_update:
+                                 all_symbols.extend(normalized_syms)
+                                 
+                     except Exception as e:
+                         print(f"Error fetching symbols for {ex_code}: {e}")
+
+            # 3. Save Summary Files (Only in full update or to persist summary changes)
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            
+            _cleanup_old_files("country_summary")
+            summary_path = os.path.join(base_dir, f"country_summary_{timestamp}.json")
+            with open(summary_path, "w", encoding="utf-8") as f:
+                json.dump(country_summary, f, indent=2)
+            
+            if is_full_update:
+                _cleanup_old_files("all_symbols_by_country")
+                all_syms_path = os.path.join(base_dir, f"all_symbols_by_country_{timestamp}.json")
+                with open(all_syms_path, "w", encoding="utf-8") as f:
+                    json.dump(all_symbols, f, indent=2)
+                
+            print("Symbol inventory update complete.")
+            
+        except Exception as e:
+            print(f"Error updating symbol inventory: {e}")
+
+    background_tasks.add_task(_inventory_worker)
+    return {"status": "success", "message": f"Inventory update {'for ' + country if country else 'started'} in background"}

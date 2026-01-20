@@ -1,0 +1,1514 @@
+[
+  {
+    "Symbol": "AAPL",
+    "Name": "Apple Inc DRC",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": "US0378331005"
+  },
+  {
+    "Symbol": "ABEV",
+    "Name": "Ambev S.A.",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": null
+  },
+  {
+    "Symbol": "ACN",
+    "Name": "ACCENTURE PLC CEDEAR EACH 75 RE",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": null
+  },
+  {
+    "Symbol": "ADGO",
+    "Name": "Adecoagro S.A.",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": null
+  },
+  {
+    "Symbol": "AGRO",
+    "Name": "Agrometal S.A.I.",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": "ARAGRO010015"
+  },
+  {
+    "Symbol": "AKO-B",
+    "Name": "Embotelladora Andina S.A. CEDEAR Series B",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": null
+  },
+  {
+    "Symbol": "ALUA",
+    "Name": "Aluar Aluminio Argentino",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": "ARALUA010258"
+  },
+  {
+    "Symbol": "AMD",
+    "Name": "Advanced Micro Devices, Inc.",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": null
+  },
+  {
+    "Symbol": "AMDD",
+    "Name": "Advanced Micro Devices, Inc.",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "USD",
+    "Isin": null
+  },
+  {
+    "Symbol": "AMGN",
+    "Name": "Amgen Inc.",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": null
+  },
+  {
+    "Symbol": "AMZN",
+    "Name": "Amazon.com Inc.",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": "US0231351067"
+  },
+  {
+    "Symbol": "ARM",
+    "Name": "ARM HOLDINGS PLC CEDEAR EACH 27",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": null
+  },
+  {
+    "Symbol": "AUSO",
+    "Name": "Autopistas del Sol",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": "ARASOL010033"
+  },
+  {
+    "Symbol": "AXP",
+    "Name": "American Express Co DRC",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": "ARDEUT110046"
+  },
+  {
+    "Symbol": "BA",
+    "Name": "Boeing Co. CEDEAR",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": null
+  },
+  {
+    "Symbol": "BA-C",
+    "Name": "BANK OF AMERICA CORPORATION CED",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": null
+  },
+  {
+    "Symbol": "BABA",
+    "Name": "Alibaba Group Holding Limited",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": "ARBCOM4601T8"
+  },
+  {
+    "Symbol": "BB",
+    "Name": "BlackBerry Limited",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": null
+  },
+  {
+    "Symbol": "BBAR",
+    "Name": "BBVA Banco Frances SA",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": "ARP125991090"
+  },
+  {
+    "Symbol": "BBD",
+    "Name": "Banco Bradesco DRC",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": "ARDEUT116001"
+  },
+  {
+    "Symbol": "BHIP",
+    "Name": "Banco Hipotecario SA",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": "ARBHIP010161"
+  },
+  {
+    "Symbol": "BHP",
+    "Name": "BHP Group Limited",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "EUR",
+    "Isin": "US0886061086"
+  },
+  {
+    "Symbol": "BIDU",
+    "Name": "Baidu, Inc.",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": null
+  },
+  {
+    "Symbol": "BMA",
+    "Name": "Banco Macro SA B",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": "ARBANS010010"
+  },
+  {
+    "Symbol": "BOLT",
+    "Name": "Boldt S.A",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": "ARBOLD010054"
+  },
+  {
+    "Symbol": "BPAT",
+    "Name": "Banco Patagonia",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": "ARMERI013163"
+  },
+  {
+    "Symbol": "BRIO",
+    "Name": "Banco Santander R\u00edo S.A",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": "ARBRIO010194"
+  },
+  {
+    "Symbol": "BRIO6",
+    "Name": "Banco Santander R\u00edo S.A",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": "ARBRIO010475"
+  },
+  {
+    "Symbol": "BRKB",
+    "Name": "Berkshire Hathaway Inc.",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": null
+  },
+  {
+    "Symbol": "BRKBD",
+    "Name": "BERKSHIRE HATHAWAY INC CEDEAR E",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "USD",
+    "Isin": null
+  },
+  {
+    "Symbol": "BSBR",
+    "Name": "Banco Santander Brasil SA",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": "ARDEUT115995"
+  },
+  {
+    "Symbol": "BYMA",
+    "Name": "Bolsas y Mercados Argentinos SA",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": "ARBYMA300018"
+  },
+  {
+    "Symbol": "CADO",
+    "Name": "Carlos Casado",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": "ARCADO010023"
+  },
+  {
+    "Symbol": "CADO5",
+    "Name": "Carlos Casado S.A.",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": null
+  },
+  {
+    "Symbol": "CAPX",
+    "Name": "Capex S.A",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": "ARP2006N1025"
+  },
+  {
+    "Symbol": "CARC",
+    "Name": "Carboclor",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": "ARP8723U1058"
+  },
+  {
+    "Symbol": "CECO2",
+    "Name": "Enel Generacion Costanera SA",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": "ARP2341J1058"
+  },
+  {
+    "Symbol": "CEPU",
+    "Name": "Central Puerto S.A.",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": "ARP2354W1188"
+  },
+  {
+    "Symbol": "CGPA2",
+    "Name": "Camuzzi Gas Pampeana SA",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": "ARCGSU010048"
+  },
+  {
+    "Symbol": "CIBR",
+    "Name": "FIRST TRUST EXCH TRADED FUND 2",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "ETF",
+    "Currency": "ARS",
+    "Isin": null
+  },
+  {
+    "Symbol": "COIN",
+    "Name": "Coinbase Global, Inc.",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": null
+  },
+  {
+    "Symbol": "COME",
+    "Name": "Sociedad Comercial del Plata S.A.",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": "ARP290071462"
+  },
+  {
+    "Symbol": "CRE3W",
+    "Name": "Cresud Wnt",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": "ARCRES100309"
+  },
+  {
+    "Symbol": "CRES",
+    "Name": "Cresud SA",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": "ARP331091024"
+  },
+  {
+    "Symbol": "CTIO",
+    "Name": "Consultatio SA",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": "ARCTIO010019"
+  },
+  {
+    "Symbol": "CVH",
+    "Name": "Cablevision Holding SA",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": "ARCABH300011"
+  },
+  {
+    "Symbol": "CVX",
+    "Name": "Chevron Corp. CEDEAR",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": null
+  },
+  {
+    "Symbol": "DGCU2",
+    "Name": "Distribuidora de Gas Cuyana SA",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": "ARP3568E1180"
+  },
+  {
+    "Symbol": "DISN",
+    "Name": "Walt Disney Company DRC",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": "ARDEUT110137"
+  },
+  {
+    "Symbol": "DOME",
+    "Name": "Domec Compania de Artefactos Domesticos SAIC y F",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": "ARP3577N1097"
+  },
+  {
+    "Symbol": "DYCA",
+    "Name": "Dycasa SA",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": "ARP3594C1107"
+  },
+  {
+    "Symbol": "ECOG",
+    "Name": "Ecogas Inversiones S.A.",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": null
+  },
+  {
+    "Symbol": "EDLH",
+    "Name": "EDESAL Holding SA",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": "AREDHO010016"
+  },
+  {
+    "Symbol": "EDN",
+    "Name": "Empresa Distribuidora y Comercializadora Norte S.A.",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": "ARENOR010020"
+  },
+  {
+    "Symbol": "EDSH",
+    "Name": "Edesa Holding SA",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": "AREDEH010018"
+  },
+  {
+    "Symbol": "EEM",
+    "Name": "iShares, Inc. - iShares MSCI Emerging Markets ETF",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "ETF",
+    "Currency": "ARS",
+    "Isin": null
+  },
+  {
+    "Symbol": "EMDE",
+    "Name": "Empresa Distribuidora Electrica Regional SA",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": "AREDER010016"
+  },
+  {
+    "Symbol": "EWZ",
+    "Name": "iShares, Inc. - iShares MSCI Brazil ETF",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "ETF",
+    "Currency": "ARS",
+    "Isin": null
+  },
+  {
+    "Symbol": "FERR",
+    "Name": "Ferrum S.A.",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": "ARP395611576"
+  },
+  {
+    "Symbol": "FIPL",
+    "Name": "Fiplasto SA",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": "ARP416191426"
+  },
+  {
+    "Symbol": "GALI",
+    "Name": "Banco de Galicia y Buenos Aires SA Class B 1 Vote",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": null
+  },
+  {
+    "Symbol": "GAMI",
+    "Name": "B-Gaming S.A.",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": null
+  },
+  {
+    "Symbol": "GARO",
+    "Name": "Garovaglio y Zorraquin S.A.",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": "ARP460221020"
+  },
+  {
+    "Symbol": "GBAN",
+    "Name": "Naturgy BAN SA",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": "ARGASB010027"
+  },
+  {
+    "Symbol": "GCLA",
+    "Name": "Grupo Clarin S.A.",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": "ARGCLA010015"
+  },
+  {
+    "Symbol": "GFI",
+    "Name": "Gold Fields Ltd DRC",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": "ARDEUT115425"
+  },
+  {
+    "Symbol": "GGAL",
+    "Name": "Grupo Financiero Galicia S.A.",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": "ARP495251018"
+  },
+  {
+    "Symbol": "GLD",
+    "Name": "Spdr Gold Shares Cedear",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "ETF",
+    "Currency": "ARS",
+    "Isin": null
+  },
+  {
+    "Symbol": "GLOB",
+    "Name": "Globant S.A.",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": null
+  },
+  {
+    "Symbol": "GOOGL",
+    "Name": "Alphabet Inc Class A CEDEAR",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": "US02079K3059"
+  },
+  {
+    "Symbol": "GRIM",
+    "Name": "Grimoldi SA",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": "ARP493071046"
+  },
+  {
+    "Symbol": "HAL",
+    "Name": "Halliburton Co",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": "ARBCOM4603E6"
+  },
+  {
+    "Symbol": "HARG",
+    "Name": "Holcim Argentina SA",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": "ARP6806N1051"
+  },
+  {
+    "Symbol": "HAVA",
+    "Name": "Havanna Holding SA",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": "ARHAVH300038"
+  },
+  {
+    "Symbol": "HD",
+    "Name": "Home Depot Inc. CEDEAR",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": null
+  },
+  {
+    "Symbol": "HMY",
+    "Name": "Harmony Gold Mining Company Ltd",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": "ARDEUT115433"
+  },
+  {
+    "Symbol": "IBIT",
+    "Name": "Banco Comafi S.A.",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": null
+  },
+  {
+    "Symbol": "IBM",
+    "Name": "International Business Machines Corporation",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": null
+  },
+  {
+    "Symbol": "INAG",
+    "Name": "Insumos Agroquimicos SA",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": "ARINAG010041"
+  },
+  {
+    "Symbol": "INTC",
+    "Name": "Intel Corp. CEDEAR",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": "US4581401001"
+  },
+  {
+    "Symbol": "INTR",
+    "Name": "Compania Introductora de Buenos Aires SA",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": "ARP577611352"
+  },
+  {
+    "Symbol": "INVJ",
+    "Name": "Inversora Juramento SA",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": "ARINJU010010"
+  },
+  {
+    "Symbol": "IRCP",
+    "Name": "IRSA Propiedades Comerciales S.A",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": "ARSAMA010012"
+  },
+  {
+    "Symbol": "IRS2W",
+    "Name": "Irsa Wnt",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": null
+  },
+  {
+    "Symbol": "IRSA",
+    "Name": "IRSA Inversiones y Representaciones SA",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": "ARP588091073"
+  },
+  {
+    "Symbol": "JNJ",
+    "Name": "Johnson & Johnson Co DRC",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": "ARDEUT110236"
+  },
+  {
+    "Symbol": "JPM",
+    "Name": "JPMorgan Chase & Co. CEDEAR",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": null
+  },
+  {
+    "Symbol": "KO",
+    "Name": "The Coca-Cola Company",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": null
+  },
+  {
+    "Symbol": "KOFM",
+    "Name": "Coca-Cola FEMSA S.A.B de C.V.",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": null
+  },
+  {
+    "Symbol": "LEDE",
+    "Name": "Ledesma SAAI",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": "ARP624571096"
+  },
+  {
+    "Symbol": "LEID",
+    "Name": "Leyden SAIC y F",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": "ARP6247X1189"
+  },
+  {
+    "Symbol": "LLY",
+    "Name": "Eli Lilly and Company",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": null
+  },
+  {
+    "Symbol": "LMT",
+    "Name": "Lockheed Martin Corp. CEDEAR",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": null
+  },
+  {
+    "Symbol": "LOMA",
+    "Name": "Loma Negra Compania Industrial Argentina SA",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": "ARLOMA300018"
+  },
+  {
+    "Symbol": "LONG",
+    "Name": "Longvie SA",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": "ARP6356B1059"
+  },
+  {
+    "Symbol": "LYG",
+    "Name": "Lloyds Banking Group PLC CEDEAR",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": null
+  },
+  {
+    "Symbol": "MDLZ",
+    "Name": "MONDELEZ INTL INC CEDEAR EACH 1",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": null
+  },
+  {
+    "Symbol": "MELI",
+    "Name": "MercadoLibre Inc.",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": "US58733R1023"
+  },
+  {
+    "Symbol": "MELID",
+    "Name": "MercadoLibre, Inc.",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "USD",
+    "Isin": null
+  },
+  {
+    "Symbol": "META",
+    "Name": "Meta Platforms, Inc.",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": null
+  },
+  {
+    "Symbol": "METR",
+    "Name": "Metrogas SA",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": "ARP6558L1178"
+  },
+  {
+    "Symbol": "MIRG",
+    "Name": "Mirgor S.A.",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": "ARP6823S1295"
+  },
+  {
+    "Symbol": "MO",
+    "Name": "Altria Group, Inc.",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": null
+  },
+  {
+    "Symbol": "MOLA",
+    "Name": "Molinos Agro SA",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": "ARMOAG300023"
+  },
+  {
+    "Symbol": "MOLI",
+    "Name": "Molinos Rio de la Plata SA",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": "ARP689251337"
+  },
+  {
+    "Symbol": "MOLI5",
+    "Name": "Molinos Rio de la Plata SA",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": "ARP689251253"
+  },
+  {
+    "Symbol": "MORI",
+    "Name": "Morixe Hermanos SACI",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": "ARP698141040"
+  },
+  {
+    "Symbol": "MORI5",
+    "Name": "Morixe Hermanos S.A. 5 Votes",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": null
+  },
+  {
+    "Symbol": "MRK",
+    "Name": "Merck & Company Inc",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": "US58933Y1055"
+  },
+  {
+    "Symbol": "MSFT",
+    "Name": "Microsoft Corporation",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": "US5949181045"
+  },
+  {
+    "Symbol": "NEM",
+    "Name": "Newmont Corporation",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": null
+  },
+  {
+    "Symbol": "NGG",
+    "Name": "NATIONAL GRID CEDEAR EACH REP 1",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": null
+  },
+  {
+    "Symbol": "NIO",
+    "Name": "NIO Inc.",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": null
+  },
+  {
+    "Symbol": "NKE",
+    "Name": "NIKE Inc.",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": "US6541061031"
+  },
+  {
+    "Symbol": "NUE",
+    "Name": "Nucor Corp",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": "US6703461052"
+  },
+  {
+    "Symbol": "NVDA",
+    "Name": "NVIDIA Corporation",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": null
+  },
+  {
+    "Symbol": "OEST",
+    "Name": "Grupo Concesionario del Oeste SA",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": "ARGCAO010012"
+  },
+  {
+    "Symbol": "OVOP",
+    "Name": "Ovoprot International S.A",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": "AROVOP010038"
+  },
+  {
+    "Symbol": "OXY",
+    "Name": "Occidental Petroleum Corporation",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": null
+  },
+  {
+    "Symbol": "PAMP",
+    "Name": "Pampa Energia SA",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": "ARP432631215"
+  },
+  {
+    "Symbol": "PATA",
+    "Name": "Importadora y Exportadora de la Patagonia SA",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": "ARP530571735"
+  },
+  {
+    "Symbol": "PBR",
+    "Name": "Petr\u00f3leo Brasileiro S.A. - Petrobras",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": null
+  },
+  {
+    "Symbol": "PBRD",
+    "Name": "Petr\u00c3\u00b3leo Brasileiro S.A. - Petrobras",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "USD",
+    "Isin": null
+  },
+  {
+    "Symbol": "PCAR",
+    "Name": "PACCAR Inc",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": null
+  },
+  {
+    "Symbol": "PETR3",
+    "Name": "Petr\u00f3leo Brasileiro S.A. - Petrobras",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": "BRPETRACNOR9"
+  },
+  {
+    "Symbol": "PFE",
+    "Name": "Pfizer Inc",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": null
+  },
+  {
+    "Symbol": "PG",
+    "Name": "Procter & Gamble DRC",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": "ARDEUT110335"
+  },
+  {
+    "Symbol": "PLTR",
+    "Name": "Palantir Technologies Inc.",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": null
+  },
+  {
+    "Symbol": "PNIZF",
+    "Name": "FCIC REAL ESTATE PUERTO NIZUC",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": null
+  },
+  {
+    "Symbol": "POLL",
+    "Name": "Polledo S.A.",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": "ARP7905G1652"
+  },
+  {
+    "Symbol": "QCOMD",
+    "Name": "QUALCOMM Incorporated",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "USD",
+    "Isin": null
+  },
+  {
+    "Symbol": "QQQ",
+    "Name": "Invesco QQQ Trust, Series 1",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": null
+  },
+  {
+    "Symbol": "REGE",
+    "Name": "Garcia Reguera S.A.",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": "ARREGE010013"
+  },
+  {
+    "Symbol": "REP",
+    "Name": "Repsol S.A.",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": null
+  },
+  {
+    "Symbol": "RICH",
+    "Name": "Laboratorios Richmond SACIF",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": "ARLRIC300027"
+  },
+  {
+    "Symbol": "RIGO",
+    "Name": "Rigolleau SA",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": "ARP809061780"
+  },
+  {
+    "Symbol": "RIO",
+    "Name": "Rio Tinto PLC CEDEAR",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": null
+  },
+  {
+    "Symbol": "ROSE",
+    "Name": "Instituto Rosenbusch S.A.",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": "ARROSE010025"
+  },
+  {
+    "Symbol": "SAMI",
+    "Name": "San Miguel AG",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": "ARSMIG010018"
+  },
+  {
+    "Symbol": "SEMI",
+    "Name": "Molinos Juan Semino SA",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": "ARP689031069"
+  },
+  {
+    "Symbol": "SID",
+    "Name": "Companhia Sider\u00fargica Nacional",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": null
+  },
+  {
+    "Symbol": "SMH",
+    "Name": "VANECK ETF TR CEDEAR EACH 50 RE",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "ETF",
+    "Currency": "ARS",
+    "Isin": null
+  },
+  {
+    "Symbol": "SNOW",
+    "Name": "Snowflake Inc.",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": null
+  },
+  {
+    "Symbol": "SPY",
+    "Name": "Caja de Valores S.A.",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": null
+  },
+  {
+    "Symbol": "STD",
+    "Name": "Banco Santander S.A",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": "ES0113900J37"
+  },
+  {
+    "Symbol": "SUPV",
+    "Name": "Grupo Supervielle S.A. B",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": "ARGRSU300079"
+  },
+  {
+    "Symbol": "T",
+    "Name": "AT&T Inc.",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": null
+  },
+  {
+    "Symbol": "TECO2",
+    "Name": "Telecom Argentina",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": "ARP9028N1016"
+  },
+  {
+    "Symbol": "TEFO",
+    "Name": "Telef\u00f3nica, S.A. ",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "BRL",
+    "Isin": null
+  },
+  {
+    "Symbol": "TGNO4",
+    "Name": "Transportadora de Gas del Norte SA Class C",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": "ARTGNO010117"
+  },
+  {
+    "Symbol": "TGSU2",
+    "Name": "Transportadora de Gas del Sur SA B",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": "ARP9308R1039"
+  },
+  {
+    "Symbol": "TRAN",
+    "Name": "Compania de Transporte de Energia Electrica en Alta Tension Transener SA",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": "ARTRAN010011"
+  },
+  {
+    "Symbol": "TSLA",
+    "Name": "Tesla, Inc.",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": null
+  },
+  {
+    "Symbol": "TV",
+    "Name": "Grupo Televisa SAB DRC",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": "ARDEUT112133"
+  },
+  {
+    "Symbol": "TXAR",
+    "Name": "Ternium Argentina SA",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": "ARSIDE010029"
+  },
+  {
+    "Symbol": "TXR",
+    "Name": "Ternium SA DRC",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": "ARDEUT116019"
+  },
+  {
+    "Symbol": "UPST",
+    "Name": "Upstart Holdings, Inc.",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": null
+  },
+  {
+    "Symbol": "URA",
+    "Name": "GLOBAL X FDS CEDEAR EACH 5 REPR",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "ETF",
+    "Currency": "ARS",
+    "Isin": null
+  },
+  {
+    "Symbol": "VALE",
+    "Name": "Vale S.A",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": "ARDEUT113925"
+  },
+  {
+    "Symbol": "VALO",
+    "Name": "Banco de Valores SA",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": "ARBVAL3024G2"
+  },
+  {
+    "Symbol": "VIG",
+    "Name": "VANGUARD SPECIALIZED FUNDS CEDE",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "ETF",
+    "Currency": "ARS",
+    "Isin": null
+  },
+  {
+    "Symbol": "VIST",
+    "Name": "Vista Energy S.A.B. de C.V.",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": "ARBCOM4602V2"
+  },
+  {
+    "Symbol": "VISTD",
+    "Name": "Vista Energy, S.A.B. de C.V.",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "USD",
+    "Isin": null
+  },
+  {
+    "Symbol": "VZ",
+    "Name": "Verizon Communications Inc.",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": null
+  },
+  {
+    "Symbol": "WFC",
+    "Name": "Wells Fargo & Company",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": "ARDEUT110434"
+  },
+  {
+    "Symbol": "WMT",
+    "Name": "Walmart Inc",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": null
+  },
+  {
+    "Symbol": "XOM",
+    "Name": "Exxon Mobil Corporation",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": null
+  },
+  {
+    "Symbol": "YPFD",
+    "Name": "YPF S.A. D",
+    "Exchange": "BA",
+    "Country": "Argentina",
+    "Type": "Common Stock",
+    "Currency": "ARS",
+    "Isin": "ARP9897X1319"
+  }
+]

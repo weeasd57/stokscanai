@@ -16,6 +16,7 @@ interface CandleChartProps {
     targetPrice?: number;
     stopPrice?: number;
     savedDate?: string;
+    height?: number;
 }
 
 export default function CandleChart({
@@ -29,6 +30,7 @@ export default function CandleChart({
     targetPrice,
     stopPrice,
     savedDate,
+    height = 450,
 }: CandleChartProps) {
     const mainChartContainerRef = useRef<HTMLDivElement>(null);
     const macdChartContainerRef = useRef<HTMLDivElement>(null);
@@ -62,7 +64,7 @@ export default function CandleChart({
         const mainChart = createChart(mainChartContainerRef.current, {
             ...chartOptions,
             width: mainChartContainerRef.current.clientWidth,
-            height: 400,
+            height: height,
         });
 
         // --- MACD CHART ---

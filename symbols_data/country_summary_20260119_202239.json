@@ -1,0 +1,238 @@
+{
+  "USA": {
+    "TotalSymbols": 49284,
+    "Exchanges": {
+      "US": 49284
+    }
+  },
+  "UK": {
+    "TotalSymbols": 7175,
+    "Exchanges": {
+      "LSE": 7175
+    }
+  },
+  "Canada": {
+    "TotalSymbols": 2882,
+    "Exchanges": {
+      "TO": 2882
+    }
+  },
+  "Germany": {
+    "TotalSymbols": 0,
+    "Exchanges": {}
+  },
+  "Luxembourg": {
+    "TotalSymbols": 0,
+    "Exchanges": {}
+  },
+  "Austria": {
+    "TotalSymbols": 0,
+    "Exchanges": {}
+  },
+  "France": {
+    "TotalSymbols": 0,
+    "Exchanges": {}
+  },
+  "Belgium": {
+    "TotalSymbols": 0,
+    "Exchanges": {}
+  },
+  "Spain": {
+    "TotalSymbols": 0,
+    "Exchanges": {}
+  },
+  "Switzerland": {
+    "TotalSymbols": 0,
+    "Exchanges": {}
+  },
+  "Portugal": {
+    "TotalSymbols": 0,
+    "Exchanges": {}
+  },
+  "Netherlands": {
+    "TotalSymbols": 0,
+    "Exchanges": {}
+  },
+  "Sweden": {
+    "TotalSymbols": 0,
+    "Exchanges": {}
+  },
+  "Ireland": {
+    "TotalSymbols": 0,
+    "Exchanges": {}
+  },
+  "Denmark": {
+    "TotalSymbols": 0,
+    "Exchanges": {}
+  },
+  "Norway": {
+    "TotalSymbols": 0,
+    "Exchanges": {}
+  },
+  "Iceland": {
+    "TotalSymbols": 0,
+    "Exchanges": {}
+  },
+  "Finland": {
+    "TotalSymbols": 0,
+    "Exchanges": {}
+  },
+  "Malawi": {
+    "TotalSymbols": 0,
+    "Exchanges": {}
+  },
+  "Botswana": {
+    "TotalSymbols": 0,
+    "Exchanges": {}
+  },
+  "Egypt": {
+    "TotalSymbols": 274,
+    "Exchanges": {
+      "EGX": 274
+    }
+  },
+  "Czech Republic": {
+    "TotalSymbols": 0,
+    "Exchanges": {}
+  },
+  "Ghana": {
+    "TotalSymbols": 0,
+    "Exchanges": {}
+  },
+  "Kenya": {
+    "TotalSymbols": 0,
+    "Exchanges": {}
+  },
+  "Morocco": {
+    "TotalSymbols": 0,
+    "Exchanges": {}
+  },
+  "Mauritius": {
+    "TotalSymbols": 0,
+    "Exchanges": {}
+  },
+  "Zimbabwe": {
+    "TotalSymbols": 0,
+    "Exchanges": {}
+  },
+  "Nigeria": {
+    "TotalSymbols": 0,
+    "Exchanges": {}
+  },
+  "Rwanda": {
+    "TotalSymbols": 0,
+    "Exchanges": {}
+  },
+  "Tanzania": {
+    "TotalSymbols": 0,
+    "Exchanges": {}
+  },
+  "Uganda": {
+    "TotalSymbols": 0,
+    "Exchanges": {}
+  },
+  "Zambia": {
+    "TotalSymbols": 0,
+    "Exchanges": {}
+  },
+  "Israel": {
+    "TotalSymbols": 0,
+    "Exchanges": {}
+  },
+  "Korea": {
+    "TotalSymbols": 0,
+    "Exchanges": {}
+  },
+  "Hungary": {
+    "TotalSymbols": 0,
+    "Exchanges": {}
+  },
+  "Poland": {
+    "TotalSymbols": 0,
+    "Exchanges": {}
+  },
+  "Philippines": {
+    "TotalSymbols": 0,
+    "Exchanges": {}
+  },
+  "Indonesia": {
+    "TotalSymbols": 0,
+    "Exchanges": {}
+  },
+  "China": {
+    "TotalSymbols": 0,
+    "Exchanges": {}
+  },
+  "South Africa": {
+    "TotalSymbols": 0,
+    "Exchanges": {}
+  },
+  "Greece": {
+    "TotalSymbols": 0,
+    "Exchanges": {}
+  },
+  "Australia": {
+    "TotalSymbols": 0,
+    "Exchanges": {}
+  },
+  "Chile": {
+    "TotalSymbols": 0,
+    "Exchanges": {}
+  },
+  "Thailand": {
+    "TotalSymbols": 0,
+    "Exchanges": {}
+  },
+  "Pakistan": {
+    "TotalSymbols": 0,
+    "Exchanges": {}
+  },
+  "Sri Lanka": {
+    "TotalSymbols": 0,
+    "Exchanges": {}
+  },
+  "Vietnam": {
+    "TotalSymbols": 0,
+    "Exchanges": {}
+  },
+  "Malaysia": {
+    "TotalSymbols": 0,
+    "Exchanges": {}
+  },
+  "Argentina": {
+    "TotalSymbols": 168,
+    "Exchanges": {
+      "BA": 168
+    }
+  },
+  "Brazil": {
+    "TotalSymbols": 2136,
+    "Exchanges": {
+      "SA": 2136
+    }
+  },
+  "Romania": {
+    "TotalSymbols": 0,
+    "Exchanges": {}
+  },
+  "Mexico": {
+    "TotalSymbols": 0,
+    "Exchanges": {}
+  },
+  "Croatia": {
+    "TotalSymbols": 0,
+    "Exchanges": {}
+  },
+  "Taiwan": {
+    "TotalSymbols": 0,
+    "Exchanges": {}
+  },
+  "Peru": {
+    "TotalSymbols": 0,
+    "Exchanges": {}
+  },
+  "Unknown": {
+    "TotalSymbols": 0,
+    "Exchanges": {}
+  }
+}

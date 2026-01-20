@@ -3,7 +3,7 @@ from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, HTTPException, Query, Request
 from pydantic import BaseModel
 
-from stock_ai import run_pipeline, check_local_cache
+from stock_ai import run_pipeline, check_local_cache, _get_exchange_bulk_data
 from symbols_local import load_symbols_for_country
 
 router = APIRouter(prefix="/scan", tags=["scan"])
@@ -24,11 +24,13 @@ class SingleScanRequest(BaseModel):
     min_precision: float = 0.6
     rf_preset: Optional[str] = "fast"
     rf_params: Optional[Dict[str, Any]] = None
+    model_name: Optional[str] = None
 
 
 class ScanAiOptions(BaseModel):
     rf_preset: Optional[str] = "fast"
     rf_params: Optional[Dict[str, Any]] = None
+    model_name: Optional[str] = None
 
 class ScanResponse(BaseModel):
     results: List[ScanResult]
@@ -48,11 +50,26 @@ async def scan_ai(
 
     try:
         symbols_data = load_symbols_for_country(country)
+    except Exception as e:
+        # If model_name specified but not found, surface clear error
+        if opts and opts.model_name and "not loaded" in str(e):
+            raise HTTPException(status_code=400, detail=f"Model '{opts.model_name}' not loaded on server. Place the .pkl and retry.")
+        raise HTTPException(status_code=500, detail=str(e))
     except FileNotFoundError:
         raise HTTPException(status_code=404, detail=f"No symbols found for country: {country}")
     except Exception as e:
         print(f"scan_ai: failed loading symbols for {country}: {e}")
         raise HTTPException(status_code=500, detail="Failed to load symbols")
+
+    # Warm bulk cache per exchange to avoid N Supabase queries
+    try:
+        exchanges = {str(row.get("Exchange", "")).upper() for row in symbols_data if isinstance(row, dict)}
+        for ex in exchanges:
+            if not ex:
+                continue
+            _get_exchange_bulk_data(ex, from_date="2020-01-01")
+    except Exception as e:
+        print(f"scan_ai: bulk warmup skipped: {e}")
 
     # Sort candidates to prioritize those already in cache
     # This makes the scan "Local-First" and much faster
@@ -80,6 +97,10 @@ async def scan_ai(
 
     rf_preset = (opts.rf_preset if opts else None) or "fast"
     rf_params = (opts.rf_params if opts else None) or None
+    model_name = (opts.model_name if opts else None) or None
+
+    if not model_name:
+        raise HTTPException(status_code=400, detail="model_name is required for AI scan (inference-only).")
     
     try:
         for row in candidates:
@@ -100,17 +121,18 @@ async def scan_ai(
                 continue
 
             try:
-                # We skip fundamentals for speed during scan
+                # Skip fundamentals for speed during scan
                 prediction = run_pipeline(
                     api_key=api_key,
                     ticker=symbol,
                     from_date="2020-01-01",
-                    include_fundamentals=True,
+                    include_fundamentals=False,
                     tolerance_days=5, # Allow cached data up to 5 days old for scanning speed
                     exchange=exchange,
                     force_local=True,
                     rf_preset=rf_preset,
                     rf_params=rf_params,
+                    model_name=model_name,
                 )
             
                 # Check for BUY signal
@@ -159,12 +181,13 @@ async def scan_ai_single(req: SingleScanRequest):
             api_key=api_key,
             ticker=req.symbol,
             from_date="2020-01-01",
-            include_fundamentals=True,
+            include_fundamentals=False,
             tolerance_days=5,
             exchange=req.exchange,
             force_local=True,
             rf_preset=req.rf_preset or "fast",
             rf_params=req.rf_params,
+            model_name=req.model_name,
         )
         
         if prediction["tomorrowPrediction"] == 1:

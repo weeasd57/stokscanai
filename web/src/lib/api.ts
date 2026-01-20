@@ -8,6 +8,7 @@ export type PredictParams = {
   rfPreset?: string;
   rfParams?: Record<string, unknown>;
   modelName?: string;
+  forceLocal?: boolean;
 };
 
 export async function predictStock(params: PredictParams): Promise<PredictResponse> {
@@ -44,6 +45,7 @@ export async function predictStock(params: PredictParams): Promise<PredictRespon
     rf_preset: params.rfPreset ?? null,
     rf_params: params.rfParams ?? null,
     model_name: params.modelName ?? null,
+    force_local: params.forceLocal ?? false,
   };
 
   async function doFetch(url: string) {
@@ -107,6 +109,7 @@ export type LocalModelMeta = {
   type?: string;
   num_features?: number;
   num_parameters?: number;
+  trainingSamples?: number;
 };
 
 export type LocalModelsResponse = {
@@ -356,7 +359,57 @@ export type ScanAiParams = {
   rfPreset: "fast" | "default" | "accurate";
   rfParamsJson: string;
   rfParams: Record<string, unknown> | null;
+  modelName?: string;
 };
+
+export async function scanAiFastWithParams(params: ScanAiParams, signal?: AbortSignal): Promise<ScanResponse> {
+  const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
+
+  const query = new URLSearchParams({
+    country: params.country,
+    limit: String(params.limit),
+    min_precision: String(params.minPrecision),
+    model_name: params.modelName ?? "",
+    from_date: "2020-01-01",
+  });
+
+  async function doFetch(url: string) {
+    return await fetch(url, {
+      method: "GET",
+      headers: { "Content-Type": "application/json" },
+      cache: "no-store",
+      signal,
+    });
+  }
+
+  let res: Response;
+  try {
+    res = baseUrl ? await doFetch(`${baseUrl}/scan/fast?${query}`) : await doFetch(`/api/scan/fast?${query}`);
+  } catch (e) {
+    if (baseUrl) {
+      res = await doFetch(`/api/scan/fast?${query}`);
+    } else {
+      throw e;
+    }
+  }
+
+  if (!res.ok) {
+    let msg = `Scan failed (${res.status})`;
+    try {
+      const data = (await res.json()) as { detail?: string };
+      if (data?.detail) msg = data.detail;
+    } catch {
+      try {
+        const text = await res.text();
+        if (text) msg = text;
+      } catch {
+      }
+    }
+    throw new Error(msg);
+  }
+
+  return (await res.json()) as ScanResponse;
+}
 
 export async function scanAiWithParams(params: ScanAiParams, signal?: AbortSignal): Promise<ScanResponse> {
   const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
@@ -365,7 +418,11 @@ export async function scanAiWithParams(params: ScanAiParams, signal?: AbortSigna
     return await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ rf_preset: params.rfPreset, rf_params: params.rfParams ?? null }),
+      body: JSON.stringify({
+        rf_preset: params.rfPreset,
+        rf_params: params.rfParams ?? null,
+        model_name: params.modelName ?? null,
+      }),
       cache: "no-store",
       signal: signal,
     });

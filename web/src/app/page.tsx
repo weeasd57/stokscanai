@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useRef, useState, useEffect, type FormEvent } from "react";
+import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import { TrendingDown, TrendingUp, BarChart2, LineChart, Globe, Brain, AlertTriangle, CheckCircle2, Bookmark, BookmarkCheck, Activity, Search } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -91,7 +92,14 @@ export default function HomePage() {
       <header className="flex flex-col gap-3">
         <h1 className="text-4xl font-black tracking-tighter text-white uppercase italic flex items-center gap-4">
           <div className="p-3 rounded-2xl bg-indigo-600 shadow-xl shadow-indigo-600/20">
-            <Activity className="h-6 w-6 text-white" />
+            <Image
+              src="/favicon_io/favicon-32x32.png"
+              alt="elztona logo"
+              width={32}
+              height={32}
+              className="rounded-lg"
+              priority
+            />
           </div>
           {t("app.title")}
         </h1>

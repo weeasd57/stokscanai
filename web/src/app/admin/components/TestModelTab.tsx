@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, useCallback } from "react";
-import { Brain, CalendarRange, Loader2, LineChart, Sparkles, Database, Building2, Search, TrendingUp, TrendingDown } from "lucide-react";
+import { Brain, CalendarRange, Loader2, LineChart, Sparkles, Database, Building2, Search, TrendingUp, TrendingDown, ChevronUp, ChevronDown } from "lucide-react";
 import { LineChart as RechartsLineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ScatterChart, Scatter, BarChart, Bar } from "recharts";
 import { predictStock, getLocalModels, getSymbolsByDate, getCountries, getSymbolsForExchange } from "@/lib/api";
 import type { PredictResponse } from "@/lib/types";
@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import TestModelCandleChart from "./TestModelCandleChart";
 
 const defaultStart = "2023-01-01";
 const defaultEnd = new Date().toISOString().slice(0, 10);
@@ -55,10 +56,10 @@ function calculateKPIs(predictions: any[]) {
   const uniqueDates = new Set(predictions.map((p) => p.date)).size;
   const buySignals = predictions.filter((p) => p.pred === 1).length;
   const sellSignals = predictions.filter((p) => p.pred === 0).length;
-  
+
   const buyCorrect = predictions.filter((p) => p.pred === 1 && p.pred === p.target).length;
   const sellCorrect = predictions.filter((p) => p.pred === 0 && p.pred === p.target).length;
-  
+
   const totalCorrect = predictions.filter((p) => p.pred === p.target).length;
   const totalIncorrect = predictions.length - totalCorrect;
 
@@ -216,9 +217,42 @@ export default function TestModelTab() {
   const [showRSI, setShowRSI] = useState(true);
   const [showSMA50, setShowSMA50] = useState(true);
   const [showSMA200, setShowSMA200] = useState(false);
+  const [showEMA50, setShowEMA50] = useState(false);
+  const [showEMA200, setShowEMA200] = useState(false);
+  const [showBB, setShowBB] = useState(false);
+  const [showVolume, setShowVolume] = useState(true);
+  const [showMACD, setShowMACD] = useState(true);
   const [showBUYSignals, setShowBUYSignals] = useState(true);
   const [showSELLSignals, setShowSELLSignals] = useState(true);
-  const [chartType, setChartType] = useState<"line" | "scatter">("line");
+  const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>(null);
+
+  const selectedModelStats = useMemo(() => {
+    if (!models.length) return [] as any[];
+    const selected = useMultipleModels ? Array.from(selectedModels) : selectedModel ? [selectedModel] : [];
+    if (!selected.length) return [] as any[];
+
+    const byName = new Map(
+      models.map((model) => {
+        const name = typeof model === "string" ? model : model.name;
+        return [name, model] as const;
+      })
+    );
+
+    return selected
+      .map((name) => {
+        const model = byName.get(name) as any;
+        const numFeatures = typeof model === "object" ? (model.num_features ?? model.numFeatures) : undefined;
+        const trainingSamples = typeof model === "object" ? (model.trainingSamples ?? model.training_samples) : undefined;
+        const nEstimators = typeof model === "object" ? (model.n_estimators ?? model.nEstimators) : undefined;
+        return {
+          name: name.replace(/^model_|\.pkl$/gi, ""),
+          trainingSamples: typeof trainingSamples === "number" ? trainingSamples : null,
+          numFeatures: typeof numFeatures === "number" ? numFeatures : null,
+          nEstimators: typeof nEstimators === "number" ? nEstimators : null,
+        };
+      })
+      .filter((item) => item.trainingSamples !== null || item.numFeatures !== null || item.nEstimators !== null);
+  }, [models, selectedModel, selectedModels, useMultipleModels]);
 
   const singleSummary = useMemo(() => {
     if (!testResult || !testResult.testPredictions?.length) return null;
@@ -243,6 +277,59 @@ export default function TestModelTab() {
     items.sort((a, b) => b.kpis.winRate - a.kpis.winRate);
     return items;
   }, [testResults]);
+
+  const sortedMultiSummaries = useMemo(() => {
+    if (!sortConfig) return multiSummaries;
+
+    return [...multiSummaries].sort((a, b) => {
+      let aValue: any;
+      let bValue: any;
+
+      const { key } = sortConfig;
+
+      if (key === 'name') {
+        aValue = a.modelName;
+        bValue = b.modelName;
+      } else if (key === 'winRate') {
+        aValue = a.kpis.winRate;
+        bValue = b.kpis.winRate;
+      } else if (key === 'buyAcc') {
+        aValue = a.kpis.buyAccuracy;
+        bValue = b.kpis.buyAccuracy;
+      } else if (key === 'sellAcc') {
+        aValue = a.kpis.sellAccuracy;
+        bValue = b.kpis.sellAccuracy;
+      } else if (key === 'execTime') {
+        aValue = (a.result as any).executionTime ?? 0;
+        bValue = (b.result as any).executionTime ?? 0;
+      } else {
+        // Classification metrics
+        const clsA = calculateClassification(a.result.testPredictions || []);
+        const clsB = calculateClassification(b.result.testPredictions || []);
+        if (key === 'precision') { aValue = clsA.precisionBuy; bValue = clsB.precisionBuy; }
+        else if (key === 'recall') { aValue = clsA.recallBuy; bValue = clsB.recallBuy; }
+        else if (key === 'f1') { aValue = clsA.f1Buy; bValue = clsB.f1Buy; }
+      }
+
+      if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
+      if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
+      return 0;
+    });
+  }, [multiSummaries, sortConfig]);
+
+  const toggleSort = (key: string) => {
+    setSortConfig(prev => {
+      if (prev?.key === key) {
+        return { key, direction: prev.direction === 'asc' ? 'desc' : 'asc' };
+      }
+      return { key, direction: 'desc' };
+    });
+  };
+
+  const SortIcon = ({ column }: { column: string }) => {
+    if (sortConfig?.key !== column) return <div className="w-3 h-3 ml-1 opacity-20" />;
+    return sortConfig.direction === 'asc' ? <ChevronUp className="w-3 h-3 ml-1" /> : <ChevronDown className="w-3 h-3 ml-1" />;
+  };
 
   const multiClassificationChart = useMemo(() => {
     if (!testResults.size) return [] as any[];
@@ -319,7 +406,7 @@ export default function TestModelTab() {
       setSymbolsError(null);
       try {
         let data = await getSymbolsForExchange(exchangeCode);
-        
+
         if (searchSymbolTerm) {
           const term = searchSymbolTerm.toLowerCase();
           data = data.filter(
@@ -365,7 +452,7 @@ export default function TestModelTab() {
       setTestError("Select a symbol first");
       return;
     }
-    
+
     const modelsToTest = useMultipleModels ? Array.from(selectedModels) : (selectedModel ? [selectedModel] : []);
     if (modelsToTest.length === 0) {
       setTestError("Select at least one model");
@@ -388,6 +475,7 @@ export default function TestModelTab() {
             // Use explicit exchange selection if available; otherwise infer from model filename.
             exchange: exchangeCode || parseModelExchange(model) || undefined,
             includeFundamentals: true,
+            forceLocal: true,
             modelName: model,
           });
           const endTime = performance.now();
@@ -471,41 +559,48 @@ export default function TestModelTab() {
                       const name = typeof model === "string" ? model : model.name;
                       const numFeatures = typeof model === "object" ? (model as any).num_features ?? (model as any).numFeatures : undefined;
                       const numParams = typeof model === "object" ? (model as any).num_parameters ?? (model as any).numParameters : undefined;
+                      const trainingSamples = typeof model === "object" ? (model as any).trainingSamples ?? (model as any).training_samples : undefined;
                       return (
-                      <label key={name} className="flex items-center gap-2 p-2 rounded-lg hover:bg-zinc-800/50 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={selectedModels.has(name)}
-                          onChange={(e) => {
-                            const newSet = new Set(selectedModels);
-                            if (e.target.checked) {
-                              newSet.add(name);
-                            } else {
-                              newSet.delete(name);
-                            }
-                            setSelectedModels(newSet);
-                          }}
-                          className="w-4 h-4 rounded"
-                        />
-                        <span className="flex-1 flex flex-col gap-0.5">
-                          <span className="text-xs text-zinc-300 truncate">{name}</span>
-                          {(numFeatures || numParams) && (
-                            <span className="flex flex-wrap gap-1 text-[9px] text-zinc-500">
-                              {numFeatures && (
-                                <span className="px-1.5 py-0.5 rounded-full bg-zinc-900 border border-zinc-700">
-                                  Feat: {numFeatures}
-                                </span>
-                              )}
-                              {numParams && (
-                                <span className="px-1.5 py-0.5 rounded-full bg-zinc-900 border border-zinc-700">
-                                  Params: {numParams}
-                                </span>
-                              )}
-                            </span>
-                          )}
-                        </span>
-                      </label>
-                    );})}
+                        <label key={name} className="flex items-center gap-2 p-2 rounded-lg hover:bg-zinc-800/50 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={selectedModels.has(name)}
+                            onChange={(e) => {
+                              const newSet = new Set(selectedModels);
+                              if (e.target.checked) {
+                                newSet.add(name);
+                              } else {
+                                newSet.delete(name);
+                              }
+                              setSelectedModels(newSet);
+                            }}
+                            className="w-4 h-4 rounded"
+                          />
+                          <span className="flex-1 flex flex-col gap-0.5">
+                            <span className="text-xs text-zinc-300 truncate">{name}</span>
+                            {(numFeatures || numParams || trainingSamples) && (
+                              <span className="flex flex-wrap gap-1 text-[9px] text-zinc-500">
+                                {numFeatures && (
+                                  <span className="px-1.5 py-0.5 rounded-full bg-zinc-900 border border-zinc-700">
+                                    Feat: {numFeatures}
+                                  </span>
+                                )}
+                                {numParams && (
+                                  <span className="px-1.5 py-0.5 rounded-full bg-zinc-900 border border-zinc-700">
+                                    Params: {numParams}
+                                  </span>
+                                )}
+                                {trainingSamples && (
+                                  <span className="px-1.5 py-0.5 rounded-full bg-zinc-900 border border-zinc-700">
+                                    Samples: {trainingSamples}
+                                  </span>
+                                )}
+                              </span>
+                            )}
+                          </span>
+                        </label>
+                      );
+                    })}
                   </div>
                 ) : (
                   <Select
@@ -520,17 +615,20 @@ export default function TestModelTab() {
                         const name = typeof model === "string" ? model : model.name;
                         const numFeatures = typeof model === "object" ? (model as any).num_features ?? (model as any).numFeatures : undefined;
                         const numParams = typeof model === "object" ? (model as any).num_parameters ?? (model as any).numParameters : undefined;
+                        const trainingSamples = typeof model === "object" ? (model as any).trainingSamples ?? (model as any).training_samples : undefined;
                         return (
-                        <SelectItem key={name} value={name} className="text-xs font-bold uppercase tracking-widest flex items-center justify-between gap-2">
-                          <span className="truncate">{name}</span>
-                          {(numFeatures || numParams) && (
-                            <span className="flex gap-1 text-[9px] text-zinc-500">
-                              {numFeatures && <span>F:{numFeatures}</span>}
-                              {numParams && <span>P:{numParams}</span>}
-                            </span>
-                          )}
-                        </SelectItem>
-                      );})}
+                          <SelectItem key={name} value={name} className="text-xs font-bold uppercase tracking-widest flex items-center justify-between gap-2">
+                            <span className="truncate">{name}</span>
+                            {(numFeatures || numParams || trainingSamples) && (
+                              <span className="flex gap-1 text-[9px] text-zinc-500">
+                                {numFeatures && <span>F:{numFeatures}</span>}
+                                {numParams && <span>P:{numParams}</span>}
+                                {trainingSamples && <span>S:{trainingSamples}</span>}
+                              </span>
+                            )}
+                          </SelectItem>
+                        );
+                      })}
                     </SelectContent>
                   </Select>
                 )}
@@ -557,6 +655,40 @@ export default function TestModelTab() {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+
+            <div className="rounded-xl sm:rounded-2xl border border-white/5 bg-gradient-to-br from-zinc-800/30 to-zinc-900/30 p-4 sm:p-5">
+              <div className="text-[10px] sm:text-xs font-black uppercase tracking-[0.3em] text-zinc-500 flex items-center gap-2 mb-3">
+                <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4 text-indigo-400" /> Model Stats
+              </div>
+              {selectedModelStats.length > 0 ? (
+                <div className="h-56">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={selectedModelStats} margin={{ top: 10, right: 10, left: 0, bottom: 30 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
+                      <XAxis
+                        dataKey="name"
+                        stroke="rgba(255,255,255,0.4)"
+                        tick={{ fontSize: 10 }}
+                        angle={-20}
+                        textAnchor="end"
+                        height={40}
+                      />
+                      <YAxis stroke="rgba(255,255,255,0.4)" tick={{ fontSize: 10 }} allowDecimals={false} />
+                      <Tooltip
+                        contentStyle={{ background: "#0a0a0a", border: "1px solid rgba(255,255,255,0.08)", color: "#fff" }}
+                      />
+                      <Bar dataKey="trainingSamples" fill="#38bdf8" name="Samples" />
+                      <Bar dataKey="numFeatures" fill="#a855f7" name="Features" />
+                      <Bar dataKey="nEstimators" fill="#34d399" name="Estimators" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              ) : (
+                <div className="h-56 flex items-center justify-center text-xs text-zinc-500">
+                  Select a model to view stats.
+                </div>
+              )}
             </div>
           </div>
         </section>
@@ -705,7 +837,75 @@ export default function TestModelTab() {
                     </div>
                   </div>
 
+                  {/* Detailed Results Table */}
+                  <div className="bg-zinc-950/40 rounded-xl border border-white/5 overflow-hidden">
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left border-collapse">
+                        <thead>
+                          <tr className="bg-white/5">
+                            {[
+                              { label: 'Model', key: 'name' },
+                              { label: 'Win Rate', key: 'winRate' },
+                              { label: 'Buy Acc', key: 'buyAcc' },
+                              { label: 'Sell Acc', key: 'sellAcc' },
+                              { label: 'Prec.', key: 'precision' },
+                              { label: 'Recall', key: 'recall' },
+                              { label: 'F1', key: 'f1' },
+                              { label: 'Time', key: 'execTime' },
+                            ].map((col) => (
+                              <th
+                                key={col.key}
+                                onClick={() => toggleSort(col.key)}
+                                className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-zinc-500 cursor-pointer hover:bg-white/5 transition-colors"
+                              >
+                                <div className="flex items-center">
+                                  {col.label}
+                                  <SortIcon column={col.key} />
+                                </div>
+                              </th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-white/5">
+                          {sortedMultiSummaries.map((item) => {
+                            const cls = calculateClassification(item.result.testPredictions || []);
+                            const execTime = (item.result as any).executionTime;
+                            return (
+                              <tr key={item.modelName} className="hover:bg-white/5 transition-colors">
+                                <td className="px-4 py-3 text-xs font-bold text-zinc-300 truncate max-w-[150px]">
+                                  {item.modelName.replace(/^model_|\.pkl$/gi, "")}
+                                </td>
+                                <td className="px-4 py-3 text-xs font-bold text-indigo-400">
+                                  {item.kpis.winRate.toFixed(1)}%
+                                </td>
+                                <td className="px-4 py-3 text-xs font-bold text-emerald-400">
+                                  {item.kpis.buyAccuracy.toFixed(1)}%
+                                </td>
+                                <td className="px-4 py-3 text-xs font-bold text-rose-400">
+                                  {item.kpis.sellAccuracy.toFixed(1)}%
+                                </td>
+                                <td className="px-4 py-3 text-xs text-zinc-400">
+                                  {(cls.precisionBuy * 100).toFixed(1)}%
+                                </td>
+                                <td className="px-4 py-3 text-xs text-zinc-400">
+                                  {(cls.recallBuy * 100).toFixed(1)}%
+                                </td>
+                                <td className="px-4 py-3 text-xs text-zinc-400">
+                                  {(cls.f1Buy * 100).toFixed(1)}%
+                                </td>
+                                <td className="px-4 py-3 text-xs text-zinc-500 italic">
+                                  {execTime ? `${execTime}ms` : '-'}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
                   <div className="bg-zinc-950/40 rounded-xl border border-white/5 p-4 mb-4">
+
                     <h4 className="text-[10px] sm:text-xs font-bold uppercase tracking-[0.2em] text-zinc-500 mb-3">
                       Classification (BUY) by Model
                     </h4>
@@ -748,11 +948,10 @@ export default function TestModelTab() {
                     {multiSummaries.map(({ modelName, result, kpis }, idx) => (
                       <div
                         key={modelName}
-                        className={`rounded-xl p-4 border bg-zinc-900/50 ${
-                          idx === 0
-                            ? "border-emerald-500/60 shadow-lg shadow-emerald-500/30"
-                            : "border-white/5"
-                        }`}
+                        className={`rounded-xl p-4 border bg-zinc-900/50 ${idx === 0
+                          ? "border-emerald-500/60 shadow-lg shadow-emerald-500/30"
+                          : "border-white/5"
+                          }`}
                       >
                         <div className="mb-3 pb-3 border-b border-white/5 flex items-center justify-between gap-2">
                           <h4 className="text-xs font-bold uppercase tracking-[0.2em] text-indigo-400 truncate">
@@ -841,11 +1040,10 @@ export default function TestModelTab() {
                           </div>
                         </div>
                         <div
-                          className={`flex items-center gap-2 px-4 py-2 rounded-full font-bold text-sm tracking-wide ${
-                            singleSummary.signal === 1
-                              ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
-                              : "bg-rose-500/20 text-rose-400 border border-rose-500/30"
-                          }`}
+                          className={`flex items-center gap-2 px-4 py-2 rounded-full font-bold text-sm tracking-wide ${singleSummary.signal === 1
+                            ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                            : "bg-rose-500/20 text-rose-400 border border-rose-500/30"
+                            }`}
                         >
                           {singleSummary.signal === 1 ? (
                             <TrendingUp className="h-5 w-5" />
@@ -974,22 +1172,12 @@ export default function TestModelTab() {
                     <div className="flex flex-col gap-4 mb-6">
                       <div className="flex items-center justify-between">
                         <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-zinc-500">
-                          Price & Signals Chart
+                          Price & Signals Chart (Candlestick)
                         </h3>
-                        <div className="flex gap-2">
-                          <Select value={chartType} onValueChange={(v: any) => setChartType(v)}>
-                            <SelectTrigger className="w-32 h-8 text-xs">
-                              <SelectValue placeholder="Chart Type" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="line">Line Chart</SelectItem>
-                              <SelectItem value="scatter">Scatter Plot</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
                       </div>
 
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      {/* Signal Controls */}
+                      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-2">
                         <Button
                           variant={showBUYSignals ? "default" : "outline"}
                           size="sm"
@@ -997,7 +1185,7 @@ export default function TestModelTab() {
                           className="text-[10px] sm:text-xs h-7 sm:h-8"
                         >
                           <div className="w-2 h-2 rounded-full bg-emerald-500 mr-1.5" />
-                          BUY Signals
+                          BUY
                         </Button>
                         <Button
                           variant={showSELLSignals ? "default" : "outline"}
@@ -1006,8 +1194,21 @@ export default function TestModelTab() {
                           className="text-[10px] sm:text-xs h-7 sm:h-8"
                         >
                           <div className="w-2 h-2 rotate-45 bg-red-500 mr-1.5" />
-                          SELL Signals
+                          SELL
                         </Button>
+                        <Button
+                          variant={showVolume ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setShowVolume(!showVolume)}
+                          className="text-[10px] sm:text-xs h-7 sm:h-8"
+                        >
+                          <div className="w-2 h-2 bg-blue-500 mr-1.5" />
+                          Volume
+                        </Button>
+                      </div>
+
+                      {/* Indicator Controls */}
+                      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2">
                         <Button
                           variant={showSMA50 ? "default" : "outline"}
                           size="sm"
@@ -1027,191 +1228,67 @@ export default function TestModelTab() {
                           SMA200
                         </Button>
                         <Button
+                          variant={showEMA50 ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setShowEMA50(!showEMA50)}
+                          className="text-[10px] sm:text-xs h-7 sm:h-8"
+                        >
+                          <div className="w-2 h-2 bg-orange-500 mr-1.5" />
+                          EMA50
+                        </Button>
+                        <Button
+                          variant={showEMA200 ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setShowEMA200(!showEMA200)}
+                          className="text-[10px] sm:text-xs h-7 sm:h-8"
+                        >
+                          <div className="w-2 h-2 bg-sky-500 mr-1.5" />
+                          EMA200
+                        </Button>
+                        <Button
+                          variant={showBB ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setShowBB(!showBB)}
+                          className="text-[10px] sm:text-xs h-7 sm:h-8"
+                        >
+                          <div className="w-2 h-2 bg-violet-500 mr-1.5" />
+                          BB
+                        </Button>
+                        <Button
                           variant={showRSI ? "default" : "outline"}
                           size="sm"
                           onClick={() => setShowRSI(!showRSI)}
-                          className="text-[10px] sm:text-xs h-7 sm:h-8 col-span-2 sm:col-span-1"
+                          className="text-[10px] sm:text-xs h-7 sm:h-8"
                         >
                           <div className="w-2 h-2 bg-purple-500 mr-1.5" />
                           RSI
                         </Button>
+                        <Button
+                          variant={showMACD ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setShowMACD(!showMACD)}
+                          className="text-[10px] sm:text-xs h-7 sm:h-8"
+                        >
+                          <div className="w-2 h-2 bg-indigo-500 mr-1.5" />
+                          MACD
+                        </Button>
                       </div>
                     </div>
-                    <ResponsiveContainer width="100%" height={450}>
-                      <RechartsLineChart
-                        data={testResult!.testPredictions.map((row) => ({
-                          ...row,
-                          date: row.date,
-                          signalColor: row.pred === 1 ? "#10b981" : "#ef4444",
-                          signalName: row.pred === 1 ? "BUY" : "SELL",
-                        }))}
-                        margin={{ top: 10, right: 60, left: 10, bottom: 40 }}
-                      >
-                        <defs>
-                          <linearGradient id="colorClose" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3} />
-                            <stop offset="95%" stopColor="#6366f1" stopOpacity={0.01} />
-                          </linearGradient>
-                        </defs>
-                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
-                        <XAxis
-                          dataKey="date"
-                          stroke="rgba(255,255,255,0.4)"
-                          tick={{ fontSize: 11 }}
-                          interval={Math.floor(
-                            Math.max(0, testResult!.testPredictions.length - 1) / 8
-                          )}
-                          angle={-45}
-                          textAnchor="end"
-                          height={60}
-                        />
-                        <YAxis
-                          stroke="rgba(255,255,255,0.4)"
-                          tick={{ fontSize: 11 }}
-                          yAxisId="left"
-                          label={{ value: "Price", angle: -90, position: "insideLeft" }}
-                        />
-                        <YAxis
-                          stroke="rgba(255,255,255,0.4)"
-                          tick={{ fontSize: 11 }}
-                          yAxisId="right"
-                          orientation="right"
-                          label={{ value: "RSI", angle: 90, position: "insideRight" }}
-                        />
-                        <Tooltip
-                          contentStyle={{
-                            backgroundColor: "rgba(9,9,11,0.98)",
-                            border: "1px solid rgba(99,102,241,0.3)",
-                            borderRadius: "10px",
-                            padding: "8px 12px",
-                          }}
-                          labelStyle={{ color: "rgba(255,255,255,0.9)" }}
-                          formatter={(value: any) =>
-                            typeof value === "number" ? value.toFixed(2) : value
-                          }
-                          cursor={{ stroke: "rgba(99,102,241,0.2)", strokeWidth: 1 }}
-                        />
-                        <Legend
-                          verticalAlign="top"
-                          height={20}
-                          wrapperStyle={{ paddingBottom: "10px" }}
-                        />
-                        <Line
-                          yAxisId="left"
-                          type="monotone"
-                          dataKey="close"
-                          stroke="#6366f1"
-                          dot={false}
-                          strokeWidth={2.5}
-                          isAnimationActive={false}
-                          name="Close Price"
-                        />
-                        {showSMA50 &&
-                          testResult!.testPredictions.some((p) => p.sma50) && (
-                            <Line
-                              yAxisId="left"
-                              type="monotone"
-                              dataKey="sma50"
-                              stroke="#f59e0b"
-                              dot={false}
-                              strokeWidth={1.5}
-                              strokeDasharray="5 5"
-                              isAnimationActive={false}
-                              name="SMA50"
-                            />
-                          )}
-                        {showSMA200 &&
-                          testResult!.testPredictions.some((p) => p.sma200) && (
-                            <Line
-                              yAxisId="left"
-                              type="monotone"
-                              dataKey="sma200"
-                              stroke="#06b6d4"
-                              dot={false}
-                              strokeWidth={1.5}
-                              strokeDasharray="5 5"
-                              isAnimationActive={false}
-                              name="SMA200"
-                            />
-                          )}
-                        {showRSI && testResult!.testPredictions.some((p) => p.rsi) && (
-                          <Line
-                            yAxisId="right"
-                            type="monotone"
-                            dataKey="rsi"
-                            stroke="#8b5cf6"
-                            dot={false}
-                            strokeWidth={1.5}
-                            strokeDasharray="5 5"
-                            isAnimationActive={false}
-                            name="RSI"
-                          />
-                        )}
-                        {showBUYSignals && (
-                          <Scatter
-                            yAxisId="left"
-                            dataKey="close"
-                            data={testResult!.testPredictions.filter((p) => p.pred === 1)}
-                            fill="#10b981"
-                            stroke="#059669"
-                            strokeWidth={2}
-                            name="BUY Signal (●)"
-                            shape="circle"
-                          />
-                        )}
-                        {showSELLSignals && (
-                          <Scatter
-                            yAxisId="left"
-                            dataKey="close"
-                            data={testResult!.testPredictions.filter((p) => p.pred === 0)}
-                            fill="#ef4444"
-                            stroke="#dc2626"
-                            strokeWidth={2}
-                            name="SELL Signal (◆)"
-                            shape="diamond"
-                          />
-                        )}
-                      </RechartsLineChart>
-                    </ResponsiveContainer>
 
-                    <div className="flex flex-wrap gap-4 mt-6 text-xs">
-                      <div className="flex items-center gap-2">
-                        <div className="w-3 h-3 rounded-full bg-indigo-500 border border-indigo-600" />
-                        <span className="text-zinc-400">Close Price</span>
-                      </div>
-                      {showSMA50 &&
-                        testResult!.testPredictions.some((p) => p.sma50) && (
-                          <div className="flex items-center gap-2">
-                            <div className="w-3 h-1 bg-amber-500 border border-amber-600" />
-                            <span className="text-zinc-400">SMA50</span>
-                          </div>
-                        )}
-                      {showSMA200 &&
-                        testResult!.testPredictions.some((p) => p.sma200) && (
-                          <div className="flex items-center gap-2">
-                            <div className="w-3 h-1 bg-cyan-500 border border-cyan-600" />
-                            <span className="text-zinc-400">SMA200</span>
-                          </div>
-                        )}
-                      {showRSI && testResult!.testPredictions.some((p) => p.rsi) && (
-                        <div className="flex items-center gap-2">
-                          <div className="w-3 h-1 bg-purple-500 border border-purple-600" />
-                          <span className="text-zinc-400">RSI</span>
-                        </div>
-                      )}
-                      {showBUYSignals && (
-                        <div className="flex items-center gap-2">
-                          <div className="w-3 h-3 rounded-full bg-emerald-500 border border-emerald-600" />
-                          <span className="text-zinc-400">BUY Signal (●)</span>
-                        </div>
-                      )}
-                      {showSELLSignals && (
-                        <div className="flex items-center gap-2">
-                          <div className="w-3 h-3 rotate-45 bg-red-500 border border-red-600" />
-                          <span className="text-zinc-400">SELL Signal (◆)</span>
-                        </div>
-                      )}
-                    </div>
+                    {/* Candlestick Chart */}
+                    <TestModelCandleChart
+                      rows={testResult!.testPredictions}
+                      showBuySignals={showBUYSignals}
+                      showSellSignals={showSELLSignals}
+                      showSMA50={showSMA50}
+                      showSMA200={showSMA200}
+                      showEMA50={showEMA50}
+                      showEMA200={showEMA200}
+                      showBB={showBB}
+                      showRSI={showRSI}
+                      showMACD={showMACD}
+                      showVolume={showVolume}
+                    />
                   </div>
 
                   {/* Save button + weekly breakdown table */}

@@ -4,6 +4,10 @@ import json
 import datetime as dt
 import urllib.request
 import pandas as pd
+import warnings
+
+# Suppress specific FutureWarnings from libraries like 'ta'
+warnings.filterwarnings("ignore", category=FutureWarning)
 
 # Add the directory containing this file to sys.path to allow local imports
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -28,11 +32,19 @@ import yfinance as yf
 
 from stock_ai import run_pipeline
 from symbols_local import list_countries, search_symbols
-from routers import scan_ai, scan_tech, admin
+from routers import scan_ai, scan_ai_fast, scan_tech, admin
 
 load_dotenv()
 
+# Debug: Print loaded environment variables
+print(f"DEBUG: NEXT_PUBLIC_SUPABASE_URL loaded: {'Yes' if os.getenv('NEXT_PUBLIC_SUPABASE_URL') else 'No'}")
+print(f"DEBUG: SUPABASE_SERVICE_ROLE_KEY loaded: {'Yes' if os.getenv('SUPABASE_SERVICE_ROLE_KEY') else 'No'}")
+
 app = FastAPI(title="AI Stocks API", version="1.0.0")
+
+# Initialize Supabase at startup
+from stock_ai import _init_supabase
+_init_supabase()
 
 
 @app.exception_handler(Exception)
@@ -43,6 +55,7 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
     return JSONResponse(status_code=500, content={"detail": "Internal server error"})
 
 app.include_router(scan_ai.router)
+app.include_router(scan_ai_fast.router)
 app.include_router(scan_tech.router)
 app.include_router(admin.router)
 
@@ -131,6 +144,7 @@ class PredictRequest(BaseModel):
     rf_preset: Optional[str] = Field(default=None)
     rf_params: Optional[Dict[str, Any]] = Field(default=None)
     model_name: Optional[str] = Field(default=None)
+    force_local: bool = Field(default=False)
 
 
 class EvaluatePositionIn(BaseModel):
@@ -325,14 +339,19 @@ def health():
 
 @app.get("/models/local")
 def list_local_models():
-    api_dir = os.path.dirname(os.path.abspath(__file__))
-    models_dir = os.path.join(api_dir, "models")
-    if not os.path.exists(models_dir):
-        return {"models": []}
+    try:
+        # Prefer the richer metadata format used by the admin UI.
+        from routers.admin import list_local_models as _list_local_models
+        return _list_local_models()
+    except Exception:
+        api_dir = os.path.dirname(os.path.abspath(__file__))
+        models_dir = os.path.join(api_dir, "models")
+        if not os.path.exists(models_dir):
+            return {"models": []}
 
-    files = [f for f in os.listdir(models_dir) if f.endswith(".pkl")]
-    files.sort()
-    return {"models": files}
+        files = [f for f in os.listdir(models_dir) if f.endswith(".pkl")]
+        files.sort()
+        return {"models": files}
 
 
 @app.get("/symbols/inventory")
@@ -530,16 +549,17 @@ def symbols_search(
 @app.post("/predict")
 def predict(req: PredictRequest):
     api_key = os.getenv("EODHD_API_KEY")
-    if not api_key:
+    if (not req.force_local) and (not api_key):
         raise HTTPException(status_code=500, detail="EODHD_API_KEY is not configured")
 
     try:
         payload = run_pipeline(
-            api_key=api_key,
+            api_key=api_key or "",
             ticker=req.ticker.strip().upper(),
             from_date=req.from_date,
             include_fundamentals=req.include_fundamentals,
             exchange=req.exchange,
+            force_local=req.force_local,
             rf_preset=req.rf_preset,
             rf_params=req.rf_params,
             model_name=req.model_name,

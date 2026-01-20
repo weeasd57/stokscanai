@@ -1,6 +1,6 @@
 "use client";
 
-import { Database, Globe, Loader2, Download, Check, ChevronLeft, ChevronRight, BarChart3, History, Zap, Cloud } from "lucide-react";
+import { Database, Globe, Loader2, Download, Check, ChevronLeft, ChevronRight, BarChart3, History, Zap, Cloud, RefreshCcw } from "lucide-react";
 import { type SymbolResult } from "@/lib/api";
 
 interface DataManagerTabProps {
@@ -48,6 +48,8 @@ interface DataManagerTabProps {
     loadingInventory: boolean;
     setMaxWorkers: (workers: number) => void;
     setConfig: React.Dispatch<React.SetStateAction<{ priceSource: string; fundSource: string; maxWorkers: number }>>;
+    updatingInventory?: boolean;
+    runInventoryUpdate?: (country?: string) => void;
 }
 
 export default function DataManagerTab({
@@ -94,7 +96,9 @@ export default function DataManagerTab({
     setActiveMainTab,
     loadingInventory,
     setMaxWorkers,
-    setConfig
+    setConfig,
+    updatingInventory,
+    runInventoryUpdate
 }: DataManagerTabProps) {
     return (
         <div className="p-8 max-w-7xl mx-auto w-full space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -124,6 +128,24 @@ export default function DataManagerTab({
                         >
                             <span className="font-medium">{selectedCountry}</span>
                             <Globe className="h-4 w-4 text-zinc-500 group-hover:text-indigo-400 transition-colors" />
+                        </button>
+
+                        <button
+                            onClick={() => runInventoryUpdate?.()}
+                            disabled={updatingInventory || processing}
+                            className="w-full h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 px-4 flex items-center justify-center gap-2 text-[10px] font-bold text-indigo-400 hover:bg-indigo-600 hover:text-white transition-all group disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            {updatingInventory ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCcw className="h-3 w-3 group-hover:rotate-180 transition-transform duration-500" />}
+                            {updatingInventory ? "Updating..." : "Update Global Inventory"}
+                        </button>
+
+                        <button
+                            onClick={() => runInventoryUpdate?.(selectedCountry)}
+                            disabled={updatingInventory || processing}
+                            className="w-full h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 px-4 flex items-center justify-center gap-2 text-[10px] font-bold text-emerald-400 hover:bg-emerald-600 hover:text-white transition-all group disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            {updatingInventory ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCcw className="h-3 w-3 group-hover:rotate-180 transition-transform duration-500" />}
+                            {updatingInventory ? "Updating..." : `Update ${selectedCountry} Only`}
                         </button>
                     </div>
 
@@ -177,9 +199,14 @@ export default function DataManagerTab({
                                     </button>
                                 </div>
                                 <div className="space-y-2 pt-2">
-                                    <div className="flex justify-between text-[10px] text-zinc-500 font-medium">
-                                        <span>Max Price Days (Local)</span>
-                                        <span className="text-indigo-400">{maxPriceDays} days</span>
+                                    <div className="flex flex-col gap-0.5">
+                                        <div className="flex justify-between text-[10px] text-zinc-500 font-bold uppercase tracking-wider">
+                                            <span>Target History (Days)</span>
+                                            <span className="text-indigo-400">{maxPriceDays} days</span>
+                                        </div>
+                                        <div className="text-[9px] text-zinc-600 leading-tight">
+                                            Always updates to today + ensures total history length.
+                                        </div>
                                     </div>
                                     <input
                                         type="number"

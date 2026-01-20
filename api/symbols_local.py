@@ -11,14 +11,37 @@ def _default_symbols_dir() -> str:
     return os.path.join(_project_root(), "symbols_data")
 
 def _safe_read_json(path: str) -> Any:
-    with open(path, "r", encoding="utf-8") as f:
-        return json.load(f)
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except json.JSONDecodeError:
+        # Retry with BOM-tolerant decoding (utf-8-sig) for legacy JSON exports
+        with open(path, "r", encoding="utf-8-sig") as f:
+            return json.load(f)
+
+def _find_latest_file(prefix: str, suffix: str = ".json") -> Optional[str]:
+    base = _default_symbols_dir()
+    if not os.path.exists(base):
+        return None
+    
+    # Standard names first (if we decide to use them)
+    standard = os.path.join(base, f"{prefix}{suffix}")
+    if os.path.exists(standard):
+        return standard
+        
+    # Otherwise look for timestamped ones: prefix_YYYYMMDD_HHMMSS.json
+    candidates = [f for f in os.listdir(base) if f.startswith(prefix) and f.endswith(suffix)]
+    if not candidates:
+        return None
+        
+    # Sort by name (timestamp format ensures correct sorting for latest)
+    candidates.sort(reverse=True)
+    return os.path.join(base, candidates[0])
 
 @lru_cache(maxsize=1)
 def load_country_summary() -> Dict[str, Any]:
-    base = _default_symbols_dir()
-    path = os.path.join(base, "country_summary_20250304_171206.json")
-    if not os.path.exists(path):
+    path = _find_latest_file("country_summary")
+    if not path:
         return {}
     return _safe_read_json(path)
 
@@ -26,23 +49,18 @@ def list_countries() -> List[str]:
     summary = load_country_summary()
     return sorted(summary.keys())
 
-def _country_file_name(country: str) -> str:
-    return f"{country}_all_symbols_20250304_171206.json"
-
 @lru_cache(maxsize=64)
 def load_symbols_for_country(country: str) -> List[Dict[str, Any]]:
-    base = _default_symbols_dir()
-    path = os.path.join(base, _country_file_name(country))
-    if not os.path.exists(path):
+    path = _find_latest_file(f"{country}_all_symbols")
+    if not path:
         return []
     data = _safe_read_json(path)
     return data if isinstance(data, list) else []
 
 @lru_cache(maxsize=1)
 def load_all_symbols() -> List[Dict[str, Any]]:
-    base = _default_symbols_dir()
-    path = os.path.join(base, "all_symbols_by_country_20250304_171206.json")
-    if not os.path.exists(path):
+    path = _find_latest_file("all_symbols_by_country")
+    if not path:
         return []
     data = _safe_read_json(path)
     return data if isinstance(data, list) else []
@@ -67,7 +85,7 @@ def search_symbols(
     ex_low = exchange.lower() if exchange else None
 
     for row in haystack:
-        sym = str(row.get("Symbol", row.get("symbol", "")))
+        sym = str(row.get("Symbol", row.get("symbol", row.get("Code", ""))))
         name = str(row.get("Name", row.get("name", "")))
         ex = str(row.get("Exchange", row.get("exchange", "")))
         

@@ -191,14 +191,17 @@ def fetch_tradingview_prices(
         tv = TvDatafeed()
         
         # Calculate how many bars we need
-        if not has_enough_history:
-            # FORCE BACKFILL: Need more history
-            n_bars = max_days + 100 # Extra buffer for non-trading days
-        elif last_date:
-            delta = (today - last_date).days
-            n_bars = max(10, delta + 10) # Buffer
-        else:
-            n_bars = max_days + 30 # Buffer for weekends
+        # If we don't have enough history, we need max_days (plus some buffer)
+        # If we are just stale, we need at least the gap since last_date
+        
+        needed_for_history = max_days + 100 if not has_enough_history else 0
+        needed_for_update = (today - last_date).days + 10 if last_date else max_days + 30
+        
+        n_bars = max(needed_for_history, needed_for_update)
+        # Cap at a reasonable limit (e.g., 5000) if needed, but max_days is usually smaller
+        n_bars = min(5000, n_bars)
+
+        print(f"TV FETCH: {upper} | n_bars={n_bars} (history={not has_enough_history}, stale={not is_up_to_date})")
 
         # Fetch historical data
         df = tv.get_hist(

@@ -1,4 +1,8 @@
 import os
+import warnings
+
+# Suppress specific FutureWarnings from libraries like 'ta'
+warnings.filterwarnings("ignore", category=FutureWarning)
 import sys
 import argparse
 import pickle
@@ -11,6 +15,7 @@ from datetime import datetime
 from ta import add_all_ta_features
 from lightgbm import LGBMClassifier
 import lightgbm as lgb
+from pandas.api.types import is_numeric_dtype
 from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.metrics import precision_score, make_scorer
 from supabase import create_client, Client
@@ -562,6 +567,15 @@ def train_model(
 
     # Ensure all chosen columns exist (in case of legacy data)
     predictors = [c for c in chosen if c in df_train.columns]
+
+    if preset == "max":
+        exclude = {"Target", "symbol", "date", "datetime", "timestamp"}
+        all_numeric = [
+            c
+            for c in df_train.columns
+            if c not in exclude and c not in predictors and is_numeric_dtype(df_train[c])
+        ]
+        predictors = predictors + all_numeric
     
     if max_features_override is None and max_features is not None:
         max_features_override = max_features

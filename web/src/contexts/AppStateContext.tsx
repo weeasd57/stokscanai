@@ -4,7 +4,7 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useR
 
 import type { ScanResult, TechResult, TechFilter } from "@/lib/api";
 import type { PredictResponse } from "@/lib/types";
-import { getCountries, predictStock, scanAiWithParams, scanTech, type ScanAiParams } from "@/lib/api";
+import { getCountries, predictStock, scanAiWithParams, scanAiFastWithParams, scanTech, type ScanAiParams } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 
@@ -22,26 +22,6 @@ type HomeState = {
   showRsi: boolean;
   showVolume: boolean;
   watchlist: string[];
-};
-
-type AiScannerState = {
-  country: string;
-  scanAll: boolean;
-  results: ScanResult[];
-  progress: { current: number; total: number };
-  hasScanned: boolean;
-  scanHistory: Array<{ key: string; createdAt: number; params: ScanAiParams; results: ScanResult[]; scannedCount: number }>;
-  showPrecisionInfo: boolean;
-  selected: ScanResult | null;
-  detailData: PredictResponse | null;
-  rfPreset: "fast" | "default" | "accurate";
-  rfParamsJson: string;
-  chartType: "candle" | "area";
-  showEma50: boolean;
-  showEma200: boolean;
-  showBB: boolean;
-  showRsi: boolean;
-  showVolume: boolean;
 };
 
 type TechScannerState = {
@@ -87,7 +67,6 @@ type ComparisonScannerState = {
 
 type AppState = {
   home: HomeState;
-  aiScanner: AiScannerState;
   techScanner: TechScannerState;
   comparisonScanner: ComparisonScannerState;
 };
@@ -101,19 +80,11 @@ type AppStateContextType = {
   syncedSymbolsLoading: boolean;
   refreshSyncedSymbols: (country?: string) => Promise<void>;
   setHome: (u: Updater<HomeState>) => void;
-  setAiScanner: (u: Updater<AiScannerState>) => void;
   setTechScanner: (u: Updater<TechScannerState>) => void;
   setComparisonScanner: (u: Updater<ComparisonScannerState>) => void;
   runHomePredict: (ticker: string, opts?: { signal?: AbortSignal; force?: boolean }) => Promise<void>;
   clearHomeView: () => void;
   restoreLastHomePredict: () => boolean;
-  // AI Scan with persistent loading state
-  aiScanLoading: boolean;
-  aiScanError: string | null;
-  runAiScan: (opts: { rfParams: Record<string, unknown> | null; minPrecision?: number; force?: boolean }) => Promise<void>;
-  stopAiScan: () => void;
-  clearAiScannerView: () => void;
-  restoreLastAiScan: () => boolean;
   // Tech Scan with persistent loading state
   techScanLoading: boolean;
   techScanError: string | null;
@@ -132,7 +103,6 @@ type AppStateContextType = {
   addSymbolsToCompare: (symbols: string[]) => Promise<void>;
   removeSymbolFromCompare: (symbol: string) => void;
   clearComparison: () => void;
-  resetAiScanner: () => void;
   resetTechScanner: () => void;
   // Watchlist
   addSymbolToWatchlist: (symbol: string) => void;
@@ -155,25 +125,6 @@ const DEFAULT_STATE: AppState = {
     showRsi: false,
     showVolume: false,
     watchlist: [],
-  },
-  aiScanner: {
-    country: "Egypt",
-    scanAll: false,
-    results: [],
-    progress: { current: 0, total: 0 },
-    hasScanned: false,
-    scanHistory: [],
-    showPrecisionInfo: false,
-    selected: null,
-    detailData: null,
-    rfPreset: "fast",
-    rfParamsJson: "{}",
-    chartType: "candle",
-    showEma50: false,
-    showEma200: false,
-    showBB: false,
-    showRsi: false,
-    showVolume: false,
   },
   techScanner: {
     country: "Egypt",
@@ -218,25 +169,6 @@ const AppStateContext = createContext<AppStateContextType | undefined>(undefined
 
 type PersistedAppState = {
   home: Pick<HomeState, "ticker" | "chartType" | "showEma50" | "showEma200" | "showBB" | "showRsi" | "showVolume" | "watchlist">;
-  aiScanner: Pick<
-    AiScannerState,
-    | "country"
-    | "scanAll"
-    | "results"
-    | "progress"
-    | "hasScanned"
-    | "scanHistory"
-    | "showPrecisionInfo"
-    // Note: 'selected' intentionally NOT persisted - should start null on load
-    | "rfPreset"
-    | "rfParamsJson"
-    | "chartType"
-    | "showEma50"
-    | "showEma200"
-    | "showBB"
-    | "showRsi"
-    | "showVolume"
-  >;
   techScanner: Pick<
     TechScannerState,
     | "country"
@@ -332,14 +264,6 @@ function safeParseCountries(raw: string | null): CachedCountries | null {
 function mergeDefaults(saved: PersistedAppState): AppState {
   return {
     home: { ...DEFAULT_STATE.home, ...saved.home, data: null },
-    aiScanner: {
-      ...DEFAULT_STATE.aiScanner,
-      ...saved.aiScanner,
-      // Reset transient UI state only
-      selected: null,
-      detailData: null,
-      // But preserve: results, progress, hasScanned, scanHistory from saved
-    },
     techScanner: {
       ...DEFAULT_STATE.techScanner,
       ...saved.techScanner,
@@ -368,24 +292,6 @@ function toPersistedState(full: AppState): PersistedAppState {
       showRsi: full.home.showRsi,
       showVolume: full.home.showVolume,
       watchlist: full.home.watchlist,
-    },
-    aiScanner: {
-      country: full.aiScanner.country,
-      scanAll: full.aiScanner.scanAll,
-      results: full.aiScanner.results,
-      progress: full.aiScanner.progress,
-      hasScanned: full.aiScanner.hasScanned,
-      scanHistory: full.aiScanner.scanHistory,
-      showPrecisionInfo: full.aiScanner.showPrecisionInfo,
-      // Note: 'selected' intentionally NOT persisted
-      rfPreset: full.aiScanner.rfPreset,
-      rfParamsJson: full.aiScanner.rfParamsJson,
-      chartType: full.aiScanner.chartType,
-      showEma50: full.aiScanner.showEma50,
-      showEma200: full.aiScanner.showEma200,
-      showBB: full.aiScanner.showBB,
-      showRsi: full.aiScanner.showRsi,
-      showVolume: full.aiScanner.showVolume,
     },
     techScanner: {
       country: full.techScanner.country,
@@ -438,10 +344,6 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   }, [state]);
 
   // Scan loading states (persist across navigation)
-  const [aiScanLoading, setAiScanLoading] = useState(false);
-  const [aiScanError, setAiScanError] = useState<string | null>(null);
-  const aiScanAbortRef = useRef<AbortController | null>(null);
-
   const [techScanLoading, setTechScanLoading] = useState(false);
   const [techScanError, setTechScanError] = useState<string | null>(null);
   const techScanAbortRef = useRef<AbortController | null>(null);
@@ -666,13 +568,6 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     }));
   }, []);
 
-  const setAiScanner = useCallback((u: Updater<AiScannerState>) => {
-    setState((prev) => ({
-      ...prev,
-      aiScanner: typeof u === "function" ? (u as (p: AiScannerState) => AiScannerState)(prev.aiScanner) : { ...prev.aiScanner, ...u },
-    }));
-  }, []);
-
   const setTechScanner = useCallback((u: Updater<TechScannerState>) => {
     setState((prev) => ({
       ...prev,
@@ -783,157 +678,6 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     },
     []
   );
-
-
-  const clearAiScannerView = useCallback(() => {
-    setState((prev) => ({
-      ...prev,
-      aiScanner: {
-        ...prev.aiScanner,
-        results: [],
-        progress: { current: 0, total: 0 },
-        hasScanned: false,
-        selected: null,
-        detailData: null,
-      },
-    }));
-  }, []);
-
-  const restoreLastAiScan = useCallback(() => {
-    let restored = false;
-    setState((prev) => {
-      const last = prev.aiScanner.scanHistory?.[prev.aiScanner.scanHistory.length - 1];
-      if (!last) return prev;
-      restored = true;
-      return {
-        ...prev,
-        aiScanner: {
-          ...prev.aiScanner,
-          country: last.params.country,
-          scanAll: Boolean(last.params.scanAll),
-          rfPreset: last.params.rfPreset,
-          rfParamsJson: last.params.rfParamsJson,
-          results: last.results,
-          progress: { current: last.params.limit, total: last.params.limit },
-          hasScanned: true,
-          selected: null,
-          detailData: null,
-        },
-      };
-    });
-    return restored;
-  }, []);
-
-  const runAiScan = useCallback(
-    async (opts: { rfParams: Record<string, unknown> | null; minPrecision?: number; force?: boolean }) => {
-      // Create internal abort controller
-      if (aiScanAbortRef.current) {
-        aiScanAbortRef.current.abort();
-      }
-      const controller = new AbortController();
-      aiScanAbortRef.current = controller;
-
-      const now = Date.now();
-      const cacheTtlMs = 15 * 60 * 1000;
-      const paramsFromState = (s: AppState): { params: ScanAiParams; key: string; limit: number } => {
-        const { country, scanAll, rfPreset, rfParamsJson } = s.aiScanner;
-        const limit = scanAll ? 200 : 60;
-        const minPrecision = opts.minPrecision ?? 0.6;
-        const params: ScanAiParams = {
-          country,
-          scanAll,
-          limit,
-          minPrecision,
-          rfPreset,
-          rfParamsJson,
-          rfParams: opts.rfParams ?? null,
-        };
-        const key = JSON.stringify({
-          country: params.country,
-          scanAll: params.scanAll,
-          limit: params.limit,
-          minPrecision: params.minPrecision,
-          rfPreset: params.rfPreset,
-          rfParams: params.rfParams,
-        });
-        return { params, key, limit };
-      };
-
-      const { params, key, limit } = paramsFromState(stateRef.current);
-      const cached = stateRef.current.aiScanner.scanHistory?.find((h) => h.key === key && now - h.createdAt < cacheTtlMs);
-
-      if (cached && !opts.force) {
-        setState((prev) => ({
-          ...prev,
-          aiScanner: {
-            ...prev.aiScanner,
-            results: cached.results,
-            progress: { current: limit, total: limit },
-            hasScanned: true,
-            selected: null,
-            detailData: null,
-          },
-        }));
-        return;
-      }
-
-      setAiScanLoading(true);
-      setAiScanError(null);
-      setState((prev) => ({
-        ...prev,
-        aiScanner: {
-          ...prev.aiScanner,
-          results: [],
-          hasScanned: false,
-          progress: { current: 0, total: limit },
-          selected: null,
-          detailData: null,
-        },
-      }));
-
-      try {
-        const res = await scanAiWithParams(params, controller.signal);
-        const next = (res.results || []).slice().sort((a, b) => (b.precision ?? 0) - (a.precision ?? 0));
-
-        setState((prev) => {
-          const history = Array.isArray(prev.aiScanner.scanHistory) ? prev.aiScanner.scanHistory : [];
-          const snapshot = { key, createdAt: Date.now(), params, results: next, scannedCount: res.scanned_count };
-          const deduped = history.filter((h) => h.key !== key);
-          const capped = [...deduped, snapshot].slice(-5);
-          return {
-            ...prev,
-            aiScanner: {
-              ...prev.aiScanner,
-              scanHistory: capped,
-              results: next,
-              progress: { current: limit, total: limit },
-              hasScanned: true,
-            },
-          };
-        });
-      } catch (err: any) {
-        if (err.name === 'AbortError') {
-          console.log('AI Scan aborted');
-        } else {
-          setAiScanError(err instanceof Error ? err.message : 'Scan failed');
-        }
-      } finally {
-        setAiScanLoading(false);
-        aiScanAbortRef.current = null;
-      }
-    },
-    []
-  );
-
-  const stopAiScan = useCallback(() => {
-    if (aiScanAbortRef.current) {
-      aiScanAbortRef.current.abort();
-      aiScanAbortRef.current = null;
-      setAiScanLoading(false);
-    }
-  }, []);
-
-
 
 
   const clearTechScannerView = useCallback(() => {
@@ -1103,10 +847,6 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const resetAiScanner = useCallback(() => {
-    setState((prev) => ({ ...prev, aiScanner: DEFAULT_STATE.aiScanner }));
-  }, []);
-
   const resetTechScanner = useCallback(() => {
     setState((prev) => ({ ...prev, techScanner: DEFAULT_STATE.techScanner }));
   }, []);
@@ -1234,7 +974,6 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       countriesLoading,
       refreshCountries,
       setHome,
-      setAiScanner,
       setTechScanner,
       setComparisonScanner,
       syncedSymbols,
@@ -1243,13 +982,6 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       runHomePredict,
       clearHomeView,
       restoreLastHomePredict,
-      // AI Scan
-      aiScanLoading,
-      aiScanError,
-      runAiScan,
-      stopAiScan,
-      clearAiScannerView,
-      restoreLastAiScan,
       // Tech Scan
       techScanLoading,
       techScanError,
@@ -1262,7 +994,6 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       addSymbolsToCompare,
       removeSymbolFromCompare,
       clearComparison,
-      resetAiScanner,
       resetTechScanner,
       addSymbolToWatchlist,
       removeSymbolFromWatchlist,
@@ -1279,7 +1010,6 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       countriesLoading,
       refreshCountries,
       setHome,
-      setAiScanner,
       setTechScanner,
       setComparisonScanner,
       syncedSymbols,
@@ -1288,12 +1018,6 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       runHomePredict,
       clearHomeView,
       restoreLastHomePredict,
-      aiScanLoading,
-      aiScanError,
-      runAiScan,
-      stopAiScan,
-      clearAiScannerView,
-      restoreLastAiScan,
       techScanLoading,
       techScanError,
       runTechScan,
@@ -1304,7 +1028,6 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       addSymbolsToCompare,
       removeSymbolFromCompare,
       clearComparison,
-      resetAiScanner,
       resetTechScanner,
       addSymbolToWatchlist,
       removeSymbolFromWatchlist,

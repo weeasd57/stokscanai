@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { Globe, BarChart2, Brain, Activity, Menu, X, User, ChevronDown, ArrowLeftRight, Crown } from "lucide-react";
@@ -32,14 +33,21 @@ export default function Header() {
     ];
 
     return (
-        <header className="fixed top-0 left-0 right-0 z-[100] px-4 py-4 md:px-6">
+        <header className="fixed top-0 left-0 right-0 z-[100] px-6 py-6 md:px-8">
             <div className="mx-auto max-w-7xl">
-                <div className="flex items-center justify-between rounded-2xl border border-white/5 bg-zinc-950/40 backdrop-blur-xl px-4 py-2.5 shadow-2xl ring-1 ring-white/10 transition-all duration-300">
+                <div className="flex items-center justify-between rounded-[2rem] border border-white/10 bg-zinc-950/40 backdrop-blur-3xl px-6 py-3.5 shadow-[0_20px_50px_rgba(0,0,0,0.5)] ring-1 ring-white/5 transition-all duration-500 hover:border-white/20">
                     {/* Brand / Logo */}
                     <div className="flex items-center gap-6">
                         <Link href="/" className="group flex items-center gap-3">
                             <div className="relative flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-violet-600 shadow-xl shadow-blue-500/20 transition-all duration-500 group-hover:rotate-12 group-hover:scale-110">
-                                <span className="text-sm font-black text-white tracking-tighter">AI</span>
+                                <Image
+                                    src="/favicon_io/favicon-32x32.png"
+                                    alt="elztona logo"
+                                    width={20}
+                                    height={20}
+                                    className="rounded-lg"
+                                    priority
+                                />
                                 <div className="absolute inset-0 rounded-xl bg-white/20 opacity-0 transition-opacity group-hover:opacity-100" />
                             </div>
                             <div className="hidden flex-col sm:flex">

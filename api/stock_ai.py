@@ -3,8 +3,15 @@ import os
 import urllib.request
 import urllib.error
 import pickle
+import time
+import warnings
+import hashlib
+
+# Suppress specific FutureWarnings from libraries like 'ta'
+warnings.filterwarnings("ignore", category=FutureWarning)
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple, Union
+from threading import Lock
 
 import numpy as np
 import pandas as pd
@@ -14,6 +21,7 @@ from eodhd import APIClient
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import precision_score
 from supabase import create_client, Client
+from train_exchange_model import add_massive_features
 
 # Conditional import for LGBM to avoid failure if not installed (though it should be)
 try:
@@ -164,6 +172,15 @@ def _infer_symbol_exchange(ticker: str, exchange_hint: Optional[str] = None) -> 
 
 def check_local_cache(symbol: str, exchange: Optional[str] = None) -> bool:
     """Checks if data exists in Supabase."""
+    # Fast path: bulk cache
+    try:
+        s, e = _infer_symbol_exchange(symbol, exchange)
+        bulk = _get_exchange_bulk_data(e)
+        if s.upper() in bulk:
+            return True
+    except Exception:
+        pass
+
     # 1. Check Supabase First
     _init_supabase()
     if supabase:
@@ -182,8 +199,172 @@ _CACHED_TICKERS_SET = None
 _CACHED_TICKERS_TS = 0
 _CACHE_TTL_SECONDS = 30
 
-def _safe_cache_key(ticker: str) -> str:
-    return ticker.strip().upper()
+_EXCHANGE_BULK_CACHE: Dict[str, Dict[str, Any]] = {}
+_EXCHANGE_BULK_TTL_SECONDS = 900  # 15 minutes; adjust as needed
+
+# ----------------------
+# Model Cache (avoid reloading per symbol)
+# ----------------------
+_MODEL_CACHE: Dict[str, Dict[str, Any]] = {}
+_MODEL_CACHE_TTL_SECONDS = 1800  # 30 minutes; adjust as needed
+
+
+# ----------------------
+# Indicator Cache (avoid recomputing TA each scan)
+# ----------------------
+class IndicatorCache:
+    def __init__(self, max_age_seconds: int = 86400):  # 24h
+        self.cache: Dict[str, Dict[str, Any]] = {}
+        self.max_age = max_age_seconds
+        self.lock = Lock()
+
+    def _cache_key(self, symbol: str, exchange: str) -> str:
+        return f"{exchange.upper()}_{symbol.upper()}"
+
+    def _data_hash(self, df: pd.DataFrame) -> str:
+        # Hash last 30 rows only
+        recent = df.tail(30)
+        close_val = recent["Close"].iloc[-1] if len(recent) > 0 and "Close" in recent.columns else 0
+        data_str = f"{len(df)}_{close_val}"
+        return hashlib.md5(data_str.encode()).hexdigest()[:8]
+
+    def get_with_indicators(self, symbol: str, exchange: str, df: pd.DataFrame, indicator_func) -> pd.DataFrame:
+        cache_key = self._cache_key(symbol, exchange)
+        data_hash = self._data_hash(df)
+
+        with self.lock:
+            entry = self.cache.get(cache_key)
+            if entry:
+                age = time.time() - entry["ts"]
+                if age < self.max_age and entry.get("data_hash") == data_hash:
+                    return entry["data"].copy()
+
+        df_with_ind = indicator_func(df)
+
+        with self.lock:
+            self.cache[cache_key] = {
+                "data": df_with_ind.copy(),
+                "data_hash": data_hash,
+                "ts": time.time(),
+            }
+
+        return df_with_ind
+
+    def clear(self, symbol: Optional[str] = None, exchange: Optional[str] = None):
+        with self.lock:
+            if symbol and exchange:
+                key = self._cache_key(symbol, exchange)
+                if key in self.cache:
+                    del self.cache[key]
+            else:
+                self.cache.clear()
+
+    def stats(self) -> Dict[str, Any]:
+        with self.lock:
+            return {"cached_symbols": len(self.cache), "max_age_seconds": self.max_age}
+
+
+_INDICATOR_CACHE: Optional[IndicatorCache] = None
+
+
+def _get_indicator_cache(max_age_seconds: int = 86400) -> IndicatorCache:
+    global _INDICATOR_CACHE
+    if _INDICATOR_CACHE is None:
+        _INDICATOR_CACHE = IndicatorCache(max_age_seconds=max_age_seconds)
+    return _INDICATOR_CACHE
+
+
+def _get_data_with_indicators_cached(symbol: str, exchange: str, df: pd.DataFrame, indicator_func) -> pd.DataFrame:
+    cache = _get_indicator_cache()
+    return cache.get_with_indicators(symbol, exchange, df, indicator_func)
+
+
+def _get_exchange_bulk_data(exchange: str, from_date: Optional[str] = None) -> Dict[str, pd.DataFrame]:
+    """
+    Load all price data for an exchange in a single Supabase query (paginated) and cache it.
+    Returns mapping symbol -> DataFrame indexed by date.
+    """
+    if not exchange:
+        return {}
+
+    now = time.time()
+    cache_key = exchange.upper()
+
+    # Serve from cache if fresh
+    cached = _EXCHANGE_BULK_CACHE.get(cache_key)
+    if cached and (now - cached.get("ts", 0) < _EXCHANGE_BULK_TTL_SECONDS):
+        return cached.get("data", {})
+
+    _init_supabase()
+    if not supabase:
+        return {}
+
+    try:
+        all_rows: List[Dict[str, Any]] = []
+        page_size = 1000
+        offset = 0
+        while True:
+            res = (
+                supabase.table("stock_prices")
+                .select("symbol,exchange,date,open,high,low,close,volume")
+                .eq("exchange", cache_key)
+                .order("symbol", desc=False)
+                .order("date", desc=False)
+                .range(offset, offset + page_size - 1)
+                .execute()
+            )
+            batch = res.data or []
+            if not batch:
+                break
+            all_rows.extend(batch)
+            if len(batch) < page_size:
+                break
+            offset += page_size
+
+        if not all_rows:
+            return {}
+
+        df_all = pd.DataFrame(all_rows)
+        if df_all.empty:
+            return {}
+
+        df_all["date"] = pd.to_datetime(df_all["date"], errors="coerce")
+        df_all = df_all.dropna(subset=["date"]).sort_values(["symbol", "date"])
+        if from_date:
+            try:
+                df_all = df_all[df_all["date"] >= pd.to_datetime(from_date)]
+            except Exception:
+                pass
+
+        data_by_symbol: Dict[str, pd.DataFrame] = {}
+        for sym, grp in df_all.groupby("symbol"):
+            g = grp.set_index("date")["open high low close volume".split()]
+            g = g.rename(columns={"close": "Close", "open": "Open", "high": "High", "low": "Low", "volume": "Volume"})
+            data_by_symbol[str(sym).upper()] = g
+
+        _EXCHANGE_BULK_CACHE[cache_key] = {"ts": now, "data": data_by_symbol, "rows": len(df_all)}
+        print(f"DEBUG: Bulk cached {len(df_all)} rows for exchange {cache_key} ({len(data_by_symbol)} symbols)")
+        return data_by_symbol
+    except Exception as e:
+        print(f"DEBUG: Bulk load failed for exchange {cache_key}: {e}")
+        return {}
+
+
+def _get_model_cached(model_path: str):
+    now = time.time()
+    entry = _MODEL_CACHE.get(model_path)
+    if entry and (now - entry.get("ts", 0) < _MODEL_CACHE_TTL_SECONDS):
+        return entry.get("model"), entry.get("predictors"), entry.get("is_lgbm_artifact", False)
+    return None
+
+
+def _set_model_cache(model_path: str, model: Any, predictors: Optional[List[str]] = None, is_lgbm_artifact: bool = False) -> None:
+    _MODEL_CACHE[model_path] = {
+        "model": model,
+        "predictors": predictors,
+        "is_lgbm_artifact": is_lgbm_artifact,
+        "ts": time.time(),
+    }
 
 def get_cached_tickers() -> set:
     """Returns a set of all ticker names. Prioritizes Supabase. Cached for 30s."""
@@ -422,10 +603,11 @@ def _candidate_symbols(ticker: str, exchange: Optional[str] = None) -> List[str]
     if exchange and exchange.upper() in mapping:
         suffix = mapping[exchange.upper()]
         candidates.append(f"{t}.{suffix}")
-    
-    # Fallbacks
-    candidates.append(f"{t}.US")
-    candidates.append(t)
+        candidates.append(t)
+    else:
+        # Fallbacks only when exchange is unknown/not provided
+        candidates.append(f"{t}.US")
+        candidates.append(t)
     
     # Remove duplicates while preserving order
     unique_candidates = []
@@ -480,18 +662,56 @@ def get_stock_data_eodhd(
     
     possible_names = [ticker]
     
-    # 0. Try Supabase
+    # 0. Try bulk cache for the whole exchange first (single query, cached)
+    try:
+        s, e = _infer_symbol_exchange(ticker, exchange)
+        bulk = _get_exchange_bulk_data(e, from_date)
+        if s.upper() in bulk:
+            df_cached = bulk[s.upper()]
+            if not df_cached.empty:
+                df = df_cached[df_cached.index >= pd.to_datetime(from_date)] if from_date else df_cached
+                if not df.empty:
+                    print(f"DEBUG: Bulk cache hit for {s}.{e} ({len(df)} rows)")
+                    return df
+    except Exception as ex:
+        print(f"DEBUG: Bulk cache lookup failed for {ticker}: {ex}")
+
+    # 1. Try Supabase per-symbol (paginated)
     _init_supabase()
     if supabase:
         try:
             s, e = _infer_symbol_exchange(ticker, exchange)
-            q = supabase.table("stock_prices").select("date,open,high,low,close,volume").eq("symbol", s).eq("exchange", e)
             
-            # Order by date asc
-            res = q.order("date", desc=False).execute()
+            # Supabase has a default limit of 1000 rows, so we need to paginate
+            # to get all historical data for stocks with long history
+            all_data = []
+            page_size = 1000
+            offset = 0
             
-            if res.data:
-                df = pd.DataFrame(res.data)
+            while True:
+                res = (
+                    supabase.table("stock_prices")
+                    .select("date,open,high,low,close,volume")
+                    .eq("symbol", s)
+                    .eq("exchange", e)
+                    .order("date", desc=False)
+                    .range(offset, offset + page_size - 1)
+                    .execute()
+                )
+                
+                if not res.data:
+                    break
+                    
+                all_data.extend(res.data)
+                
+                # If we got fewer than page_size, we've reached the end
+                if len(res.data) < page_size:
+                    break
+                    
+                offset += page_size
+            
+            if all_data:
+                df = pd.DataFrame(all_data)
                 if not df.empty:
                     # Convert to standard format
                     df['date'] = pd.to_datetime(df['date'])
@@ -499,7 +719,7 @@ def get_stock_data_eodhd(
                     # Filter by from_date
                     df = df[df.index >= pd.to_datetime(from_date)]
                     if not df.empty:
-                        print(f"DEBUG: Supabase hit for {s}.{e}")
+                        print(f"DEBUG: Supabase hit for {s}.{e} ({len(df)} rows)")
                         return df
         except Exception as e:
             print(f"Supabase read error for {ticker}: {e}")
@@ -659,51 +879,45 @@ def update_stock_data(
     if is_up_to_date and has_enough_history:
          return True, "Already up to date and sufficient history in Cloud"
 
-    # Determine if we need a FULL backfill (history too short) or just APPEND (missing recent days)
+    # Determine if we need to fetch anything
+    # Logic: If NOT up-to-date OR NOT enough history, we fetch.
+    
+    # Needs backfill if history is too short
     needs_backfill = not has_enough_history
 
     # EODHD Logic
     try:
         if needs_backfill:
             # Force a full historical download to get enough history
-            print(f"BACKFILL MODE: {ticker} has {current_count} records, need {max_days}. Downloading full history.")
-            start_date = today - dt.timedelta(days=max_days + 100)  # Extra buffer for weekends/holidays
+            print(f"BACKFILL/FULL SYNC MODE: {ticker} has {current_count} records, need {max_days}. Downloading full history.")
+            # We fetch at least max_days, but ensure we also get recent data by fetching up to today
+            start_date = today - dt.timedelta(days=max_days + 120)  # Safe buffer
             df = api.get_eod_historical_stock_market_data(
                 symbol=ticker, period="d", order="a", from_date=str(start_date)
             )
             df = _normalize_eodhd_eod_result(df)
             if df is None or df.empty:
-                return False, "No historical data available (EODHD Backfill)"
+                return False, "No historical data available (EODHD Full/Backfill)"
             
             sync_df_to_supabase(ticker, df)
-            return True, f"Backfilled {len(df)} rows to Cloud (was {current_count})"
+            return True, f"Full sync/Backfill: {len(df)} rows to Cloud (was {current_count})"
         
-        elif last_date:
-            # Append mode: only fetch new data after last_date
-            start_date = last_date + dt.timedelta(days=1)
+        elif not is_up_to_date:
+            # Just append new data
+            start_date = (last_date + dt.timedelta(days=1)) if last_date else (today - dt.timedelta(days=max_days + 30))
+            print(f"APPEND MODE: {ticker} syncing since {start_date} to today.")
             new_df = api.get_eod_historical_stock_market_data(
                 symbol=ticker, period="d", order="a", from_date=str(start_date)
             )
             new_df = _normalize_eodhd_eod_result(new_df)
             
             if new_df is None or new_df.empty:
-                return True, "No new data (EODHD)"
+                return True, "No new data returned from API (EODHD Append)"
             
             sync_df_to_supabase(ticker, new_df)
             return True, f"Appended {len(new_df)} rows to Cloud"
-            
-        else:
-            # Fresh download (no data at all)
-            start_date = today - dt.timedelta(days=max_days + 60)
-            df = api.get_eod_historical_stock_market_data(
-                symbol=ticker, period="d", order="a", from_date=str(start_date)
-            )
-            df = _normalize_eodhd_eod_result(df)
-            if df is None or df.empty:
-                 return False, "No data (EODHD Download)"
-            
-            sync_df_to_supabase(ticker, df)
-            return True, f"Downloaded {len(df)} rows to Cloud"
+        
+        return True, "Already up to date"
 
     except Exception as e:
         return False, f"EODHD Error: {str(e)}"
@@ -1327,7 +1541,10 @@ def prepare_for_ai(df: pd.DataFrame) -> pd.DataFrame:
     out = df.copy()
     out["Next_Close"] = out["Close"].shift(-1)
     out["Target"] = (out["Next_Close"] > out["Close"]).astype(int)
-    out = out.dropna().copy()
+    # Keep more rows by filling numeric gaps, then drop only rows missing core targets.
+    numeric_cols = out.select_dtypes(include=["number"]).columns
+    out[numeric_cols] = out[numeric_cols].fillna(0.0)
+    out = out.dropna(subset=["Close", "Next_Close", "Target"]).copy()
     return out
 
 
@@ -1350,6 +1567,14 @@ def _clamp_int(v: Any, *, min_v: int, max_v: int) -> int:
     if iv > max_v:
         return max_v
     return iv
+
+
+def _ensure_feature_columns(df: pd.DataFrame, features: List[str]) -> None:
+    missing = [f for f in features if f not in df.columns]
+    if not missing:
+        return
+    for name in missing:
+        df[name] = 0.0
 
 
 def _clamp_float(v: Any, *, min_v: float, max_v: float) -> float:
@@ -1496,79 +1721,95 @@ def train_and_predict(
     
     loaded_model = None
     predictors = RF_PREDICTORS
+    lgbm_artifact_loaded = False
     
     if model_path and os.path.exists(model_path):
-        try:
-            with open(model_path, "rb") as f:
-                loaded_model = pickle.load(f)
+        # Try cached model first
+        cached = _get_model_cached(model_path)
+        if cached:
+            loaded_model, cached_predictors, cached_is_lgbm = cached
+            if cached_predictors:
+                predictors = cached_predictors
+            lgbm_artifact_loaded = bool(cached_is_lgbm)
+            print(f"Using cached model {model_path} with {len(predictors) if predictors else 0} predictors")
+        else:
+            try:
+                with open(model_path, "rb") as f:
+                    loaded_model = pickle.load(f)
 
-            # New lightweight model artifact format from train_exchange_model.py
-            lgbm_artifact_loaded = False
-            if isinstance(loaded_model, dict) and loaded_model.get("kind") == "lgbm_booster":
-                if lgb is None:
-                    raise ValueError("lightgbm is required to load lgbm_booster artifacts")
+                # New lightweight model artifact format from train_exchange_model.py
+                lgbm_artifact_loaded = False
+                if isinstance(loaded_model, dict) and loaded_model.get("kind") == "lgbm_booster":
+                    if lgb is None:
+                        raise ValueError("lightgbm is required to load lgbm_booster artifacts")
 
-                artifact = loaded_model
-                model_str = artifact.get("model_str")
-                if not isinstance(model_str, str) or not model_str.strip():
-                    raise ValueError("Invalid lgbm_booster artifact: missing model_str")
+                    artifact = loaded_model
+                    model_str = artifact.get("model_str")
+                    if not isinstance(model_str, str) or not model_str.strip():
+                        raise ValueError("Invalid lgbm_booster artifact: missing model_str")
 
-                booster = lgb.Booster(model_str=model_str)
-                threshold = artifact.get("threshold")
-                loaded_model = _LgbmBoosterClassifier(booster, threshold if isinstance(threshold, (int, float)) else 0.5)
-                lgbm_artifact_loaded = True
+                    booster = lgb.Booster(model_str=model_str)
+                    threshold = artifact.get("threshold")
+                    loaded_model = _LgbmBoosterClassifier(booster, threshold if isinstance(threshold, (int, float)) else 0.5)
+                    lgbm_artifact_loaded = True
 
-                f_names = artifact.get("feature_names")
-                if isinstance(f_names, list):
-                    predictors = [p for p in f_names if p in df.columns]
-                else:
-                    try:
-                        predictors = [p for p in booster.feature_name() if p in df.columns]
-                    except Exception:
-                        predictors = [p for p in LGBM_PREDICTORS if p in df.columns]
+                    f_names = artifact.get("feature_names")
+                    if isinstance(f_names, list) and f_names:
+                        predictors = f_names
+                    else:
+                        try:
+                            predictors = list(booster.feature_name())
+                        except Exception:
+                            predictors = LGBM_PREDICTORS
 
-                if not predictors:
-                    raise ValueError(
-                        "No overlapping predictors between trained LightGBM booster and current feature set. Please retrain the model."
-                    )
+                    if not predictors:
+                        raise ValueError(
+                            "No overlapping predictors between trained LightGBM booster and current feature set. Please retrain the model."
+                        )
 
-                print(f"Loaded LightGBM booster artifact from {model_path} with {len(predictors)} predictors")
+                    print(f"Loaded LightGBM booster artifact from {model_path} with {len(predictors)} predictors")
 
-            # Identify predictors based on model type
-            if (not lgbm_artifact_loaded) and LGBMClassifier and isinstance(loaded_model, LGBMClassifier):
-                model_features = None
-                # Prefer the feature names stored with the trained model to avoid
-                # shape mismatches when the global feature list changes.
-                try:
-                    model_features = getattr(loaded_model, "feature_name_", None)
-                except Exception:
+                    _ensure_feature_columns(df, predictors)
+
+                # Identify predictors based on model type
+                if (not lgbm_artifact_loaded) and LGBMClassifier and isinstance(loaded_model, LGBMClassifier):
                     model_features = None
-
-                if (not model_features) and hasattr(loaded_model, "booster_"):
+                    # Prefer the feature names stored with the trained model to avoid
+                    # shape mismatches when the global feature list changes.
                     try:
-                        booster = getattr(loaded_model, "booster_", None)
-                        if booster is not None:
-                            model_features = booster.feature_name()
+                        model_features = getattr(loaded_model, "feature_name_", None)
                     except Exception:
                         model_features = None
 
-                if model_features:
-                    predictors = [p for p in model_features if p in df.columns]
-                else:
-                    predictors = [p for p in LGBM_PREDICTORS if p in df.columns]
+                    if (not model_features) and hasattr(loaded_model, "booster_"):
+                        try:
+                            booster = getattr(loaded_model, "booster_", None)
+                            if booster is not None:
+                                model_features = booster.feature_name()
+                        except Exception:
+                            model_features = None
 
-                if not predictors:
-                    raise ValueError(
-                        "No overlapping predictors between trained LightGBM model and current feature set. Please retrain the model."
-                    )
+                    if model_features:
+                        predictors = list(model_features)
+                    else:
+                        predictors = LGBM_PREDICTORS
 
-                print(f"Loaded pre-trained LightGBM model from {model_path} with {len(predictors)} predictors")
-            elif not lgbm_artifact_loaded:
-                predictors = [p for p in RF_PREDICTORS if p in df.columns]
-                print(f"Loaded pre-trained model for {exchange}")
-        except Exception as e:
-            print(f"Failed to load pre-trained model {model_path}: {e}")
-            loaded_model = None
+                    if not predictors:
+                        raise ValueError(
+                            "No overlapping predictors between trained LightGBM model and current feature set. Please retrain the model."
+                        )
+
+                    print(f"Loaded pre-trained LightGBM model from {model_path} with {len(predictors)} predictors")
+                    _ensure_feature_columns(df, predictors)
+                elif not lgbm_artifact_loaded:
+                    predictors = [p for p in RF_PREDICTORS if p in df.columns]
+                    print(f"Loaded pre-trained model for {exchange}")
+
+                # Save to cache
+                _set_model_cache(model_path, loaded_model, predictors, lgbm_artifact_loaded)
+            except Exception as e:
+                print(f"Failed to load pre-trained model {model_path}: {e}")
+                loaded_model = None
 
     if preset == "fast" and len(df) > 600:
         df = df.iloc[-600:].copy()
@@ -1591,7 +1832,13 @@ def train_and_predict(
         
         return loaded_model, predictors, test, preds, float(precision)
 
-    # Fallback to existing training logic
+    # If a specific model was requested but not loaded, stop here to avoid on-the-fly training
+    if model_name:
+        raise ValueError(
+            f"Requested model '{model_name}' not loaded. Please place the .pkl file and retry."
+        )
+
+    # Fallback to existing training logic (only when no explicit model_name)
     # Possible predictors for on-the-fly RF
     predictors = [p for p in RF_PREDICTORS if p in df.columns]
 
@@ -1642,6 +1889,7 @@ def run_pipeline(
     prices_ai: Optional[pd.DataFrame] = None
     selected_symbol: Optional[str] = None
     last_candidate_len: Optional[int] = None
+    min_required = 60 if model_name else 120
 
     for sym in _candidate_symbols(ticker, exchange):
         try:
@@ -1653,8 +1901,25 @@ def run_pipeline(
                 exchange=exchange,
                 force_local=force_local
             )
-            feat = add_technical_indicators(raw)
-            
+            if raw is None or raw.empty:
+                raise ValueError(
+                    f"No historical data available for {sym} from local cache. "
+                    "Try sync first or disable force_local."
+                )
+
+            # Trim early to reduce heavy feature computation during scanning
+            if force_local and len(raw) > 500:
+                raw = raw.iloc[-500:].copy()
+            # Generate a rich feature set to match models trained by train_exchange_model.py.
+            # This is critical for "max" models that rely on TA/massive features.
+            feat = add_massive_features(raw)
+            try:
+                feat_with_ind = _get_data_with_indicators_cached(sym, exchange or "EGX", feat, add_technical_indicators)
+                if feat_with_ind is not None and not feat_with_ind.empty:
+                    feat = feat_with_ind
+            except Exception:
+                pass
+
             # 1. Try with all features
             candidate = prepare_for_ai(feat)
             
@@ -1667,7 +1932,7 @@ def run_pipeline(
 
             last_candidate_len = len(candidate)
 
-            if len(candidate) >= 120:
+            if len(candidate) >= min_required:
                 prices_ai = candidate
                 selected_symbol = sym
                 break
@@ -1682,11 +1947,15 @@ def run_pipeline(
             suffix = f" (tried {selected_symbol})"
         if last_candidate_len is not None:
             raise ValueError(
-                f"Insufficient historical data for {ticker}{suffix}. Need at least ~120 rows after feature engineering, got {last_candidate_len}."
+                f"Insufficient historical data for {ticker}{suffix}. Need at least ~{min_required} rows after feature engineering, got {last_candidate_len}."
             ) from last_error
         raise ValueError(
             f"Insufficient historical data or symbol not available on your API plan for {ticker}{suffix}. Try specifying exchange, e.g. AAPL.US"
         ) from last_error
+
+    # For scanning mode, limit rows to shrink indicator computation and speed up
+    if force_local and len(prices_ai) > 450:
+        prices_ai = prices_ai.iloc[-450:].copy()
 
     model, predictors, test_df, preds, precision = train_and_predict(
         df=prices_ai,

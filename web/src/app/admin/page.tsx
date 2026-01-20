@@ -84,6 +84,7 @@ export default function AdminPage() {
     const [isTraining, setIsTraining] = useState(false);
     const [trainingExchange, setTrainingExchange] = useState("");
     const [isExchangeDropdownOpen, setIsExchangeDropdownOpen] = useState(false);
+    const [updatingInventory, setUpdatingInventory] = useState(false);
 
     // Fetchers
     const fetchSyncHistory = () => {
@@ -446,6 +447,27 @@ export default function AdminPage() {
         return () => ac.abort();
     }, [previewTicker, config.fundSource]);
 
+    const runInventoryUpdate = async (country?: string) => {
+        setUpdatingInventory(true);
+        const tid = toast.loading(country ? `Updating ${country} symbols...` : "Updating global symbols inventory...");
+        try {
+            const url = country
+                ? `/api/admin/update-symbols-inventory?country=${encodeURIComponent(country)}`
+                : "/api/admin/update-symbols-inventory";
+            const res = await fetch(url, { method: "POST" });
+            if (!res.ok) throw new Error("API error");
+            toast.success("Inventory update started in background", { id: tid });
+            // Refresh countries list after some time or immediately to see new files if they are fast
+            setTimeout(() => {
+                getCountries("local").then(setCountries);
+            }, 5000);
+        } catch (e) {
+            toast.error("Failed to start inventory update", { id: tid });
+        } finally {
+            setUpdatingInventory(false);
+        }
+    };
+
     const runUpdate = async () => {
         if (selectedSymbols.size === 0) return;
 
@@ -585,6 +607,8 @@ export default function AdminPage() {
                         selectedCountry={selectedCountry}
                         setCountryDialogOpen={setCountryDialogOpen}
                         processing={processing}
+                        updatingInventory={updatingInventory}
+                        runInventoryUpdate={runInventoryUpdate}
                         dataSourcesTab={dataSourcesTab}
                         setDataSourcesTab={setDataSourcesTab}
                         config={config}

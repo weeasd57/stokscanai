@@ -15,12 +15,12 @@ const LanguageContext = createContext<LanguageContextType | undefined>(undefined
 
 const translations: Record<string, Record<Language, string>> = {
     "app.title": {
-        en: "AI Stocks Predictor",
-        ar: "توقعات الأسهم بالذكاء الاصطناعي",
+        en: "elztona",
+        ar: "elztona",
     },
     "app.subtitle": {
-        en: "EODHD prices + technical indicators + RandomForest classification",
-        ar: "أسعار EODHD + المؤشرات الفنية + تصنيف الغابة العشوائية",
+        en: "AI-powered stock insights to help you spot opportunities with confidence",
+        ar: "رؤى أسهم ذكية بالذكاء الاصطناعي لمساعدتك على اكتشاف الفرص بثقة",
     },
     "ticker.label": {
         en: "Ticker",

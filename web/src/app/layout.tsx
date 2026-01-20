@@ -6,8 +6,17 @@ import Footer from "@/components/Footer";
 import ChatWidget from "@/components/ChatWidget";
 
 export const metadata = {
-  title: "AI Stocks Predictor",
-  description: "Technical indicators + RandomForest over EODHD data",
+  title: "elztona",
+  description: "Smart AI insights to help you analyze and discover stock opportunities",
+  manifest: "/favicon_io/site.webmanifest",
+  icons: {
+    icon: [
+      { url: "/favicon_io/favicon-16x16.png", sizes: "16x16", type: "image/png" },
+      { url: "/favicon_io/favicon-32x32.png", sizes: "32x32", type: "image/png" },
+    ],
+    shortcut: "/favicon_io/favicon.ico",
+    apple: "/favicon_io/apple-touch-icon.png",
+  },
 };
 
 export default function RootLayout({

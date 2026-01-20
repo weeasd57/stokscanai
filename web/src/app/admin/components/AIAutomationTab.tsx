@@ -1,6 +1,7 @@
 "use client";
 
 import { Zap, ChevronDown, Check, Loader2, Download, Database, Info, History, Trash2 } from "lucide-react";
+import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import ConfirmDialog from "@/components/ConfirmDialog";
@@ -45,7 +46,6 @@ export default function AIAutomationTab({
     setIsTraining
 }: AIAutomationTabProps) {
     const [workflow, setWorkflow] = useState<"ai-training" | "data-sync">("ai-training");
-    const [trainingTab, setTrainingTab] = useState<"classic" | "genetic">("classic");
     const [when, setWhen] = useState<string>(""); // datetime-local value
     const [days, setDays] = useState<number>(365);
     const [updatePrices, setUpdatePrices] = useState<boolean>(true);
@@ -138,6 +138,7 @@ export default function AIAutomationTab({
     const [trainingLogs, setTrainingLogs] = useState<Array<{ ts: string; msg: string }>>([]);
     const [lastLoggedMessage, setLastLoggedMessage] = useState<string | null>(null);
     const [lastStatusCompletedAt, setLastStatusCompletedAt] = useState<string | null>(null);
+    const [learningCurve, setLearningCurve] = useState<Array<{ step: number; samples?: number | null; features?: number | null }>>([]);
     const [modelName, setModelName] = useState<string>("");
     const [featurePreset, setFeaturePreset] = useState<"core" | "extended" | "max">("extended");
     const [maxFeatures, setMaxFeatures] = useState<number | null>(null);
@@ -161,6 +162,21 @@ export default function AIAutomationTab({
             return next.length > 250 ? next.slice(next.length - 250) : next;
         });
     }, [trainingStatus?.last_message, lastLoggedMessage]);
+
+    useEffect(() => {
+        if (!trainingStatus?.running || !trainingStatus.stats) return;
+        const samples = typeof trainingStatus.stats.samples === "number" ? trainingStatus.stats.samples : rowsLoaded ?? null;
+        const features = typeof trainingStatus.stats.features === "number" ? trainingStatus.stats.features : null;
+        if (samples === null && features === null) return;
+        setLearningCurve((prev) => {
+            const last = prev[prev.length - 1];
+            if (last && last.samples === samples && last.features === features) {
+                return prev;
+            }
+            const next = [...prev, { step: Date.now(), samples, features }];
+            return next.length > 80 ? next.slice(next.length - 80) : next;
+        });
+    }, [trainingStatus?.running, trainingStatus?.stats, rowsLoaded]);
 
     // Live status via SSE with fallback polling.
     useEffect(() => {
@@ -311,32 +327,6 @@ export default function AIAutomationTab({
                 </p>
             </header>
 
-            <div className="flex items-center gap-2">
-                <button
-                    type="button"
-                    onClick={() => setTrainingTab("classic")}
-                    className={`h-10 px-4 rounded-2xl border text-[11px] font-black uppercase tracking-widest transition-all ${
-                        trainingTab === "classic"
-                            ? "bg-zinc-100 text-black border-zinc-100"
-                            : "bg-zinc-900 border-zinc-800 text-zinc-400 hover:border-zinc-600"
-                    }`}
-                >
-                    Classic
-                </button>
-                <button
-                    type="button"
-                    onClick={() => setTrainingTab("genetic")}
-                    className={`h-10 px-4 rounded-2xl border text-[11px] font-black uppercase tracking-widest transition-all ${
-                        trainingTab === "genetic"
-                            ? "bg-zinc-100 text-black border-zinc-100"
-                            : "bg-zinc-900 border-zinc-800 text-zinc-400 hover:border-zinc-600"
-                    }`}
-                >
-                    Genetic Algorithms
-                </button>
-            </div>
-
-            {trainingTab === "classic" ? (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 <div className="space-y-6">
                     {/* Training Control Cluster */}
@@ -803,6 +793,38 @@ export default function AIAutomationTab({
                                             </div>
                                         )}
                                     </div>
+                                    <div className="rounded-2xl border border-zinc-800 bg-black/40 p-4">
+                                        <div className="flex items-center justify-between mb-3">
+                                            <div className="text-[10px] text-zinc-500 uppercase font-black">Learning Curve</div>
+                                            <div className="text-[10px] text-zinc-600">Samples / Features</div>
+                                        </div>
+                                        {learningCurve.length > 1 ? (
+                                            <div className="h-40">
+                                                <ResponsiveContainer width="100%" height="100%">
+                                                    <LineChart data={learningCurve} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                                                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
+                                                        <XAxis dataKey="step" hide />
+                                                        <YAxis
+                                                            stroke="rgba(255,255,255,0.4)"
+                                                            tick={{ fontSize: 10 }}
+                                                            allowDecimals={false}
+                                                        />
+                                                        <Tooltip
+                                                            formatter={(value: number, name: string) => [value, name === "samples" ? "Samples" : "Features"]}
+                                                            labelFormatter={() => ""}
+                                                            contentStyle={{ background: "#0a0a0a", border: "1px solid rgba(255,255,255,0.08)", color: "#fff" }}
+                                                        />
+                                                        <Line type="monotone" dataKey="samples" stroke="#38bdf8" strokeWidth={2} dot={false} />
+                                                        <Line type="monotone" dataKey="features" stroke="#a855f7" strokeWidth={2} dot={false} />
+                                                    </LineChart>
+                                                </ResponsiveContainer>
+                                            </div>
+                                        ) : (
+                                            <div className="h-40 flex items-center justify-center text-[11px] text-zinc-500">
+                                                Waiting for live training updates...
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                             )}
 
@@ -1119,87 +1141,6 @@ export default function AIAutomationTab({
                     </div>
                 </div>
             </div>
-            ) : (
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    <div className="rounded-3xl bg-zinc-900 border border-zinc-800 p-8 space-y-6">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <div className="text-xs text-zinc-500 font-black uppercase tracking-widest">Genetic Controls</div>
-                                <div className="text-lg font-black text-white mt-1">Experiment Setup</div>
-                            </div>
-                        </div>
-
-                        <div className="space-y-4">
-                            <div className="space-y-1">
-                                <label className="text-[10px] text-zinc-500 uppercase font-black px-1">Population Size</label>
-                                <input
-                                    type="number"
-                                    value={200}
-                                    readOnly
-                                    className="w-full h-11 rounded-xl border border-zinc-800 bg-black px-3 text-sm text-zinc-500"
-                                />
-                            </div>
-                            <div className="space-y-1">
-                                <label className="text-[10px] text-zinc-500 uppercase font-black px-1">Mutation Rate</label>
-                                <input
-                                    type="text"
-                                    value="0.05"
-                                    readOnly
-                                    className="w-full h-11 rounded-xl border border-zinc-800 bg-black px-3 text-sm text-zinc-500"
-                                />
-                            </div>
-                            <div className="space-y-1">
-                                <label className="text-[10px] text-zinc-500 uppercase font-black px-1">Generations</label>
-                                <input
-                                    type="number"
-                                    value={100}
-                                    readOnly
-                                    className="w-full h-11 rounded-xl border border-zinc-800 bg-black px-3 text-sm text-zinc-500"
-                                />
-                            </div>
-
-                            <button
-                                type="button"
-                                disabled
-                                className="w-full py-5 bg-zinc-800 text-zinc-500 rounded-2xl text-xs font-black flex items-center justify-center gap-3 opacity-60 cursor-not-allowed"
-                            >
-                                Coming Soon
-                            </button>
-                        </div>
-                    </div>
-
-                    <div className="lg:col-span-2 rounded-3xl bg-zinc-900 border border-zinc-800 p-8 space-y-6">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <div className="text-xs text-zinc-500 font-black uppercase tracking-widest">Live Charts</div>
-                                <div className="text-lg font-black text-white mt-1">Fitness & Evolution</div>
-                            </div>
-                            <div className="text-[10px] text-zinc-500 font-black uppercase tracking-widest">placeholder</div>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="rounded-2xl border border-zinc-800 bg-black/40 p-4">
-                                <div className="text-[10px] text-zinc-500 uppercase font-black">Best Fitness</div>
-                                <div className="mt-3 h-28 rounded-xl border border-zinc-800 bg-zinc-950" />
-                            </div>
-                            <div className="rounded-2xl border border-zinc-800 bg-black/40 p-4">
-                                <div className="text-[10px] text-zinc-500 uppercase font-black">Average Fitness</div>
-                                <div className="mt-3 h-28 rounded-xl border border-zinc-800 bg-zinc-950" />
-                            </div>
-                        </div>
-
-                        <div className="rounded-2xl border border-zinc-800 bg-black/40 p-4">
-                            <div className="flex items-center justify-between">
-                                <div className="text-[10px] text-zinc-500 uppercase font-black">States</div>
-                                <div className="text-[10px] text-zinc-600 font-mono">idle</div>
-                            </div>
-                            <div className="mt-3 text-xs text-zinc-500">
-                                This tab is a dedicated workspace for evolutionary algorithms. You can add more algorithms here later without mixing with Classic training.
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
 
             <ConfirmDialog
                 isOpen={confirmDeleteOpen}
