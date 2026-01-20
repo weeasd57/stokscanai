@@ -1,27 +1,7 @@
 {
-    "builds": [
-        {
-            "src": "api/index.py",
-            "use": "@vercel/python"
-        },
-        {
-            "src": "web/package.json",
-            "use": "@vercel/next"
-        }
-    ],
     "functions": {
         "api/**/*.py": {
             "includeFiles": "api/models/**"
         }
-    },
-    "rewrites": [
-        {
-            "source": "/api/(.*)",
-            "destination": "/api/index.py"
-        },
-        {
-            "source": "/admin/models/list",
-            "destination": "/api/models/list"
-        }
-    ]
+    }
 }
