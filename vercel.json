@@ -1,4 +1,19 @@
 {
+    "builds": [
+        {
+            "src": "api/index.py",
+            "use": "@vercel/python",
+            "config": {
+                "includeFiles": [
+                    "api/models/**"
+                ]
+            }
+        },
+        {
+            "src": "web/package.json",
+            "use": "@vercel/next"
+        }
+    ],
     "rewrites": [
         {
             "source": "/api/(.*)",
@@ -48,10 +63,5 @@
             "source": "/openapi.json",
             "destination": "/api/index.py"
         }
-    ],
-    "functions": {
-        "api/**/*.py": {
-            "includeFiles": "api/models/**"
-        }
-    }
+    ]
 }
