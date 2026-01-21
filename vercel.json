@@ -1,66 +1,8 @@
 {
-    "builds": [
+    "rewrites": [
         {
-            "src": "web/package.json",
-            "use": "@vercel/next"
-        },
-        {
-            "src": "api/index.py",
-            "use": "@vercel/python"
-        }
-    ],
-    "routes": [
-        {
-            "src": "/api/(.*)",
-            "dest": "/api/index.py"
-        },
-        {
-            "src": "/symbols/(.*)",
-            "dest": "/api/index.py"
-        },
-        {
-            "src": "/scan/(.*)",
-            "dest": "/api/index.py"
-        },
-        {
-            "src": "/predict",
-            "dest": "/api/index.py"
-        },
-        {
-            "src": "/models/(.*)",
-            "dest": "/api/index.py"
-        },
-        {
-            "src": "/admin/(.*)",
-            "dest": "/api/index.py"
-        },
-        {
-            "src": "/news",
-            "dest": "/api/index.py"
-        },
-        {
-            "src": "/price",
-            "dest": "/api/index.py"
-        },
-        {
-            "src": "/health",
-            "dest": "/api/index.py"
-        },
-        {
-            "src": "/positions/(.*)",
-            "dest": "/api/index.py"
-        },
-        {
-            "src": "/docs",
-            "dest": "/api/index.py"
-        },
-        {
-            "src": "/openapi.json",
-            "dest": "/api/index.py"
-        },
-        {
-            "src": "/(.*)",
-            "dest": "/web/$1"
+            "source": "/api/(.*)",
+            "destination": "/api/$1"
         }
     ]
 }
