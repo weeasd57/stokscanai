@@ -1,1 +1,1 @@
-{"source": "tradingview", "priceSource": "tradingview", "fundSource": "tradingview", "maxWorkers": 8}
+{"source": "tradingview", "priceSource": "tradingview", "fundSource": "tradingview", "maxWorkers": 8, "enabledModels": ["EGX EXTENDED random 75 tress 2k.pkl", "Extended EGX limited 100  random 10.pkl", "max EGX mix early.pkl", "SUPER_EGX_EXTENDED_RANDOM_3000.pkl"]}

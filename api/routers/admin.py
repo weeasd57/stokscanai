@@ -182,11 +182,12 @@ def _load_config():
                     "priceSource": price_source,
                     "fundSource": fund_source,
                     "maxWorkers": max_workers,
+                    "enabledModels": cfg.get("enabledModels") or [],
                 }
         except Exception:
             pass
     max_workers = int(os.getenv("ADMIN_MAX_WORKERS", "8"))
-    return {"source": "eodhd", "priceSource": "eodhd", "fundSource": "auto", "maxWorkers": max_workers}
+    return {"source": "eodhd", "priceSource": "eodhd", "fundSource": "auto", "maxWorkers": max_workers, "enabledModels": []}
 
 def _save_config(cfg):
     with open(CONFIG_FILE, "w") as f:
@@ -200,6 +201,7 @@ class ConfigUpdate(BaseModel):
     priceSource: Optional[str] = None
     fundSource: Optional[str] = None
     maxWorkers: Optional[int] = None
+    enabledModels: Optional[List[str]] = None
 
 @router.post("/config")
 def set_config(cfg: ConfigUpdate):
@@ -223,6 +225,9 @@ def set_config(cfg: ConfigUpdate):
         if not isinstance(cfg.maxWorkers, int) or cfg.maxWorkers <= 0:
             raise HTTPException(status_code=400, detail="Invalid maxWorkers")
         current["maxWorkers"] = cfg.maxWorkers
+
+    if cfg.enabledModels is not None:
+        current["enabledModels"] = cfg.enabledModels
 
     _save_config(current)
     return current

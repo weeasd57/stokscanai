@@ -766,3 +766,59 @@ $$;
 grant execute on function public.get_latest_tech_indicators(text, text) to anon, authenticated;
 grant execute on function public.scan_technical_indicators(text, int, numeric, numeric, numeric, numeric, numeric, numeric, numeric, numeric, numeric, numeric, boolean, boolean, boolean, boolean, boolean) to anon, authenticated;
 
+
+-- AI Scan History (Metadata for a complete scan run)
+create table if not exists public.scan_history (
+    id uuid primary key default gen_random_uuid(),
+    user_id uuid references auth.users(id) on delete cascade,
+    model_name text not null,
+    country text not null,
+    from_date date,
+    to_date date,
+    scanned_count int default 0,
+    duration_ms int default 0,
+    created_at timestamptz not null default now()
+);
+
+alter table public.scan_history enable row level security;
+create policy "allow_own_scan_history" on public.scan_history for all using (auth.uid() = user_id);
+grant all on public.scan_history to authenticated;
+
+-- AI Scan Results (Individual symbol predictions within a scan)
+create table if not exists public.scan_results (
+    id uuid primary key default gen_random_uuid(),
+    scan_id uuid not null references public.scan_history(id) on delete cascade,
+    symbol text not null,
+    exchange text not null,
+    last_close numeric(18,6) not null,
+    precision numeric(10,4),
+    signal text,
+    confidence text,
+    
+    -- Performance tracking
+    status text default 'open' check (status in ('open', 'win', 'loss')),
+    entry_price numeric(18,6),
+    exit_price numeric(18,6),
+    profit_loss_pct numeric(10,4),
+    
+    created_at timestamptz not null default now(),
+    updated_at timestamptz not null default now()
+);
+
+create index if not exists idx_scan_results_scan_id on public.scan_results(scan_id);
+create index if not exists idx_scan_results_symbol on public.scan_results(symbol, exchange);
+
+alter table public.scan_results enable row level security;
+create policy "allow_own_scan_results" on public.scan_results for all using (
+    exists (
+        select 1 from public.scan_history 
+        where scan_history.id = scan_results.scan_id 
+        and scan_history.user_id = auth.uid()
+    )
+);
+grant all on public.scan_results to authenticated;
+
+-- Trigger for scan_results updated_at
+create trigger trg_scan_results_updated_at
+before update on public.scan_results
+for each row execute function public.set_updated_at();

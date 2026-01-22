@@ -329,7 +329,6 @@ export async function getSyncedSymbols(country?: string, source?: "supabase" | "
   if (!res.ok) {
     throw new Error(`Failed to fetch synced symbols (${res.status})`);
   }
-
   const data = (await res.json()) as SymbolSearchResponse;
   return data.results;
 }
@@ -344,6 +343,8 @@ export type ScanResult = {
   signal: string;
   confidence: string;
   logo_url?: string | null;
+  status?: "win" | "loss" | "pending" | null;
+  profit_loss_pct?: number | null;
 };
 
 export type ScanResponse = {
@@ -360,6 +361,8 @@ export type ScanAiParams = {
   rfParamsJson: string;
   rfParams: Record<string, unknown> | null;
   modelName?: string;
+  from_date?: string;
+  to_date?: string;
 };
 
 export async function scanAiFastWithParams(params: ScanAiParams, signal?: AbortSignal): Promise<ScanResponse> {
@@ -370,8 +373,11 @@ export async function scanAiFastWithParams(params: ScanAiParams, signal?: AbortS
     limit: String(params.limit),
     min_precision: String(params.minPrecision),
     model_name: params.modelName ?? "",
-    from_date: "2020-01-01",
+    from_date: params.from_date || new Date(Date.now() - 300 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
   });
+  if (params.to_date) {
+    query.set("to_date", params.to_date);
+  }
 
   async function doFetch(url: string) {
     return await fetch(url, {
@@ -384,17 +390,17 @@ export async function scanAiFastWithParams(params: ScanAiParams, signal?: AbortS
 
   let res: Response;
   try {
-    res = baseUrl ? await doFetch(`${baseUrl}/scan/fast?${query}`) : await doFetch(`/api/scan/fast?${query}`);
+    res = baseUrl ? await doFetch(`${baseUrl} /scan/fast ? ${query} `) : await doFetch(` / api / scan / fast ? ${query} `);
   } catch (e) {
     if (baseUrl) {
-      res = await doFetch(`/api/scan/fast?${query}`);
+      res = await doFetch(`/ api / scan / fast ? ${query} `);
     } else {
       throw e;
     }
   }
 
   if (!res.ok) {
-    let msg = `Scan failed (${res.status})`;
+    let msg = `Scan failed(${res.status})`;
     try {
       const data = (await res.json()) as { detail?: string };
       if (data?.detail) msg = data.detail;
@@ -436,17 +442,17 @@ export async function scanAiWithParams(params: ScanAiParams, signal?: AbortSigna
 
   let res: Response;
   try {
-    res = baseUrl ? await doFetch(`${baseUrl}/scan/ai?${query}`) : await doFetch(`/api/scan/ai?${query}`);
+    res = baseUrl ? await doFetch(`${baseUrl} /scan/ai ? ${query} `) : await doFetch(` / api / scan / ai ? ${query} `);
   } catch (e) {
     if (baseUrl) {
-      res = await doFetch(`/api/scan/ai?${query}`);
+      res = await doFetch(`/ api / scan / ai ? ${query} `);
     } else {
       throw e;
     }
   }
 
   if (!res.ok) {
-    let msg = `Scan failed (${res.status})`;
+    let msg = `Scan failed(${res.status})`;
     try {
       const data = (await res.json()) as { detail?: string };
       if (data?.detail) msg = data.detail;
@@ -478,17 +484,17 @@ export async function scanAi(country: string = "Egypt", signal?: AbortSignal): P
   const query = new URLSearchParams({ country, limit: "50", min_precision: "0.6" });
   let res: Response;
   try {
-    res = baseUrl ? await doFetch(`${baseUrl}/scan/ai?${query}`) : await doFetch(`/api/scan/ai?${query}`);
+    res = baseUrl ? await doFetch(`${baseUrl} /scan/ai ? ${query} `) : await doFetch(` / api / scan / ai ? ${query} `);
   } catch (e) {
     if (baseUrl) {
-      res = await doFetch(`/api/scan/ai?${query}`);
+      res = await doFetch(`/ api / scan / ai ? ${query} `);
     } else {
       throw e;
     }
   }
 
   if (!res.ok) {
-    let msg = `Scan failed (${res.status})`;
+    let msg = `Scan failed(${res.status})`;
     try {
       const data = (await res.json()) as { detail?: string };
       if (data?.detail) msg = data.detail;
@@ -609,17 +615,17 @@ export async function scanTech(filter: TechFilter, signal?: AbortSignal): Promis
 
   let res: Response;
   try {
-    res = baseUrl ? await doFetch(`${baseUrl}/scan/technical`) : await doFetch(`/api/scan/technical`);
+    res = baseUrl ? await doFetch(`${baseUrl} /scan/technical`) : await doFetch(` / api / scan / technical`);
   } catch (e) {
     if (baseUrl) {
-      res = await doFetch(`/api/scan/technical`);
+      res = await doFetch(`/ api / scan / technical`);
     } else {
       throw e;
     }
   }
 
   if (!res.ok) {
-    let msg = `Scan failed (${res.status})`;
+    let msg = `Scan failed(${res.status})`;
     try {
       const data = (await res.json()) as { detail?: string };
       if (data?.detail) msg = data.detail;
@@ -645,7 +651,30 @@ export async function scanAiSingle(symbol: string, exchange?: string, min_precis
     signal: signal
   });
   if (!res.ok) return null;
-  return await res.json();
+  return res.json();
+}
+
+export interface AdminConfig {
+  priceSource: string;
+  fundSource: string;
+  maxWorkers: number;
+  enabledModels: string[];
+}
+
+export async function getAdminConfig(): Promise<AdminConfig> {
+  const res = await fetch("/api/admin/config");
+  if (!res.ok) throw new Error("Failed to fetch admin config");
+  return res.json();
+}
+
+export async function updateAdminConfig(config: Partial<AdminConfig>): Promise<AdminConfig> {
+  const res = await fetch("/api/admin/config", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(config)
+  });
+  if (!res.ok) throw new Error("Failed to update admin config");
+  return res.json();
 }
 
 
@@ -688,4 +717,10 @@ export async function fetchStockNews(query: string, limit: number = 3): Promise<
     console.error("Failed to fetch news:", e);
     return [];
   }
+} export async function evaluateScan(scanId: string): Promise<{ count: number; message: string }> {
+  const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
+  const url = baseUrl ? `${baseUrl}/scan/fast/evaluate/${scanId}` : `/api/scan/fast/evaluate/${scanId}`;
+  const response = await fetch(url);
+  if (!response.ok) throw new Error("Failed to evaluate scan performance");
+  return await response.json();
 }

@@ -61,6 +61,21 @@ A modern, AI-powered stock analysis and prediction platform. This application co
    uvicorn main:app --reload
    ```
 
+## 🚀 Deployment Architecture
+
+This project uses a **Split Deployment Strategy** to optimize performance and overcome platform limitations:
+
+### 1. Frontend (Vercel)
+- **Hosted on**: [Vercel](https://vercel.com)
+- **Reason**: Best-in-class performance for Next.js, Edge Network, and SEO.
+- **Configuration**: Uses standard Vercel auto-detection for Next.js in the `web/` directory.
+
+### 2. Backend (Railway)
+- **Hosted on**: [Railway](https://railway.app)
+- **Method**: Docker Container (via `api/Dockerfile`)
+- **Reason**: The Python backend requires significant RAM/Disk for ML models (`scikit-learn`, `pandas`) which exceeds Vercel's Serverless Function limits (250MB). Railway provides a persistent environment perfect for heavy AI workloads.
+- **Docker Config**: Explicitly uses Python 3.12 and installs dependencies from `api/requirements.txt`.
+
 ## 🌍 Supported Markets
 - **US** (NYSE, NASDAQ, AMEX)
 - **Egypt** (EGX)

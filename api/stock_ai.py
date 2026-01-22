@@ -285,7 +285,7 @@ def _get_data_with_indicators_cached(symbol: str, exchange: str, df: pd.DataFram
     return cache.get_with_indicators(symbol, exchange, df, indicator_func)
 
 
-def _get_exchange_bulk_data(exchange: str, from_date: Optional[str] = None) -> Dict[str, pd.DataFrame]:
+def _get_exchange_bulk_data(exchange: str, from_date: Optional[str] = None, to_date: Optional[str] = None) -> Dict[str, pd.DataFrame]:
     """
     Load all price data for an exchange in a single Supabase query (paginated) and cache it.
     Returns mapping symbol -> DataFrame indexed by date.
@@ -339,6 +339,11 @@ def _get_exchange_bulk_data(exchange: str, from_date: Optional[str] = None) -> D
         if from_date:
             try:
                 df_all = df_all[df_all["date"] >= pd.to_datetime(from_date)]
+            except Exception:
+                pass
+        if to_date:
+            try:
+                df_all = df_all[df_all["date"] <= pd.to_datetime(to_date)]
             except Exception:
                 pass
 
@@ -661,6 +666,7 @@ def get_stock_data_eodhd(
     api: APIClient,
     ticker: str,
     from_date: str,
+    to_date: Optional[str] = None,
     tolerance_days: int = 0,
     exchange: Optional[str] = None,
     force_local: bool = False,
@@ -671,11 +677,15 @@ def get_stock_data_eodhd(
     # 0. Try bulk cache for the whole exchange first (single query, cached)
     try:
         s, e = _infer_symbol_exchange(ticker, exchange)
-        bulk = _get_exchange_bulk_data(e, from_date)
+        bulk = _get_exchange_bulk_data(e, from_date, to_date)
         if s.upper() in bulk:
             df_cached = bulk[s.upper()]
             if not df_cached.empty:
-                df = df_cached[df_cached.index >= pd.to_datetime(from_date)] if from_date else df_cached
+                df = df_cached.copy()
+                if from_date:
+                    df = df[df.index >= pd.to_datetime(from_date)]
+                if to_date:
+                    df = df[df.index <= pd.to_datetime(to_date)]
                 if not df.empty:
                     print(f"DEBUG: Bulk cache hit for {s}.{e} ({len(df)} rows)")
                     return df
@@ -722,8 +732,11 @@ def get_stock_data_eodhd(
                     # Convert to standard format
                     df['date'] = pd.to_datetime(df['date'])
                     df = df.set_index('date').sort_index()
-                    # Filter by from_date
-                    df = df[df.index >= pd.to_datetime(from_date)]
+                    # Filter by date range
+                    if from_date:
+                        df = df[df.index >= pd.to_datetime(from_date)]
+                    if to_date:
+                        df = df[df.index <= pd.to_datetime(to_date)]
                     if not df.empty:
                         print(f"DEBUG: Supabase hit for {s}.{e} ({len(df)} rows)")
                         return df

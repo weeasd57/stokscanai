@@ -1,6 +1,7 @@
 import os
 import pickle
 import time
+import datetime
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any, Dict, List, Optional
 
@@ -17,6 +18,7 @@ from stock_ai import (
     prepare_for_ai,
     LGBM_PREDICTORS,
     RF_PREDICTORS,
+    supabase,
 )
 
 router = APIRouter(prefix="/scan/fast", tags=["scan-fast"])
@@ -176,9 +178,15 @@ async def fast_scan(
     limit: int = Query(default=200, ge=1, le=400, description="Max symbols to scan"),
     min_precision: float = Query(default=0.5, ge=0.0, le=1.0),
     model_name: str = Query(..., description="Model file name in api/models"),
-    from_date: str = Query(default="2020-01-01"),
+    from_date: str = Query(default=None, description="Start date (YYYY-MM-DD). Defaults to 300 days ago."),
+    to_date: str = Query(default=None, description="End date (YYYY-MM-DD)."),
 ):
     start = time.time()
+    
+    # Calculate default from_date as 300 days ago for performance optimization
+    if from_date is None:
+        from_date = (datetime.date.today() - datetime.timedelta(days=300)).isoformat()
+    
     try:
         symbols_data = load_symbols_for_country(country)
     except Exception as e:
@@ -190,7 +198,7 @@ async def fast_scan(
     for ex in exchanges:
         if not ex:
             continue
-        bulk_map[ex] = _get_exchange_bulk_data(ex, from_date=from_date)
+        bulk_map[ex] = _get_exchange_bulk_data(ex, from_date=from_date, to_date=to_date)
 
     model_entry = _load_model(model_name)
     if not model_entry:
@@ -246,3 +254,66 @@ async def fast_scan(
         "limit": limit,
         "min_precision": min_precision,
     }
+
+@router.get("/evaluate/{scan_id}")
+def evaluate_scan(scan_id: str):
+    """
+    Refresh performance for a specific scan by fetching latest prices
+    and updating profit_loss_pct and status in Supabase.
+    """
+    if not supabase:
+        raise HTTPException(status_code=500, detail="Supabase not initialized")
+
+    try:
+        # 1. Fetch results for this scan
+        res = supabase.table("scan_results").select("*").eq("scan_id", scan_id).execute()
+        results = res.data
+        if not results:
+            return {"count": 0, "message": "No results found for this scan"}
+
+        # 2. Get latest prices for these symbols
+        symbols = list(set([r["symbol"] for r in results]))
+        exchanges = list(set([r["exchange"] for r in results if r.get("exchange")]))
+        
+        # Simple bulk price fetch - in a real app, you might want a more efficient way
+        # For now, let's fetch the latest row for each symbol from stock_prices
+        price_map = {}
+        for sym in symbols:
+            p_res = supabase.table("stock_prices")\
+                .select("close")\
+                .eq("symbol", sym)\
+                .order("dt", descending=True)\
+                .limit(1)\
+                .execute()
+            if p_res.data:
+                price_map[sym] = float(p_res.data[0]["close"])
+
+        # 3. Update each result
+        updated_count = 0
+        for r in results:
+            symbol = r["symbol"]
+            entry_price = float(r["entry_price"]) if r.get("entry_price") else float(r["last_close"])
+            current_price = price_map.get(symbol)
+            
+            if current_price:
+                pl_pct = ((current_price - entry_price) / entry_price) * 100
+                
+                # Determine status
+                status = "open"
+                if pl_pct >= 2.0: # 2% win threshold for example
+                    status = "win"
+                elif pl_pct <= -1.0: # 1% loss threshold
+                    status = "loss"
+
+                supabase.table("scan_results").update({
+                    "exit_price": current_price,
+                    "profit_loss_pct": pl_pct,
+                    "status": status,
+                    "updated_at": datetime.datetime.utcnow().isoformat()
+                }).eq("id", r["id"]).execute()
+                updated_count += 1
+
+        return {"count": updated_count, "message": f"Updated {updated_count} results"}
+    except Exception as e:
+        print(f"Error evaluating scan performance: {e}")
+        raise HTTPException(status_code=500, detail=str(e))

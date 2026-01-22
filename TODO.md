@@ -1,6 +1,6 @@
 # Project Roadmap & Improvements
 
-
+ 
 ## 🚀 Priority Features (Inspired by Danelfin Analysis)
 
 ### 1. AI Score System (1-10)
@@ -18,6 +18,7 @@
 ### 3. Scanner & Admin Improvements
 - [ ] **Fast Scanner Migration**: Move the "Fast Scanner AI" section to the Admin panel.
 - [ ] **Date Range Scanning**: Add functionality to select a specific date range for scanning.
+- [ ] **Data Optimization**: In Fast AI Scanner, fetch only the last 300 days of symbol data instead of all history.
 - [ ] **Scan History & Performance**:
   - [ ] Store scan results in Supabase.
   - [ ] Add a feature to show old scan results and "close" them if a close signal appears.
