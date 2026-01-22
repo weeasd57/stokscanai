@@ -12,3 +12,4 @@ beautifulsoup4==4.12.3
 tradingview-screener==3.0.0
 lightgbm==4.3.0
 supabase==2.5.3
+ta
