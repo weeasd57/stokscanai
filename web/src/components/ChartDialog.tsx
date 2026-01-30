@@ -23,6 +23,7 @@ export default function ChartDialog({ symbol, onClose }: ChartDialogProps) {
     const [showEma200, setShowEma200] = useState(true);
     const [showBB, setShowBB] = useState(false);
     const [showRsi, setShowRsi] = useState(true);
+    const [showMacd, setShowMacd] = useState(true);
     const [showVolume, setShowVolume] = useState(true);
 
     useEffect(() => {
@@ -36,6 +37,8 @@ export default function ChartDialog({ symbol, onClose }: ChartDialogProps) {
     useEffect(() => {
         if (!symbol) return;
 
+        const controller = new AbortController();
+
         const fetchData = async () => {
             setLoading(true);
             try {
@@ -47,11 +50,13 @@ export default function ChartDialog({ symbol, onClose }: ChartDialogProps) {
                     ticker: symbol,
                     fromDate,
                     rfPreset: "default"
-                });
+                }, controller.signal);
+
                 if (data && data.testPredictions) {
                     setRows(data.testPredictions);
                 }
-            } catch (err) {
+            } catch (err: any) {
+                if (err.name === 'AbortError') return;
                 console.error("Failed to load chart data", err);
             } finally {
                 setLoading(false);
@@ -59,6 +64,10 @@ export default function ChartDialog({ symbol, onClose }: ChartDialogProps) {
         };
 
         fetchData();
+
+        return () => {
+            controller.abort();
+        };
     }, [symbol]);
 
     if (!symbol) return null;
@@ -103,14 +112,15 @@ export default function ChartDialog({ symbol, onClose }: ChartDialogProps) {
                                 { id: "ema200", label: "EMA200", color: "bg-cyan-500", active: showEma200, toggle: () => setShowEma200(!showEma200) },
                                 { id: "bb", label: "BB", color: "bg-purple-500", active: showBB, toggle: () => setShowBB(!showBB) },
                                 { id: "rsi", label: "RSI", color: "bg-pink-500", active: showRsi, toggle: () => setShowRsi(!showRsi) },
+                                { id: "macd", label: "MACD", color: "bg-indigo-500", active: showMacd, toggle: () => setShowMacd(!showMacd) },
                                 { id: "vol", label: "VOL", color: "bg-blue-500", active: showVolume, toggle: () => setShowVolume(!showVolume) },
                             ].map((ind) => (
                                 <button
                                     key={ind.id}
                                     onClick={ind.toggle}
                                     className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wide transition-all ${ind.active
-                                            ? "bg-white/10 text-white border border-white/20"
-                                            : "text-zinc-600 hover:text-zinc-400 border border-transparent"
+                                        ? "bg-white/10 text-white border border-white/20"
+                                        : "text-zinc-600 hover:text-zinc-400 border border-transparent"
                                         }`}
                                 >
                                     <div className={`w-2 h-2 rounded-full ${ind.active ? ind.color : "bg-zinc-700"}`} />
@@ -142,6 +152,7 @@ export default function ChartDialog({ symbol, onClose }: ChartDialogProps) {
                             showEma200={showEma200}
                             showBB={showBB}
                             showRsi={showRsi}
+                            showMacd={showMacd}
                             showVolume={showVolume}
                             chartType={chartType}
                             height={500}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, useCallback } from "react";
-import { Brain, CalendarRange, Loader2, LineChart, Sparkles, Database, Building2, Search, TrendingUp, TrendingDown, ChevronUp, ChevronDown } from "lucide-react";
+import { Brain, CalendarRange, Loader2, LineChart, Sparkles, Database, Building2, Search, TrendingUp, TrendingDown, ChevronUp, ChevronDown, CircleDot, BarChart3, Gauge, LayoutDashboard } from "lucide-react";
 import { LineChart as RechartsLineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ScatterChart, Scatter, BarChart, Bar } from "recharts";
 import { predictStock, getLocalModels, getSymbolsByDate, getCountries, getSymbolsForExchange } from "@/lib/api";
 import type { PredictResponse } from "@/lib/types";
@@ -18,8 +18,23 @@ const defaultEnd = new Date().toISOString().slice(0, 10);
 
 function parseModelExchange(modelName: string | null): string | null {
   if (!modelName) return null;
-  const match = modelName.match(/model_(.+?)\\.pkl/i);
-  return match ? match[1].toUpperCase() : null;
+
+  // 1. Try format model_EXCHANGE.pkl
+  let match = modelName.match(/model_(.+?)\.pkl/i);
+  if (match) return match[1].toUpperCase();
+
+  // 2. Look for exchange codes anywhere in the name (EGX, US, SA, etc.)
+  // Use word boundaries or underscores to avoid partial matches
+  const upper = modelName.toUpperCase();
+  const exchanges = ["EGX", "USA", "US", "KSA", "SA", "KQ", "BA", "TO", "LSE", "PA", "F"];
+
+  for (const ex of exchanges) {
+    // Look for the code surrounded by underscores, spaces, or at poles
+    const regex = new RegExp(`(?:^|[\\s_.,])${ex}(?:$|[\\s_.,])`, 'i');
+    if (regex.test(upper)) return ex === "USA" ? "US" : ex;
+  }
+
+  return null;
 }
 
 function signalLabel(value: number) {
@@ -35,79 +50,57 @@ function signalClass(value: number) {
 function calculateKPIs(predictions: any[]) {
   if (!predictions || predictions.length === 0) {
     return {
-      totalTests: 0,
-      totalDays: 0,
-      buySignals: 0,
-      sellSignals: 0,
-      buyCorrect: 0,
-      sellCorrect: 0,
-      buyAccuracy: 0,
-      sellAccuracy: 0,
-      totalCorrect: 0,
-      totalIncorrect: 0,
-      winRate: 0,
-      consecutiveWins: 0,
-      consecutiveLosses: 0,
-      maxConsecutiveWins: 0,
-      maxConsecutiveLosses: 0,
+      totalTests: 0, totalDays: 0, buySignals: 0, sellSignals: 0,
+      buyCorrect: 0, sellCorrect: 0, buyAccuracy: 0, sellAccuracy: 0,
+      totalCorrect: 0, totalIncorrect: 0, winRate: 0,
+      consecutiveWins: 0, consecutiveLosses: 0, maxConsecutiveWins: 0, maxConsecutiveLosses: 0,
     };
   }
 
-  const uniqueDates = new Set(predictions.map((p) => p.date)).size;
-  const buySignals = predictions.filter((p) => p.pred === 1).length;
-  const sellSignals = predictions.filter((p) => p.pred === 0).length;
+  // Filter to only include test rows if the backend provided them
+  const rows = predictions.filter(p => p.is_test !== false);
+  const dataToUse = rows.length > 0 ? rows : predictions;
 
-  const buyCorrect = predictions.filter((p) => p.pred === 1 && p.pred === p.target).length;
-  const sellCorrect = predictions.filter((p) => p.pred === 0 && p.pred === p.target).length;
+  const uniqueDates = new Set(dataToUse.map((p) => p.date)).size;
+  const buySignals = dataToUse.filter((p) => p.pred === 1).length;
+  const sellSignals = dataToUse.filter((p) => p.pred === 0).length;
 
-  const totalCorrect = predictions.filter((p) => p.pred === p.target).length;
-  const totalIncorrect = predictions.length - totalCorrect;
+  const buyCorrect = dataToUse.filter((p) => p.pred === 1 && p.pred === p.target).length;
+  const sellCorrect = dataToUse.filter((p) => p.pred === 0 && p.pred === p.target).length;
 
-  let consecutiveWins = 0;
-  let consecutiveLosses = 0;
-  let maxConsecutiveWins = 0;
-  let maxConsecutiveLosses = 0;
+  const totalCorrect = dataToUse.filter((p) => p.pred === p.target).length;
+  const totalIncorrect = dataToUse.length - totalCorrect;
 
-  for (const pred of predictions) {
+  let consecutiveWins = 0, consecutiveLosses = 0, maxConsecutiveWins = 0, maxConsecutiveLosses = 0;
+  for (const pred of dataToUse) {
     if (pred.pred === pred.target) {
-      consecutiveWins++;
-      consecutiveLosses = 0;
+      consecutiveWins++; consecutiveLosses = 0;
       maxConsecutiveWins = Math.max(maxConsecutiveWins, consecutiveWins);
     } else {
-      consecutiveLosses++;
-      consecutiveWins = 0;
+      consecutiveLosses++; consecutiveWins = 0;
       maxConsecutiveLosses = Math.max(maxConsecutiveLosses, consecutiveLosses);
     }
   }
 
   return {
-    totalTests: predictions.length,
+    totalTests: dataToUse.length,
     totalDays: uniqueDates,
-    buySignals,
-    sellSignals,
-    buyCorrect,
-    sellCorrect,
+    buySignals, sellSignals, buyCorrect, sellCorrect,
     buyAccuracy: buySignals > 0 ? (buyCorrect / buySignals) * 100 : 0,
     sellAccuracy: sellSignals > 0 ? (sellCorrect / sellSignals) * 100 : 0,
-    totalCorrect,
-    totalIncorrect,
-    winRate: (totalCorrect / predictions.length) * 100,
-    consecutiveWins,
-    consecutiveLosses,
-    maxConsecutiveWins,
-    maxConsecutiveLosses,
+    totalCorrect, totalIncorrect,
+    winRate: (totalCorrect / dataToUse.length) * 100,
+    consecutiveWins, consecutiveLosses, maxConsecutiveWins, maxConsecutiveLosses,
   };
 }
 
 function calculateClassification(predictions: any[]) {
-  let tp = 0;
-  let fp = 0;
-  let tn = 0;
-  let fn = 0;
+  const rows = predictions.filter(p => p.is_test !== false);
+  const dataToUse = rows.length > 0 ? rows : (predictions || []);
 
-  for (const p of predictions || []) {
-    const pred = p?.pred;
-    const target = p?.target;
+  let tp = 0, fp = 0, tn = 0, fn = 0;
+  for (const p of dataToUse) {
+    const pred = p?.pred, target = p?.target;
     if (pred === 1 && target === 1) tp++;
     else if (pred === 1 && target === 0) fp++;
     else if (pred === 0 && target === 0) tn++;
@@ -117,30 +110,17 @@ function calculateClassification(predictions: any[]) {
   const precisionBuy = tp + fp > 0 ? tp / (tp + fp) : 0;
   const recallBuy = tp + fn > 0 ? tp / (tp + fn) : 0;
   const f1Buy = precisionBuy + recallBuy > 0 ? (2 * precisionBuy * recallBuy) / (precisionBuy + recallBuy) : 0;
-
   const precisionSell = tn + fn > 0 ? tn / (tn + fn) : 0;
   const recallSell = tn + fp > 0 ? tn / (tn + fp) : 0;
   const f1Sell = precisionSell + recallSell > 0 ? (2 * precisionSell * recallSell) / (precisionSell + recallSell) : 0;
 
-  return {
-    tp,
-    fp,
-    tn,
-    fn,
-    precisionBuy,
-    recallBuy,
-    f1Buy,
-    precisionSell,
-    recallSell,
-    f1Sell,
-  };
+  return { tp, fp, tn, fn, precisionBuy, recallBuy, f1Buy, precisionSell, recallSell, f1Sell };
 }
 
 function renderResultContent(result: any) {
   if (!result?.testPredictions?.length) {
     return <div className="text-xs text-zinc-500">No predictions available.</div>;
   }
-
   const kpis = calculateKPIs(result.testPredictions);
   return (
     <div className="space-y-4">
@@ -162,6 +142,14 @@ function renderResultContent(result: any) {
           <div className="text-[9px] text-indigo-400 uppercase">Win</div>
           <div className="text-base font-bold text-indigo-400 mt-1">{kpis.winRate.toFixed(1)}%</div>
         </div>
+        {result.earnPercentage != null && (
+          <div className={`rounded-lg p-2 border ${result.earnPercentage >= 0 ? "bg-emerald-500/10 border-emerald-500/20" : "bg-rose-500/10 border-rose-500/20"}`}>
+            <div className={`text-[9px] uppercase ${result.earnPercentage >= 0 ? "text-emerald-400" : "text-rose-400"}`}>Earn Rate</div>
+            <div className={`text-base font-bold mt-1 ${result.earnPercentage >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
+              {result.earnPercentage >= 0 ? "+" : ""}{result.earnPercentage.toFixed(1)}%
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -213,6 +201,13 @@ export default function TestModelTab() {
   const [testResult, setTestResult] = useState<PredictResponse | null>(null);
   const [testResults, setTestResults] = useState<Map<string, PredictResponse>>(new Map());
   const [saveLoading, setSaveLoading] = useState(false);
+
+  // Strategy override settings
+  const [targetPct, setTargetPct] = useState<number>(0.15);
+  const [stopLossPct, setStopLossPct] = useState<number>(0.05);
+  const [lookForwardDays, setLookForwardDays] = useState<number>(20);
+  const [buyThreshold, setBuyThreshold] = useState<number>(0.40);
+  const [isAutoDetected, setIsAutoDetected] = useState(false);
 
   const [showRSI, setShowRSI] = useState(true);
   const [showSMA50, setShowSMA50] = useState(true);
@@ -278,6 +273,29 @@ export default function TestModelTab() {
     return items;
   }, [testResults]);
 
+  const predictionsWithOutcome = useMemo(() => {
+    if (!testResult?.testPredictions) return [];
+
+    const rows = [...testResult.testPredictions].sort((a, b) => (new Date(a.date).getTime() - new Date(b.date).getTime()));
+
+    return rows.map((row, idx) => {
+      if (row.pred !== 1) return { ...row, outcome: undefined };
+
+      const entryPrice = row.close;
+      const targetPrice = entryPrice * (1 + targetPct);
+      const stopPrice = entryPrice * (1 - stopLossPct);
+
+      // Look forward to find outcome
+      for (let i = idx + 1; i < Math.min(idx + lookForwardDays + 1, rows.length); i++) {
+        const future = rows[i];
+        if ((future.low ?? future.close) <= stopPrice) return { ...row, outcome: 'loss' as const };
+        if ((future.high ?? future.close) >= targetPrice) return { ...row, outcome: 'win' as const };
+      }
+
+      return { ...row, outcome: 'pending' as const };
+    });
+  }, [testResult, targetPct, stopLossPct, lookForwardDays]);
+
   const sortedMultiSummaries = useMemo(() => {
     if (!sortConfig) return multiSummaries;
 
@@ -302,6 +320,9 @@ export default function TestModelTab() {
       } else if (key === 'execTime') {
         aValue = (a.result as any).executionTime ?? 0;
         bValue = (b.result as any).executionTime ?? 0;
+      } else if (key === 'earnRate') {
+        aValue = a.result.earnPercentage ?? -999;
+        bValue = b.result.earnPercentage ?? -999;
       } else {
         // Classification metrics
         const clsA = calculateClassification(a.result.testPredictions || []);
@@ -381,21 +402,65 @@ export default function TestModelTab() {
   }, [selectedModel]);
 
   useEffect(() => {
+    if (selectedModel && !useMultipleModels) {
+      const model = models.find(m => (typeof m === "string" ? m : m.name) === selectedModel);
+      if (model && typeof model === "object") {
+        if (model.target_pct != null) {
+          setTargetPct(model.target_pct);
+          setStopLossPct(model.stop_loss_pct ?? 0.05);
+          setLookForwardDays(model.look_forward_days ?? 20);
+          setIsAutoDetected(true);
+        } else {
+          setIsAutoDetected(false);
+        }
+      }
+    }
+  }, [selectedModel, models, useMultipleModels]);
+
+  useEffect(() => {
     if (modelExchange && !selectedExchange) {
-      setSelectedExchange(modelExchange);
+      // Map exchange code back to display name if possible
+      const lower = modelExchange.toLowerCase();
+      const invItem = inventory.find(item =>
+        item.exchange?.toLowerCase() === lower ||
+        item.country?.toLowerCase() === lower
+      );
+      if (invItem?.country) {
+        setSelectedExchange(invItem.country);
+      } else if (availableExchanges.includes(modelExchange)) {
+        setSelectedExchange(modelExchange);
+      } else {
+        // Fallback to searching case-insensitive in availableExchanges
+        const matched = availableExchanges.find(e => e.toLowerCase() === lower);
+        if (matched) setSelectedExchange(matched);
+        else setSelectedExchange(modelExchange);
+      }
     }
     if (!selectedExchange && availableExchanges.length > 0) {
-      setSelectedExchange(availableExchanges[0]);
+      // Prioritize Egypt as default if available
+      const egypt = availableExchanges.find(e => e.toLowerCase() === "egypt");
+      setSelectedExchange(egypt || availableExchanges[0]);
     }
-  }, [modelExchange, selectedExchange, availableExchanges]);
+  }, [modelExchange, selectedExchange, availableExchanges, inventory]);
 
   useEffect(() => {
     refreshAvailableExchanges();
   }, [refreshAvailableExchanges]);
 
   const exchangeCode = useMemo(() => {
-    const invItem = inventory.find(item => item.country === selectedExchange);
-    return invItem?.exchange || selectedExchange;
+    if (!selectedExchange) return "";
+    const lower = selectedExchange.toLowerCase();
+
+    // Direct mapping for common ones if inventory is not yet loaded
+    if (lower === "egypt" || lower === "egx") return "EGX";
+    if (lower === "usa" || lower === "us") return "US";
+    if (lower === "saudi arabia" || lower === "sa" || lower === "ksa") return "SA";
+
+    const invItem = inventory.find(item =>
+      item.country?.toLowerCase() === lower ||
+      item.exchange?.toLowerCase() === lower
+    );
+    return invItem?.exchange || (selectedExchange.length <= 4 ? selectedExchange.toUpperCase() : selectedExchange);
   }, [selectedExchange, inventory]);
 
   useEffect(() => {
@@ -472,11 +537,15 @@ export default function TestModelTab() {
         try {
           const response = await predictStock({
             ticker: selectedSymbol.symbol,
-            // Use explicit exchange selection if available; otherwise infer from model filename.
-            exchange: exchangeCode || parseModelExchange(model) || undefined,
+            // Use symbol's own exchange if available; then exchange selection; then infer from model filename.
+            exchange: selectedSymbol.exchange || exchangeCode || parseModelExchange(model) || undefined,
             includeFundamentals: true,
             forceLocal: true,
             modelName: model,
+            targetPct,
+            stopLossPct,
+            lookForwardDays,
+            buyThreshold,
           });
           const endTime = performance.now();
           const executionTime = Math.round(endTime - startTime);
@@ -491,8 +560,16 @@ export default function TestModelTab() {
 
       if (resultsMap.size > 0) {
         setTestResults(resultsMap);
-        if (resultsMap.size === 1) {
-          setTestResult(Array.from(resultsMap.values())[0]);
+
+        // If multiple models, automatically select the one with best win rate for the detailed chart
+        const sorted = Array.from(resultsMap.entries()).sort((a, b) => {
+          const kA = calculateKPIs(a[1].testPredictions || []);
+          const kB = calculateKPIs(b[1].testPredictions || []);
+          return kB.winRate - kA.winRate;
+        });
+
+        if (sorted.length > 0) {
+          setTestResult(sorted[0][1]);
         }
       } else {
         setTestError("No models tested successfully");
@@ -690,6 +767,80 @@ export default function TestModelTab() {
                 </div>
               )}
             </div>
+
+            {/* Strategy Settings Section */}
+            <div className="rounded-xl sm:rounded-2xl border border-white/5 bg-gradient-to-br from-zinc-800/30 to-zinc-900/30 p-4 sm:p-5">
+              <div className="text-[10px] sm:text-xs font-black uppercase tracking-[0.3em] text-zinc-500 flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="h-3 w-3 sm:h-4 sm:w-4 text-indigo-400" />
+                  Strategy Window
+                </div>
+                {isAutoDetected && !useMultipleModels && (
+                  <span className="text-[9px] text-emerald-500 font-bold bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                    Auto-Detected
+                  </span>
+                )}
+              </div>
+              <div className="grid grid-cols-3 gap-3">
+                <div className="space-y-1">
+                  <Label className="text-[9px] uppercase text-zinc-500">Target %</Label>
+                  <Select value={String(targetPct ?? 0.15)} onValueChange={(v: string) => { setTargetPct(Number(v)); setIsAutoDetected(false); }}>
+                    <SelectTrigger className="h-9 sm:h-10 text-[10px] sm:text-xs bg-zinc-950/50 border-white/5">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-zinc-900 border-white/10 text-zinc-200">
+                      {[0.01, 0.05, 0.10, 0.15, 0.20, 0.30].map((v: number) => (
+                        <SelectItem key={v} value={v.toString()}>{(v * 100).toFixed(0)}%</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[9px] uppercase text-zinc-500">Stop %</Label>
+                  <Select value={String(stopLossPct ?? 0.05)} onValueChange={(v: string) => { setStopLossPct(Number(v)); setIsAutoDetected(false); }}>
+                    <SelectTrigger className="h-9 sm:h-10 text-[10px] sm:text-xs bg-zinc-950/50 border-white/5">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-zinc-900 border-white/10 text-zinc-200">
+                      {[0.01, 0.03, 0.05, 0.07, 0.10].map((v: number) => (
+                        <SelectItem key={v} value={v.toString()}>{(v * 100).toFixed(0)}%</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[9px] uppercase text-zinc-500">Days</Label>
+                  <Select value={String(lookForwardDays ?? 20)} onValueChange={(v: string) => { setLookForwardDays(Number(v)); setIsAutoDetected(false); }}>
+                    <SelectTrigger className="h-9 sm:h-10 text-[10px] sm:text-xs bg-zinc-950/50 border-white/5">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-zinc-900 border-white/10 text-zinc-200">
+                      {[10, 15, 20, 30].map((v: number) => (
+                        <SelectItem key={v} value={v.toString()}>{v} Days</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[9px] uppercase text-zinc-500">Sensitivity</Label>
+                  <Select value={String(buyThreshold ?? 0.40)} onValueChange={(v: string) => { setBuyThreshold(Number(v)); setIsAutoDetected(false); }}>
+                    <SelectTrigger className="h-9 sm:h-10 text-[10px] sm:text-xs bg-zinc-950/50 border-white/5">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-zinc-900 border-white/10 text-zinc-200">
+                      {[0.10, 0.20, 0.30, 0.40, 0.45, 0.50].map((v: number) => (
+                        <SelectItem key={v} value={v.toString()}>{(100 - v * 100).toFixed(0)}% (prob {v})</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <p className="text-[9px] text-zinc-600 mt-3 leading-tight italic">
+                {isAutoDetected && !useMultipleModels
+                  ? "Values detected from model file. You can override them above."
+                  : "Specify the strategy target/stop for calculating Precision and Earn metrics."}
+              </p>
+            </div>
           </div>
         </section>
 
@@ -849,6 +1000,7 @@ export default function TestModelTab() {
                               { label: 'Buy Acc', key: 'buyAcc' },
                               { label: 'Sell Acc', key: 'sellAcc' },
                               { label: 'Prec.', key: 'precision' },
+                              { label: 'Earn', key: 'earnRate' },
                               { label: 'Recall', key: 'recall' },
                               { label: 'F1', key: 'f1' },
                               { label: 'Time', key: 'execTime' },
@@ -886,6 +1038,9 @@ export default function TestModelTab() {
                                 </td>
                                 <td className="px-4 py-3 text-xs text-zinc-400">
                                   {(cls.precisionBuy * 100).toFixed(1)}%
+                                </td>
+                                <td className={`px-4 py-3 text-xs font-bold ${item.result.earnPercentage != null ? (item.result.earnPercentage >= 0 ? "text-emerald-400" : "text-rose-400") : "text-zinc-500"}`}>
+                                  {item.result.earnPercentage != null ? `${item.result.earnPercentage >= 0 ? '+' : ''}${item.result.earnPercentage.toFixed(1)}%` : '-'}
                                 </td>
                                 <td className="px-4 py-3 text-xs text-zinc-400">
                                   {(cls.recallBuy * 100).toFixed(1)}%
@@ -1106,6 +1261,12 @@ export default function TestModelTab() {
                           {singleSummary.kpis.maxConsecutiveWins}
                         </div>
                       </div>
+                      <div className={`rounded-lg p-3 border ${testResult.earnPercentage != null ? (testResult.earnPercentage >= 0 ? "bg-emerald-500/10 border-emerald-500/20" : "bg-rose-500/10 border-rose-500/20") : "bg-zinc-900/50 border-white/5"}`}>
+                        <div className={`text-[9px] uppercase tracking-wider ${testResult.earnPercentage != null ? (testResult.earnPercentage >= 0 ? "text-emerald-400" : "text-rose-400") : "text-zinc-500"}`}>Earn Rate</div>
+                        <div className={`text-lg sm:text-xl font-bold mt-1 ${testResult.earnPercentage != null ? (testResult.earnPercentage >= 0 ? "text-emerald-400" : "text-rose-400") : "text-white"}`}>
+                          {testResult.earnPercentage != null ? `${testResult.earnPercentage >= 0 ? '+' : ''}${testResult.earnPercentage.toFixed(1)}%` : '-'}
+                        </div>
+                      </div>
                     </div>
                   )}
 
@@ -1184,17 +1345,8 @@ export default function TestModelTab() {
                           onClick={() => setShowBUYSignals(!showBUYSignals)}
                           className="text-[10px] sm:text-xs h-7 sm:h-8"
                         >
-                          <div className="w-2 h-2 rounded-full bg-emerald-500 mr-1.5" />
+                          <TrendingUp className="w-3 h-3 text-emerald-400 mr-1.5" />
                           BUY
-                        </Button>
-                        <Button
-                          variant={showSELLSignals ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => setShowSELLSignals(!showSELLSignals)}
-                          className="text-[10px] sm:text-xs h-7 sm:h-8"
-                        >
-                          <div className="w-2 h-2 rotate-45 bg-red-500 mr-1.5" />
-                          SELL
                         </Button>
                         <Button
                           variant={showVolume ? "default" : "outline"}
@@ -1202,7 +1354,7 @@ export default function TestModelTab() {
                           onClick={() => setShowVolume(!showVolume)}
                           className="text-[10px] sm:text-xs h-7 sm:h-8"
                         >
-                          <div className="w-2 h-2 bg-blue-500 mr-1.5" />
+                          <BarChart3 className="w-3 h-3 text-blue-400 mr-1.5" />
                           Volume
                         </Button>
                       </div>
@@ -1215,7 +1367,7 @@ export default function TestModelTab() {
                           onClick={() => setShowSMA50(!showSMA50)}
                           className="text-[10px] sm:text-xs h-7 sm:h-8"
                         >
-                          <div className="w-2 h-2 bg-amber-500 mr-1.5" />
+                          <LineChart className="w-3 h-3 text-amber-500 mr-1.5" />
                           SMA50
                         </Button>
                         <Button
@@ -1224,7 +1376,7 @@ export default function TestModelTab() {
                           onClick={() => setShowSMA200(!showSMA200)}
                           className="text-[10px] sm:text-xs h-7 sm:h-8"
                         >
-                          <div className="w-2 h-2 bg-cyan-500 mr-1.5" />
+                          <LineChart className="w-3 h-3 text-cyan-500 mr-1.5" />
                           SMA200
                         </Button>
                         <Button
@@ -1233,7 +1385,7 @@ export default function TestModelTab() {
                           onClick={() => setShowEMA50(!showEMA50)}
                           className="text-[10px] sm:text-xs h-7 sm:h-8"
                         >
-                          <div className="w-2 h-2 bg-orange-500 mr-1.5" />
+                          <TrendingUp className="w-3 h-3 text-orange-500 mr-1.5" />
                           EMA50
                         </Button>
                         <Button
@@ -1242,7 +1394,7 @@ export default function TestModelTab() {
                           onClick={() => setShowEMA200(!showEMA200)}
                           className="text-[10px] sm:text-xs h-7 sm:h-8"
                         >
-                          <div className="w-2 h-2 bg-sky-500 mr-1.5" />
+                          <TrendingUp className="w-3 h-3 text-sky-500 mr-1.5" />
                           EMA200
                         </Button>
                         <Button
@@ -1251,7 +1403,7 @@ export default function TestModelTab() {
                           onClick={() => setShowBB(!showBB)}
                           className="text-[10px] sm:text-xs h-7 sm:h-8"
                         >
-                          <div className="w-2 h-2 bg-violet-500 mr-1.5" />
+                          <CircleDot className="w-3 h-3 text-violet-500 mr-1.5" />
                           BB
                         </Button>
                         <Button
@@ -1260,7 +1412,7 @@ export default function TestModelTab() {
                           onClick={() => setShowRSI(!showRSI)}
                           className="text-[10px] sm:text-xs h-7 sm:h-8"
                         >
-                          <div className="w-2 h-2 bg-purple-500 mr-1.5" />
+                          <Gauge className="w-3 h-3 text-purple-500 mr-1.5" />
                           RSI
                         </Button>
                         <Button
@@ -1269,7 +1421,7 @@ export default function TestModelTab() {
                           onClick={() => setShowMACD(!showMACD)}
                           className="text-[10px] sm:text-xs h-7 sm:h-8"
                         >
-                          <div className="w-2 h-2 bg-indigo-500 mr-1.5" />
+                          <LayoutDashboard className="w-3 h-3 text-indigo-500 mr-1.5" />
                           MACD
                         </Button>
                       </div>
@@ -1277,7 +1429,7 @@ export default function TestModelTab() {
 
                     {/* Candlestick Chart */}
                     <TestModelCandleChart
-                      rows={testResult!.testPredictions}
+                      rows={predictionsWithOutcome}
                       showBuySignals={showBUYSignals}
                       showSellSignals={showSELLSignals}
                       showSMA50={showSMA50}
@@ -1291,95 +1443,6 @@ export default function TestModelTab() {
                     />
                   </div>
 
-                  {/* Save button + weekly breakdown table */}
-                  <Button
-                    type="button"
-                    onClick={async () => {
-                      setSaveLoading(true);
-                      try {
-                        const response = await fetch("/api/model-test/save", {
-                          method: "POST",
-                          headers: { "Content-Type": "application/json" },
-                          body: JSON.stringify({
-                            modelName: selectedModel,
-                            symbol: selectedSymbol?.symbol,
-                            exchange: exchangeCode,
-                            predictions: testResult!.testPredictions,
-                            executionTime: testResult!.executionTime || 0,
-                          }),
-                        });
-                        if (response.ok) {
-                          alert("✅ Test results saved successfully!");
-                        }
-                      } catch (err) {
-                        alert("❌ Failed to save results");
-                      } finally {
-                        setSaveLoading(false);
-                      }
-                    }}
-                    disabled={saveLoading}
-                    className="w-full h-10 sm:h-12 rounded-lg sm:rounded-xl bg-gradient-to-r from-amber-600 to-amber-700 px-4 sm:px-6 text-xs sm:text-sm font-bold uppercase tracking-[0.2em] text-white shadow-xl shadow-amber-600/30 transition-all hover:shadow-amber-600/50 disabled:opacity-50"
-                  >
-                    {saveLoading ? "Saving..." : "💾 Save Results"}
-                  </Button>
-
-                  <div className="bg-zinc-950/40 rounded-xl border border-white/5 overflow-hidden">
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-left text-xs sm:text-sm">
-                        <thead className="bg-zinc-950/80 text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500 sticky top-0">
-                          <tr>
-                            <th className="px-2 sm:px-4 py-3">Period</th>
-                            <th className="px-2 sm:px-4 py-3">Symbol</th>
-                            <th className="px-2 sm:px-4 py-3 text-center">Buy Signals</th>
-                            <th className="px-2 sm:px-4 py-3 text-center">Sell Signals</th>
-                            <th className="px-2 sm:px-4 py-3 text-center">Correct</th>
-                            <th className="px-2 sm:px-4 py-3 text-right">Win Rate</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-white/5">
-                          {groupPredictionsByWeek(testResult!.testPredictions).map(
-                            (group, idx) => {
-                              const weekKPIs = calculateKPIs(group.predictions);
-                              return (
-                                <tr
-                                  key={`week-${idx}`}
-                                  className="text-xs sm:text-sm text-zinc-300 hover:bg-zinc-900/30 transition-colors"
-                                >
-                                  <td className="px-2 sm:px-4 py-3 font-mono text-zinc-400">
-                                    {new Date(group.week).toLocaleDateString("en-US", {
-                                      month: "short",
-                                      day: "numeric",
-                                    })}
-                                  </td>
-                                  <td className="px-2 sm:px-4 py-3 font-bold text-white">
-                                    {selectedSymbol?.symbol || "-"}
-                                  </td>
-                                  <td className="px-2 sm:px-4 py-3 text-center">
-                                    <span className="inline-flex items-center h-6 px-2 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[9px] sm:text-[10px] font-bold">
-                                      {weekKPIs.buySignals}
-                                    </span>
-                                  </td>
-                                  <td className="px-2 sm:px-4 py-3 text-center">
-                                    <span className="inline-flex items-center h-6 px-2 rounded bg-rose-500/10 text-rose-400 border border-rose-500/20 text-[9px] sm:text-[10px] font-bold">
-                                      {weekKPIs.sellSignals}
-                                    </span>
-                                  </td>
-                                  <td className="px-2 sm:px-4 py-3 text-center">
-                                    <span className="inline-flex items-center h-6 px-2 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20 text-[9px] sm:text-[10px] font-bold">
-                                      {weekKPIs.totalCorrect}/{weekKPIs.totalTests}
-                                    </span>
-                                  </td>
-                                  <td className="px-2 sm:px-4 py-3 text-right font-mono text-amber-400">
-                                    {weekKPIs.winRate.toFixed(1)}%
-                                  </td>
-                                </tr>
-                              );
-                            }
-                          )}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
                 </div>
               ) : null}
             </div>

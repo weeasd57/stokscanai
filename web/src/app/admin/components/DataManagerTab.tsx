@@ -18,7 +18,7 @@ interface DataManagerTabProps {
     runUpdate: () => void;
     progress: { current: number, total: number, lastMsg: string } | null;
     logs: string[];
-    setLogs: (logs: string[]) => void;
+    setLogs: React.Dispatch<React.SetStateAction<string[]>>;
     filteredSymbols: SymbolResult[];
     loadingSymbols: boolean;
     toggleSelectAll: () => void;
@@ -248,6 +248,66 @@ export default function DataManagerTab({
                             </div>
                         )}
 
+
+                        <div className="space-y-4 pt-4 border-t border-zinc-900">
+                            <h3 className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Index Management</h3>
+                            <div className="space-y-2">
+                                <input
+                                    placeholder="Symbol (e.g. EGX30.INDX)"
+                                    className="w-full h-8 rounded-lg border border-zinc-800 bg-zinc-900 px-3 text-xs text-zinc-300 outline-none focus:border-indigo-500"
+                                    id="index-symbol"
+                                    defaultValue="EGX30.INDX"
+                                />
+                                <div className="flex gap-2">
+                                    <select
+                                        className="flex-1 h-8 rounded-lg border border-zinc-800 bg-zinc-900 px-2 text-xs text-zinc-300 outline-none"
+                                        id="index-source"
+                                        defaultValue="eodhd"
+                                        onChange={(e) => {
+                                            const exInput = document.getElementById('index-exchange') as HTMLInputElement;
+                                            if (exInput) exInput.style.display = e.target.value === 'tradingview' ? 'block' : 'none';
+                                        }}
+                                    >
+                                        <option value="eodhd">EODHD</option>
+                                        <option value="tradingview">TradingView</option>
+                                    </select>
+                                    <input
+                                        id="index-exchange"
+                                        placeholder="Exchange (e.g. EGX)"
+                                        className="flex-1 h-8 rounded-lg border border-zinc-800 bg-zinc-900 px-3 text-xs text-zinc-300 outline-none focus:border-indigo-500 hidden"
+                                    />
+                                </div>
+                                <button
+                                    onClick={async () => {
+                                        const sym = (document.getElementById('index-symbol') as HTMLInputElement).value;
+                                        const src = (document.getElementById('index-source') as HTMLSelectElement).value;
+                                        const ex = (document.getElementById('index-exchange') as HTMLInputElement).value;
+
+                                        if (!sym) return;
+
+                                        try {
+                                            setLogs(prev => [`[${new Date().toLocaleTimeString()}] Starting Index Sync for ${sym}...`, ...prev]);
+                                            const res = await fetch('http://localhost:8000/admin/sync-index', {
+                                                method: 'POST',
+                                                headers: { 'Content-Type': 'application/json' },
+                                                body: JSON.stringify({
+                                                    symbol: sym,
+                                                    source: src,
+                                                    exchange: src === 'tradingview' ? ex : undefined
+                                                })
+                                            });
+                                            const data = await res.json();
+                                            setLogs(prev => [`[${new Date().toLocaleTimeString()}] ${data.message}`, ...prev]);
+                                        } catch (e) {
+                                            setLogs(prev => [`[${new Date().toLocaleTimeString()}] ERR: Index Sync Failed`, ...prev]);
+                                        }
+                                    }}
+                                    className="w-full h-8 rounded-lg bg-zinc-800 border border-zinc-700 text-xs font-bold text-zinc-300 hover:bg-zinc-700 transition-all"
+                                >
+                                    Sync Index
+                                </button>
+                            </div>
+                        </div>
 
                         <div className="space-y-2">
                             <div className="text-xs text-zinc-500">Workers</div>

@@ -15,10 +15,13 @@ from stock_ai import (
     _set_model_cache,
     _ensure_feature_columns,
     add_technical_indicators,
+    add_trade_levels,
     prepare_for_ai,
+    get_top_reasons,
     LGBM_PREDICTORS,
     RF_PREDICTORS,
     supabase,
+    _init_supabase,
 )
 
 router = APIRouter(prefix="/scan/fast", tags=["scan-fast"])
@@ -93,7 +96,7 @@ def _load_model(model_name: str):
 
 class _BoosterWrapper:
     """Wrapper to give LightGBM Booster a sklearn-like predict interface."""
-    def __init__(self, booster, threshold: float = 0.5):
+    def __init__(self, booster, threshold: float = 0.40): # Match stock_ai
         self.booster = booster
         self.threshold = threshold
 
@@ -101,6 +104,13 @@ class _BoosterWrapper:
         import numpy as np
         raw = self.booster.predict(X)
         return (np.asarray(raw) >= self.threshold).astype(int)
+
+    @property
+    def feature_importances_(self):
+        try:
+            return self.booster.feature_importance()
+        except Exception:
+            return []
 
     def predict_proba(self, X):
         import numpy as np
@@ -118,6 +128,10 @@ def _process_symbol(
     model,
     predictors: List[str],
     min_precision: float,
+    target_pct: float = 0.10,
+    stop_loss_pct: float = 0.05,
+    look_forward_days: int = 20,
+    buy_threshold: float = 0.40,
 ) -> Optional[Dict[str, Any]]:
     """Process a single symbol - called in parallel."""
     try:
@@ -127,7 +141,7 @@ def _process_symbol(
         
         # Use only the fast add_technical_indicators (not add_massive_features)
         feat = _get_data_with_indicators_cached(sym, ex or "EGX", raw, add_technical_indicators)
-        candidate = prepare_for_ai(feat)
+        candidate = prepare_for_ai(feat, target_pct=target_pct, stop_loss_pct=stop_loss_pct, look_forward_days=look_forward_days, drop_labels=False)
         
         if len(candidate) < 60:
             return None
@@ -139,37 +153,161 @@ def _process_symbol(
         if not available_predictors:
             return None
         
-        pred = int(model.predict(candidate[available_predictors])[0])
         prob = None
         if hasattr(model, "predict_proba"):
             try:
                 prob = float(model.predict_proba(candidate[available_predictors])[0][1])
+                pred = 1 if prob >= buy_threshold else 0
             except Exception:
-                prob = None
+                pred = int(model.predict(candidate[available_predictors])[0])
+        else:
+            pred = int(model.predict(candidate[available_predictors])[0])
         
         precision = prob if prob is not None else 0.5
         
-        # Debug logging (first 5 symbols only to avoid spam)
-        import random
-        if random.random() < 0.02:  # Log ~2% of symbols
-            print(f"DEBUG SCAN: {sym} | pred={pred} | prob={precision:.3f} | min_precision={min_precision}")
+        # Debug logging for BUY predictions only
+        # Note: The filter now uses buy_threshold (from Strategy Settings) instead of min_precision
+        if pred == 1:
+            print(f"DEBUG SCAN: {sym} | pred={pred} | prob={precision:.3f} | buy_threshold={buy_threshold} | ✓ PASS")
         
-        if pred == 1 and precision >= min_precision:
+        # Use buy_threshold for filtering (same as Strategy Settings Sensitivity)
+        # This ensures consistency: if pred=1 (passed buy_threshold), it should appear
+        if pred == 1:
+            last_close = float(candidate.iloc[-1]["Close"])
+            tp = last_close * (1 + target_pct)
+            sl = last_close * (1 - stop_loss_pct)
+            
+            # Convert numpy types to native Python types for JSON serialization
+            features_list = candidate[available_predictors].iloc[0].tolist()
+            # Ensure all values are JSON-serializable (not numpy types)
+            features_list = [float(f) if hasattr(f, 'item') else f for f in features_list]
+            
+            # Calculate AI Scores
+            technical_score = _calculate_technical_score(candidate)
+            fundamental_score = _calculate_fundamental_score(candidate)
+            
             return {
                 "symbol": sym,
                 "exchange": ex,
                 "name": name,
-                "precision": precision,
-                "last_close": float(candidate.iloc[-1]["Close"]),
+                "precision": float(precision),
+                "last_close": last_close,
+                "target_price": round(tp, 2),
+                "stop_loss": round(sl, 2),
                 "signal": "BUY",
+                "top_reasons": get_top_reasons(model, available_predictors),
+                "features": features_list,
+                "technical_score": technical_score,
+                "fundamental_score": fundamental_score,
             }
         return None
     except Exception as e:
-        # Log exceptions for debugging
+        msg = str(e)
+        # Silently skip assets with categorical mismatch or known data-type issues
+        if "categorical_feature do not match" in msg:
+            return None
+            
+        # Log other exceptions for debugging (occasionally)
         import random
         if random.random() < 0.05:
-            print(f"DEBUG SCAN ERROR: {sym} | {e}")
+            print(f"DEBUG SCAN ERROR: {sym} | {msg}")
         return None
+
+
+def _calculate_technical_score(row) -> int:
+    """Calculate technical score (0-10) based on key indicators."""
+    score = 0
+    try:
+        r = row.iloc[0] if hasattr(row, 'iloc') else row
+        
+        # RSI (0-2 points): Ideal range 30-70
+        rsi = float(r.get("RSI", 50)) if "RSI" in r else 50
+        if 30 <= rsi <= 70:
+            score += 2
+        elif 20 <= rsi < 30 or 70 < rsi <= 80:
+            score += 1
+        
+        # EMA Trend (0-2 points): Close > EMA50 > EMA200
+        close = float(r.get("Close", 0)) if "Close" in r else 0
+        ema50 = float(r.get("EMA_50", 0)) if "EMA_50" in r else 0
+        ema200 = float(r.get("EMA_200", 0)) if "EMA_200" in r else 0
+        if close > ema50 > ema200 > 0:
+            score += 2
+        elif close > ema50 > 0 or close > ema200 > 0:
+            score += 1
+        
+        # MACD (0-2 points): MACD > Signal = bullish
+        macd = float(r.get("MACD", 0)) if "MACD" in r else 0
+        macd_signal = float(r.get("MACD_Signal", 0)) if "MACD_Signal" in r else 0
+        if macd > macd_signal:
+            score += 2
+        elif macd > 0:
+            score += 1
+        
+        # ADX (0-2 points): Strong trend > 25
+        adx = float(r.get("ADX_14", 0)) if "ADX_14" in r else 0
+        if adx > 25:
+            score += 2
+        elif adx > 15:
+            score += 1
+        
+        # Volume (0-2 points): Current volume > 20-day average
+        volume = float(r.get("Volume", 0)) if "Volume" in r else 0
+        vol_sma = float(r.get("VOL_SMA20", 1)) if "VOL_SMA20" in r else 1
+        if vol_sma > 0 and volume > vol_sma:
+            score += 2
+        elif vol_sma > 0 and volume > vol_sma * 0.7:
+            score += 1
+            
+    except Exception:
+        pass
+    
+    return min(10, max(0, score))
+
+
+def _calculate_fundamental_score(row) -> int:
+    """Calculate fundamental score (0-10) based on key fundamentals."""
+    score = 0
+    try:
+        r = row.iloc[0] if hasattr(row, 'iloc') else row
+        
+        # PE Ratio (0-3 points): Lower is better
+        pe = float(r.get("peRatio", 0)) if "peRatio" in r else 0
+        if 0 < pe <= 15:
+            score += 3
+        elif 15 < pe <= 25:
+            score += 2
+        elif 25 < pe <= 40:
+            score += 1
+        
+        # EPS (0-3 points): Positive earnings
+        eps = float(r.get("eps", 0)) if "eps" in r else 0
+        if eps > 1:
+            score += 3
+        elif eps > 0:
+            score += 2
+        elif eps > -0.5:
+            score += 1
+        
+        # Dividend Yield (0-2 points)
+        div_yield = float(r.get("dividendYield", 0)) if "dividendYield" in r else 0
+        if div_yield > 3:
+            score += 2
+        elif div_yield > 1:
+            score += 1
+        
+        # Market Cap (0-2 points): Larger = more stable
+        mkt_cap = float(r.get("marketCap", 0)) if "marketCap" in r else 0
+        if mkt_cap > 10_000_000_000:  # > 10B
+            score += 2
+        elif mkt_cap > 1_000_000_000:  # > 1B
+            score += 1
+            
+    except Exception:
+        pass
+    
+    return min(10, max(0, score))
+
 
 
 @router.get("")
@@ -180,6 +318,10 @@ async def fast_scan(
     model_name: str = Query(..., description="Model file name in api/models"),
     from_date: str = Query(default=None, description="Start date (YYYY-MM-DD). Defaults to 300 days ago."),
     to_date: str = Query(default=None, description="End date (YYYY-MM-DD)."),
+    target_pct: float = Query(default=0.10),
+    stop_loss_pct: float = Query(default=0.05),
+    look_forward_days: int = Query(default=20),
+    buy_threshold: float = Query(default=0.40),
 ):
     start = time.time()
     
@@ -234,7 +376,8 @@ async def fast_scan(
     with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
         futures = {
             executor.submit(
-                _process_symbol, sym, ex, name, df, model, predictors, min_precision
+                _process_symbol, sym, ex, name, df, model, predictors, min_precision,
+                target_pct, stop_loss_pct, look_forward_days, buy_threshold
             ): sym
             for sym, ex, name, df in symbols_to_process
         }
@@ -255,65 +398,101 @@ async def fast_scan(
         "min_precision": min_precision,
     }
 
-@router.get("/evaluate/{scan_id}")
-def evaluate_scan(scan_id: str):
+@router.get("/evaluate/{batch_id}")
+def evaluate_scan(batch_id: str):
     """
-    Refresh performance for a specific scan by fetching latest prices
-    and updating profit_loss_pct and status in Supabase.
+    Refresh performance for a specific scan by iterating through historical price data
+    from the 'to_date' (Scan Reference Date) until now.
+    Checks for Target Price or Stop Loss hits chronologically.
     """
-    if not supabase:
+    _init_supabase()
+    from stock_ai import supabase as sb
+    if not sb:
         raise HTTPException(status_code=500, detail="Supabase not initialized")
 
     try:
-        # 1. Fetch results for this scan
-        res = supabase.table("scan_results").select("*").eq("scan_id", scan_id).execute()
+        # 1. Fetch results for this batch
+        res = sb.table("scan_results").select("*").eq("batch_id", batch_id).execute()
         results = res.data
         if not results:
-            return {"count": 0, "message": "No results found for this scan"}
+            return {"count": 0, "message": "No results found for this batch"}
 
-        # 2. Get latest prices for these symbols
-        symbols = list(set([r["symbol"] for r in results]))
-        exchanges = list(set([r["exchange"] for r in results if r.get("exchange")]))
-        
-        # Simple bulk price fetch - in a real app, you might want a more efficient way
-        # For now, let's fetch the latest row for each symbol from stock_prices
-        price_map = {}
-        for sym in symbols:
-            p_res = supabase.table("stock_prices")\
-                .select("close")\
-                .eq("symbol", sym)\
-                .order("dt", descending=True)\
-                .limit(1)\
-                .execute()
-            if p_res.data:
-                price_map[sym] = float(p_res.data[0]["close"])
-
-        # 3. Update each result
         updated_count = 0
         for r in results:
-            symbol = r["symbol"]
-            entry_price = float(r["entry_price"]) if r.get("entry_price") else float(r["last_close"])
-            current_price = price_map.get(symbol)
+            # We skip results that are already closed (win/loss) if they have an exit_price
+            # However, the user might want a re-evaluation if data changed, so we'll re-evaluate all
             
-            if current_price:
-                pl_pct = ((current_price - entry_price) / entry_price) * 100
-                
-                # Determine status
-                status = "open"
-                if pl_pct >= 2.0: # 2% win threshold for example
-                    status = "win"
-                elif pl_pct <= -1.0: # 1% loss threshold
+            symbol = r["symbol"]
+            exchange = r.get("exchange", "EGX")
+            entry_price = float(r["entry_price"]) if r.get("entry_price") else float(r["last_close"])
+            target_price = float(r["target_price"]) if r.get("target_price") else None
+            stop_loss = float(r["stop_loss"]) if r.get("stop_loss") else None
+            start_date = r.get("to_date") # Evaluation starts from the Scan Reference Date
+            
+            if not start_date:
+                # Fallback to created_at if to_date is missing
+                start_date = r["created_at"].split("T")[0]
+
+            # 2. Fetch all historical prices for this symbol from start_date to now
+            # Ordered by date ASCENDING for chronological check
+            p_res = sb.table("stock_prices")\
+                .select("date,high,low,close")\
+                .eq("symbol", symbol)\
+                .eq("exchange", exchange)\
+                .gte("date", start_date)\
+                .order("date", desc=False)\
+                .execute()
+            
+            prices = p_res.data
+            if not prices:
+                continue
+
+            status = "open"
+            exit_price = None
+            pl_pct = 0.0
+            found_event = False
+
+            # 3. Iterate day by day
+            eps = 0.00001
+            for p in prices:
+                hi = float(p["high"]) if p.get("high") else float(p["close"])
+                lo = float(p["low"]) if p.get("low") else float(p["close"])
+                dt = p["date"]
+
+                # Check Stop Loss Hit (Loss) - Prioritize loss on same-day hits for conservative evaluation
+                if stop_loss and lo <= (stop_loss + eps):
                     status = "loss"
+                    exit_price = stop_loss
+                    pl_pct = ((stop_loss - entry_price) / entry_price) * 100
+                    found_event = True
+                    break
 
-                supabase.table("scan_results").update({
-                    "exit_price": current_price,
-                    "profit_loss_pct": pl_pct,
-                    "status": status,
-                    "updated_at": datetime.datetime.utcnow().isoformat()
-                }).eq("id", r["id"]).execute()
-                updated_count += 1
+                # Check Target Hit (Win)
+                if target_price and hi >= (target_price - eps):
+                    status = "win"
+                    exit_price = target_price
+                    pl_pct = ((target_price - entry_price) / entry_price) * 100
+                    found_event = True
+                    break
 
-        return {"count": updated_count, "message": f"Updated {updated_count} results"}
+            # 4. If neither hit, calculate current P/L based on latest close
+            if not found_event and prices:
+                latest = prices[-1]
+                current_price = float(latest["close"])
+                status = "open"
+                exit_price = current_price
+                pl_pct = ((current_price - entry_price) / entry_price) * 100
+
+            # 5. Update Supabase
+            sb.table("scan_results").update({
+                "exit_price": exit_price,
+                "profit_loss_pct": round(pl_pct, 4),
+                "status": status,
+                "updated_at": datetime.datetime.utcnow().isoformat()
+            }).eq("id", r["id"]).execute()
+            updated_count += 1
+
+        return {"count": updated_count, "message": f"Successfully evaluated {updated_count} results chronologically."}
     except Exception as e:
         print(f"Error evaluating scan performance: {e}")
         raise HTTPException(status_code=500, detail=str(e))

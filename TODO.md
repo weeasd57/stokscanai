@@ -1,41 +1,38 @@
-# Project Roadmap & Improvements
 
- 
-## 🚀 Priority Features (Inspired by Danelfin Analysis)
+## 🚀 Model & UI Improvements Roadmap
 
-### 1. AI Score System (1-10)
-- [ ] Convert model prediction probabilities into a user-friendly score from 1 to 10.
-  - 90%+ Probability -> **Strong Buy (10/10)**
-  - 70%-80% Probability -> **Buy (7-8/10)**
-- [ ] Update frontend UI to display this score prominently for each signal.
+### 📋 General
+- [ ] Add **Learning Rate** in model cards (Metadata display)
 
+### 🧠 Backend Strategy (`api/train_exchange_model.py`)
+- [ ] **Fix Look-Ahead Bias**: Ensure targeting doesn't leak future data (especially `next_open`).
+- [ ] **Feature Computation Optimization**: Implement preset-based feature sets (`core`, `extended`, `max`) to avoid computing unused indicators.
+- [ ] **Symbol Retention**: Lower history requirements for simpler feature presets to include newer or less liquid symbols.
+- [ ] **Data Loading Optimization**: Implement parallel fetching with connection pooling.
+- [ ] **Feature Caching**: Add disk-based caching for computed features to speed up retraining.
+- [ ] **Memory Management**: Use downcasting and categorical types for large DataFrames.
+- [ ] **Architecture Refactoring**: Transition to a class-based `ModelTrainer` to separate data, features, training, and evaluation logic.
+- [ ] **Data Validation**: Add robust pre-training validation (null checks, column verification, data size).
+- [ ] **Handle Class Imbalance**: Implement SMOTE or weighted loss to address the low frequency of positive signals.
+- [ ] **Enhanced Evaluation**: Use PR-Curves and F1-score optimization instead of just accuracy.
+- [ ] **Model Versioning**: Implement formal version tracking and metadata persistence.
+- [ ] **Feature Importance Analysis**: Automatically identify and prune low-importance features to simplify the model.
 
-### 2. Explainable AI (Transparency)
-- [ ] Implement `feature_importance` extraction from LightGBM after each prediction.
-- [ ] Display the **Top 3 Reasons** why a stock was selected (e.g., "Low RSI", "Bullish MACD Cross", "High Volume Spark").
-- [ ] Add tooltips explaining what each technical indicator means for the user.
+### 🔄 Adaptive & Active Learning (`api/adaptive_learning.py`)
+- [ ] **Fix Incremental Learning Logic**: Correct usage of `init_model` and ensure the native LightGBM API is used for proper weighted updates.
+- [ ] **Refine Mistake Detection**: Differentiate between "False Positives" (wrong signals) and "Missed Opportunities" (False Negatives) for targeted refinement.
+- [ ] **Implement Stop-Loss Verification**: Add checks to see if a prediction would have hit a stop-loss before reaching the target.
+- [ ] **Address Race Conditions**: Ensure thread-safety when updating shared resources like model logs or the model itself in background workers.
+- [ ] **Performance Tracking**: Implement a "Safety Check" that compares the updated model's performance against the previous version before swapping.
 
-### 3. Scanner & Admin Improvements
-- [ ] **Fast Scanner Migration**: Move the "Fast Scanner AI" section to the Admin panel.
-- [ ] **Date Range Scanning**: Add functionality to select a specific date range for scanning.
-- [ ] **Data Optimization**: In Fast AI Scanner, fetch only the last 300 days of symbol data instead of all history.
-- [ ] **Scan History & Performance**:
-  - [ ] Store scan results in Supabase.
-  - [ ] Add a feature to show old scan results and "close" them if a close signal appears.
-  - [ ] Calculate and display profit/loss and win rate for previous scans.
-- [ ] **Multi-Model Tabs**: Add tabs in the AI Scanner page for every model, with visibility controlled from the Admin page.
+### 🎨 Frontend Excellence (`TestModelTab`)
 
+- [ ] **Component Decomposition**: Break down the massive `TestModelTab` into modular sub-components.
+- [ ] **Performance Virtualization**: Use virtual scrolling for large prediction tables (e.g., `@tanstack/react-virtual`).
+- [ ] **Strict Type Safety**: Replace `any` types with comprehensive interfaces for models and predictions.
+- [ ] **Optimize Rendering**: Apply `React.memo` and `lazy` loading for heavy chart components.
+- [ ] **Robust Error Handling**: Enhance multi-model test tracking to show specific failures without stopping the entire batch.
+- [ ] **UX Polish**: Add skeleton loaders, toast notifications, and debounced search filters.
+- [ ] **State Management**: Migrate complex component state to `useReducer`.
+- [ ] **Automated Testing**: Add unit tests for KPI calculations and integration tests for the test runners.
 
-## 🔍 Competitor Analysis: Danelfin vs. Elztona
-
-| Feature | Danelfin | Elztona (Our Tool) |
-| --- | --- | --- |
-| **Strategy** | Broad market coverage (1-10 score) | Sniper approach (High Precision) |
-| **Win Rate** | ~60% | **81% - 95%** |
-| **Key Advantage** | Sentiment & Transparency | **Surgical Accuracy** |
-
-## ✅ Done
-- [x] Initial LightGBM model implementation.
-- [x] Multi-exchange data syncing (EGX, etc.).
-- [x] Vercel deployment for Next.js & Python backend.
-- [x] Middleware error handling and debugging instrumentation.

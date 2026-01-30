@@ -18,8 +18,19 @@ from supabase import create_client, Client
 from api.stock_ai import (
     get_stock_data, get_stock_data_eodhd, get_company_fundamentals,
     _init_supabase, supabase, update_stock_data,
-    _finite_float, add_technical_indicators, upsert_technical_indicators,
+    _finite_float, add_technical_indicators, upsert_technical_indicators, get_supabase_inventory,
 )
+import joblib 
+# Import adaptive learning modules (lazy import inside functions if needed, but top level is cleaner if no circular dep)
+# adaptive_learning imports stock_ai, stock_ai imports main? No, usually main imports stock_ai. 
+# admin imports stock_ai. 
+# adaptive_learning -> stock_ai
+# admin -> adaptive_learning
+# No cycle: admin -> adaptive -> stock_ai. admin -> stock_ai. Safe.
+try:
+    from api.adaptive_learning import ManualRetrainer, update_actuals as update_actuals_logic, ActiveLearner
+except ImportError:
+    pass # Handle gracefully if file missing during partial updates
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -104,7 +115,19 @@ LOCAL_TRAINING_STATE = {
     "version": 0,
     "last_update": None,
 }
-_local_training_lock = threading.Lock()
+_local_training_lock = threading.RLock()
+
+
+def _list_local_model_names() -> List[str]:
+    base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+    models_dir = os.path.join(base_dir, "models")
+    if not os.path.exists(models_dir):
+        return []
+    return [f for f in os.listdir(models_dir) if f.endswith(".pkl")]
+
+@router.get("/db-inventory")
+def get_db_inventory():
+    return get_supabase_inventory()
 
 
 @router.get("/plans")
@@ -183,11 +206,21 @@ def _load_config():
                     "fundSource": fund_source,
                     "maxWorkers": max_workers,
                     "enabledModels": cfg.get("enabledModels") or [],
+                    "modelAliases": cfg.get("modelAliases") or {},
+                    "scanDays": cfg.get("scanDays") or 450,
                 }
         except Exception:
             pass
     max_workers = int(os.getenv("ADMIN_MAX_WORKERS", "8"))
-    return {"source": "eodhd", "priceSource": "eodhd", "fundSource": "auto", "maxWorkers": max_workers, "enabledModels": []}
+    return {
+        "source": "eodhd", 
+        "priceSource": "eodhd", 
+        "fundSource": "auto", 
+        "maxWorkers": max_workers, 
+        "enabledModels": [],
+        "modelAliases": {},
+        "scanDays": 450
+    }
 
 def _save_config(cfg):
     with open(CONFIG_FILE, "w") as f:
@@ -202,6 +235,8 @@ class ConfigUpdate(BaseModel):
     fundSource: Optional[str] = None
     maxWorkers: Optional[int] = None
     enabledModels: Optional[List[str]] = None
+    modelAliases: Optional[dict] = None
+    scanDays: Optional[int] = None
 
 @router.post("/config")
 def set_config(cfg: ConfigUpdate):
@@ -229,7 +264,38 @@ def set_config(cfg: ConfigUpdate):
     if cfg.enabledModels is not None:
         current["enabledModels"] = cfg.enabledModels
 
+    if cfg.modelAliases is not None:
+        current["modelAliases"] = cfg.modelAliases
+
+    if cfg.scanDays is not None:
+        current["scanDays"] = cfg.scanDays
+
     _save_config(current)
+
+    # Sync to Supabase for normal users to see display names
+    # Note: Expects public.public_models_config table to exist
+    try:
+        _init_supabase()
+        if supabase:
+            # We sync both enabled state and aliases
+            sync_data = []
+            # We list all models locally to ensure we have the full set
+            from api.routers.admin import _list_local_model_names
+            all_local = _list_local_model_names()
+            
+            for m in all_local:
+                sync_data.append({
+                    "filename": m,
+                    "display_name": current.get("modelAliases", {}).get(m, m.replace(".pkl", "")),
+                    "is_enabled": m in current.get("enabledModels", []),
+                    "updated_at": datetime.now().isoformat()
+                })
+            
+            if sync_data:
+                supabase.table("public_models_config").upsert(sync_data).execute()
+    except Exception as e:
+        print(f"Supabase scan_config sync failed: {e}")
+
     return current
 
 
@@ -488,10 +554,168 @@ def update_batch(req: UpdateRequest, background_tasks: BackgroundTasks):
             },
         )
 
+    # Trigger background evaluation of published signals that might have hit targets
+    background_tasks.add_task(evaluate_open_signals)
+
     return {"results": results, "priceSource": price_source, "fundSource": fund_source_cfg, "debug_config_path": CONFIG_FILE}
 
+def evaluate_open_signals():
+    """Evaluate all 'open' status signals across all batches."""
+    from api.routers.scan_ai_fast import evaluate_scan
+    _init_supabase()
+    if not supabase: return
 
-@router.get("/db-inventory")
+    try:
+        # Get unique batch_ids that have 'open' signals
+        res = supabase.table("scan_results").select("batch_id").eq("status", "open").execute()
+        if not res.data: return
+        
+        batch_ids = list(set([r["batch_id"] for r in res.data]))
+        for b_id in batch_ids:
+            try:
+                evaluate_scan(b_id)
+            except Exception as e:
+                print(f"Background evaluation failed for batch {b_id}: {e}")
+    except Exception as e:
+        print(f"Failed to fetch open batches for evaluation: {e}")
+
+
+class IndexSyncRequest(BaseModel):
+    symbol: str  # e.g. "EGX30.INDX" or "EGX30"
+    source: str = "eodhd" # "eodhd" or "tradingview"
+    exchange: Optional[str] = None # Required for TradingView, e.g. "EGX"
+    from_date: str = "2020-01-01"
+
+@router.post("/sync-index")
+def sync_index(req: IndexSyncRequest, background_tasks: BackgroundTasks):
+    """
+    Syncs a market index (e.g., EGX30.INDX) from EODHD or TradingView.
+    """
+    def _do_sync():
+        try:
+            print(f"Starting index sync for {req.symbol} via {req.source}...")
+            
+            df = None
+            
+            # --- EODHD Source ---
+            if req.source.lower() == "eodhd":
+                api_token = os.getenv("EODHD_API_KEY")
+                if not api_token:
+                    print("Error: EODHD_API_KEY not found.")
+                    return
+
+                # Construct URL as requested by user
+                url = f"https://eodhd.com/api/eod/{req.symbol}"
+                params = {
+                    "api_token": api_token,
+                    "fmt": "json",
+                    "from": req.from_date
+                }
+                
+                print(f"Fetching index {req.symbol} from EODHD...")
+                resp = requests.get(url, params=params, timeout=30)
+                resp.raise_for_status()
+                
+                data = resp.json()
+                if not data or not isinstance(data, list):
+                    print(f"Error: Invalid data received for {req.symbol}")
+                    return
+
+                df = pd.DataFrame(data)
+                # Ensure columns match Supabase schema
+                if "date" in df.columns:
+                    df["date"] = pd.to_datetime(df["date"])
+
+            # --- TradingView Source ---
+            elif req.source.lower() == "tradingview":
+                try:
+                    from tvDatafeed import TvDatafeed, Interval
+                except ImportError:
+                    print("Error: tvDatafeed not installed.")
+                    return
+
+                if not req.exchange:
+                    print("Error: 'exchange' is required for TradingView source (e.g., EGX).")
+                    return
+
+                tv = TvDatafeed()
+                
+                # Normalize symbol/exchange
+                tv_symbol = req.symbol
+                tv_exchange = req.exchange
+                
+                # Handle EODHD-style input (e.g. EGX30.INDX)
+                if ".INDX" in tv_symbol:
+                    tv_symbol = tv_symbol.replace(".INDX", "")
+                
+                # Robust defaults for known indices if exchange is missing or identical to symbol
+                if not tv_exchange or tv_exchange == req.symbol:
+                     if tv_symbol == "EGX30":
+                         tv_exchange = "EGX"
+                     elif tv_symbol == "GSPC" or tv_symbol == "SPX":
+                         tv_exchange = "TVC" # S&P 500 is often on TVC or SPI
+                         tv_symbol = "SPX"
+                
+                print(f"Fetching {tv_symbol} from TradingView ({tv_exchange})...")
+                
+                # Fetch data
+                tv_df = tv.get_hist(
+                    symbol=tv_symbol,
+                    exchange=tv_exchange,
+                    interval=Interval.in_daily,
+                    n_bars=5000
+                )
+                
+                if tv_df is None or tv_df.empty:
+                    print(f"Error: No data found for {req.symbol} on {req.exchange}")
+                    return
+
+                # Clean and standardize
+                df = tv_df.reset_index()
+                df.rename(columns={
+                    'datetime': 'date',
+                    'open': 'open',
+                    'high': 'high',
+                    'low': 'low',
+                    'close': 'close',
+                    'volume': 'volume'
+                }, inplace=True)
+                
+                # Ensure date is datetime
+                df['date'] = pd.to_datetime(df['date'])
+                # Add adjusted_close if missing
+                if 'adjusted_close' not in df.columns:
+                    df['adjusted_close'] = df['close']
+
+            if df is None or df.empty:
+                print(f"Error: No dataframe created for {req.symbol}")
+                return
+
+            # Sync to Supabase
+            # Use the EXACT requested symbol as the ID (e.g. EGX30.INDX)
+            # CAUTION: If user passed just "EGX30" for TV, we might want to suffix it?
+            # User request implies they might manage the suffix manually or we trust input.
+            # Assuming input symbol is the target ID.
+            
+            target_symbol = req.symbol
+            # If using TV, user might send "EGX30" but we want "EGX30.INDX". 
+            # Let's enforce .INDX if it looks like an index and lacks it, strictly for indices?
+            # Or trust the user. Let's trust the user input, but ensure we map 
+            # the EODHD symbol (which usually has .INDX) correctly.
+            
+            _init_supabase()
+            success, msg = sync_df_to_supabase(target_symbol, df)
+            
+            if success:
+                print(f"Successfully synced index {target_symbol}: {msg}")
+            else:
+                print(f"Failed to sync index {target_symbol}: {msg}")
+
+        except Exception as e:
+            print(f"Exception syncing index {req.symbol}: {e}")
+
+    background_tasks.add_task(_do_sync)
+    return {"status": "queued", "message": f"Sync started for {req.symbol} from {req.source}"}
 def get_db_inventory():
     """Retrieve accurate summary stats for all exchanges in Supabase using unified logic."""
     from api.stock_ai import get_supabase_inventory
@@ -513,6 +737,25 @@ def get_db_inventory():
 @router.get("/db-symbols/{exchange}")
 def get_db_symbols(exchange: str, mode: str = "prices"):
     """List all symbols for a specific exchange based on mode (prices or fundamentals)."""
+    # Map common country names to exchanges if passed incorrectly
+    # Using lowercase keys for case-insensitive lookup
+    country_map = {
+        "egypt": "EGX",
+        "egx": "EGX",
+        "usa": "US",
+        "us": "US",
+        "argentina": "BA",
+        "brazil": "SA",
+        "south korea": "KQ",
+        "canada": "TO",
+        "uk": "LSE",
+        "france": "PA",
+        "germany": "F"
+    }
+    # Standardize
+    lookup_key = exchange.strip().lower()
+    exchange = country_map.get(lookup_key, exchange).upper()
+
     _init_supabase()
     if not supabase:
         return []
@@ -523,11 +766,12 @@ def get_db_symbols(exchange: str, mode: str = "prices"):
             res = supabase.table("stock_fundamentals").select("symbol,updated_at,data").eq("exchange", exchange).execute()
             if res.data:
                 for row in res.data:
-                    s = row["symbol"]
+                    s = row.get("symbol")
+                    if not s: continue
                     d = row.get("data") or {}
                     symbols_info[s] = {
                         "symbol": s, "name": d.get("name", "N/A"), "sector": d.get("sector", "N/A"),
-                        "last_sync": row["updated_at"], "last_price_date": None
+                        "last_sync": row.get("updated_at"), "last_price_date": None
                     }
         else:
             # Better logic: Fetch every unique symbol and its latest date for this exchange
@@ -535,13 +779,14 @@ def get_db_symbols(exchange: str, mode: str = "prices"):
             res = supabase.rpc("get_exchange_symbols_prices", {"p_exchange": exchange}).execute()
             if res.data:
                 for row in res.data:
-                    s = row["symbol"]
+                    s = row.get("symbol")
+                    if not s: continue
                     symbols_info[s] = {
                         "symbol": s, 
                         "name": "N/A", 
                         "sector": "N/A", 
                         "last_sync": None, 
-                        "last_price_date": row["last_date"],
+                        "last_price_date": row.get("last_date"),
                         "row_count": row.get("count", 0)
                     }
         
@@ -552,7 +797,7 @@ def get_db_symbols(exchange: str, mode: str = "prices"):
                 res_meta = supabase.table("stock_fundamentals").select("symbol,data").eq("exchange", exchange).in_("symbol", chunk).execute()
                 if res_meta.data:
                     for row in res_meta.data:
-                        s = row["symbol"]
+                        s = row.get("symbol")
                         d = row.get("data") or {}
                         if s in symbols_info:
                             symbols_info[s]["name"] = d.get("name", d.get("Name", "N/A"))
@@ -564,9 +809,9 @@ def get_db_symbols(exchange: str, mode: str = "prices"):
                 res_meta = supabase.table("stock_fundamentals").select("symbol,updated_at").eq("exchange", exchange).in_("symbol", chunk).execute()
                 if res_meta.data:
                     for row in res_meta.data:
-                        s = row["symbol"]
+                        s = row.get("symbol")
                         if s in symbols_info: 
-                            symbols_info[s]["last_sync"] = row["updated_at"]
+                            symbols_info[s]["last_sync"] = row.get("updated_at")
 
         return sorted(list(symbols_info.values()), key=lambda x: x["symbol"])
     except Exception as e:
@@ -773,6 +1018,11 @@ class TrainTriggerRequest(BaseModel):
     trainingStrategy: Optional[str] = None  # "golden" | "grid_small" | "random"
     randomSearchIter: Optional[int] = None
     maxFeatures: Optional[int] = None
+    targetPct: float = 0.15  # Target gain percentage (e.g., 0.15 = 15%)
+    stopLossPct: float = 0.05  # Stop loss percentage (e.g., 0.05 = 5%)
+    lookForwardDays: int = 20  # Look-ahead window in trading days
+    learningRate: float = 0.05
+    patience: int = 50
 
 @router.post("/train/trigger")
 async def trigger_training(req: TrainTriggerRequest):
@@ -844,6 +1094,11 @@ async def trigger_local_training(req: TrainTriggerRequest, background_tasks: Bac
         training_strategy: Optional[str],
         random_search_iter: Optional[int],
         max_features: Optional[int],
+        target_pct: float,
+        stop_loss_pct: float,
+        look_forward_days: int,
+        learning_rate: float,
+        patience: int,
     ):
         try:
             print(f"Starting local training for {ex}")
@@ -883,6 +1138,11 @@ async def trigger_local_training(req: TrainTriggerRequest, background_tasks: Bac
                 random_search_iter=random_search_iter,
                 max_features=max_features,
                 progress_cb=_progress_cb,
+                target_pct=target_pct,
+                stop_loss_pct=stop_loss_pct,
+                look_forward_days=look_forward_days,
+                learning_rate=learning_rate,
+                patience=patience,
             )
             print(f"Local training for {ex} completed")
             with _local_training_lock:
@@ -913,6 +1173,11 @@ async def trigger_local_training(req: TrainTriggerRequest, background_tasks: Bac
         req.trainingStrategy,
         req.randomSearchIter,
         req.maxFeatures,
+        req.targetPct,
+        req.stopLossPct,
+        req.lookForwardDays,
+        req.learningRate,
+        req.patience,
     )
     return {"status": "success", "message": f"Local training started for {req.exchange}. Check server logs for progress."}
 
@@ -1206,6 +1471,19 @@ def list_local_models():
                         ts = model.get("trainingSamples")
                         if isinstance(ts, (int, float)):
                             info["trainingSamples"] = int(ts)
+                        
+                        # New fields
+                        info["n_estimators"] = int(ne) if isinstance(ne, (int, float)) else None
+                        info["num_trees"] = int(nt) if isinstance(nt, (int, float)) else None
+                        info["exchange"] = model.get("exchange")
+                        info["featurePreset"] = model.get("featurePreset")
+                        info["bestIteration"] = model.get("bestIteration")
+
+                        # Add Sniper Strategy Params
+                        info["target_pct"] = model.get("target_pct")
+                        info["stop_loss_pct"] = model.get("stop_loss_pct")
+                        info["look_forward_days"] = model.get("look_forward_days")
+
                         # Done; avoid deeper inspection
                         models.append(info)
                         continue
@@ -1535,3 +1813,182 @@ async def update_symbols_inventory(background_tasks: BackgroundTasks, country: O
 
     background_tasks.add_task(_inventory_worker)
     return {"status": "success", "message": f"Inventory update {'for ' + country if country else 'started'} in background"}
+# --- ADAPTIVE LEARNING ENDPOINTS ---
+
+class RetrainRequest(BaseModel):
+    exchange: str = "EGX"
+    lookback_days: int = 30
+    model_name: Optional[str] = None
+
+class UpdateActualsRequest(BaseModel):
+    exchange: str = "EGX"
+    look_forward_days: int = 20
+    model_name: Optional[str] = None
+
+@router.post("/train/adaptive/update-actuals")
+def admin_update_actuals(req: UpdateActualsRequest, background_tasks: BackgroundTasks):
+    def _task():
+        # Signal start
+        with _local_training_lock:
+            LOCAL_TRAINING_STATE["running"] = True
+            LOCAL_TRAINING_STATE["exchange"] = req.exchange
+            LOCAL_TRAINING_STATE["last_message"] = f"Updating actuals for {req.exchange}..."
+            LOCAL_TRAINING_STATE["started_at"] = datetime.utcnow().isoformat()
+            LOCAL_TRAINING_STATE["error"] = None
+
+        def _log_cb(msg):
+            with _local_training_lock:
+                LOCAL_TRAINING_STATE["last_message"] = str(msg)
+                # Keep history for frontend if needed, but last_message is what updates the live log quickly
+                # The frontend appends to its own list based on polling/stream
+                LOCAL_TRAINING_STATE["version"] = int(LOCAL_TRAINING_STATE.get("version") or 0) + 1
+                LOCAL_TRAINING_STATE["last_update"] = datetime.utcnow().isoformat()
+
+        try:
+            _log_cb(f"Updating actuals for {req.exchange}...")
+            # If model_name is provided, we might want to filter or use specific target_pct/look_forward
+            # For now, we use standard logic but pass the name for potential future filtering
+            update_actuals_logic(req.exchange, look_forward_days=req.look_forward_days, log_cb=_log_cb)
+            _log_cb(f"Actuals updated for {req.exchange}")
+                
+        except Exception as e:
+            print(f"Update actuals failed: {e}")
+            with _local_training_lock:
+                LOCAL_TRAINING_STATE["error"] = str(e)
+                LOCAL_TRAINING_STATE["last_message"] = f"Update actuals failed: {e}"
+        finally:
+            with _local_training_lock:
+                LOCAL_TRAINING_STATE["running"] = False
+                LOCAL_TRAINING_STATE["completed_at"] = datetime.utcnow().isoformat()
+            
+    background_tasks.add_task(_task)
+    return {"status": "queued", "message": "Updating actuals..."}
+
+@router.post("/train/adaptive/retrain")
+def admin_retrain_adaptive(req: RetrainRequest, background_tasks: BackgroundTasks):
+    def _task():
+        with _local_training_lock:
+            LOCAL_TRAINING_STATE["running"] = True
+            LOCAL_TRAINING_STATE["exchange"] = req.exchange
+            LOCAL_TRAINING_STATE["last_message"] = f"Starting adaptive retraining for {req.exchange}..."
+            LOCAL_TRAINING_STATE["started_at"] = datetime.utcnow().isoformat()
+            LOCAL_TRAINING_STATE["error"] = None
+
+        def _log_cb(msg):
+            with _local_training_lock:
+                LOCAL_TRAINING_STATE["last_message"] = str(msg)
+                LOCAL_TRAINING_STATE["version"] = int(LOCAL_TRAINING_STATE.get("version") or 0) + 1
+                LOCAL_TRAINING_STATE["last_update"] = datetime.utcnow().isoformat()
+
+        try:
+            _log_cb(f"Starting manual retraining for {req.exchange}...")
+            # Load current model
+            # If model_name is set, load that specific picker, otherwise fallback to default
+            target_model_name = req.model_name or f"model_{req.exchange}.pkl"
+            
+            learner = ActiveLearner(req.exchange, log_cb=_log_cb)
+            # Override learner model if specific one requested
+            if req.model_name:
+                import joblib
+                base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+                specific_path = os.path.join(base_dir, "models", req.model_name)
+                if os.path.exists(specific_path):
+                    _log_cb(f"Loading specific model: {req.model_name}")
+                    learner.model = joblib.load(specific_path)
+            
+            current_model = learner.model
+            if not current_model:
+                _log_cb(f"No existing model {target_model_name} to retrain.")
+                return
+
+            retrainer = ManualRetrainer(req.exchange, log_cb=_log_cb)
+            mistakes = retrainer.fetch_mistakes(req.lookback_days, model_name=req.model_name)
+            if not mistakes:
+                _log_cb(f"No recent mistakes found for {target_model_name} to retrain on.")
+                return
+
+            _log_cb(f"Found {len(mistakes)} mistakes to learn from.")
+
+            new_model = retrainer.retrain_on_mistakes(current_model, mistakes)
+            
+            # Save back to same path
+            base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            models_dir = os.path.join(base_dir, "models")
+            os.makedirs(models_dir, exist_ok=True)
+            model_path = os.path.join(models_dir, target_model_name)
+            
+            # Backup
+            if os.path.exists(model_path):
+                backup_path = model_path + ".bak"
+                try:
+                    import shutil
+                    shutil.copy2(model_path, backup_path)
+                except: pass
+                
+            import joblib
+            joblib.dump(new_model, model_path)
+            _log_cb(f"Retrained model saved to {target_model_name}")
+            
+        except Exception as e:
+            print(f"Manual retraining failed: {e}")
+            with _local_training_lock:
+                LOCAL_TRAINING_STATE["error"] = str(e)
+                LOCAL_TRAINING_STATE["last_message"] = f"Retraining failed: {e}"
+        finally:
+            with _local_training_lock:
+                LOCAL_TRAINING_STATE["running"] = False
+                LOCAL_TRAINING_STATE["completed_at"] = datetime.utcnow().isoformat()
+        
+    background_tasks.add_task(_task)
+    return {"status": "queued", "message": "Retraining started..."}
+
+@router.get("/train/adaptive/stats")
+def get_adaptive_stats(exchange: str = "EGX", model_name: Optional[str] = None):
+    _init_supabase()
+    if not supabase:
+        return {"total_logs": 0, "pending": 0, "mistakes_recent": 0}
+        
+    try:
+        # Pending verification
+        q_p = supabase.table("scan_results").select("id", count="exact").eq("exchange", exchange).eq("status", "open")
+        if model_name:
+            q_p = q_p.eq("model_name", model_name)
+        p = q_p.execute()
+        pending_count = p.count or 0
+        
+        # Total
+        q_t = supabase.table("scan_results").select("id", count="exact").eq("exchange", exchange)
+        if model_name:
+            q_t = q_t.eq("model_name", model_name)
+        t = q_t.execute()
+        total_count = t.count or 0
+        
+        return {
+            "total_logs": total_count,
+            "pending": pending_count,
+        }
+    except Exception as e:
+        print(f"Error fetching stats: {e}")
+        return {"total_logs": 0, "pending": 0, "error": str(e)}
+
+@router.get("/train/adaptive/results")
+def get_adaptive_results(exchange: str = "EGX", model_name: Optional[str] = None, limit: int = 20):
+    _init_supabase()
+    if not supabase:
+        return []
+    try:
+        query = supabase.table("scan_results")\
+            .select("symbol, prediction, status, entry_price, created_at")\
+            .eq("exchange", exchange)\
+            .not_.eq("status", "open")\
+            .order("created_at", desc=True)\
+            .limit(limit)
+            
+        if model_name:
+            query = query.eq("model_name", model_name)
+            
+        res = query.execute()
+        return res.data
+    except Exception as e:
+        print(f"Error fetching results: {e}")
+        return []

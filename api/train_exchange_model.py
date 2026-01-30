@@ -20,6 +20,7 @@ from pandas.api.types import is_numeric_dtype
 from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.metrics import precision_score, make_scorer
 from supabase import create_client, Client
+from concurrent.futures import ProcessPoolExecutor, as_completed
 
 # Add parent directory to path for potential imports
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -43,6 +44,80 @@ def _write_training_summary(summary: dict) -> None:
         # Fail softly – training itself should not break because of logging issues
         print(f"Failed to write training summary: {e}")
 
+class StreamCallback:
+    def __init__(self, progress_cb):
+        self.progress_cb = progress_cb
+        self.history = []
+
+    def __call__(self, env):
+        # env.iteration, env.evaluation_result_list
+        # evaluation_result_list example: [('valid_0', 'logloss', 0.54321, False)]
+        try:
+            iteration = env.iteration
+            metrics = {}
+            for data_name, eval_name, result, _ in env.evaluation_result_list:
+                key = f"{data_name}_{eval_name}"
+                metrics[key] = result
+            
+            # Construct a small payload for the graph
+            point = {
+                "iteration": iteration,
+                **metrics
+            }
+            
+            # Send to frontend
+            if self.progress_cb:
+                self.progress_cb({
+                    "phase": "training_stream", 
+                    "message": f"Training iter {iteration}", 
+                    "stats": point
+                })
+        except Exception:
+            pass
+
+
+def fetch_fundamentals_for_exchange(supabase: Client, exchange: str) -> pd.DataFrame:
+    """Fetch all fundamental data for a given exchange from stock_fundamentals table."""
+    try:
+        res = supabase.table("stock_fundamentals").select("symbol, data").eq("exchange", exchange).execute()
+        if not res.data:
+            return pd.DataFrame()
+        
+        funds = []
+        for row in res.data:
+            data = row.get("data", {})
+            if not data: continue
+            
+            # Safety: Parse JSON if returned as string
+            if isinstance(data, str):
+                try:
+                    import json
+                    data = json.loads(data)
+                except:
+                    pass
+            
+            flat = {
+                "symbol": row["symbol"],
+                "marketCap": _finite_float(data.get("marketCap")),
+                "peRatio": _finite_float(data.get("peRatio")),
+                "eps": _finite_float(data.get("eps")),
+                "dividendYield": _finite_float(data.get("dividendYield")),
+                "sector": data.get("sector"),
+                "industry": data.get("industry")
+            }
+            funds.append(flat)
+            
+        df_funds = pd.DataFrame(funds)
+        # Force common fundamental columns to numeric if they exist to prevent LightGBM dtype errors
+        for c in ["marketCap", "peRatio", "eps", "dividendYield"]:
+            if c in df_funds.columns:
+                df_funds[c] = pd.to_numeric(df_funds[c], errors='coerce')
+        return df_funds
+    except Exception as e:
+        print(f"Warning: Failed to fetch fundamentals: {e}")
+        return pd.DataFrame()
+
+
 
 def optimize_and_train_model(X_train, y_train):
     scorer = make_scorer(precision_score)
@@ -64,6 +139,134 @@ def optimize_and_train_model(X_train, y_train):
     print("Best parameters (precision):", search.best_params_)
     print("Best precision score:", search.best_score_)
     return search.best_estimator_
+
+def add_indicator_signals(df):
+    """
+    Generate discrete signals (-1, 0, 1) from classical indicators.
+    """
+    df = df.copy()
+    
+    # Determine close column name (handle both cases)
+    close_col = 'Close' if 'Close' in df.columns else 'close'
+    
+    # 1. RSI Signal (<30 Buy, >70 Sell)
+    if 'RSI' not in df.columns:
+        df['RSI'] = ta.momentum.rsi(df[close_col], window=14)
+        
+    df['feat_rsi_signal'] = 0
+    df.loc[df['RSI'] < 30, 'feat_rsi_signal'] = 1
+    df.loc[df['RSI'] > 70, 'feat_rsi_signal'] = -1
+    
+    # 2. EMA Cross (Golden Cross)
+    if 'EMA_50' not in df.columns:
+        df['EMA_50'] = df[close_col].ewm(span=50).mean()
+    if 'EMA_200' not in df.columns:
+        df['EMA_200'] = df[close_col].ewm(span=200).mean()
+        
+    df['feat_ema_signal'] = 0
+    df.loc[df['EMA_50'] > df['EMA_200'], 'feat_ema_signal'] = 1
+    df.loc[df['EMA_50'] < df['EMA_200'], 'feat_ema_signal'] = -1
+
+    # 3. Bollinger Bands Signal (Close < Lower = Buy)
+    if 'BB_Lower' not in df.columns or 'BB_Upper' not in df.columns:
+         indicator_bb = ta.volatility.BollingerBands(close=df[close_col], window=20, window_dev=2)
+         df['BB_Lower'] = indicator_bb.bollinger_lband()
+         df['BB_Upper'] = indicator_bb.bollinger_hband()
+
+    df['feat_bb_signal'] = 0
+    df.loc[df[close_col] < df['BB_Lower'], 'feat_bb_signal'] = 1
+    df.loc[df[close_col] > df['BB_Upper'], 'feat_bb_signal'] = -1
+    
+    return df
+
+def add_rolling_win_rate(df, window=30):
+    """
+    Calculate rolling win rate for each indicator signal over the past 'window' days.
+    Prevent Look-ahead bias by shifting results.
+    """
+    df = df.copy()
+    
+    # Determine close column name (handle both cases)
+    close_col = 'Close' if 'Close' in df.columns else 'close' if 'close' in df.columns else None
+    if not close_col:
+        return df  # Cannot calculate without close column
+    
+    # Target: Did price go up tomorrow? (Shift -1)
+    target_up = (df[close_col].shift(-1) > df[close_col]).astype(int)
+    
+    # Check correctness
+    # Correct if (Signal=1 AND Up) OR (Signal=-1 AND Down)
+    rsi_correct = (
+        ((df['feat_rsi_signal'] == 1) & (target_up == 1)) | 
+        ((df['feat_rsi_signal'] == -1) & (target_up == 0))
+    ).astype(int)
+    
+    ema_correct = (
+         ((df['feat_ema_signal'] == 1) & (target_up == 1)) | 
+         ((df['feat_ema_signal'] == -1) & (target_up == 0))
+    ).astype(int)
+    
+    bb_correct = (
+         ((df['feat_bb_signal'] == 1) & (target_up == 1)) | 
+         ((df['feat_bb_signal'] == -1) & (target_up == 0))
+    ).astype(int)
+    
+    # Rolling Mean with Shift(1) to avoid data leakage
+    # We use shift(1) because at time T, we can only measure if signal at T-1 was correct (which resolves at T).
+    # Actually, signal at T-1 predicts T. So at T we look back. 
+    # But to use it as a feature at T, we need "Past Accuracy".
+    # Correctness of T-1 is available at T.
+    # So we take rolling mean of correctness shifted by 1.
+    df['feat_rsi_acc'] = rsi_correct.shift(1).rolling(window=window).mean().fillna(0.5)
+    df['feat_ema_acc'] = ema_correct.shift(1).rolling(window=window).mean().fillna(0.5)
+    df['feat_bb_acc'] = bb_correct.shift(1).rolling(window=window).mean().fillna(0.5)
+    
+    return df
+
+def add_market_context(stock_df, market_df):
+    """
+    Add Market Context features (Trend, Volatility, Relative Strength).
+    """
+    if market_df is None or market_df.empty:
+        # Return with 0s if no market data, to avoid crashing
+        stock_df = stock_df.copy()
+        stock_df['feat_mkt_trend'] = 0
+        stock_df['feat_mkt_volatility'] = 0
+        stock_df['feat_rel_strength'] = 0
+        return stock_df
+
+    # Ensure indexes are DatetimeIndex
+    if not isinstance(stock_df.index, pd.DatetimeIndex):
+        stock_df.index = pd.to_datetime(stock_df.index)
+    if not isinstance(market_df.index, pd.DatetimeIndex):
+        market_df.index = pd.to_datetime(market_df.index)
+
+    # Reindex market data to match stock data (forward fill)
+    market_reindexed = market_df.reindex(stock_df.index, method='ffill')
+
+    stock_df = stock_df.copy()
+    
+    # 1. Market Trend (is Market > SMA200?)
+    # We calculate on the reindexed series to align with stock dates
+    stock_df['mkt_close'] = market_reindexed['close']
+    stock_df['mkt_sma200'] = stock_df['mkt_close'].rolling(200).mean()
+    stock_df['feat_mkt_trend'] = 0
+    stock_df.loc[stock_df['mkt_close'] > stock_df['mkt_sma200'], 'feat_mkt_trend'] = 1
+    stock_df.loc[stock_df['mkt_close'] < stock_df['mkt_sma200'], 'feat_mkt_trend'] = -1
+    
+    # 2. Market Volatility (ATR) - Assuming market_reindexed has ATR or we compute rolling std
+    # Simple proxy: Rolling std of returns
+    stock_df['feat_mkt_volatility'] = stock_df['mkt_close'].pct_change().rolling(20).std().fillna(0)
+
+    # 3. Relative Strength (Stock vs Market)
+    stock_ret = stock_df['close'].pct_change()
+    market_ret = stock_df['mkt_close'].pct_change()
+    stock_df['feat_rel_strength'] = (stock_ret - market_ret).fillna(0)
+    
+    # Cleanup
+    stock_df.drop(columns=['mkt_close', 'mkt_sma200'], inplace=True, errors='ignore')
+    
+    return stock_df
 
 def add_massive_features(df):
     """
@@ -89,60 +292,66 @@ def add_massive_features(df):
         df, open="open", high="high", low="low", close="close", volume="volume", fillna=True
     )
     
-    # ---------------------------------------------------------
-    # 2. Generate Rolling Windows - The magic multiplier
-    # ---------------------------------------------------------
-    # Calculate mean and standard deviation for different periods
-    # (3 days for speculation, 7 weekly, 14, 30 for monthly)
+    # 2. Vectorized Rolling Windows & Tags
     windows = [3, 7, 14, 30]
-    target_cols = ['close', 'volume', 'momentum_rsi'] # Important columns for analysis
+    target_cols = ['close', 'volume', 'momentum_rsi']
     extra_cols = {}
     
+    # Pre-calculate rolling objects for each window to reuse
     for w in windows:
-        for col in target_cols:
-            if col in df.columns:
-                extra_cols[f'{col}_SMA_{w}'] = df[col].rolling(window=w).mean()
-                extra_cols[f'{col}_STD_{w}'] = df[col].rolling(window=w).std()
-                extra_cols[f'{col}_MAX_{w}'] = df[col].rolling(window=w).max()
-                extra_cols[f'{col}_MIN_{w}'] = df[col].rolling(window=w).min()
+        existing = [c for c in target_cols if c in df.columns]
+        if not existing: continue
+            
+        # Grouped rolling operation is faster than individual ones
+        roll = df[existing].rolling(window=w)
+        means = roll.mean()
+        stds = roll.std()
+        maxs = roll.max()
+        mins = roll.min()
+        
+        for col in existing:
+            extra_cols[f'{col}_SMA_{w}'] = means[col]
+            extra_cols[f'{col}_STD_{w}'] = stds[col]
+            extra_cols[f'{col}_MAX_{w}'] = maxs[col]
+            extra_cols[f'{col}_MIN_{w}'] = mins[col]
 
-    # ---------------------------------------------------------
     # 3. Historical Memory (Lag Features)
-    # ---------------------------------------------------------
-    # What happened yesterday and the day before yesterday? (Very important for AI)
-    lags = [1, 2, 3, 5]
-    for lag in lags:
-        extra_cols[f'Close_Lag_{lag}'] = df['close'].shift(lag)
-        extra_cols[f'Vol_Lag_{lag}'] = df['volume'].shift(lag)
-        extra_cols[f'Return_{lag}d'] = df['close'].pct_change(lag)
-
-    # ---------------------------------------------------------
-    # 4. Custom Advanced Indicators (Custom Math)
-    # ---------------------------------------------------------
-    # Log Returns (Better for statistical models)
-    extra_cols['Log_Ret'] = np.log(df['close'] / df['close'].shift(1))
+    # Detect correct column names (case-insensitive)
+    close_col = 'close' if 'close' in df.columns else 'Close' if 'Close' in df.columns else None
+    vol_col = 'volume' if 'volume' in df.columns else 'Volume' if 'Volume' in df.columns else None
     
-    # Z-Score (Normalize price for the model to understand expensive and cheap stocks in the same way)
-    extra_cols['Z_Score_20'] = (df['close'] - df['close'].rolling(20).mean()) / df['close'].rolling(20).std()
-    
-    # Price x Volume interaction
-    extra_cols['PV_Trend'] = df['close'].pct_change() * df['volume'].pct_change()
+    if close_col and vol_col:
+        lags = [1, 2, 3, 5]
+        for lag in lags:
+            extra_cols[f'Close_Lag_{lag}'] = df[close_col].shift(lag)
+            extra_cols[f'Vol_Lag_{lag}'] = df[vol_col].shift(lag)
+            extra_cols[f'Return_{lag}d'] = df[close_col].pct_change(lag)
 
-    extra_cols["Close"] = df["close"]
-    extra_cols["Volume"] = df["volume"]
-    if "open" in df.columns:
-        extra_cols["Open"] = df["open"]
-    if "high" in df.columns:
-        extra_cols["High"] = df["high"]
-    if "low" in df.columns:
-        extra_cols["Low"] = df["low"]
+    # 4. Advanced Vectorized Math
+    if close_col:
+        extra_cols['Log_Ret'] = np.log(df[close_col] / df[close_col].shift(1).replace(0, np.nan))
+        
+        # Optimizing Z-Score (one rolling object)
+        roll20 = df[close_col].rolling(20)
+        mu20 = roll20.mean()
+        sigma20 = roll20.std()
+        extra_cols['Z_Score_20'] = (df[close_col] - mu20) / sigma20.replace(0, np.nan)
+        
+        if vol_col:
+            extra_cols['PV_Trend'] = df[close_col].pct_change() * df[vol_col].pct_change()
+
+    # Maintain Case-Sensitive Columns for other functions
+    for c in ["Open", "High", "Low", "Close", "Volume"]:
+        if c.lower() in df.columns:
+            extra_cols[c] = df[c.lower()]
 
     if extra_cols:
         df = pd.concat([df, pd.DataFrame(extra_cols, index=df.index)], axis=1)
         df = df.copy()
 
-    # Clean data (remove NaN values resulting from Lags)
-    df = df.replace([np.inf, -np.inf], np.nan).fillna(0)
+    # Clean data (remove NaN values resulting from Lags) - only for numeric columns
+    numeric_cols = df.select_dtypes(include=[np.number]).columns
+    df[numeric_cols] = df[numeric_cols].replace([np.inf, -np.inf], np.nan).fillna(0)
     
     return df
 
@@ -333,14 +542,51 @@ def add_technical_indicators(df):
     out["OBV_Lag1"] = out["OBV"].shift(1)
     out["OBV_Diff"] = out["OBV"].diff().fillna(0.0)
 
+    # ---------------------------------------------------------
+    # 14. Indicator Stacking (Signals + Rolling Win Rate)
+    # ---------------------------------------------------------
+    out = add_indicator_signals(out)
+    out = add_rolling_win_rate(out, window=30)
+
     return out
 
-def prepare_for_ai(df):
+def prepare_for_ai(df, target_pct: float = 0.15, stop_loss_pct: float = 0.05, look_forward_days: int = 20):
+    """
+    Implements 'The Sniper Strategy' labeling with configurable parameters.
+    - Target: +target_pct gain within look_forward_days.
+    - Stop Loss: -stop_loss_pct loss (must not be hit before the target).
+    """
     if df.empty: return df
     out = df.copy()
-    out["Next_Close"] = out["Close"].shift(-1)
-    out["Target"] = (out["Next_Close"] > out["Close"]).astype(int)
-    out = out.dropna().copy()
+    
+    # Use FixedForwardWindowIndexer for forward-looking rolling windows
+    indexer = pd.api.indexers.FixedForwardWindowIndexer(window_size=look_forward_days)
+    
+    # Fix Gap Trap: Entry is Next Day Open
+    out['next_open'] = out['Open'].shift(-1)
+    
+    # Future High/Low: Start checking from next day (shift -1)
+    # This aligns the window [t+1, t+1+look_forward] to row t
+    out['future_high'] = out['High'].shift(-1).rolling(window=indexer).max()
+    out['future_low'] = out['Low'].shift(-1).rolling(window=indexer).min()
+    
+    # Labeling Logic
+    out['Target'] = 0
+    
+    # Condition: Future High >= Entry + Target
+    hit_target = out['future_high'] >= (out['next_open'] * (1 + target_pct))
+    
+    # Condition: Future Low > Entry - Stop (Stop NOT hit)
+    safe_from_stop = out['future_low'] > (out['next_open'] * (1 - stop_loss_pct))
+    
+    # Mark as Buy (1) only if both conditions met
+    out.loc[hit_target & safe_from_stop, 'Target'] = 1
+    
+    # Remove rows where we can't look forward (the last 'look_forward_days' rows)
+    # and helper columns
+    out.drop(columns=['future_high', 'future_low', 'next_open'], inplace=True, errors='ignore')
+    out = out.iloc[:-look_forward_days].copy()
+    
     return out
 
 def train_model(
@@ -357,8 +603,24 @@ def train_model(
     random_search_iter: Optional[int] = None,
     max_features: Optional[int] = None,
     progress_cb: Optional[Callable[[Any], None]] = None,
+    target_pct: float = 0.15,
+    stop_loss_pct: float = 0.05,
+    look_forward_days: int = 20,
+    use_grid: bool = False,
+    learning_rate: float = 0.05,
+    patience: int = 50,
 ):
-    print(f"Starting training for exchange: {exchange}")
+    # Standardize exchange
+    if exchange:
+        e_lower = exchange.strip().lower()
+        if e_lower in ["ca", "cc", "cairo", "egypt"]:
+            exchange = "EGX"
+        elif e_lower in ["us", "usa", "nasdaq", "nyse"]:
+            exchange = "US"
+        else:
+            exchange = exchange.upper()
+
+    print(f"Starting training for exchange: {exchange} (Grid Search: {use_grid})")
     start_time_total = time.time()
     supabase: Client = create_client(supabase_url, supabase_key)
     def _progress(msg: str) -> None:
@@ -384,6 +646,45 @@ def train_model(
     # 1. Bulk fetch all price data for this exchange
     _progress(f"Loading price data for exchange {exchange}...")
     start_time_loading = time.time()
+    
+    # NEW: Fetch Market Index Data first
+    # Strategy: 
+    # 1. Try "EGX30.INDX" (standard index)
+    # 2. Fallback to "COMI.CA" (Blue chip proxy, often more reliable data availability)
+    
+    market_df = None
+    
+    if exchange == "EGX":
+        candidates = ["EGX30.INDX", "COMI.CA"]
+    elif exchange == "US":
+        candidates = ["GSPC.INDX", "SPY.US", "AAPL.US"]
+    else:
+        candidates = ["GSPC.INDX"] # Default global proxy
+        
+    for idx_sym in candidates:
+        _progress(f"Attempting to load market index data: {idx_sym}...")
+        try:
+            idx_res = (
+                 supabase.table("stock_prices")
+                .select("date, close") # We only need close for now (and date)
+                .eq("symbol", idx_sym)
+                .order("date", desc=False)
+                .execute()
+            )
+            if idx_res.data and len(idx_res.data) > 200:
+                market_df = pd.DataFrame(idx_res.data)
+                market_df["date"] = pd.to_datetime(market_df["date"])
+                market_df = market_df.set_index("date").sort_index()
+                # Calculate simple volatility proxy for market
+                market_df['atr'] = market_df['close'].pct_change().rolling(20).std().fillna(0)
+                _progress(f"Successfully loaded market context from {idx_sym}")
+                break
+        except Exception as e:
+            print(f"Warning: Failed to fetch market index {idx_sym}: {e}")
+            
+    if market_df is None:
+        _progress("Warning: No market index data found. Market Context features will be 0.")
+
     rows_total = None
     try:
         count_res = (
@@ -394,33 +695,84 @@ def train_model(
             .execute()
         )
         rows_total = count_res.count
-    except Exception:
+    except Exception as e:
+        print(f"Warning: Failed to fetch total row count: {e}")
         rows_total = None
+
     all_rows = []
     page_size = 1000
-    offset = 0
-    while True:
-        res = (
-            supabase.table("stock_prices")
-            .select("*")
-            .eq("exchange", exchange)
-            .order("date", desc=False)
-            .range(offset, offset + page_size - 1)
-            .execute()
-        )
-        batch = res.data or []
-        if not batch:
-            break
-        all_rows.extend(batch)
-        msg = f"Loaded {len(all_rows):,} rows so far"
-        _progress_stats(
-            "loading_rows",
-            msg,
-            {"rows_loaded": len(all_rows), "rows_total": rows_total},
-        )
-        if len(batch) < page_size:
-            break
-        offset += page_size
+    
+    _progress(f"Starting parallel data load for {exchange}...")
+    
+    def _fetch_page(off, retries=3):
+        for attempt in range(retries):
+            try:
+                # Optimized query: select only needed columns, use PK-compatible order
+                res = (
+                    supabase.table("stock_prices")
+                    .select("symbol, date, open, high, low, close, volume")
+                    .eq("exchange", exchange)
+                    .order("symbol", desc=False)
+                    .order("date", desc=False)
+                    .range(off, off + page_size - 1)
+                    .execute()
+                )
+                return res.data or []
+            except Exception as e:
+                wait = (attempt + 1) * 2
+                print(f"Fetch error at offset {off}: {e}. Retrying in {wait}s...")
+                time.sleep(wait)
+        return []
+
+    # Initial fetch to get first page and confirm data exists
+    first_page = _fetch_page(0)
+    if not first_page:
+        _progress(f"No price data found or first fetch failed for exchange {exchange}")
+        return
+    
+    all_rows.extend(first_page)
+    
+    # If we have rows_total, calculate remaining offsets
+    if rows_total and rows_total > page_size:
+        offsets = range(page_size, rows_total, page_size)
+        
+        # Parallel fetch remaining pages
+        max_fetch_workers = 5 # Conservative parallel workers
+        with ThreadPoolExecutor(max_workers=max_fetch_workers) as executor:
+            future_to_offset = {executor.submit(_fetch_page, o): o for o in offsets}
+            
+            for future in as_completed(future_to_offset):
+                offset = future_to_offset[future]
+                try:
+                    data = future.result()
+                    if data:
+                        all_rows.extend(data)
+                        
+                    # Periodic progress update
+                    if len(all_rows) % (page_size * 5) == 0 or len(all_rows) >= (rows_total or 0):
+                        msg = f"Loaded {len(all_rows):,} rows so far"
+                        _progress_stats(
+                            "loading_rows",
+                            msg,
+                            {"rows_loaded": len(all_rows), "rows_total": rows_total},
+                        )
+                except Exception as e:
+                    print(f"Error processing page at offset {offset}: {e}")
+    else:
+        # Fallback for if rows_total is unknown: sequential fetch until empty
+        # This is rare as the initial fetch usually gives us info or we already have it
+        if rows_total is None:
+            offset = page_size
+            while True:
+                batch = _fetch_page(offset)
+                if not batch:
+                    break
+                all_rows.extend(batch)
+                msg = f"Loaded {len(all_rows):,} rows (sequential fallback)"
+                _progress_stats("loading_rows", msg, {"rows_loaded": len(all_rows)})
+                if len(batch) < page_size:
+                    break
+                offset += page_size
 
     if not all_rows:
         _progress(f"No price data found for exchange {exchange}")
@@ -444,6 +796,21 @@ def train_model(
         {"raw_rows": raw_rows, "symbols_total": len(all_symbols), "rows_total": raw_rows},
     )
 
+    # --- Fetch and merge fundamentals ---
+    df_funds = fetch_fundamentals_for_exchange(supabase, exchange)
+    categorical_cols = []
+    if not df_funds.empty:
+        _progress(f"Loaded fundamentals for {len(df_funds)} symbols.")
+        df_all = df_all.merge(df_funds, on="symbol", how="left")
+        # Pre-process categorical features (sector, industry) for LGBM
+        # Fill NA with "Unknown" BEFORE converting to category to avoid setitem error
+        for cat_col in ["sector", "industry"]:
+            if cat_col in df_all.columns:
+                df_all[cat_col] = df_all[cat_col].fillna("Unknown").astype("category")
+                categorical_cols.append(cat_col)
+    else:
+        _progress("No fundamentals found for this exchange. Proceeding with price data only.")
+
     combined_data = []
     symbols_used = 0
     symbols_total = len(all_symbols)
@@ -451,36 +818,38 @@ def train_model(
     progress_step = max(1, symbols_total // 50) if symbols_total else 1
     
     start_time_features = time.time()
-    for symbol, df_symbol in df_all.groupby("symbol"):
-        symbols_processed += 1
-        if df_symbol is None or df_symbol.empty:
-            continue
-        if len(df_symbol) < 200:
-            continue
-
-        df = df_symbol.copy()
-        df["date"] = pd.to_datetime(df["date"])
-        df = df.set_index("date")
-
-        if symbols_processed % progress_step == 0 or symbols_processed == symbols_total:
-            msg = f"Processing symbol {symbol} ({symbols_processed}/{symbols_total})"
-            _progress(msg)
-            _progress_stats(
-                "processing_symbols",
-                msg,
-                {"symbols_processed": symbols_processed, "symbols_total": symbols_total},
-            )
-
-        feat = add_massive_features(df)
-        tech = add_technical_indicators(df)
-        if not tech.empty:
-            feat = feat.drop(columns=[c for c in tech.columns if c in feat.columns], errors="ignore")
-            feat = pd.concat([feat, tech], axis=1)
-        ready = prepare_for_ai(feat)
-
-        if len(ready) >= 120:
-            combined_data.append(ready)
-            symbols_used += 1
+    
+    _progress(f"Starting parallel feature engineering for {symbols_total} symbols...")
+    
+    # Prepare arguments for parallel processing - include context
+    symbol_params = [
+        (sym, df_sym, market_df, target_pct, stop_loss_pct, look_forward_days)
+        for sym, df_sym in df_all.groupby("symbol")
+    ]
+    
+    # Process in parallel using ProcessPool for CPU-bound TA calculations
+    with ProcessPoolExecutor(max_workers=os.cpu_count() or 4) as executor:
+        # Use map to process all symbols
+        results = list(executor.map(_process_single_symbol, symbol_params))
+        
+        # Collect valid results
+        for i, res in enumerate(results):
+            symbols_processed += 1
+            if res is not None:
+                combined_data.append(res)
+                symbols_used += 1
+                
+            # Progress update (batched)
+            if symbols_processed % progress_step == 0 or symbols_processed == symbols_total:
+                msg = f"Processed {symbols_processed}/{symbols_total} symbols"
+                # Only log every 5th step to reduce spam, or if it's the last one
+                if symbols_processed % (progress_step * 5) == 0 or symbols_processed == symbols_total:
+                    _progress(msg)
+                    _progress_stats(
+                        "processing_symbols",
+                        msg,
+                        {"symbols_processed": symbols_processed, "symbols_total": symbols_total},
+                    )
 
     if not combined_data:
         _progress("No valid data collected for training")
@@ -552,6 +921,14 @@ def train_model(
         "Volume_Diff",
         "OBV_Lag1",
         "OBV_Diff",
+
+        # Smart Indicators (Stacking)
+        "feat_rsi_signal", "feat_rsi_acc",
+        "feat_ema_signal", "feat_ema_acc",
+        "feat_bb_signal", "feat_bb_acc",
+
+        # Market Context
+        "feat_mkt_trend", "feat_mkt_volatility", "feat_rel_strength",
     ]
 
     max_predictors = extended_predictors + [
@@ -578,6 +955,12 @@ def train_model(
 
     # Ensure all chosen columns exist (in case of legacy data)
     predictors = [c for c in chosen if c in df_train.columns]
+    
+    # Add categorical fundamentals if they exist
+    categorical_features = [c for c in ["sector", "industry"] if c in df_train.columns]
+    for cf in categorical_features:
+        if cf not in predictors:
+            predictors.append(cf)
 
     if preset == "max":
         exclude = {"Target", "symbol", "date", "datetime", "timestamp"}
@@ -609,8 +992,16 @@ def train_model(
     start_time_train = time.time()
 
     # Use a large number of estimators with early stopping to prevent overfitting.
-    if use_early_stopping:
-        final_n_estimators = n_estimators or 1000
+    if use_grid:
+        msg = f"Starting GridSearchCV optimization..."
+        _progress(msg)
+        _progress_stats("training", msg, {"grid_search": True})
+        
+        # optimize_and_train_model already prints best params
+        model = optimize_and_train_model(X, y)
+        final_n_estimators = getattr(model, "n_estimators", 100)
+    elif use_early_stopping:
+        final_n_estimators = n_estimators or 5000  # Increased for better convergence
         msg = f"Training LightGBM (early_stopping=True, n_estimators={final_n_estimators})"
         _progress(msg)
         _progress_stats(
@@ -618,17 +1009,22 @@ def train_model(
             msg,
             {"n_estimators": final_n_estimators, "early_stopping": True},
         )
+        # Split data (preserve time order for stock data)
         X_train, X_val, y_train, y_val = train_test_split(
             X,
             y,
             test_size=0.2,
-            shuffle=False,
+            random_state=42,
+            shuffle=False,  # Critical for time-series data
         )
         # Debug: log final n_estimators for early-stopping mode
-        print("Final n_estimators:", final_n_estimators)
+        print(f"Final n_estimators: {final_n_estimators}, Training samples: {len(X_train)}, Validation: {len(X_val)}")
         model = LGBMClassifier(
             n_estimators=final_n_estimators,
-            random_state=1,
+            learning_rate=learning_rate,  # User configured
+            max_depth=10,
+            num_leaves=31,
+            random_state=42,
             n_jobs=-1,
             verbose=-1,
         )
@@ -637,9 +1033,11 @@ def train_model(
             y_train,
             eval_set=[(X_val, y_val)],
             eval_metric="logloss",
+            categorical_feature=categorical_features if categorical_features else 'auto',
             callbacks=[
-                # LightGBM early stopping via callback API
-                lgb.early_stopping(stopping_rounds=50),
+                lgb.early_stopping(stopping_rounds=patience),
+                lgb.log_evaluation(period=100),  # Log every 100 iterations
+                StreamCallback(progress_cb) if progress_cb else None, # Real-time frontend updates
             ],
         )
     else:
@@ -677,11 +1075,15 @@ def train_model(
             "exchange": exchange,
             "useEarlyStopping": use_early_stopping,
             "nEstimators": int(final_n_estimators),
+            "bestIteration": int(getattr(model, "best_iteration_", 0)) if use_early_stopping else None,
             "trainingSamples": int(total_samples),
             "numFeatures": num_features,
             "featurePreset": preset,
             "symbolsUsed": int(symbols_used),
             "rawRows": int(raw_rows),
+            "targetPct": target_pct,
+            "stopLossPct": stop_loss_pct,
+            "lookForwardDays": look_forward_days,
             "timestamp": datetime.utcnow().isoformat() + "Z",
             "timing": {
                 "loading": duration_loading,
@@ -723,6 +1125,10 @@ def train_model(
             "exchange": exchange,
             "featurePreset": preset,
             "trainingSamples": int(total_samples),
+            "bestIteration": int(getattr(model, "best_iteration_", 0)) if use_early_stopping else None,
+            "target_pct": target_pct,
+            "stop_loss_pct": stop_loss_pct,
+            "look_forward_days": look_forward_days,
             "timestamp": datetime.utcnow().isoformat() + "Z",
         }
         with open(filepath, "wb") as f:
@@ -760,9 +1166,9 @@ def train_model(
             # But we can try to log it clearly.
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
     parser.add_argument("--exchange", required=True, help="Exchange name to train on")
     parser.add_argument("--max_features", type=int, help="Optional: maximum number of features to use for training")
+    parser.add_argument("--grid", action="store_true", help="Enable GridSearchCV for hyperparameter optimization")
     args = parser.parse_args()
     
     url = os.getenv("NEXT_PUBLIC_SUPABASE_URL")
@@ -772,4 +1178,4 @@ if __name__ == "__main__":
         print("Error: NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY environment variables are required.")
         sys.exit(1)
         
-    train_model(args.exchange, url, key, max_features_override=args.max_features)
+    train_model(args.exchange, url, key, max_features_override=args.max_features, use_grid=args.grid)

@@ -145,6 +145,10 @@ class PredictRequest(BaseModel):
     rf_params: Optional[Dict[str, Any]] = Field(default=None)
     model_name: Optional[str] = Field(default=None)
     force_local: bool = Field(default=False)
+    target_pct: float = Field(default=0.15)
+    stop_loss_pct: float = Field(default=0.05)
+    look_forward_days: int = Field(default=20)
+    buy_threshold: float = Field(default=0.40)
 
 
 class EvaluatePositionIn(BaseModel):
@@ -486,8 +490,8 @@ def symbols_synced(
             # Map to consistent format, handling potential case differences in JSON keys
             results = []
             for r in raw:
-                # Try capitalized first (standard for these files), then lowercase
-                s = r.get("Symbol") or r.get("symbol")
+                # Try capitalized first (standard for these files), then lowercase, also check "Code"
+                s = r.get("Symbol") or r.get("symbol") or r.get("Code") or r.get("code")
                 ex = r.get("Exchange") or r.get("exchange")
                 n = r.get("Name") or r.get("name") or ""
                 if s and ex:
@@ -546,8 +550,24 @@ def symbols_search(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+from threading import Lock
+import time
+
+_PREDICT_CACHE: Dict[str, Dict[str, Any]] = {}
+_PREDICT_CACHE_LOCK = Lock()
+_PREDICT_CACHE_TTL = 300 # 5 minutes
+
 @app.post("/predict")
 def predict(req: PredictRequest):
+    # 1. Generate a cache key based on most important request fields
+    cache_key = f"{req.ticker.strip().upper()}_{req.exchange or 'AUTO'}_{req.model_name or 'DEFAULT'}_{req.rf_preset}_{req.from_date}_{req.target_pct}_{req.stop_loss_pct}_{req.look_forward_days}_{req.buy_threshold}"
+    
+    # 2. Check cache
+    with _PREDICT_CACHE_LOCK:
+        cached = _PREDICT_CACHE.get(cache_key)
+        if cached and (time.time() - cached["ts"] < _PREDICT_CACHE_TTL):
+            return cached["data"]
+
     api_key = os.getenv("EODHD_API_KEY")
     if (not req.force_local) and (not api_key):
         raise HTTPException(status_code=500, detail="EODHD_API_KEY is not configured")
@@ -563,7 +583,19 @@ def predict(req: PredictRequest):
             rf_preset=req.rf_preset,
             rf_params=req.rf_params,
             model_name=req.model_name,
+            target_pct=req.target_pct,
+            stop_loss_pct=req.stop_loss_pct,
+            look_forward_days=req.look_forward_days,
+            buy_threshold=req.buy_threshold,
         )
+        
+        # 3. Store in cache
+        with _PREDICT_CACHE_LOCK:
+            _PREDICT_CACHE[cache_key] = {
+                "ts": time.time(),
+                "data": payload
+            }
+            
         return payload
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))

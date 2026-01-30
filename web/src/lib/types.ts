@@ -37,6 +37,7 @@ export type TestPredictionRow = {
   bb_lower?: number;
   rsi?: number;
   momentum?: number;
+  outcome?: 'win' | 'loss' | 'pending';
 };
 
 export type PredictResponse = {
@@ -49,4 +50,6 @@ export type PredictResponse = {
   fundamentals: Fundamentals;
   testPredictions: TestPredictionRow[];
   executionTime?: number; // milliseconds
+  earnPercentage?: number; // cumulative strategy return
+  topReasons?: string[];
 };

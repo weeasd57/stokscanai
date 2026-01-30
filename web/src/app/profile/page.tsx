@@ -1,11 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { Trash2, LineChart, Cpu, X, Loader2, Save, Target, ShieldAlert, Award, Clock } from "lucide-react";
+import { Trash2, LineChart, Cpu, X, Loader2, Save, Target, ShieldAlert, Award, Clock, BarChart2 } from "lucide-react";
 import { predictStock } from "@/lib/api";
 import CandleChart from "@/components/CandleChart";
 import ConfirmDialog from "@/components/ConfirmDialog";
@@ -69,6 +69,13 @@ export default function ProfilePage() {
   const [chartData, setChartData] = useState<PredictResponse | null>(null);
   const [chartLoading, setChartLoading] = useState(false);
   const [chartError, setChartError] = useState<string | null>(null);
+  const [chartType, setChartType] = useState<"candle" | "area">("candle");
+  const [showEma50, setShowEma50] = useState(true);
+  const [showEma200, setShowEma200] = useState(false);
+  const [showBB, setShowBB] = useState(false);
+  const [showRsi, setShowRsi] = useState(false);
+  const [showMacd, setShowMacd] = useState(true);
+  const [showVolume, setShowVolume] = useState(true);
 
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [positionToDelete, setPositionToDelete] = useState<string | null>(null);
@@ -150,18 +157,37 @@ export default function ProfilePage() {
     }
   }
 
+  const predictAbortControllerRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (predictAbortControllerRef.current) {
+        predictAbortControllerRef.current.abort();
+      }
+    };
+  }, []);
+
   async function openChart(pos: PositionRow) {
+    if (predictAbortControllerRef.current) {
+      predictAbortControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    predictAbortControllerRef.current = controller;
+
     setChartPosition(pos);
     setChartLoading(true);
     setChartError(null);
     setChartData(null);
     try {
-      const res = await predictStock({ ticker: pos.symbol, includeFundamentals: false });
+      const res = await predictStock({ ticker: pos.symbol, includeFundamentals: false }, controller.signal);
       setChartData(res);
     } catch (err: any) {
+      if (err.name === 'AbortError') return;
       setChartError(err.message || "Failed to load chart");
     } finally {
-      setChartLoading(false);
+      if (predictAbortControllerRef.current === controller) {
+        setChartLoading(false);
+      }
     }
   }
 
@@ -434,17 +460,49 @@ export default function ProfilePage() {
                 <h3 className="text-3xl font-black text-white font-mono tracking-tighter flex items-center gap-4">
                   <StockLogo symbol={chartPosition.symbol} logoUrl={chartPosition.metadata?.logo_url || chartData?.fundamentals?.logoUrl} size="lg" />
                   {chartPosition.symbol}
-                  <span className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.3em] font-sans px-4 py-1.5 rounded-xl border border-white/5">
-                    {new Date(chartPosition.added_at).toLocaleDateString()}
-                  </span>
                 </h3>
               </div>
-              <button
-                onClick={() => setChartPosition(null)}
-                className="p-3 rounded-2xl bg-zinc-900/50 text-zinc-500 hover:text-white transition-all active:scale-95"
-              >
-                <X className="h-6 w-6" />
-              </button>
+              <div className="flex items-center gap-4">
+                <div className="hidden md:flex items-center gap-1.5 px-4 py-2 rounded-xl bg-zinc-900/60 border border-white/5">
+                  {[
+                    { id: "ema50", label: "EMA50", color: "bg-orange-500", active: showEma50, toggle: () => setShowEma50(!showEma50) },
+                    { id: "ema200", label: "EMA200", color: "bg-cyan-500", active: showEma200, toggle: () => setShowEma200(!showEma200) },
+                    { id: "bb", label: "BB", color: "bg-purple-500", active: showBB, toggle: () => setShowBB(!showBB) },
+                    { id: "rsi", label: "RSI", color: "bg-pink-500", active: showRsi, toggle: () => setShowRsi(!showRsi) },
+                    { id: "macd", label: "MACD", color: "bg-indigo-500", active: showMacd, toggle: () => setShowMacd(!showMacd) },
+                    { id: "vol", label: "VOL", color: "bg-blue-500", active: showVolume, toggle: () => setShowVolume(!showVolume) },
+                  ].map((ind) => (
+                    <button
+                      key={ind.id}
+                      onClick={ind.toggle}
+                      className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-[9px] font-black uppercase transition-all ${ind.active ? "bg-white/10 text-white" : "text-zinc-600 hover:text-zinc-400"}`}
+                    >
+                      <div className={`w-1.5 h-1.5 rounded-full ${ind.active ? ind.color : "bg-zinc-800"}`} />
+                      {ind.label}
+                    </button>
+                  ))}
+                </div>
+                <div className="flex gap-1 rounded-lg bg-zinc-900/60 border border-white/5 p-1">
+                  <button
+                    onClick={() => setChartType("candle")}
+                    className={`p-2 rounded-md transition-all ${chartType === "candle" ? "bg-indigo-600 text-white" : "text-zinc-400 hover:text-white"}`}
+                  >
+                    <BarChart2 className="h-4 w-4" />
+                  </button>
+                  <button
+                    onClick={() => setChartType("area")}
+                    className={`p-2 rounded-md transition-all ${chartType === "area" ? "bg-indigo-600 text-white" : "text-zinc-400 hover:text-white"}`}
+                  >
+                    <LineChart className="h-4 w-4" />
+                  </button>
+                </div>
+                <button
+                  onClick={() => setChartPosition(null)}
+                  className="p-3 rounded-2xl bg-zinc-900/50 text-zinc-500 hover:text-white transition-all active:scale-95"
+                >
+                  <X className="h-6 w-6" />
+                </button>
+              </div>
             </div>
 
             {/* Modal Content */}
@@ -466,8 +524,13 @@ export default function ProfilePage() {
                     targetPrice={chartPosition.target_price ?? undefined}
                     stopPrice={chartPosition.stop_price ?? undefined}
                     savedDate={chartPosition.added_at.split('T')[0]}
-                    showVolume={true}
-                    showEma50={true}
+                    showVolume={showVolume}
+                    showEma50={showEma50}
+                    showEma200={showEma200}
+                    showBB={showBB}
+                    showRsi={showRsi}
+                    showMacd={showMacd}
+                    chartType={chartType}
                   />
                 </div>
               ) : null}

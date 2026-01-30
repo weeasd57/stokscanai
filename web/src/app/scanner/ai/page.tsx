@@ -1,22 +1,21 @@
 "use client";
 
 import { useEffect, useMemo, useState, useRef } from "react";
-import { Brain, AlertTriangle, Loader2, Info, X, BarChart2, LineChart, Check, TrendingUp, TrendingDown, Activity, Bookmark, BookmarkCheck, Cpu } from "lucide-react";
+import { Brain, AlertTriangle, Loader2, Info, X, BarChart2, LineChart, Check, TrendingUp, TrendingDown, Activity, Cpu } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { useWatchlist } from "@/contexts/WatchlistContext";
 import { useAppState } from "@/contexts/AppStateContext";
 import { useAIScanner } from "@/contexts/AIScannerContext";
 import { getLocalModels, predictStock, getAdminConfig, type ScanResult, type AdminConfig } from "@/lib/api";
+import { getAiScore } from "@/lib/utils";
 import CandleChart from "@/components/CandleChart";
 import TableView from "@/components/TableView";
 import StockLogo from "@/components/StockLogo";
 
 export default function AIScannerPage() {
     const { t } = useLanguage();
-    const { saveSymbol, removeSymbolBySymbol, isSaved } = useWatchlist();
     const { countries } = useAppState();
-    const { state, setAiScanner, fetchLatestScanForModel, loading } = useAIScanner();
-    const { results, selected, detailData, chartType, showEma50, showEma200, showBB, showRsi, showVolume, modelName, country } = state;
+    const { state, setAiScanner, fetchLatestScanForModel, fetchPublicScanDates, fetchScanResultsByDate, loading } = useAIScanner();
+    const { results, selected, detailData, chartType, showEma50, showEma200, showBB, showRsi, showVolume, showMacd, modelName, country } = state;
 
     const [detailLoading, setDetailLoading] = useState(false);
     const [detailError, setDetailError] = useState<string | null>(null);
@@ -26,6 +25,8 @@ export default function AIScannerPage() {
     const [activeScanMetadata, setActiveScanMetadata] = useState<any>(null);
     const [showMobileDetail, setShowMobileDetail] = useState(false);
     const [adminConfig, setAdminConfig] = useState<AdminConfig | null>(null);
+    const [availableDates, setAvailableDates] = useState<string[]>([]);
+    const [selectedDate, setSelectedDate] = useState<string>("");
 
     // Initial Load: Models list & Config
     useEffect(() => {
@@ -68,13 +69,21 @@ export default function AIScannerPage() {
         setAiScanner(prev => ({ ...prev, modelName: name, selected: null, detailData: null }));
         setResultsLoading(true);
         try {
-            const data = await fetchLatestScanForModel(name);
-            if (data) {
-                setAiScanner(prev => ({ ...prev, results: data.results }));
-                setActiveScanMetadata(data.history);
+            // First fetch available dates for this model
+            const dates = await fetchPublicScanDates(name);
+            setAvailableDates(dates);
+            if (dates.length > 0) {
+                setSelectedDate(dates[0]);
+                const resultsByDate = await fetchScanResultsByDate(name, dates[0]);
+                setAiScanner(prev => ({ ...prev, results: resultsByDate }));
+                // We don't have separate metadata object from fetchScanResultsByDate currently, 
+                // but we can simulate it or fetch it if needed. 
+                // Mostly the UI uses results.
+                setActiveScanMetadata({ created_at: dates[0] });
             } else {
                 setAiScanner(prev => ({ ...prev, results: [] }));
                 setActiveScanMetadata(null);
+                setSelectedDate("");
             }
         } catch (err) {
             console.error("Error loading model results:", err);
@@ -83,7 +92,30 @@ export default function AIScannerPage() {
         }
     }
 
+    async function handleDateChange(date: string) {
+        setSelectedDate(date);
+        setResultsLoading(true);
+        try {
+            const resultsByDate = await fetchScanResultsByDate(modelName, date);
+            setAiScanner(prev => ({ ...prev, results: resultsByDate }));
+            setActiveScanMetadata({ created_at: date });
+        } catch (err) {
+            console.error("Error loading results for date:", err);
+        } finally {
+            setResultsLoading(false);
+        }
+    }
+
+    const predictAbortControllerRef = useRef<AbortController | null>(null);
+
     async function openDetails(row: ScanResult) {
+        // Cancel previous request
+        if (predictAbortControllerRef.current) {
+            predictAbortControllerRef.current.abort();
+        }
+        const controller = new AbortController();
+        predictAbortControllerRef.current = controller;
+
         setAiScanner((prev) => ({ ...prev, selected: row, detailData: null }));
         setDetailError(null);
         setDetailLoading(true);
@@ -94,15 +126,26 @@ export default function AIScannerPage() {
                 includeFundamentals: false,
                 rfPreset: "fast",
                 modelName: modelName
-            });
+            }, controller.signal);
             setAiScanner((prev) => ({ ...prev, detailData: res }));
-        } catch (err) {
+        } catch (err: any) {
+            if (err.name === 'AbortError') return;
             setDetailError(err instanceof Error ? err.message : "Failed to load chart");
         } finally {
-            setDetailLoading(false);
+            if (predictAbortControllerRef.current === controller) {
+                setDetailLoading(false);
+            }
         }
         setShowMobileDetail(true);
     }
+
+    useEffect(() => {
+        return () => {
+            if (predictAbortControllerRef.current) {
+                predictAbortControllerRef.current.abort();
+            }
+        };
+    }, []);
 
     useEffect(() => {
         if (!selected) {
@@ -163,11 +206,41 @@ export default function AIScannerPage() {
                                         onClick={() => handleModelChange(name)}
                                         className={`px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${modelName === name ? "bg-white text-black shadow-2xl" : "text-zinc-500 hover:text-white hover:bg-white/5"}`}
                                     >
-                                        {name.replace(".pkl", "").replace(/_/g, " ")}
+                                        {adminConfig?.modelAliases?.[name] || name.replace(".pkl", "").replace(/_/g, " ")}
                                     </button>
                                 ))
                             )}
                         </div>
+
+                        {/* Date Pagination Bar */}
+                        {availableDates.length > 0 && (
+                            <div className="flex items-center justify-between gap-4 p-4 rounded-[1.5rem] bg-zinc-950/40 border border-white/5 backdrop-blur-3xl">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 rounded-lg bg-indigo-500/10 border border-indigo-500/20">
+                                        <Activity className="h-4 w-4 text-indigo-400" />
+                                    </div>
+                                    <div className="flex flex-col">
+                                        <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest leading-none mb-1">Session Timeline</span>
+                                        <span className="text-xs font-black text-white uppercase tracking-tighter">
+                                            {selectedDate === availableDates[0] ? "Latest Neural Scan" : `Historical Archive: ${selectedDate}`}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div className="flex items-center gap-2 overflow-x-auto custom-scrollbar no-scrollbar py-1 px-1">
+                                    {availableDates.slice(0, 7).map((date) => (
+                                        <button
+                                            key={date}
+                                            onClick={() => handleDateChange(date)}
+                                            className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest whitespace-nowrap transition-all border ${selectedDate === date ? "bg-white text-black border-white shadow-lg" : "bg-black/40 text-zinc-500 border-white/5 hover:text-white hover:border-white/10"}`}
+                                        >
+                                            {new Date(date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                                        </button>
+                                    ))}
+                                    {availableDates.length > 7 && <span className="text-zinc-700 font-bold px-2">...</span>}
+                                </div>
+                            </div>
+                        )}
 
                         {/* 4. Active Model Dashboard Metrics */}
                         {modelName && (
@@ -195,10 +268,28 @@ export default function AIScannerPage() {
                     </div>
 
 
-                    {/* 5. Results Table Grid */}
                     {(results.length > 0 || resultsLoading) && (
-                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 animate-in fade-in duration-1000">
-                            <div className={`rounded-3xl border border-white/5 bg-zinc-950/40 backdrop-blur-xl overflow-hidden shadow-xl ${selected && detailData ? "lg:col-span-8" : "lg:col-span-12"}`}>
+                        <div className="flex flex-col gap-8 animate-in fade-in duration-1000">
+
+                            {/* Main Results Table (Now always full width below active chart) */}
+                            <div className="rounded-[2.5rem] border border-white/10 bg-zinc-950/40 backdrop-blur-xl overflow-hidden shadow-xl">
+                                <div className="px-6 py-5 border-b border-white/5 bg-zinc-950/80 flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                        <Activity className="w-5 h-5 text-emerald-500" />
+                                        <div className="flex flex-col">
+                                            <h3 className="text-sm font-black text-white uppercase tracking-widest leading-none mb-1">Verified Opportunities ({results.length})</h3>
+                                            {activeScanMetadata && (
+                                                <span className="text-[8px] text-zinc-600 font-bold uppercase tracking-tighter">
+                                                    Neural Scan Executed: {new Date(activeScanMetadata.created_at).toLocaleString()}
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
+                                        <span className="text-[8px] font-black text-indigo-400 uppercase tracking-widest">LIVE SIGNAL FEED</span>
+                                    </div>
+                                </div>
                                 <div className="p-0 overflow-x-auto custom-scrollbar">
                                     {resultsLoading ? (
                                         <div className="p-20 flex flex-col items-center justify-center gap-4">
@@ -216,10 +307,11 @@ export default function AIScannerPage() {
                                                 <tr>
                                                     <th className="px-6 py-4">Symbol</th>
                                                     <th className="px-6 py-4">Signal</th>
-                                                    <th className="px-6 py-4 text-center">Confidence</th>
+                                                    <th className="px-6 py-4 text-center">AI Score</th>
+                                                    <th className="px-6 py-4 text-right text-emerald-500">Target</th>
+                                                    <th className="px-6 py-4 text-right text-red-500">Stop Loss</th>
                                                     <th className="px-6 py-4 text-center">Status</th>
                                                     <th className="px-6 py-4 text-right">P/L</th>
-                                                    <th className="px-6 py-4 text-right">Action</th>
                                                 </tr>
                                             </thead>
                                             <tbody className="divide-y divide-white/5">
@@ -241,20 +333,30 @@ export default function AIScannerPage() {
                                                             </div>
                                                         </td>
                                                         <td className="px-6 py-4">
-                                                            <span className={`text-[11px] font-black uppercase tracking-widest ${r.signal === 'buy' || r.signal === 'UP' ? 'text-emerald-500' : 'text-red-500'}`}>
+                                                            <span className={`text-[11px] font-black uppercase tracking-widest ${r.signal?.toLowerCase() === 'buy' || r.signal === 'UP' ? 'text-emerald-500' : 'text-red-500'}`}>
                                                                 Signal_{r.signal}
                                                             </span>
                                                         </td>
                                                         <td className="px-6 py-4 text-center">
-                                                            <div className="flex items-center justify-center gap-3">
-                                                                <div className="w-12 h-1 rounded-full bg-zinc-900 overflow-hidden">
-                                                                    <div
-                                                                        className={`h-full ${Number(r.confidence) > 0.7 ? 'bg-emerald-500' : 'bg-indigo-500'}`}
-                                                                        style={{ width: `${(Number(r.confidence) * 100)}%` }}
-                                                                    />
-                                                                </div>
-                                                                <span className="text-[11px] font-mono font-black text-indigo-400">{(Number(r.confidence) * 100).toFixed(1)}%</span>
+                                                            <div className="flex items-center justify-center gap-2">
+                                                                {(() => {
+                                                                    const { score, label, color, bg } = getAiScore(Number(r.precision));
+                                                                    return (
+                                                                        <div className="flex flex-col items-center gap-1">
+                                                                            <div className={`px-2 py-0.5 rounded-md ${bg} ${color} text-[10px] font-black italic`}>
+                                                                                {score}/10
+                                                                            </div>
+                                                                            <span className="text-[7px] font-black uppercase tracking-tighter text-zinc-600">{label}</span>
+                                                                        </div>
+                                                                    );
+                                                                })()}
                                                             </div>
+                                                        </td>
+                                                        <td className="px-6 py-4 text-right">
+                                                            <span className="font-mono font-bold text-emerald-400">{r.target_price ? r.target_price.toFixed(2) : "-"}</span>
+                                                        </td>
+                                                        <td className="px-6 py-4 text-right">
+                                                            <span className="font-mono font-bold text-red-400">{r.stop_loss ? r.stop_loss.toFixed(2) : "-"}</span>
                                                         </td>
                                                         <td className="px-6 py-4 text-center">
                                                             {r.status === 'win' ? (
@@ -279,14 +381,6 @@ export default function AIScannerPage() {
                                                                 {Number(r.profit_loss_pct ?? 0) > 0 ? '+' : ''}{Number(r.profit_loss_pct ?? 0).toFixed(2)}%
                                                             </span>
                                                         </td>
-                                                        <td className="px-6 py-4 text-right" onClick={(e) => e.stopPropagation()}>
-                                                            <button
-                                                                onClick={() => isSaved(r.symbol) ? removeSymbolBySymbol(r.symbol) : saveSymbol({ symbol: r.symbol, name: r.name || "", source: "ai_scanner", metadata: {} })}
-                                                                className={`p-2 rounded-lg transition-all ${isSaved(r.symbol) ? "text-indigo-400 bg-indigo-500/10" : "text-zinc-600 hover:text-white"}`}
-                                                            >
-                                                                {isSaved(r.symbol) ? <BookmarkCheck className="h-4 w-4" /> : <Bookmark className="h-4 w-4" />}
-                                                            </button>
-                                                        </td>
                                                     </tr>
                                                 ))}
                                             </tbody>
@@ -303,113 +397,10 @@ export default function AIScannerPage() {
                                     </div>
                                     <div className="flex items-center gap-2">
                                         <span className="text-zinc-700">Active Engine:</span>
-                                        <span className="text-white">{modelName?.replace(".pkl", "")}</span>
+                                        <span className="text-white">{modelName ? (adminConfig?.modelAliases?.[modelName] || modelName.replace(".pkl", "")) : "none"}</span>
                                     </div>
                                 </div>
                             </div>
-
-                            {/* Stock Details Sidebar */}
-                            {selected && detailData && (
-                                <div className="lg:col-span-4 rounded-3xl border border-white/5 bg-zinc-950/40 backdrop-blur-3xl overflow-hidden shadow-2xl animate-in slide-in-from-right-10 duration-500 flex flex-col h-fit lg:sticky lg:top-24">
-                                    <div className="p-6 border-b border-white/5 flex items-center justify-between bg-zinc-900/40">
-                                        <div className="flex items-center gap-4">
-                                            <div className="p-3 rounded-2xl bg-indigo-600 shadow-xl shadow-indigo-600/20">
-                                                <Brain className="h-5 w-5 text-white" />
-                                            </div>
-                                            <div className="flex flex-col">
-                                                <h3 className="text-xl font-black text-white italic tracking-tighter uppercase">{selected.symbol}</h3>
-                                                <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">Neural Analysis Feed</span>
-                                            </div>
-                                        </div>
-                                        <button onClick={() => setAiScanner(prev => ({ ...prev, selected: null, detailData: null }))} className="p-2 rounded-xl hover:bg-white/5 transition-all text-zinc-500 hover:text-white">
-                                            <X className="h-5 w-5" />
-                                        </button>
-                                    </div>
-
-                                    <div className="p-6 space-y-8">
-                                        {/* Chart Section */}
-                                        <div className="space-y-4">
-                                            <div className="flex items-center justify-between">
-                                                <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Market Visualization</span>
-                                                <div className="flex gap-2">
-                                                    <button onClick={() => setAiScanner(p => ({ ...p, chartType: 'candle' }))} className={`p-1.5 rounded-lg border transition-all ${chartType === 'candle' ? 'bg-indigo-600 border-indigo-500' : 'bg-white/5 border-white/5'}`}>
-                                                        <BarChart2 className="h-3 w-3" />
-                                                    </button>
-                                                    <button onClick={() => setAiScanner(p => ({ ...p, chartType: 'area' }))} className={`p-1.5 rounded-lg border transition-all ${chartType === 'area' ? 'bg-indigo-600 border-indigo-500' : 'bg-white/5 border-white/5'}`}>
-                                                        <LineChart className="h-3 w-3" />
-                                                    </button>
-                                                </div>
-                                            </div>
-
-                                            <div className="h-[250px] rounded-2xl border border-white/5 bg-black/40 overflow-hidden relative shadow-inner">
-                                                {detailLoading ? (
-                                                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
-                                                        <Loader2 className="h-6 w-6 animate-spin text-indigo-500" />
-                                                        <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Rendering Chart...</span>
-                                                    </div>
-                                                ) : detailData?.testPredictions ? (
-                                                    <CandleChart
-                                                        rows={detailData.testPredictions}
-                                                        chartType={chartType}
-                                                        showEma50={showEma50}
-                                                        showEma200={showEma200}
-                                                        showBB={showBB}
-                                                        showRsi={showRsi}
-                                                        showVolume={showVolume}
-                                                    />
-                                                ) : (
-                                                    <div className="absolute inset-0 flex items-center justify-center text-zinc-500 text-[10px] font-black uppercase">Data Stream Interrupted</div>
-                                                )}
-                                            </div>
-                                        </div>
-
-                                        {/* Indicators Control */}
-                                        <div className="space-y-4">
-                                            <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Indicator Overlays</span>
-                                            <div className="grid grid-cols-2 gap-3">
-                                                {[
-                                                    { key: 'showEma50', label: 'EMA 50', icon: 'E50' },
-                                                    { key: 'showEma200', label: 'EMA 200', icon: 'E20' },
-                                                    { key: 'showBB', label: 'Bollinger', icon: 'BB' },
-                                                    { key: 'showVolume', label: 'Volume', icon: 'VOL' },
-                                                    { key: 'showRsi', label: 'RSI', icon: 'RSI' },
-                                                ].map((idx) => (
-                                                    <button
-                                                        key={idx.key}
-                                                        onClick={() => setAiScanner(p => ({ ...p, [idx.key]: !((p as any)[idx.key]) }))}
-                                                        className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${((state as any)[idx.key]) ? 'bg-indigo-500/10 border-indigo-500/30 text-indigo-400' : 'bg-white/5 border-white/5 text-zinc-600 hover:border-white/10'}`}
-                                                    >
-                                                        <div className="text-[10px] font-black w-8">{idx.icon}</div>
-                                                        <span className="text-[10px] font-black uppercase tracking-widest">{idx.label}</span>
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        </div>
-
-                                        <div className="pt-4 border-t border-white/5">
-                                            <div className="p-5 rounded-2xl bg-indigo-600 shadow-2xl shadow-indigo-600/40 flex flex-col items-center gap-3 relative overflow-hidden group">
-                                                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-all duration-1000" />
-                                                <div className="flex items-center gap-3">
-                                                    <Brain className="h-5 w-5 text-white" />
-                                                    <span className="text-[10px] font-black text-indigo-100 uppercase tracking-[0.2em]">Neural Signal Lock</span>
-                                                </div>
-                                                <div className="text-3xl font-black italic tracking-tighter text-white">
-                                                    {selected.signal === 'UP' || selected.signal === 'buy' ? 'LONG_TARGET' : 'SHORT_ENTRY'}
-                                                </div>
-                                                <div className="px-4 py-1.5 rounded-full bg-black/20 text-white text-[10px] font-bold">
-                                                    Confidence: {(Number(selected.confidence) * 100).toFixed(1)}%
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        {/* Historical Bench Table */}
-                                        <div className="mt-6 pt-6 border-t border-white/5">
-                                            <div className="text-[9px] font-black text-indigo-400 uppercase tracking-widest mb-3">Historical Accuracy Bench</div>
-                                            <TableView rows={detailData.testPredictions} ticker={selected.symbol} />
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
                         </div>
                     )}
                 </div>
@@ -426,15 +417,38 @@ export default function AIScannerPage() {
                             <div className="text-[11px] font-black text-zinc-500 uppercase tracking-widest truncate">{selected.name}</div>
                         </div>
                         <div className="flex items-center gap-4">
+                            <div className="hidden md:flex items-center gap-1.5 px-4 py-2 rounded-xl bg-zinc-900/60 border border-white/5">
+                                {[
+                                    { id: "showEma50", label: "EMA50", color: "bg-orange-500" },
+                                    { id: "showEma200", label: "EMA200", color: "bg-cyan-500" },
+                                    { id: "showBB", label: "BB", color: "bg-purple-500" },
+                                    { id: "showRsi", label: "RSI", color: "bg-pink-500" },
+                                    { id: "showMacd", label: "MACD", color: "bg-indigo-500" },
+                                    { id: "showVolume", label: "VOL", color: "bg-blue-500" },
+                                ].map((ind) => (
+                                    <button
+                                        key={ind.id}
+                                        onClick={() => setAiScanner(p => ({ ...p, [ind.id]: !((p as any)[ind.id]) }))}
+                                        className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-[9px] font-black uppercase transition-all ${state[ind.id as keyof typeof state] ? "bg-white/10 text-white" : "text-zinc-600 hover:text-zinc-400"}`}
+                                    >
+                                        <div className={`w-1.5 h-1.5 rounded-full ${state[ind.id as keyof typeof state] ? ind.color : "bg-zinc-800"}`} />
+                                        {ind.label}
+                                    </button>
+                                ))}
+                            </div>
                             <div className="flex gap-1 rounded-lg bg-zinc-900/60 border border-white/5 p-1">
                                 <button
                                     onClick={() => setAiScanner(prev => ({ ...prev, chartType: "candle" }))}
-                                    className={`px-3 py-1.5 rounded-md text-xs font-bold uppercase ${chartType === "candle" ? "bg-indigo-600 text-white" : "text-zinc-400 hover:text-white"}`}
-                                >Candle</button>
+                                    className={`p-2 rounded-md transition-all ${chartType === "candle" ? "bg-indigo-600 text-white" : "text-zinc-400 hover:text-white"}`}
+                                >
+                                    <BarChart2 className="h-4 w-4" />
+                                </button>
                                 <button
                                     onClick={() => setAiScanner(prev => ({ ...prev, chartType: "area" }))}
-                                    className={`px-3 py-1.5 rounded-md text-xs font-bold uppercase ${chartType === "area" ? "bg-indigo-600 text-white" : "text-zinc-400 hover:text-white"}`}
-                                >Area</button>
+                                    className={`p-2 rounded-md transition-all ${chartType === "area" ? "bg-indigo-600 text-white" : "text-zinc-400 hover:text-white"}`}
+                                >
+                                    <LineChart className="h-4 w-4" />
+                                </button>
                             </div>
                             <button
                                 onClick={() => {
@@ -460,21 +474,64 @@ export default function AIScannerPage() {
                             </div>
                         )}
                         {detailData && (
-                            <div className="space-y-4 h-full">
-                                <div className="rounded-2xl border border-white/5 bg-zinc-900/30 overflow-hidden">
+                            <div className="flex flex-col gap-10 h-full">
+                                <div className="rounded-[2rem] border border-white/5 bg-zinc-900/40 overflow-hidden shadow-2xl" style={{ height: 600 }}>
                                     <CandleChart
                                         rows={detailData.testPredictions}
                                         showEma50={showEma50}
                                         showEma200={showEma200}
                                         showBB={showBB}
                                         showRsi={showRsi}
+                                        showMacd={showMacd}
                                         showVolume={showVolume}
                                         chartType={chartType}
+                                        height={600}
                                     />
                                 </div>
-                                <div className="p-4 rounded-2xl bg-indigo-600/5 border border-indigo-500/10">
-                                    <div className="text-[9px] font-black text-indigo-400 uppercase tracking-widest mb-3">Historical Accuracy Bench</div>
-                                    <TableView rows={detailData.testPredictions} ticker={selected.symbol} />
+
+                                {/* Neural Logic Drivers - ALWAYS VISIBLE if data exists */}
+                                <div className="rounded-[2.5rem] border border-white/5 bg-white/[0.02] p-10 space-y-8">
+                                    <div className="flex items-center gap-4">
+                                        <div className="p-3 rounded-2xl bg-indigo-500/20">
+                                            <Brain className="h-5 w-5 text-indigo-400" />
+                                        </div>
+                                        <div className="flex flex-col">
+                                            <span className="text-xs font-black text-indigo-400 uppercase tracking-[0.2em]">Neural Logic Drivers</span>
+                                            <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mt-0.5">Decision Matrix Analysis Locked</span>
+                                        </div>
+                                    </div>
+
+                                    {detailData.topReasons && detailData.topReasons.length > 0 ? (
+                                        <div className="flex flex-wrap gap-4">
+                                            {detailData.topReasons.map((reason, idx) => (
+                                                <div key={idx} className="px-6 py-3 rounded-2xl bg-black/60 border border-white/5 flex items-center gap-3 group transition-all hover:border-indigo-500/30">
+                                                    <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 shadow-[0_0_10px_rgba(99,102,241,0.5)]" />
+                                                    <span className="text-xs font-bold text-zinc-300 uppercase tracking-widest leading-none">
+                                                        {reason}
+                                                    </span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <div className="p-12 border border-dashed border-white/5 rounded-[2rem] flex items-center justify-center text-[10px] font-black text-zinc-600 uppercase tracking-[0.2em]">
+                                            Neural Logic Datashards Unavailable
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div className="rounded-[2.5rem] border border-white/5 bg-white/[0.02] p-10 shadow-xl overflow-hidden">
+                                    <div className="flex items-center gap-4 mb-8">
+                                        <div className="p-3 rounded-2xl bg-emerald-500/20">
+                                            <Activity className="h-5 w-5 text-emerald-500" />
+                                        </div>
+                                        <div className="flex flex-col">
+                                            <span className="text-xs font-black text-emerald-500 uppercase tracking-[0.2em]">Historical Performance Slice</span>
+                                            <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mt-0.5">Spectral Backtest Results</span>
+                                        </div>
+                                    </div>
+                                    <div className="overflow-x-auto custom-scrollbar">
+                                        <TableView rows={detailData.testPredictions} ticker={selected.symbol} />
+                                    </div>
                                 </div>
                             </div>
                         )}
@@ -484,4 +541,3 @@ export default function AIScannerPage() {
         </div>
     );
 }
-

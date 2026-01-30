@@ -12,6 +12,8 @@ warnings.filterwarnings("ignore", category=FutureWarning)
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple, Union
 from threading import Lock
+import threading
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import numpy as np
 import pandas as pd
@@ -21,7 +23,7 @@ from eodhd import APIClient
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import precision_score
 from supabase import create_client, Client
-from train_exchange_model import add_massive_features
+from api.train_exchange_model import add_massive_features, add_market_context
 
 # Conditional import for LGBM to avoid failure if not installed (though it should be)
 try:
@@ -36,12 +38,12 @@ except Exception:
 
 
 class _LgbmBoosterClassifier:
-    def __init__(self, booster, threshold: float = 0.5):
+    def __init__(self, booster, threshold: float = 0.40): # Lowered to 0.4
         self.booster = booster
         try:
             self.threshold = float(threshold)
         except Exception:
-            self.threshold = 0.5
+            self.threshold = 0.40
 
     def predict(self, X):
         raw = self.booster.predict(X)
@@ -52,6 +54,9 @@ class _LgbmBoosterClassifier:
         probs = np.asarray(raw)
         # Return 2-column format: [prob_class_0, prob_class_1]
         return np.column_stack([1 - probs, probs])
+
+    def get_feature_importance(self):
+        return self.booster.feature_importance()
 
 supabase: Optional[Client] = None
 
@@ -82,7 +87,79 @@ LGBM_PREDICTORS = [
     "RSI_Lag1", "RSI_Diff",
     "Volume_Lag1", "Volume_Diff",
     "OBV_Lag1", "OBV_Diff",
+
+    # Smart Indicators (Stacking)
+    "feat_rsi_signal", "feat_rsi_acc",
+    "feat_ema_signal", "feat_ema_acc",
+    "feat_bb_signal", "feat_bb_acc",
+
+    # Market Context
+    "feat_mkt_trend", "feat_mkt_volatility", "feat_rel_strength",
+
+    # Fundamentals
+    "marketCap", "peRatio", "eps", "dividendYield", "sector", "industry",
 ]
+
+# Mapping technical feature names to human-readable explanations.
+# Used for Phase 8: Explainable AI.
+FEATURE_EXPLANATIONS = {
+    "RSI": "Relative Strength Index (Momentum)",
+    "MACD": "MACD Trend Divergence",
+    "SMA_50": "50-Day Moving Average Support",
+    "SMA_200": "200-Day Institutional Trend",
+    "EMA_50": "50-Day Exponential Trend",
+    "EMA_200": "200-Day Institutional EMA",
+    "OBV": "On-Balance Volume (Flow)",
+    "OBV_Slope": "Volume Accumulation Intensity",
+    "VWAP_20": "Volume Weighted Average Price",
+    "Momentum": "Price Velocity & Trend Strength",
+    "ROC_12": "Rate of Change (12-period)",
+    "ADX_14": "Trend Strength Index",
+    "STOCH_K": "Stochastic Oscillator K",
+    "BB_PctB": "Bollinger Bands Relative Position",
+    "BB_Width": "Volatility Breakout Potential",
+    "Close_Diff": "Daily Price Change Intensity",
+    "RSI_Diff": "RSI Acceleration/Deceleration",
+    "Z_Score": "Statistical Price Deviation",
+    "Body_Size": "Candle Stick Pattern Strength",
+    "Upper_Shadow": "Selling Pressure Intensity",
+    "Lower_Shadow": "Buying Pressure Support",
+    "VOL_SMA20": "Volume Trend vs Average",
+    "Dist_From_High": "Proximity to Recent Highs",
+    "Dist_From_Low": "Proximity to Recent Lows",
+    "marketCap": "Company Market Valuation",
+    "peRatio": "Price to Earnings (Valuation)",
+    "eps": "Earnings Per Share (Profitability)",
+    "dividendYield": "Dividend Payment Strength",
+    "sector": "Economic Sector Context",
+    "industry": "Specific Industry Dynamics",
+}
+
+def get_top_reasons(model: Any, predictors: List[str], limit: int = 3) -> List[str]:
+    """Extract top N human-readable reasons from model feature importance."""
+    top_reasons = []
+    try:
+        importances = []
+        if hasattr(model, "feature_importances_"):
+            importances = model.feature_importances_
+        elif hasattr(model, "get_feature_importance"):
+            importances = model.get_feature_importance()
+        
+        if len(importances) > 0:
+            # Pair predictors with their importance
+            feat_imp = list(zip(predictors, importances))
+            # Sort by importance descending
+            # LightGBM might return more importances than predictors if not careful, 
+            # but usually they match the length of feature_name()
+            feat_imp.sort(key=lambda x: x[1], reverse=True)
+            # Take top N and map to readable names
+            for f_name, imp in feat_imp[:limit]:
+                reason = FEATURE_EXPLANATIONS.get(f_name, f_name)
+                top_reasons.append(reason)
+    except Exception as e:
+        print(f"Error extracting feature importance: {e}")
+    return top_reasons
+
 
 # Standard predictors for default RandomForest (Legacy)
 RF_PREDICTORS = ["Close", "Volume", "SMA_50", "SMA_200", "RSI", "Momentum"]
@@ -153,21 +230,41 @@ def _infer_symbol_exchange(ticker: str, exchange_hint: Optional[str] = None) -> 
     """
     t = ticker.strip().upper()
     
+    # Mapping table for country names to exchange codes
+    country_to_ex = {
+        "egypt": "EGX",
+        "egx": "EGX",
+        "ca": "EGX",
+        "cc": "EGX",
+        "cairo": "EGX",
+        "usa": "US",
+        "us": "US",
+        "argentina": "BA",
+        "brazil": "SA",
+        "south korea": "KQ",
+        "canada": "TO",
+        "uk": "LSE",
+        "france": "PA",
+        "germany": "F"
+    }
+
     # 1. Split by dot if present
     if "." in t:
         parts = t.split(".")
         s = parts[0]
         e = parts[1]
         # Map known variations
-        if e == "CC": e = "EGX"
-        if e == "NYSE" or e == "NASDAQ": e = "US"
+        if e.lower() in country_to_ex:
+            e = country_to_ex[e.lower()]
         return s, e
         
     # 2. Use hint if provided
     if exchange_hint:
-        e = exchange_hint.upper()
-        if e == "CC": e = "EGX"
-        if e == "NYSE" or e == "NASDAQ": e = "US"
+        e = exchange_hint.strip().lower()
+        if e in country_to_ex:
+            e = country_to_ex[e]
+        else:
+            e = e.upper()
         return t, e
         
     # 3. Default fallback (guessing) - mostly US or EGX in this app context
@@ -207,6 +304,8 @@ _CACHE_TTL_SECONDS = 30
 
 _EXCHANGE_BULK_CACHE: Dict[str, Dict[str, Any]] = {}
 _EXCHANGE_BULK_TTL_SECONDS = 900  # 15 minutes; adjust as needed
+_BULK_LOAD_LOCKS: Dict[str, threading.Lock] = {}
+_GLOBAL_LOAD_LOCK = threading.Lock()
 
 # ----------------------
 # Model Cache (avoid reloading per symbol)
@@ -228,22 +327,24 @@ class IndicatorCache:
         return f"{exchange.upper()}_{symbol.upper()}"
 
     def _data_hash(self, df: pd.DataFrame) -> str:
-        # Hash last 30 rows only
-        recent = df.tail(30)
-        close_val = recent["Close"].iloc[-1] if len(recent) > 0 and "Close" in recent.columns else 0
-        data_str = f"{len(df)}_{close_val}"
-        return hashlib.md5(data_str.encode()).hexdigest()[:8]
+        # Hash length and last close/volume to detect data changes
+        if df.empty: return "empty"
+        
+        last_row = df.iloc[-1]
+        close = last_row.get("close", last_row.get("Close", 0))
+        vol = last_row.get("volume", last_row.get("Volume", 0))
+        
+        data_str = f"{len(df)}_{close}_{vol}"
+        return hashlib.md5(data_str.encode()).hexdigest()[:12]
 
     def get_with_indicators(self, symbol: str, exchange: str, df: pd.DataFrame, indicator_func) -> pd.DataFrame:
-        cache_key = self._cache_key(symbol, exchange)
+        cache_key = f"IND_{self._cache_key(symbol, exchange)}"
         data_hash = self._data_hash(df)
 
         with self.lock:
             entry = self.cache.get(cache_key)
-            if entry:
-                age = time.time() - entry["ts"]
-                if age < self.max_age and entry.get("data_hash") == data_hash:
-                    return entry["data"].copy()
+            if entry and (time.time() - entry["ts"] < self.max_age) and entry.get("data_hash") == data_hash:
+                return entry["data"].copy()
 
         df_with_ind = indicator_func(df)
 
@@ -253,8 +354,27 @@ class IndicatorCache:
                 "data_hash": data_hash,
                 "ts": time.time(),
             }
-
         return df_with_ind
+
+    def get_with_massive_features(self, symbol: str, exchange: str, df: pd.DataFrame) -> pd.DataFrame:
+        from train_exchange_model import add_massive_features
+        cache_key = f"MASS_{self._cache_key(symbol, exchange)}"
+        data_hash = self._data_hash(df)
+
+        with self.lock:
+            entry = self.cache.get(cache_key)
+            if entry and (time.time() - entry["ts"] < self.max_age) and entry.get("data_hash") == data_hash:
+                return entry["data"].copy()
+
+        df_with_feat = add_massive_features(df)
+
+        with self.lock:
+            self.cache[cache_key] = {
+                "data": df_with_feat.copy(),
+                "data_hash": data_hash,
+                "ts": time.time(),
+            }
+        return df_with_feat
 
     def clear(self, symbol: Optional[str] = None, exchange: Optional[str] = None):
         with self.lock:
@@ -294,71 +414,110 @@ def _get_exchange_bulk_data(exchange: str, from_date: Optional[str] = None, to_d
         return {}
 
     now = time.time()
-    cache_key = exchange.upper()
+    cache_key = f"{exchange.upper()}_{from_date or 'ALL'}_{to_date or 'NOW'}"
 
-    # Serve from cache if fresh
+    # 1. Simple cache check
     cached = _EXCHANGE_BULK_CACHE.get(cache_key)
     if cached and (now - cached.get("ts", 0) < _EXCHANGE_BULK_TTL_SECONDS):
+        print(f"DEBUG: Bulk Cache Hit for {cache_key}")
         return cached.get("data", {})
 
-    _init_supabase()
-    if not supabase:
-        return {}
+    # 2. Get or create a lock for this specific cache key to prevent "loop refetch"
+    with _GLOBAL_LOAD_LOCK:
+        if cache_key not in _BULK_LOAD_LOCKS:
+            _BULK_LOAD_LOCKS[cache_key] = Lock()
+        lock = _BULK_LOAD_LOCKS[cache_key]
 
-    try:
-        all_rows: List[Dict[str, Any]] = []
-        page_size = 1000
-        offset = 0
-        while True:
-            res = (
-                supabase.table("stock_prices")
-                .select("symbol,exchange,date,open,high,low,close,volume")
-                .eq("exchange", cache_key)
-                .order("symbol", desc=False)
-                .order("date", desc=False)
-                .range(offset, offset + page_size - 1)
-                .execute()
-            )
-            batch = res.data or []
-            if not batch:
-                break
-            all_rows.extend(batch)
-            if len(batch) < page_size:
-                break
-            offset += page_size
+    with lock:
+        # Re-check cache after acquiring lock
+        cached = _EXCHANGE_BULK_CACHE.get(cache_key)
+        if cached and (time.time() - cached.get("ts", 0) < _EXCHANGE_BULK_TTL_SECONDS):
+            print(f"DEBUG: Bulk Cache Hit (locked) for {cache_key}")
+            return cached.get("data", {})
 
-        if not all_rows:
+        _init_supabase()
+        if not supabase:
             return {}
 
-        df_all = pd.DataFrame(all_rows)
-        if df_all.empty:
+        print(f"DEBUG: Starting bulk load for {cache_key} (from_date={from_date})")
+        start_time = time.time()
+
+        try:
+            # 1. Build base query with exact count request in select
+            page_size = 1000 # Supabase/PostgREST default limit
+            query = supabase.table("stock_prices") \
+                .select("symbol,exchange,date,open,high,low,close,volume", count="exact") \
+                .eq("exchange", exchange.upper())
+            
+            if from_date: query = query.gte("date", from_date)
+            if to_date: query = query.lte("date", to_date)
+            query = query.order("symbol", desc=False).order("date", desc=False)
+
+            # 2. Fetch first page + total count
+            fetch_start = time.time()
+            res0 = query.range(0, page_size - 1).execute()
+            all_rows = res0.data or []
+            total_count = res0.count or len(all_rows)
+            
+            print(f"DEBUG: Starting Parallel Bulk Load for {exchange.upper()} ({total_count} total rows)")
+
+            if total_count > page_size:
+                offsets = range(page_size, total_count, page_size)
+                
+                def _fetch_page(off, retries=5): # Increased retries
+                    for attempt in range(retries):
+                        try:
+                            # Re-build query to avoid any shared state issues
+                            r = supabase.table("stock_prices") \
+                                .select("symbol,exchange,date,open,high,low,close,volume") \
+                                .eq("exchange", exchange.upper())
+                            if from_date: r = r.gte("date", from_date)
+                            if to_date: r = r.lte("date", to_date)
+                            r = r.order("symbol", desc=False).order("date", desc=False)
+                            
+                            res = r.range(off, off + page_size - 1).execute()
+                            return res.data or []
+                        except Exception as e:
+                            wait = (attempt + 1) * 3
+                            if attempt > 1: # Only log after first failure to reduce noise
+                                print(f"DEBUG: Retry {attempt+1}/{retries} for offset {off} due to: {e}. Waiting {wait}s...")
+                            time.sleep(wait)
+                    print(f"ERROR: Failed to fetch page at offset {off} after {retries} attempts.")
+                    return []
+
+                # Fetch remaining pages in parallel (Conservative 3 workers)
+                with ThreadPoolExecutor(max_workers=3) as executor:
+                    futures = [executor.submit(_fetch_page, o) for o in offsets]
+                    for f in as_completed(futures):
+                        all_rows.extend(f.result())
+
+            fetch_duration = time.time() - fetch_start
+            print(f"DEBUG: Supabase Parallel Fetch complete. Took {fetch_duration:.2f}s for {len(all_rows)} rows across {len(set(r['symbol'] for r in all_rows))} symbols")
+
+            if not all_rows:
+                return {}
+
+            process_start = time.time()
+            df_all = pd.DataFrame(all_rows)
+            if df_all.empty:
+                return {}
+
+            df_all["date"] = pd.to_datetime(df_all["date"], errors="coerce")
+            df_all = df_all.dropna(subset=["date"]).sort_values(["symbol", "date"])
+
+            data_by_symbol: Dict[str, pd.DataFrame] = {}
+            for sym, grp in df_all.groupby("symbol"):
+                g = grp.set_index("date")["open high low close volume".split()]
+                g = g.rename(columns={"close": "Close", "open": "Open", "high": "High", "low": "Low", "volume": "Volume"})
+                data_by_symbol[str(sym).upper()] = g
+
+            _EXCHANGE_BULK_CACHE[cache_key] = {"ts": now, "data": data_by_symbol, "rows": len(df_all)}
+            total_duration = time.time() - start_time
+            print(f"DEBUG: Bulk cached {len(df_all)} rows for {cache_key} ({len(data_by_symbol)} symbols) in {total_duration:.2f}s (Processing: {time.time()-process_start:.2f}s)")
+            return data_by_symbol
+        except Exception as e:
+            print(f"DEBUG: Bulk load failed for exchange {cache_key}: {e}")
             return {}
-
-        df_all["date"] = pd.to_datetime(df_all["date"], errors="coerce")
-        df_all = df_all.dropna(subset=["date"]).sort_values(["symbol", "date"])
-        if from_date:
-            try:
-                df_all = df_all[df_all["date"] >= pd.to_datetime(from_date)]
-            except Exception:
-                pass
-        if to_date:
-            try:
-                df_all = df_all[df_all["date"] <= pd.to_datetime(to_date)]
-            except Exception:
-                pass
-
-        data_by_symbol: Dict[str, pd.DataFrame] = {}
-        for sym, grp in df_all.groupby("symbol"):
-            g = grp.set_index("date")["open high low close volume".split()]
-            g = g.rename(columns={"close": "Close", "open": "Open", "high": "High", "low": "Low", "volume": "Volume"})
-            data_by_symbol[str(sym).upper()] = g
-
-        _EXCHANGE_BULK_CACHE[cache_key] = {"ts": now, "data": data_by_symbol, "rows": len(df_all)}
-        print(f"DEBUG: Bulk cached {len(df_all)} rows for exchange {cache_key} ({len(data_by_symbol)} symbols)")
-        return data_by_symbol
-    except Exception as e:
-        print(f"DEBUG: Bulk load failed for exchange {cache_key}: {e}")
-        return {}
 
 
 def _get_model_cached(model_path: str):
@@ -439,28 +598,78 @@ def get_supabase_inventory() -> List[Dict[str, Any]]:
         for ex, count in exchanges.items():
             expected_map[ex] = {"count": count, "country": country}
 
-    try:
-        # 1. Get stats from RPC
-        res = supabase.rpc("get_inventory_stats").execute()
-        stats = res.data if res.data else []
+    first_attempt_success = False
+    stats = []
 
-        # 2. Get exchange-to-country mapping from fundamentals if possible
-        # (Fall back to local summary for countries)
+    # 1. Try stats from RPC (Primary)
+    try:
+        res = supabase.rpc("get_inventory_stats").execute()
+        if res.data:
+            stats = res.data
+            first_attempt_success = True
+    except Exception as e:
+        print(f"Warning: Primary inventory stats RPC failed: {e}. Falling back to Fundamentals + Local stats.")
+
+    # 2. Get exchange-to-country mapping from fundamentals if possible (Shared)
+    mapping = {}
+    try:
+        # Optimization: Only count symbols per country to find the 'primary' country for an exchange
+        # Actually, the expected_map from local summary is the most reliable.
+        # We only use fundamentals as secondary.
         meta_res = supabase.table("stock_fundamentals").select("exchange, country:data->>country").execute()
-        mapping = {}
         if meta_res.data:
+            # Simple voting logic: count symbols per (exchange, country)
+            votes = {} 
             for row in meta_res.data:
                 ex = row.get('exchange')
                 c = row.get('country')
                 if ex and c:
-                    mapping[ex] = c
+                    key = (ex, c)
+                    votes[key] = votes.get(key, 0) + 1
+            
+            # Pick highest vote for each exchange
+            ex_best = {}
+            for (ex, c), count in votes.items():
+                if ex not in ex_best or count > ex_best[ex][1]:
+                    ex_best[ex] = (c, count)
+            
+            for ex, (c, _) in ex_best.items():
+                mapping[ex] = c
+    except Exception as e:
+        print(f"Warning: Fundamentals metadata fetch failed: {e}")
 
-        # 3. Join and group
+    # 3. If primary RPC failed, build stats from fundamentals aggregation (Fallback)
+    if not stats:
+        # We can't easily get price_count without the heavy query, so we set it to 0 or -1 (unknown)
+        # But we can get accurate fund_count from stock_fundamentals
+        try:
+            # Group by exchange manually from the meta_res we just got, or fetch if needed
+            fund_counts = {}
+            if meta_res.data:
+                for row in meta_res.data:
+                    ex = row.get('exchange')
+                    if ex:
+                        fund_counts[ex] = fund_counts.get(ex, 0) + 1
+            
+            # Construct a partial stats list
+            for ex, count in fund_counts.items():
+                stats.append({
+                    "exchange": ex,
+                    "price_count": 0, # Cannot determine efficiently on timeout
+                    "fund_count": count,
+                    "last_update": None
+                })
+        except Exception as e:
+            print(f"Warning: Fallback stats generation failed: {e}")
+
+
+    try:
+        # 4. Join and group (Shared Logic)
         out = []
         mapped_exchanges = set()
 
         for row in stats:
-            ex = row['exchange']
+            ex = row.get('exchange', 'Unknown')
             expected = expected_map.get(ex, {})
             # Enrich row
             row['country'] = mapping.get(ex) or expected.get("country", "Unknown")
@@ -484,10 +693,15 @@ def get_supabase_inventory() -> List[Dict[str, Any]]:
             row['fundCount'] = row.get('fund_count', 0)
             row['expectedCount'] = row['expected_count']
             row['lastUpdate'] = row.get('last_update')
+            
+            # If we are in fallback mode (price_count is 0 but we know we have some data potentially),
+            # we might want to flag it or leave it as 0. 
+            # For now 0 is fine, UI shows "0 / N".
+            
             out.append(row)
             mapped_exchanges.add(ex)
 
-        # 4. Add missing exchanges from local summary
+        # 5. Add missing exchanges from local summary
         for ex, expected in expected_map.items():
             if ex not in mapped_exchanges:
                 out.append({
@@ -505,7 +719,7 @@ def get_supabase_inventory() -> List[Dict[str, Any]]:
             
         return out
     except Exception as e:
-        print(f"Error fetching inventory stats: {e}")
+        print(f"Error processing inventory stats: {e}")
     return []
 
 
@@ -546,11 +760,31 @@ def get_supabase_symbols(country: Optional[str] = None) -> List[Dict[str, Any]]:
                     "hasLocal": True
                 }
 
-        # 2. Add fallback for symbols that have prices but might be missing metadata (e.g. Brazil/Korea)
-        # Only do this if we have a country name to filter by, or if fetching all
+        # 2. Add fallback for symbols in stock_fundamentals
+        try:
+            fund_query = supabase.table("stock_fundamentals").select("symbol, exchange, country:data->>country")
+            if country:
+                # Some symbols might have nested data or flat country field
+                fund_query = fund_query.eq("data->>country", country)
+            
+            fund_res = fund_query.execute()
+            if fund_res.data:
+                for r in fund_res.data:
+                    sym = r['symbol']
+                    if sym not in symbols_map:
+                        symbols_map[sym] = {
+                            "symbol": sym,
+                            "exchange": r['exchange'],
+                            "name": "", # Basic
+                            "country": r.get('country', country or 'Unknown'),
+                            "hasLocal": True
+                        }
+        except Exception as fund_err:
+            print(f"Fallback fundamentals query failed: {fund_err}")
+
+        # 3. Last fallback: stock_prices table (limited)
         try:
             # Map countries to exchanges for direct querying if we have the info
-            # This is a bit of a hack but necessary given the data inconsistency
             country_to_ex = {
                 "Brazil": "SA",
                 "South Korea": "KQ",
@@ -560,18 +794,21 @@ def get_supabase_symbols(country: Optional[str] = None) -> List[Dict[str, Any]]:
             
             ex_filter = country_to_ex.get(country) if country else None
             
+            # Use a slightly larger range if needed
+            # To get more unique symbols, we fetch a few pages or a larger block
+            # Since we can't do DISTINCT easily, we fetch 2000 recent price records
             price_query = supabase.table("stock_prices").select("symbol, exchange")
             if ex_filter:
                 price_query = price_query.eq("exchange", ex_filter)
             
-            # Use limit to avoid overloading if country is None
-            if not country:
-                price_query = price_query.limit(1000)
-                
-            price_res = price_query.execute()
+            # Fetch in two chunks to avoid PostgREST 1000 limit issues
+            p1 = price_query.range(0, 999).execute()
+            p2 = price_query.range(1000, 1999).execute()
             
-            if price_res.data:
-                for r in price_res.data:
+            all_price_rows = (p1.data or []) + (p2.data or [])
+            
+            if all_price_rows:
+                for r in all_price_rows:
                     sym = r['symbol']
                     if sym not in symbols_map:
                         symbols_map[sym] = {
@@ -657,6 +894,7 @@ def _normalize_eodhd_eod_result(raw: Union[pd.DataFrame, List[Dict[str, Any]], A
     if date_col is not None:
         df[date_col] = pd.to_datetime(df[date_col], errors="coerce")
         df = df.dropna(subset=[date_col]).set_index(date_col)
+        df = df[~df.index.duplicated(keep='last')]
         df = df.sort_index()
 
     return df
@@ -731,7 +969,9 @@ def get_stock_data_eodhd(
                 if not df.empty:
                     # Convert to standard format
                     df['date'] = pd.to_datetime(df['date'])
-                    df = df.set_index('date').sort_index()
+                    df = df.set_index('date')
+                    df = df[~df.index.duplicated(keep='last')]
+                    df = df.sort_index()
                     # Filter by date range
                     if from_date:
                         df = df[df.index >= pd.to_datetime(from_date)]
@@ -820,6 +1060,7 @@ def get_stock_data_yahoo(
         if not isinstance(df.index, pd.DatetimeIndex):
             df.index = pd.to_datetime(df.index)
             
+        df = df[~df.index.duplicated(keep='last')]
         df = df.sort_index()
         
         if df.empty:
@@ -1049,7 +1290,7 @@ def sync_data_to_supabase(ticker: str, data: dict) -> tuple[bool, str]:
             parts = ticker.split(".")
             sb_symbol = parts[0]
             sb_exchange = parts[1]
-            if sb_exchange == "CC": sb_exchange = "EGX"
+            if sb_exchange in ["CC", "CA"]: sb_exchange = "EGX"
         
         # Clean symbol (remove fund_ prefix if present)
         # This handles the user's issue where "fund_ANFI" was stored instead of "ANFI"
@@ -1165,6 +1406,13 @@ def get_company_fundamentals(
             res = supabase.table("stock_fundamentals").select("data").eq("symbol", s).eq("exchange", e).limit(1).execute()
             if res.data and res.data[0].get("data"):
                 data = res.data[0]["data"]
+                # Safety: Parse JSON if returned as string
+                if isinstance(data, str):
+                    try:
+                        import json
+                        data = json.loads(data)
+                    except:
+                        pass
                 if return_meta:
                     return data, {"source": "supabase", "servedFrom": "supabase"}
                 return data
@@ -1555,15 +1803,99 @@ def add_technical_indicators(df: pd.DataFrame) -> pd.DataFrame:
     # Do not dropna here, let prepare_for_ai handle it so we can drop columns if needed
     return out
 
+def add_trade_levels(df: pd.DataFrame, risk_reward_ratio: float = 2.0) -> Tuple[float, float]:
+    """
+    Calculates Take Profit (T.P) and Stop Loss (S.L) based on ATR (Volatility).
+    """
+    if df.empty or "ATR_14" not in df.columns:
+        return 0.0, 0.0
+    
+    current_price = float(df["Close"].iloc[-1])
+    current_atr = float(df["ATR_14"].iloc[-1])
+    
+    if not np.isfinite(current_atr) or current_atr <= 0:
+        # Fallback to simple percentage if ATR is zero or invalid
+        return round(current_price * 1.05, 2), round(current_price * 0.97, 2)
 
-def prepare_for_ai(df: pd.DataFrame) -> pd.DataFrame:
+    # Stop Loss (S.L) = Current Price - (2.0 * ATR)
+    stop_loss = current_price - (2.0 * current_atr)
+    
+    # Ensure stop_loss is positive and typically at least 1-2% below current price
+    if stop_loss > current_price * 0.99: 
+        stop_loss = current_price * 0.98
+    elif stop_loss < current_price * 0.5: # Extreme ATR check
+        stop_loss = current_price * 0.95 
+    
+    # Target Price (T.P) = Current Price + (2.0 * ATR * risk_reward_ratio)
+    # Keeping ATR context for target but user specifically mentioned Stop Loss.
+    target_price = current_price + (2.0 * current_atr * risk_reward_ratio)
+    
+    # Cap target price at reasonable levels
+    max_target = current_price * 1.30  # Max 30% profit target
+    min_target = current_price * 1.03  # Min 3% profit target
+    
+    if target_price > max_target:
+        target_price = max_target
+    elif target_price < min_target:
+        target_price = min_target
+
+    return round(float(target_price), 2), round(float(max(stop_loss, 0.01)), 2)
+
+
+def prepare_for_ai(df: pd.DataFrame, target_pct: float = 0.10, stop_loss_pct: float = 0.05, look_forward_days: int = 20, drop_labels: bool = True) -> pd.DataFrame:
+    """
+    Sniper Strategy Labeling with configurable parameters.
+    Default target lowered to 10% for better sample distribution.
+    """
+    if df.empty: return df
     out = df.copy()
-    out["Next_Close"] = out["Close"].shift(-1)
-    out["Target"] = (out["Next_Close"] > out["Close"]).astype(int)
-    # Keep more rows by filling numeric gaps, then drop only rows missing core targets.
+    
+    indexer = pd.api.indexers.FixedForwardWindowIndexer(window_size=look_forward_days)
+    
+    # Use lowercase columns if needed or standardizing to capitalized
+    close_col = "Close" if "Close" in out.columns else "close"
+    open_col = "Open" if "Open" in out.columns else "open"
+    high_col = "High" if "High" in out.columns else "high"
+    low_col = "Low" if "Low" in out.columns else "low"
+    
+    # Fix Gap Trap: Entry is Next Day Open
+    out['next_open'] = out[open_col].shift(-1)
+    
+    # Future High/Low: Start checking from next day (shift -1)
+    # This aligns the window [t+1, t+1+look_forward] to row t
+    out['future_high'] = out[high_col].shift(-1).rolling(window=indexer).max()
+    out['future_low'] = out[low_col].shift(-1).rolling(window=indexer).min()
+    
+    out['Target'] = 0
+    
+    # Calculate Target/Stop based on Entry Price (Next Open), not Current Close
+    hit_target = out['future_high'] >= (out['next_open'] * (1 + target_pct))
+    safe_from_stop = out['future_low'] > (out['next_open'] * (1 - stop_loss_pct))
+    
+    out.loc[hit_target & safe_from_stop, 'Target'] = 1
+    
+    # Cleanup and dropna
+    out.drop(columns=['future_high', 'future_low', 'next_open'], inplace=True, errors='ignore')
+    
+    # Keep more rows by filling numeric gaps
+    # Force common fundamental columns to numeric if they exist to prevent LightGBM dtype errors
+    for c in ["marketCap", "peRatio", "eps", "dividendYield"]:
+        if c in out.columns:
+            out[c] = pd.to_numeric(out[c], errors='coerce')
+
+    # Handle categorical fundamental indicators if present
+    for c in ["sector", "industry"]:
+        if c in out.columns:
+            # Force to string then category to handle varied input types gracefully
+            out[c] = out[c].fillna("Unknown").astype(str).astype("category")
+
     numeric_cols = out.select_dtypes(include=["number"]).columns
     out[numeric_cols] = out[numeric_cols].fillna(0.0)
-    out = out.dropna(subset=["Close", "Next_Close", "Target"]).copy()
+    
+    # Drop rows where we couldn't see the future only if requested
+    if drop_labels:
+        out = out.iloc[:-look_forward_days].copy()
+    
     return out
 
 
@@ -1592,8 +1924,26 @@ def _ensure_feature_columns(df: pd.DataFrame, features: List[str]) -> None:
     missing = [f for f in features if f not in df.columns]
     if not missing:
         return
-    for name in missing:
-        df[name] = 0.0
+    
+    # Suppress fragmentation warning – it's harmless here
+    import warnings
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", category=pd.errors.PerformanceWarning)
+        
+        # Case-insensitive recovery: if model expects 'close' but we have 'Close', copy it!
+        existing_lower = {c.lower(): c for c in df.columns}
+        
+        for name in missing:
+            # 1. Try case-insensitive match
+            lower_name = name.lower()
+            if lower_name in existing_lower:
+                df[name] = df[existing_lower[lower_name]]
+            # 2. Fallback to zero or "Unknown" for categories
+            if name in ["sector", "industry"]:
+                df[name] = "Unknown"
+                df[name] = df[name].astype("category")
+            else:
+                df[name] = 0.0
 
 
 def _clamp_float(v: Any, *, min_v: float, max_v: float) -> float:
@@ -1721,7 +2071,11 @@ def train_and_predict(
     rf_preset: Optional[str] = None,
     exchange: Optional[str] = None,
     model_name: Optional[str] = None,
-) -> Tuple[Any, List[str], pd.DataFrame, pd.Series, float]:
+    target_pct: float = 0.15,
+    stop_loss_pct: float = 0.05,
+    look_forward_days: int = 20,
+    buy_threshold: float = 0.40,
+) -> Tuple[Any, List[str], pd.DataFrame, pd.Series, float, float]:
     """
     Core prediction logic. 
     1. Tries to load a pre-trained model for the exchange.
@@ -1787,6 +2141,11 @@ def train_and_predict(
                         )
 
                     print(f"Loaded LightGBM booster artifact from {model_path} with {len(predictors)} predictors")
+                    
+                    # Extract target settings from artifact
+                    target_pct = artifact.get("target_pct", target_pct)
+                    stop_loss_pct = artifact.get("stop_loss_pct", stop_loss_pct)
+                    look_forward_days = artifact.get("look_forward_days", look_forward_days)
 
                     _ensure_feature_columns(df, predictors)
 
@@ -1830,6 +2189,9 @@ def train_and_predict(
                 print(f"Failed to load pre-trained model {model_path}: {e}")
                 loaded_model = None
 
+    if loaded_model and predictors:
+        _ensure_feature_columns(df, predictors)
+
     if preset == "fast" and len(df) > 600:
         df = df.iloc[-600:].copy()
 
@@ -1842,14 +2204,55 @@ def train_and_predict(
             pred = int(loaded_model.predict(last_row)[0])
             return loaded_model, predictors, df.iloc[[-1]], pd.Series([pred], index=[df.index[-1]]), 0.8
             
-        test_size = min(100, int(len(df) * 0.2))
-        test = df.iloc[-test_size:]
+        # For precision metrics, we MUST exclude the trailing look_forward_days rows 
+        # because we don't know the ground truth for them yet.
+        test_data_pool = df.iloc[:-look_forward_days].copy()
+
+        # Relax test size for pre-trained validation
+        # Use all available data for testing to satisfy the "test all rows" request
+        test_size = len(test_data_pool)
+        test = test_data_pool.iloc[-test_size:]
         
-        preds = loaded_model.predict(test[predictors])
+        if hasattr(loaded_model, "predict_proba"):
+            try:
+                probs = loaded_model.predict_proba(test[predictors])[:, 1]
+                preds = (probs >= buy_threshold).astype(int)
+            except Exception as e:
+                # Catch categorical mismatch specifically for LightGBM
+                if "categorical_feature do not match" in str(e):
+                    print(f"DEBUG: Categorical mismatch for model. Falling back to simple predict.")
+                    try:
+                        # Try simple predict as fallback
+                        preds = loaded_model.predict(test[predictors])
+                    except:
+                        # Last resort: random-like or neutral prediction if model is totally broken for this stock
+                        preds = np.zeros(len(test), dtype=int)
+                else:
+                    try:
+                        preds = loaded_model.predict(test[predictors])
+                    except:
+                        preds = np.zeros(len(test), dtype=int)
+        else:
+            try:
+                preds = loaded_model.predict(test[predictors])
+            except:
+                preds = np.zeros(len(test), dtype=int)
+
         preds = pd.Series(preds, index=test.index)
         precision = precision_score(test["Target"], preds, zero_division=0)
         
-        return loaded_model, predictors, test, preds, float(precision)
+        # Calculate Earn Percentage (Average Return Per Trade)
+        buy_indices = preds[preds == 1].index
+        earn_pct = 0.0
+        if len(buy_indices) > 0:
+            wins = (test.loc[buy_indices, "Target"] == 1).sum()
+            losses = len(buy_indices) - wins
+            win_rate = wins / len(buy_indices)
+            
+            # Average return per trade = (win_rate × target_gain) - (loss_rate × stop_loss)
+            earn_pct = (win_rate * target_pct) - ((1 - win_rate) * stop_loss_pct)
+        
+        return loaded_model, predictors, test, preds, float(precision), float(earn_pct * 100)
 
     # If a specific model was requested but not loaded, stop here to avoid on-the-fly training
     if model_name:
@@ -1858,8 +2261,14 @@ def train_and_predict(
         )
 
     # Fallback to existing training logic (only when no explicit model_name)
-    # Possible predictors for on-the-fly RF
-    predictors = [p for p in RF_PREDICTORS if p in df.columns]
+    use_lgbm = (LGBMClassifier is not None)
+    
+    if use_lgbm:
+        # Use rich feature set for Gradient Boosting
+        predictors = [p for p in LGBM_PREDICTORS if p in df.columns]
+    else:
+        # Fallback to smaller set for RF
+        predictors = [p for p in RF_PREDICTORS if p in df.columns]
 
     if len(df) < 120:
         raise ValueError("Not enough data to train. Need at least ~120 rows.")
@@ -1868,26 +2277,122 @@ def train_and_predict(
         test_size = 60 if len(df) > 260 else max(40, int(len(df) * 0.2))
     else:
         test_size = 100 if len(df) > 400 else max(40, int(len(df) * 0.2))
+        
     train = df.iloc[:-test_size]
     test = df.iloc[-test_size:]
 
-    min_split = min(100, max(2, int(len(train) * 0.2)))
+    if use_lgbm:
+        # Validation split for early stopping logic
+        val_size = max(20, int(len(train) * 0.15))
+        train_inner = train.iloc[:-val_size]
+        val_inner = train.iloc[-val_size:]
+        
+        # Configure LightGBM with robust parameters
+        model = LGBMClassifier(
+            n_estimators=1000,
+            learning_rate=0.03,
+            num_leaves=31,
+            max_depth=-1,
+            subsample=0.8,
+            colsample_bytree=0.8,
+            random_state=42,
+            n_jobs=-1,
+            importance_type='gain',
+            verbose=-1
+        )
+        
+        callbacks = []
+        if lgb:
+            # Use LightGBM callbacks for early stopping (requires validation set)
+            callbacks.append(lgb.early_stopping(stopping_rounds=50, verbose=False))
+            callbacks.append(lgb.log_evaluation(period=0))
+            
+        try:
+            model.fit(
+                train_inner[predictors], train_inner["Target"],
+                eval_set=[(val_inner[predictors], val_inner["Target"])],
+                eval_metric="logloss",
+                callbacks=callbacks
+            )
+            print(f"Trained LGBM (Early Stopping @ {model.best_iteration_ if hasattr(model, 'best_iteration_') else 'N/A'})")
+        except Exception as e:
+            print(f"LGBM Training failed ({e}), falling back to RF...")
+            use_lgbm = False # Trigger fallback below
+            
+    if not use_lgbm:
+        # Legacy Random Forest fallback
+        min_split = min(100, max(2, int(len(train) * 0.2)))
+    
+        model_kwargs = _sanitize_rf_params(
+            rf_params,
+            preset=rf_preset,
+            train_len=len(train),
+            default_min_split=min_split,
+        )
+    
+        model = RandomForestClassifier(**model_kwargs)
+        model.fit(train[predictors], train["Target"])
 
-    model_kwargs = _sanitize_rf_params(
-        rf_params,
-        preset=rf_preset,
-        train_len=len(train),
-        default_min_split=min_split,
-    )
-
-    model = RandomForestClassifier(**model_kwargs)
-    model.fit(train[predictors], train["Target"])
-
-    preds = model.predict(test[predictors])
+    # Use probability threshold instead of hard default 0.5
+    # To make it bolder, we use the passed buy_threshold
+    try:
+        probs = model.predict_proba(test[predictors])[:, 1]
+        preds = (probs >= buy_threshold).astype(int)
+    except Exception:
+        # Fallback if model doesn't support predict_proba
+        preds = model.predict(test[predictors])
+        
     preds = pd.Series(preds, index=test.index)
-
     precision = precision_score(test["Target"], preds, zero_division=0)
-    return model, predictors, test, preds, float(precision)
+
+    # Calculate Earn Percentage (Average Return Per Trade)
+    buy_indices = preds[preds == 1].index
+    earn_pct = 0.0
+    if len(buy_indices) > 0:
+        wins = (test.loc[buy_indices, "Target"] == 1).sum()
+        losses = len(buy_indices) - wins
+        win_rate = wins / len(buy_indices)
+        
+        # Average return per trade = (win_rate × target_gain) - (loss_rate × stop_loss)
+        earn_pct = (win_rate * target_pct) - ((1 - win_rate) * stop_loss_pct)
+
+    # --- ADAPTIVE LEARNING LOGGING ---
+    # Log the LATEST prediction (today's signal) for future retraining
+    try:
+        if loaded_model:  # Only log if using a stable/loaded model (not on-the-fly random forest)
+            from api.adaptive_learning import ActiveLearner
+            
+            # Get latest row
+            last_idx = test.index[-1]
+            last_row = test.iloc[-1]
+            last_pred = int(preds.iloc[-1])
+            
+            # Get probability if available
+            last_prob = 0.5
+            if 'probs' in locals():
+                last_prob = float(probs[-1])
+            elif hasattr(preds, 'iloc'):
+                last_prob = float(preds.iloc[-1]) # Binary confidence if prob unavailable
+
+            # Extract features used
+            # We need to pass the raw feature values used by the model
+            # Note: 'train_and_predict' predictors list matches columns in 'test'
+            feat_values = last_row[predictors].values
+            
+            # We assume the symbol comes from context or df metadata? 
+            # 'df' usually doesn't have symbol column if it's the index or dropped.
+            # But 'run_pipeline' calls this. 'train_and_predict' doesn't know the symbol explicitly unless passed?
+            # 'train_and_predict' doesn't take 'symbol' arg.
+            # However, 'run_pipeline' knows it. 
+            # We should probably do this logging in 'run_pipeline' instead to have the symbol context.
+            # BUT 'run_pipeline' receives the preds. 
+            # So I will NOT do it here. I will do it in run_pipeline.
+            pass
+    except Exception as e:
+        # print(f"Adaptive logging warning: {e}")
+        pass
+
+    return model, predictors, test, preds, float(precision), float(earn_pct * 100)
 
 
 def run_pipeline(
@@ -1901,6 +2406,10 @@ def run_pipeline(
     rf_params: Optional[Dict[str, Any]] = None,
     rf_preset: Optional[str] = None,
     model_name: Optional[str] = None,
+    target_pct: float = 0.15,
+    stop_loss_pct: float = 0.05,
+    look_forward_days: int = 20,
+    buy_threshold: float = 0.40,
 ) -> Dict[str, Any]:
     api = APIClient(api_key)
 
@@ -1931,23 +2440,70 @@ def run_pipeline(
                 raw = raw.iloc[-500:].copy()
             # Generate a rich feature set to match models trained by train_exchange_model.py.
             # This is critical for "max" models that rely on TA/massive features.
-            feat = add_massive_features(raw)
+            # USE CACHED VERSION AS IT IS VERY EXPENSIVE
+            feat = _get_indicator_cache().get_with_massive_features(sym, exchange or "US", raw)
+            
+            # Re-ensure basic indicators are there (without wiping massive features)
             try:
-                feat_with_ind = _get_data_with_indicators_cached(sym, exchange or "EGX", feat, add_technical_indicators)
-                if feat_with_ind is not None and not feat_with_ind.empty:
-                    feat = feat_with_ind
+                # Only call if we don't have basic indicators like SMA_50 yet
+                if "SMA_50" not in feat.columns:
+                    feat_with_ind = _get_data_with_indicators_cached(sym, exchange or "US", feat, add_technical_indicators)
+                    if feat_with_ind is not None and not feat_with_ind.empty:
+                        # Merge instead of overwrite to keep massive features
+                        for col in feat_with_ind.columns:
+                            if col not in feat.columns:
+                                feat[col] = feat_with_ind[col]
             except Exception:
                 pass
 
-            # 1. Try with all features
-            candidate = prepare_for_ai(feat)
+            # NEW: Add Market Context features (Level 4)
+            # Infer exchange from symbol if not provided
+            current_exchange = exchange or (sym.split('.')[-1] if '.' in sym else "US")
+            index_sym = "EGX30.INDX" if current_exchange in ["EGX", "CA"] else "GSPC.INDX"
+            
+            # Fetch index data (simple internal cache / optimized fetch could be added here)
+            # For now, quick fetch
+            market_df = None
+            try:
+                if supabase:
+                    m_res = supabase.table("stock_prices").select("date, close").eq("symbol", index_sym).order("date", desc=False).execute()
+                    if m_res.data:
+                        market_df = pd.DataFrame(m_res.data)
+                        market_df["date"] = pd.to_datetime(market_df["date"])
+                        market_df = market_df.set_index("date").sort_index()
+                        market_df['atr'] = market_df['close'].pct_change().rolling(20).std().fillna(0)
+            except Exception:
+                pass # Silently fail back to defaults if index not found
+            
+            feat = add_market_context(feat, market_df)
+
+            # --- PHASE EXTRA: Incorporate Fundamentals ---
+            if include_fundamentals:
+                try:
+                    funds = get_company_fundamentals(sym) or {}
+                    if funds:
+                        feat["marketCap"] = _finite_float(funds.get("marketCap"))
+                        feat["peRatio"] = _finite_float(funds.get("peRatio"))
+                        feat["eps"] = _finite_float(funds.get("eps"))
+                        feat["dividendYield"] = _finite_float(funds.get("dividendYield"))
+                        feat["sector"] = funds.get("sector")
+                        feat["industry"] = funds.get("industry")
+                        # Handle categorical explicitly for LGBM
+                        for c in ["sector", "industry"]:
+                            if c in feat.columns:
+                                feat[c] = feat[c].fillna("Unknown").astype("category")
+                except Exception as e:
+                    print(f"Warning: Fundamental merge failed for {sym}: {e}")
+
+            # 1. Try with all features, keeping trailing rows for prediction
+            candidate = prepare_for_ai(feat, target_pct=target_pct, stop_loss_pct=stop_loss_pct, look_forward_days=look_forward_days, drop_labels=False)
             
             # 2. If not enough data (likely due to SMA_200 NaNs on a short history), 
             #    drop SMA_200 and try again.
             if len(candidate) < 120 and "SMA_200" in feat.columns:
                 print(f"Warning: Insufficient data for SMA_200 (rows={len(candidate)}). Retrying without it.")
                 feat_reduced = feat.drop(columns=["SMA_200"])
-                candidate = prepare_for_ai(feat_reduced)
+                candidate = prepare_for_ai(feat_reduced, target_pct=target_pct, stop_loss_pct=stop_loss_pct, look_forward_days=look_forward_days)
 
             last_candidate_len = len(candidate)
 
@@ -1972,20 +2528,98 @@ def run_pipeline(
             f"Insufficient historical data or symbol not available on your API plan for {ticker}{suffix}. Try specifying exchange, e.g. AAPL.US"
         ) from last_error
 
-    # For scanning mode, limit rows to shrink indicator computation and speed up
-    if force_local and len(prices_ai) > 450:
-        prices_ai = prices_ai.iloc[-450:].copy()
+    # For scanning mode (FAST SCAN), limit rows to shrink indicator computation and speed up
+    # But if we are running a specific MODEL TEST (model_name is set), we want more history.
+    limit_rows = 10000 if model_name else 450
+    if force_local and len(prices_ai) > limit_rows:
+        prices_ai = prices_ai.iloc[-limit_rows:].copy()
 
-    model, predictors, test_df, preds, precision = train_and_predict(
-        df=prices_ai,
+    # For training (on-the-fly), we MUST exclude the trailing look_forward_days rows 
+    # because they don't have accurate 'Target' labels yet (future is unknown).
+    prices_ai_training = prices_ai.iloc[:-look_forward_days].copy() if not model_name else prices_ai
+
+    model, predictors, test_df, preds, precision, earn_percentage = train_and_predict(
+        df=prices_ai_training,
         rf_params=rf_params,
         rf_preset=rf_preset,
         exchange=exchange,
         model_name=model_name,
+        target_pct=target_pct,
+        stop_loss_pct=stop_loss_pct,
+        look_forward_days=look_forward_days,
+        buy_threshold=buy_threshold,
     )
 
     last_row = prices_ai.iloc[[-1]][predictors]
-    tomorrow_prediction = int(model.predict(last_row)[0])
+    if hasattr(model, "predict_proba"):
+        try:
+            prob = model.predict_proba(last_row)[:, 1][0]
+            tomorrow_prediction = 1 if prob >= buy_threshold else 0
+        except Exception as e:
+            msg = str(e)
+            if "categorical_feature do not match" in msg:
+                print(f"DEBUG: Categorical mismatch in final prediction for {selected_symbol or ticker}. Falling back.")
+            try:
+                tomorrow_prediction = int(model.predict(last_row)[0])
+            except:
+                tomorrow_prediction = 0 # Default to no action if all fails
+    else:
+        try:
+            tomorrow_prediction = int(model.predict(last_row)[0])
+        except:
+            tomorrow_prediction = 0
+
+    # --- Phase 7: Finalize Data ---
+    last_close = float(prices_ai.iloc[-1]["Close"])
+    last_date = str(pd.to_datetime(prices_ai.index[-1]).date())
+
+    # --- ADAPTIVE LEARNING LOGGING ---
+    # Log the LATEST prediction (today's signal) for future manual retraining/review
+    # Only if using a specific loaded model (active production model)
+    if model_name: 
+        try:
+            from api.adaptive_learning import ActiveLearner
+            # Use 'EODHD' or 'US' if exchange is not explicitly set
+            logging_exchange = exchange or "EGX" 
+            learner = ActiveLearner(exchange=logging_exchange)
+            
+            # Get probability for confidence
+            pred_conf = 0.5
+            if hasattr(model, "predict_proba"):
+                try:
+                    p = model.predict_proba(last_row)[:, 1][0]
+                    pred_conf = float(p)
+                except: 
+                    pred_conf = float(tomorrow_prediction)
+            else:
+                 pred_conf = float(tomorrow_prediction)
+
+            # Extract features (values only)
+            # last_row is a DataFrame with 1 row
+            feat_vals = last_row.values[0]
+
+            # Prepare data for scan_results
+            data = {
+                "user_id": None, # This is a server-side log, no user_id by default
+                "symbol": selected_symbol or ticker,
+                "exchange": logging_exchange,
+                "name": selected_symbol or ticker,
+                "model_name": model_name,
+                "country": "Egypt", # Default country for this app context
+                "last_close": last_close,
+                "precision": pred_conf,
+                "signal": "BUY" if tomorrow_prediction == 1 else "SELL",
+                "status": "open",
+                "entry_price": last_close,
+                "features": json.dumps(feat_vals.tolist()) if hasattr(feat_vals, "tolist") else json.dumps(list(feat_vals)),
+                "created_at": datetime.now().isoformat()
+            }
+            supabase.table("scan_results").insert(data).execute()
+        except Exception as e:
+            print(f"Adaptive logging warning: {e}")
+
+    # --- Phase 8: Explainable AI (Top 3 Reasons) ---
+    top_reasons = get_top_reasons(model, predictors)
 
     # Fill NaNs for indicators to avoid JSON serialization issues or frontend gaps
     # Forward fill then backward fill to cover edges
@@ -1993,9 +2627,6 @@ def run_pipeline(
     for c in cols_to_fill:
         if c in prices_ai.columns:
             prices_ai[c] = prices_ai[c].ffill().bfill().fillna(0.0)
-
-    last_close = float(prices_ai.iloc[-1]["Close"])
-    last_date = str(pd.to_datetime(prices_ai.index[-1]).date())
 
     # Create display window
     # User requested "all data", so we return the full dataset provided by the logic
@@ -2022,6 +2653,7 @@ def run_pipeline(
             "close": close_v,
             "pred": prediction_val,
             "target": target_val,
+            "is_test": p is not None,  # Identify if this row belongs to the test set
         }
         
         # Add OHLC
@@ -2100,6 +2732,7 @@ def run_pipeline(
     return {
         "ticker": selected_symbol or ticker,
         "precision": precision,
+        "earnPercentage": earn_percentage,
         "tomorrowPrediction": tomorrow_prediction,
         "lastClose": last_close,
         "lastDate": last_date,
@@ -2107,6 +2740,7 @@ def run_pipeline(
         "fundamentalsError": fundamentals_error,
         "testPredictions": out_preds,
         "note": "Precision is the % of correct UP predictions in the test set. Higher is better.",
+        "topReasons": top_reasons,
     }
 
 # Alias for compatibility

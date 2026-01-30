@@ -699,8 +699,9 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
 
       let res;
       try {
-        res = await predictStock({ ticker: normalized });
-      } catch (err) {
+        res = await predictStock({ ticker: normalized }, opts?.signal);
+      } catch (err: any) {
+        if (err.name === 'AbortError') return;
         // On error, clear any old data for this symbol and rethrow
         setState((prev) => {
           const history = Array.isArray(prev.home.predictHistory) ? prev.home.predictHistory : [];

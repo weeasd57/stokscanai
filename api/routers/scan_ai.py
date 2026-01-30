@@ -17,6 +17,8 @@ class ScanResult(BaseModel):
     signal: str  # "BUY" or "SELL/HOLD"
     confidence: str # High/Medium/Low based on precision
     logo_url: Optional[str] = None
+    target_price: Optional[float] = None
+    stop_loss: Optional[float] = None
 
 class SingleScanRequest(BaseModel):
     symbol: str

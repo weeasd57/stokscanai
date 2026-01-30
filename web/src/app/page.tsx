@@ -3,9 +3,8 @@
 import { useMemo, useRef, useState, useEffect, type FormEvent } from "react";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
-import { TrendingDown, TrendingUp, BarChart2, LineChart, Globe, Brain, AlertTriangle, CheckCircle2, Bookmark, BookmarkCheck, Activity, Search } from "lucide-react";
+import { TrendingDown, TrendingUp, BarChart2, LineChart, Globe, Brain, AlertTriangle, CheckCircle2, Activity, Search } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { useWatchlist } from "@/contexts/WatchlistContext";
 import { useAppState } from "@/contexts/AppStateContext";
 
 import CandleChart from "@/components/CandleChart";
@@ -27,7 +26,6 @@ function formatNumber(v: number | null | undefined) {
 
 export default function HomePage() {
   const { t } = useLanguage();
-  const { saveSymbol, removeSymbol, isSaved, watchlist } = useWatchlist();
   const { state, setHome, runHomePredict, clearHomeView, restoreLastHomePredict } = useAppState();
   const { ticker, data, chartType, showEma50, showEma200, showBB, showRsi, showVolume, predictHistory } = state.home;
 
@@ -51,6 +49,16 @@ export default function HomePage() {
     return data.testPredictions.reduce((acc, r) => acc + (r.pred === 1 ? 1 : 0), 0);
   }, [data]);
 
+  const predictAbortControllerRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (predictAbortControllerRef.current) {
+        predictAbortControllerRef.current.abort();
+      }
+    };
+  }, []);
+
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
@@ -59,14 +67,24 @@ export default function HomePage() {
       setError("Invalid ticker format");
       return;
     }
+
+    if (predictAbortControllerRef.current) {
+      predictAbortControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    predictAbortControllerRef.current = controller;
+
     setLoading(true);
     try {
-      await runHomePredict(normalized);
-    } catch (err) {
+      await runHomePredict(normalized, { signal: controller.signal });
+    } catch (err: any) {
+      if (err.name === 'AbortError') return;
       clearHomeView();
       setError(err instanceof Error ? err.message : "Unknown error");
     } finally {
-      setLoading(false);
+      if (predictAbortControllerRef.current === controller) {
+        setLoading(false);
+      }
     }
   }
 
@@ -75,14 +93,24 @@ export default function HomePage() {
     const first = symbols[0];
     setHome({ ticker: first });
     setError(null);
+
+    if (predictAbortControllerRef.current) {
+      predictAbortControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    predictAbortControllerRef.current = controller;
+
     setLoading(true);
     try {
-      await runHomePredict(first);
-    } catch (err) {
+      await runHomePredict(first, { signal: controller.signal });
+    } catch (err: any) {
+      if (err.name === 'AbortError') return;
       clearHomeView();
       setError(err instanceof Error ? err.message : "Unknown error");
     } finally {
-      setLoading(false);
+      if (predictAbortControllerRef.current === controller) {
+        setLoading(false);
+      }
     }
   }
 
@@ -179,35 +207,6 @@ export default function HomePage() {
                 </div>
                 <div className="mt-3 text-[10px] font-bold text-zinc-500 uppercase tracking-widest">{stat.sub}</div>
 
-                {stat.isSignal && (
-                  <button
-                    onClick={() => {
-                      const savedItem = watchlist.find((item) => String(item.symbol).toUpperCase() === String(ticker).toUpperCase());
-                      if (savedItem) {
-                        removeSymbol(savedItem.id);
-                      } else {
-                        saveSymbol({
-                          symbol: ticker,
-                          name: (data.fundamentals as any)?.name || ticker,
-                          source: "home",
-                          metadata: {
-                            prediction: data.tomorrowPrediction,
-                            precision: data.precision,
-                            price: data.lastClose,
-                            logo_url: (data.fundamentals as any)?.logoUrl
-                          }
-                        });
-                      }
-                    }}
-                    className={`absolute top-8 right-8 p-3 rounded-2xl transition-all ${isSaved(ticker)
-                      ? "text-indigo-400 bg-indigo-500/10 hover:bg-indigo-500/20 shadow-lg shadow-indigo-600/10"
-                      : "text-zinc-700 hover:text-white hover:bg-zinc-800"
-                      }`}
-                    title={isSaved(ticker) ? "Remove from Watchlist" : "Add to Watchlist"}
-                  >
-                    {isSaved(ticker) ? <BookmarkCheck className="h-5 w-5" /> : <Bookmark className="h-5 w-5" />}
-                  </button>
-                )}
               </div>
             ))}
           </div>

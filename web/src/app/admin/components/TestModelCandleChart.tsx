@@ -217,31 +217,32 @@ export default function TestModelCandleChart({
         const markers: SeriesMarker<Time>[] = [];
 
         if (showBuySignals) {
-            sortedRows
-                .filter((r) => r.pred === 1)
-                .forEach((r) => {
-                    markers.push({
-                        time: r.date as Time,
-                        position: "belowBar",
-                        color: "#22c55e",
-                        shape: "circle",
-                        text: "BUY",
-                    });
-                });
-        }
+            sortedRows.forEach((r, idx) => {
+                if (r.pred !== 1) return;
 
-        if (showSellSignals) {
-            sortedRows
-                .filter((r) => r.pred === 0)
-                .forEach((r) => {
-                    markers.push({
-                        time: r.date as Time,
-                        position: "aboveBar",
-                        color: "#ef4444",
-                        shape: "arrowDown",
-                        text: "SELL",
-                    });
+                // De-duplicate: Only show if it's the first in a sequence
+                const prev = idx > 0 ? sortedRows[idx - 1] : null;
+                if (prev && prev.pred === 1) return;
+
+                let color = "#22c55e"; // default win
+                let text = "✓";
+
+                if (r.outcome === 'loss') {
+                    color = "#ef4444";
+                    text = "✗";
+                } else if (r.outcome === 'pending') {
+                    color = "#facc15"; // yellow-400
+                    text = "●";
+                }
+
+                markers.push({
+                    time: r.date as Time,
+                    position: "belowBar",
+                    color: color,
+                    shape: "circle",
+                    text: text,
                 });
+            });
         }
 
         // Sort markers by time

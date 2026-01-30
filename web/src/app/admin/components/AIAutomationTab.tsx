@@ -1,8 +1,8 @@
 "use client";
 
-import { Zap, ChevronDown, Check, Loader2, Download, Database, Info, History, Trash2 } from "lucide-react";
+import { Zap, ChevronDown, Check, Loader2, Download, Database, Info, History, Trash2, TrendingUp, Clock } from "lucide-react";
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { toast } from "sonner";
 import ConfirmDialog from "@/components/ConfirmDialog";
 
@@ -30,6 +30,14 @@ interface LocalModel {
     num_features?: number;
     num_parameters?: number;
     trainingSamples?: number;
+    n_estimators?: number;
+    num_trees?: number;
+    exchange?: string;
+    featurePreset?: string;
+    bestIteration?: number;
+    target_pct?: number;
+    stop_loss_pct?: number;
+    look_forward_days?: number;
 }
 
 export default function AIAutomationTab({
@@ -66,10 +74,20 @@ export default function AIAutomationTab({
         numFeatures?: number;
         symbolsUsed?: number;
         rawRows?: number;
+        bestIteration?: number;
+        targetPct?: number;
+        stopLossPct?: number;
+        lookForwardDays?: number;
     } | null>(null);
     const [localModels, setLocalModels] = useState<LocalModel[]>([]);
     const [loadingLocalModels, setLoadingLocalModels] = useState<boolean>(false);
     const [deletingModels, setDeletingModels] = useState<Set<string>>(new Set());
+
+    // Adaptive Learning State
+    const [selectedAdaptiveModel, setSelectedAdaptiveModel] = useState<string | null>(null);
+    const [adaptiveResults, setAdaptiveResults] = useState<any[]>([]);
+    const [loadingAdaptiveResults, setLoadingAdaptiveResults] = useState<boolean>(false);
+    const [adaptiveStats, setAdaptiveStats] = useState<{ total_logs: number; pending: number; } | null>(null);
 
     const [trainingStatus, setTrainingStatus] = useState<{
         running: boolean;
@@ -138,12 +156,31 @@ export default function AIAutomationTab({
     const [trainingLogs, setTrainingLogs] = useState<Array<{ ts: string; msg: string }>>([]);
     const [lastLoggedMessage, setLastLoggedMessage] = useState<string | null>(null);
     const [lastStatusCompletedAt, setLastStatusCompletedAt] = useState<string | null>(null);
-    const [learningCurve, setLearningCurve] = useState<Array<{ step: number; samples?: number | null; features?: number | null }>>([]);
+    // Updated learning curve to support real metrics
+    const [learningCurve, setLearningCurve] = useState<Array<{
+        step: number;
+        samples?: number | null;
+        features?: number | null;
+        iteration?: number;
+        logloss?: number;
+        error?: number;
+    }>>([]);
     const [modelName, setModelName] = useState<string>("");
     const [featurePreset, setFeaturePreset] = useState<"core" | "extended" | "max">("extended");
     const [maxFeatures, setMaxFeatures] = useState<number | null>(null);
     const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
     const [pendingDeleteModel, setPendingDeleteModel] = useState<string | null>(null);
+    // Sniper Strategy Parameters
+    const [targetPct, setTargetPct] = useState<number>(0.15);
+    const [stopLossPct, setStopLossPct] = useState<number>(0.05);
+    const [lookForwardDays, setLookForwardDays] = useState<number>(20);
+    const [learningRate, setLearningRate] = useState<number>(0.05);
+    const [patience, setPatience] = useState<number>(50);
+
+    // Adaptive Learning State
+
+    const [retraining, setRetraining] = useState(false);
+    const [updatingActuals, setUpdatingActuals] = useState(false);
 
     // Fetch local models once on mount (further updates happen on training completion or manual refresh)
     useEffect(() => {
@@ -165,18 +202,95 @@ export default function AIAutomationTab({
 
     useEffect(() => {
         if (!trainingStatus?.running || !trainingStatus.stats) return;
-        const samples = typeof trainingStatus.stats.samples === "number" ? trainingStatus.stats.samples : rowsLoaded ?? null;
-        const features = typeof trainingStatus.stats.features === "number" ? trainingStatus.stats.features : null;
+
+        const stats = trainingStatus.stats;
+        const now = Date.now();
+
+        // Check if we have real training metrics (streaming)
+        if (typeof stats.iteration === "number") {
+            setLearningCurve((prev) => {
+                const last = prev[prev.length - 1];
+                if (last && last.iteration === stats.iteration) return prev;
+
+                // Extract metrics loosely matching LightGBM output
+                // usually: valid_0_logloss, valid_0_error, etc.
+                const logloss = typeof stats["valid_0_logloss"] === "number" ? stats["valid_0_logloss"] : undefined;
+                const error = typeof stats["valid_0_error"] === "number" ? stats["valid_0_error"] : undefined;
+
+                const next = [...prev, {
+                    step: now,
+                    iteration: stats.iteration,
+                    logloss,
+                    error
+                }];
+                // Keep more history for training curves
+                return next.length > 200 ? next.slice(next.length - 200) : next;
+            });
+            return;
+        }
+
+        // Fallback to legacy "samples/features" updates if not streaming metrics
+        const samples = typeof stats.samples === "number" ? stats.samples : rowsLoaded ?? null;
+        const features = typeof stats.features === "number" ? stats.features : null;
         if (samples === null && features === null) return;
+
         setLearningCurve((prev) => {
             const last = prev[prev.length - 1];
             if (last && last.samples === samples && last.features === features) {
                 return prev;
             }
-            const next = [...prev, { step: Date.now(), samples, features }];
+            const next = [...prev, { step: now, samples, features }];
             return next.length > 80 ? next.slice(next.length - 80) : next;
         });
     }, [trainingStatus?.running, trainingStatus?.stats, rowsLoaded]);
+
+    const estimatedImpact = useMemo(() => {
+        // 1. Time per 100 trees depends on feature complexity
+        let timePer100 = 20;
+        if (featurePreset === "core") timePer100 = 10;
+        if (featurePreset === "max") timePer100 = 40;
+
+        // 2. Expected iterations
+        let expectedTrees = nEstimators;
+        if (useEarlyStopping) {
+            // Heuristic for early stopping convergence:
+            // Base convergence is roughly proportional to 1/LR
+            const convergenceBase = 45 / learningRate;
+
+            // Patience allows more exploration, slightly increasing expected trees
+            // Base patience is around 50.
+            const patienceFactor = 0.7 + (patience / 150); // e.g. 50 -> 1.03, 150 -> 1.7
+
+            expectedTrees = Math.min(nEstimators, Math.round(convergenceBase * patienceFactor));
+        }
+
+        // Duration estimate
+        const estSeconds = (expectedTrees / 100) * timePer100;
+
+        let descriptor = "Balanced";
+        let descriptorColor = "text-zinc-400";
+
+        if (learningRate <= 0.02) {
+            descriptor = "High Precision (Deep)";
+            descriptorColor = "text-indigo-400";
+        } else if (patience > 100 && learningRate < 0.06) {
+            descriptor = "Exhaustive Search";
+            descriptorColor = "text-purple-400";
+        } else if (learningRate >= 0.1) {
+            descriptor = "Fast Preview";
+            descriptorColor = "text-amber-400";
+        } else if (useEarlyStopping && patience < 30) {
+            descriptor = "Early Exit (Rough)";
+            descriptorColor = "text-rose-400";
+        }
+
+        return {
+            trees: expectedTrees,
+            time: estSeconds,
+            descriptor,
+            descriptorColor
+        };
+    }, [learningRate, nEstimators, patience, useEarlyStopping, featurePreset]);
 
     // Live status via SSE with fallback polling.
     useEffect(() => {
@@ -232,6 +346,48 @@ export default function AIAutomationTab({
         }
     };
 
+    const fetchAdaptiveStats = async () => {
+        if (!trainingExchange) return;
+        try {
+            let url = `/api/admin/train/adaptive/stats?exchange=${trainingExchange}`;
+            if (selectedAdaptiveModel) {
+                url += `&model_name=${selectedAdaptiveModel}`;
+            }
+            const res = await fetch(url);
+            if (res.ok) {
+                const data = await res.json();
+                setAdaptiveStats(data);
+            }
+        } catch (e) {
+            console.error(e);
+        }
+    };
+
+    const fetchAdaptiveResults = async () => {
+        if (!trainingExchange) return;
+        setLoadingAdaptiveResults(true);
+        try {
+            let url = `/api/admin/train/adaptive/results?exchange=${trainingExchange}&limit=50`;
+            if (selectedAdaptiveModel) {
+                url += `&model_name=${selectedAdaptiveModel}`;
+            }
+            const res = await fetch(url);
+            if (res.ok) {
+                const data = await res.json();
+                setAdaptiveResults(Array.isArray(data) ? data : []);
+            }
+        } catch (e) {
+            console.error("Error fetching adaptive results:", e);
+        } finally {
+            setLoadingAdaptiveResults(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchAdaptiveStats();
+        fetchAdaptiveResults();
+    }, [trainingExchange, selectedAdaptiveModel]);
+
     const refreshTrainingStatus = async () => {
         try {
             const res = await fetch("/api/admin/train/status");
@@ -282,7 +438,7 @@ export default function AIAutomationTab({
             const res = await fetch(`/api/admin/train/models/${encodeURIComponent(modelName)}`, {
                 method: "DELETE"
             });
-            
+
             if (res.ok) {
                 toast.success("Model removed", {
                     description: modelName
@@ -327,21 +483,141 @@ export default function AIAutomationTab({
                 </p>
             </header>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <div className="space-y-6">
-                    {/* Training Control Cluster */}
-                    <div className="p-8 rounded-3xl bg-zinc-900 border border-zinc-800 space-y-6">
+            <div className="grid grid-cols-1 gap-12">
+                {/* Model Artifacts Row */}
+                <div className="p-8 rounded-3xl bg-zinc-900 border border-zinc-800 flex flex-col h-full space-y-6">
+                    <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4">
-                            <div className="p-3 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400">
-                                <Zap className="w-6 h-6" />
+                            <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-400">
+                                <Database className="w-6 h-6" />
                             </div>
                             <div>
-                                <h2 className="text-xl font-black text-white">Local Training</h2>
-                                <p className="text-xs text-zinc-500 font-bold uppercase tracking-widest mt-1">Manual Server Processing</p>
+                                <h2 className="text-xl font-black text-white">Model Artifacts</h2>
+                                <p className="text-xs text-zinc-500 font-bold uppercase tracking-widest mt-1">Available .pkl Modules</p>
                             </div>
                         </div>
+                        <button
+                            onClick={async () => {
+                                try {
+                                    await fetchTrainedModels();
+                                } catch {
+                                    // ignore errors
+                                }
+                                await refreshTrainingStatus();
+                            }}
+                            className="p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-zinc-500 hover:text-indigo-400 transition-all"
+                        >
+                            <History className="w-5 h-5" />
+                        </button>
+                    </div>
 
-                        <div className="space-y-4">
+                    <div className="flex-1 min-h-[400px]">
+                        {loadingLocalModels && localModels.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center h-full gap-4 text-zinc-600 grayscale">
+                                <Loader2 className="w-8 h-8 animate-spin" />
+                                <p className="text-xs font-bold uppercase tracking-widest">Fetching models...</p>
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 overflow-y-auto pr-2 custom-scrollbar">
+                                {localModels.map(model => (
+                                    <div
+                                        key={model.name}
+                                        className="p-6 rounded-3xl bg-black border border-zinc-800/50 hover:border-zinc-700 transition-all flex flex-col justify-between group h-full space-y-6"
+                                    >
+                                        <div className="space-y-4">
+                                            <div className="flex items-center justify-between">
+                                                <div className="p-3 rounded-2xl bg-zinc-900 text-zinc-500 group-hover:bg-indigo-500/10 group-hover:text-indigo-400 transition-all">
+                                                    <Database className="w-6 h-6" />
+                                                </div>
+                                                <button
+                                                    onClick={() => deleteLocalModel(model.name)}
+                                                    disabled={deletingModels.has(model.name)}
+                                                    className="p-3 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-500 hover:bg-red-600/20 hover:text-red-400 hover:border-red-600/50 transition-all disabled:opacity-50"
+                                                >
+                                                    {deletingModels.has(model.name) ? (
+                                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                                    ) : (
+                                                        <Trash2 className="w-4 h-4" />
+                                                    )}
+                                                </button>
+                                            </div>
+                                            <div className="min-w-0">
+                                                <div className="text-base font-black text-zinc-100 truncate">{model.name}</div>
+                                                {model.exchange && (
+                                                    <div className="text-[10px] text-indigo-400 uppercase font-black tracking-widest mt-1">{model.exchange}</div>
+                                                )}
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-2">
+                                                <div className="p-2.5 rounded-xl bg-zinc-900/50 border border-zinc-800/50">
+                                                    <div className="text-[10px] text-zinc-600 uppercase font-bold">Size</div>
+                                                    <div className="text-xs font-mono text-zinc-400">{model.size_mb} MB</div>
+                                                </div>
+                                                <div className="p-2.5 rounded-xl bg-zinc-900/50 border border-zinc-800/50">
+                                                    <div className="text-[10px] text-zinc-600 uppercase font-bold">Modified</div>
+                                                    <div className="text-xs text-zinc-400">{new Date(model.modified_at).toLocaleDateString()}</div>
+                                                </div>
+                                            </div>
+                                            <div className="flex flex-wrap gap-2">
+                                                {model.num_features !== undefined && (
+                                                    <span className="text-[10px] bg-indigo-600/20 text-indigo-300 px-2 py-1 rounded-lg font-bold">
+                                                        {model.num_features} Features
+                                                    </span>
+                                                )}
+                                                {model.num_parameters !== undefined && model.num_parameters > 0 && (
+                                                    <span className="text-[10px] bg-amber-600/20 text-amber-300 px-2 py-1 rounded-lg font-bold">
+                                                        {model.bestIteration ? `${model.bestIteration} Trees` : `${model.num_parameters} Trees`}
+                                                    </span>
+                                                )}
+                                                {typeof model.trainingSamples === "number" && model.trainingSamples > 0 && (
+                                                    <span className="text-[10px] bg-emerald-600/20 text-emerald-300 px-2 py-1 rounded-lg font-bold">
+                                                        {model.trainingSamples} Samples
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        <div className="pt-4 border-t border-zinc-800/50 grid grid-cols-3 gap-2">
+                                            {model.target_pct !== undefined && (
+                                                <div className="text-center">
+                                                    <div className="text-[9px] text-zinc-600 uppercase font-bold">Target</div>
+                                                    <div className="text-[11px] text-emerald-400 font-black">{(model.target_pct * 100).toFixed(0)}%</div>
+                                                </div>
+                                            )}
+                                            {model.stop_loss_pct !== undefined && (
+                                                <div className="text-center">
+                                                    <div className="text-[9px] text-zinc-600 uppercase font-bold">Stop</div>
+                                                    <div className="text-[11px] text-rose-400 font-black">{(model.stop_loss_pct * 100).toFixed(0)}%</div>
+                                                </div>
+                                            )}
+                                            {model.look_forward_days !== undefined && (
+                                                <div className="text-center">
+                                                    <div className="text-[9px] text-zinc-600 uppercase font-bold">Days</div>
+                                                    <div className="text-[11px] text-sky-400 font-black">{model.look_forward_days}d</div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {/* Training Control Cluster Row */}
+                <div className="p-8 rounded-3xl bg-zinc-900 border border-zinc-800 space-y-8">
+                    <div className="flex items-center gap-4">
+                        <div className="p-3 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400">
+                            <Zap className="w-6 h-6" />
+                        </div>
+                        <div>
+                            <h2 className="text-xl font-black text-white">Local Training</h2>
+                            <p className="text-xs text-zinc-500 font-bold uppercase tracking-widest mt-1">Manual Server Processing</p>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+                        {/* Left Column: Settings */}
+                        <div className="space-y-6">
                             <div className="grid grid-cols-1 gap-4">
                                 <div className="space-y-1">
                                     <label className="text-[10px] text-zinc-500 uppercase font-black px-1">Model Name</label>
@@ -362,33 +638,30 @@ export default function AIAutomationTab({
                                     <button
                                         type="button"
                                         onClick={() => setFeaturePreset("core")}
-                                        className={`flex-1 h-9 rounded-xl text-[11px] font-bold border ${
-                                            featurePreset === "core"
-                                                ? "bg-zinc-100 text-black border-zinc-100"
-                                                : "bg-black border-zinc-800 text-zinc-400 hover:border-zinc-600"
-                                        }`}
+                                        className={`flex-1 h-9 rounded-xl text-[11px] font-bold border ${featurePreset === "core"
+                                            ? "bg-zinc-100 text-black border-zinc-100"
+                                            : "bg-black border-zinc-800 text-zinc-400 hover:border-zinc-600"
+                                            }`}
                                     >
                                         Core
                                     </button>
                                     <button
                                         type="button"
                                         onClick={() => setFeaturePreset("extended")}
-                                        className={`flex-1 h-9 rounded-xl text-[11px] font-bold border ${
-                                            featurePreset === "extended"
-                                                ? "bg-zinc-100 text-black border-zinc-100"
-                                                : "bg-black border-zinc-800 text-zinc-400 hover:border-zinc-600"
-                                        }`}
+                                        className={`flex-1 h-9 rounded-xl text-[11px] font-bold border ${featurePreset === "extended"
+                                            ? "bg-zinc-100 text-black border-zinc-100"
+                                            : "bg-black border-zinc-800 text-zinc-400 hover:border-zinc-600"
+                                            }`}
                                     >
                                         Extended
                                     </button>
                                     <button
                                         type="button"
                                         onClick={() => setFeaturePreset("max")}
-                                        className={`flex-1 h-9 rounded-xl text-[11px] font-bold border ${
-                                            featurePreset === "max"
-                                                ? "bg-zinc-100 text-black border-zinc-100"
-                                                : "bg-black border-zinc-800 text-zinc-400 hover:border-zinc-600"
-                                        }`}
+                                        className={`flex-1 h-9 rounded-xl text-[11px] font-bold border ${featurePreset === "max"
+                                            ? "bg-zinc-100 text-black border-zinc-100"
+                                            : "bg-black border-zinc-800 text-zinc-400 hover:border-zinc-600"
+                                            }`}
                                     >
                                         Max
                                     </button>
@@ -448,6 +721,53 @@ export default function AIAutomationTab({
                                     />
                                 </div>
 
+                                <div className="space-y-1">
+                                    <label className="text-[10px] text-zinc-500 uppercase font-black px-1">Learning Rate</label>
+                                    <input
+                                        type="number"
+                                        min={0.001}
+                                        max={0.5}
+                                        step={0.001}
+                                        value={learningRate}
+                                        onChange={(e) => setLearningRate(Number(e.target.value) || 0.05)}
+                                        className="w-full h-11 rounded-xl border border-zinc-800 bg-black px-3 text-sm text-zinc-300 focus:border-indigo-500"
+                                    />
+                                </div>
+
+                                <div className="space-y-1">
+                                    <label className="text-[10px] text-zinc-500 uppercase font-black px-1">Patience</label>
+                                    <input
+                                        type="number"
+                                        min={5}
+                                        max={200}
+                                        step={5}
+                                        value={patience}
+                                        onChange={(e) => setPatience(Number(e.target.value) || 50)}
+                                        disabled={!useEarlyStopping}
+                                        className="w-full h-11 rounded-xl border border-zinc-800 bg-black px-3 text-sm text-zinc-300 focus:border-indigo-500 disabled:opacity-50"
+                                    />
+                                </div>
+
+                                {/* Smart Estimation Card */}
+                                <div className="sm:col-span-2 rounded-xl bg-zinc-900/50 border border-zinc-800 p-3 flex flex-col gap-2">
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-[10px] uppercase font-black text-zinc-500">Estimated Impact</span>
+                                        <span className={`text-[10px] font-bold ${estimatedImpact.descriptorColor}`}>
+                                            {estimatedImpact.descriptor}
+                                        </span>
+                                    </div>
+                                    <div className="flex items-center gap-4 text-xs text-zinc-300">
+                                        <div className="flex items-center gap-1.5">
+                                            <Clock className="w-3 h-3 text-zinc-500" />
+                                            <span>~{Math.ceil(estimatedImpact.time / 60)} min</span>
+                                        </div>
+                                        <div className="flex items-center gap-1.5">
+                                            <Database className="w-3 h-3 text-zinc-500" />
+                                            <span>~{estimatedImpact.trees} Trees</span>
+                                        </div>
+                                    </div>
+                                </div>
+
                                 <div className="space-y-1 sm:col-span-2">
                                     <label className="text-[10px] text-zinc-500 uppercase font-black px-1">Training Strategy</label>
                                     <select
@@ -475,6 +795,58 @@ export default function AIAutomationTab({
                                         />
                                     </div>
                                 )}
+
+                                {/* Sniper Strategy Settings */}
+                                <div className="col-span-2 pt-4 border-t border-zinc-800">
+                                    <div className="flex items-center gap-2 mb-4">
+                                        <span className="text-[10px] text-zinc-500 uppercase font-black">Sniper Strategy Settings</span>
+                                        <span className="text-[10px] text-zinc-600">(Target Labels)</span>
+                                    </div>
+                                    <div className="grid grid-cols-3 gap-3">
+                                        <div className="space-y-1">
+                                            <label className="text-[10px] text-zinc-500 uppercase font-black px-1">Target %</label>
+                                            <select
+                                                value={targetPct}
+                                                onChange={(e) => setTargetPct(Number(e.target.value))}
+                                                className="w-full h-11 rounded-xl border border-zinc-800 bg-black px-3 text-sm text-zinc-300 focus:border-indigo-500"
+                                            >
+                                                <option value={0.01}>1%</option>
+                                                <option value={0.05}>5%</option>
+                                                <option value={0.10}>10%</option>
+                                                <option value={0.15}>15%</option>
+                                                <option value={0.20}>20%</option>
+                                                <option value={0.30}>30%</option>
+                                            </select>
+                                        </div>
+                                        <div className="space-y-1">
+                                            <label className="text-[10px] text-zinc-500 uppercase font-black px-1">Stop Loss %</label>
+                                            <select
+                                                value={stopLossPct}
+                                                onChange={(e) => setStopLossPct(Number(e.target.value))}
+                                                className="w-full h-11 rounded-xl border border-zinc-800 bg-black px-3 text-sm text-zinc-300 focus:border-indigo-500"
+                                            >
+                                                <option value={0.01}>1%</option>
+                                                <option value={0.03}>3%</option>
+                                                <option value={0.05}>5%</option>
+                                                <option value={0.07}>7%</option>
+                                                <option value={0.10}>10%</option>
+                                            </select>
+                                        </div>
+                                        <div className="space-y-1">
+                                            <label className="text-[10px] text-zinc-500 uppercase font-black px-1">Days</label>
+                                            <select
+                                                value={lookForwardDays}
+                                                onChange={(e) => setLookForwardDays(Number(e.target.value))}
+                                                className="w-full h-11 rounded-xl border border-zinc-800 bg-black px-3 text-sm text-zinc-300 focus:border-indigo-500"
+                                            >
+                                                <option value={10}>10 days</option>
+                                                <option value={15}>15 days</option>
+                                                <option value={20}>20 days</option>
+                                                <option value={30}>30 days</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
 
                             <div className="space-y-2 mt-4">
@@ -555,6 +927,21 @@ export default function AIAutomationTab({
                                         <span className="px-2 py-1 rounded-full bg-zinc-900 border border-zinc-700 text-[10px]">
                                             Mode: <span className="text-zinc-200">{lastTrainingSummary.useEarlyStopping ? "Early Stopping" : "Fixed n_estimators"}</span>
                                         </span>
+                                        {lastTrainingSummary.targetPct !== undefined && (
+                                            <span className="px-2 py-1 rounded-full bg-emerald-950/30 border border-emerald-500/20 text-[10px]">
+                                                Target: <span className="text-emerald-400 font-bold">{(lastTrainingSummary.targetPct * 100).toFixed(0)}%</span>
+                                            </span>
+                                        )}
+                                        {lastTrainingSummary.stopLossPct !== undefined && (
+                                            <span className="px-2 py-1 rounded-full bg-rose-950/30 border border-rose-500/20 text-[10px]">
+                                                SL: <span className="text-rose-400 font-bold">{(lastTrainingSummary.stopLossPct * 100).toFixed(0)}%</span>
+                                            </span>
+                                        )}
+                                        {lastTrainingSummary.lookForwardDays !== undefined && (
+                                            <span className="px-2 py-1 rounded-full bg-sky-950/30 border border-sky-500/20 text-[10px]">
+                                                Days: <span className="text-sky-400 font-bold">{lastTrainingSummary.lookForwardDays}</span>
+                                            </span>
+                                        )}
                                     </div>
 
                                     {formatEta(etaSeconds) && (
@@ -584,7 +971,16 @@ export default function AIAutomationTab({
                                     <div className="grid grid-cols-2 gap-3">
                                         <div className="rounded-xl border border-zinc-800 bg-black/40 p-3">
                                             <div className="text-[10px] text-zinc-500 uppercase font-black">Estimators</div>
-                                            <div className="text-sm font-black text-zinc-100 mt-1">{lastTrainingSummary.nEstimators}</div>
+                                            <div className="text-sm font-black text-zinc-100 mt-1">
+                                                {lastTrainingSummary.bestIteration ? (
+                                                    <span className="flex items-baseline gap-1">
+                                                        <span className="text-emerald-400">{lastTrainingSummary.bestIteration}</span>
+                                                        <span className="text-zinc-600 text-[10px] font-medium">/ {lastTrainingSummary.nEstimators} (Early Stop)</span>
+                                                    </span>
+                                                ) : (
+                                                    lastTrainingSummary.nEstimators
+                                                )}
+                                            </div>
                                         </div>
                                         <div className="rounded-xl border border-zinc-800 bg-black/40 p-3">
                                             <div className="text-[10px] text-zinc-500 uppercase font-black">Samples</div>
@@ -631,6 +1027,11 @@ export default function AIAutomationTab({
                                                 trainingStrategy,
                                                 randomSearchIter: trainingStrategy === "random" ? randomSearchIter : undefined,
                                                 maxFeatures: maxFeatures ?? undefined,
+                                                targetPct,
+                                                stopLossPct,
+                                                lookForwardDays,
+                                                learningRate,
+                                                patience,
                                             }),
                                         });
                                         const data = await res.json();
@@ -654,7 +1055,10 @@ export default function AIAutomationTab({
                                 {isTraining ? <Loader2 className="w-5 h-5 animate-spin" /> : <Zap className="w-5 h-5" />}
                                 RUN SERVER TRAINING
                             </button>
+                        </div>
 
+                        {/* Right Column: Status & Logs */}
+                        <div className="space-y-6 lg:border-l lg:border-zinc-800/50 lg:pl-12">
                             {trainingStatus && (
                                 <div className="mt-4 rounded-2xl border border-zinc-800 bg-zinc-950 p-4 text-xs text-zinc-400 flex flex-col gap-1">
                                     <div className="flex items-center justify-between">
@@ -803,19 +1207,30 @@ export default function AIAutomationTab({
                                                 <ResponsiveContainer width="100%" height="100%">
                                                     <LineChart data={learningCurve} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                                                         <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
-                                                        <XAxis dataKey="step" hide />
+                                                        <XAxis
+                                                            dataKey={learningCurve.length > 0 && learningCurve[0].iteration !== undefined ? "iteration" : "step"}
+                                                            hide
+                                                        />
                                                         <YAxis
                                                             stroke="rgba(255,255,255,0.4)"
                                                             tick={{ fontSize: 10 }}
-                                                            allowDecimals={false}
+                                                            domain={['auto', 'auto']}
                                                         />
                                                         <Tooltip
-                                                            formatter={(value: number, name: string) => [value, name === "samples" ? "Samples" : "Features"]}
-                                                            labelFormatter={() => ""}
+                                                            labelFormatter={(v) => `Iter: ${v}`}
                                                             contentStyle={{ background: "#0a0a0a", border: "1px solid rgba(255,255,255,0.08)", color: "#fff" }}
                                                         />
-                                                        <Line type="monotone" dataKey="samples" stroke="#38bdf8" strokeWidth={2} dot={false} />
-                                                        <Line type="monotone" dataKey="features" stroke="#a855f7" strokeWidth={2} dot={false} />
+                                                        {learningCurve.length > 0 && learningCurve[0].iteration !== undefined ? (
+                                                            <>
+                                                                <Line type="monotone" dataKey="logloss" name="Log Loss" stroke="#f43f5e" strokeWidth={2} dot={false} isAnimationActive={false} />
+                                                                <Line type="monotone" dataKey="error" name="Error Rate" stroke="#f59e0b" strokeWidth={2} dot={false} isAnimationActive={false} />
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <Line type="monotone" dataKey="samples" stroke="#38bdf8" strokeWidth={2} dot={false} />
+                                                                <Line type="monotone" dataKey="features" stroke="#a855f7" strokeWidth={2} dot={false} />
+                                                            </>
+                                                        )}
                                                     </LineChart>
                                                 </ResponsiveContainer>
                                             </div>
@@ -858,7 +1273,10 @@ export default function AIAutomationTab({
                                     )}
                                 </div>
                             </div>
+                        </div>
+                    </div>
 
+                    {/* 
                             <button
                                 onClick={async () => {
                                     if (!trainingExchange) {
@@ -928,6 +1346,7 @@ export default function AIAutomationTab({
                                     </div>
                                 </div>
 
+
                                 <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div className="space-y-2">
                                         <label className="text-[10px] text-zinc-500 uppercase font-black px-1">Workflow</label>
@@ -946,19 +1365,24 @@ export default function AIAutomationTab({
                                             </button>
                                         </div>
                                     </div>
-
                                     <div className="space-y-2">
-                                        <label className="text-[10px] text-zinc-500 uppercase font-black px-1">Run At (Local)</label>
-                                        <input
-                                            type="datetime-local"
-                                            value={when}
-                                            onChange={(e) => setWhen(e.target.value)}
-                                            className="w-full h-11 rounded-xl border border-zinc-800 bg-black px-3 text-sm text-zinc-300 focus:border-indigo-500"
-                                        />
+                                        <label className="text-[10px] text-zinc-500 uppercase font-black px-1">Schedule (Cron)</label>
+                                        <div className="flex gap-2">
+                                            <input
+                                                type="text"
+                                                value={when}
+                                                onChange={(e) => setWhen(e.target.value)}
+                                                placeholder="Cron expression (e.g. 30 22 * * *)"
+                                                className="flex-1 py-2 px-3 bg-black border border-zinc-800 rounded-lg text-xs text-zinc-300 focus:border-indigo-500"
+                                            />
+                                        </div>
                                     </div>
-                                </div>
 
+
+                                </div>
                                 {workflow === "data-sync" && (
+
+
                                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-2">
                                         <div className="space-y-2">
                                             <label className="text-[10px] text-zinc-500 uppercase font-black px-1">Days</label>
@@ -1028,115 +1452,198 @@ export default function AIAutomationTab({
                                     {scheduling ? "Scheduling..." : "Schedule GitHub Action"}
                                 </button>
                             </div>
-                        </div>
-                    </div>
-                </div>
+                            */}
 
-                <div className="space-y-6">
-                    {/* Trained Models Inventory */}
-                    <div className="p-8 rounded-3xl bg-zinc-900 border border-zinc-800 flex flex-col h-full space-y-6">
+                    {/* ADAPTIVE LEARNING SECTION */}
+                    <div className="p-8 rounded-3xl bg-zinc-900 border border-zinc-800 space-y-6">
                         <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-4">
-                                <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-400">
-                                    <Database className="w-6 h-6" />
+                            <div className="flex items-center gap-3">
+                                <div className="p-2.5 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-400">
+                                    <TrendingUp className="w-5 h-5" />
                                 </div>
                                 <div>
-                                    <h2 className="text-xl font-black text-white">Model Artifacts</h2>
-                                    <p className="text-xs text-zinc-500 font-bold uppercase tracking-widest mt-1">Available .pkl Modules</p>
+                                    <p className="text-xl font-black text-white">Adaptive Learning & Review</p>
+                                    <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">Manual Retraining</p>
                                 </div>
                             </div>
-                            <button
-                                onClick={async () => {
-                                    // Refresh remote-trained models (if any)
-                                    try {
-                                        await fetchTrainedModels();
-                                    } catch {
-                                        // ignore errors in this manual refresh
-                                    }
 
-                                    // Single-shot refresh of local training status + summary + local models
-                                    await refreshTrainingStatus();
-                                }}
-                                className="p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-zinc-500 hover:text-indigo-400 transition-all"
-                            >
-                                <History className="w-5 h-5" />
-                            </button>
+                            {/* Model Selector */}
+                            <div className="relative min-w-[200px]">
+                                <select
+                                    value={selectedAdaptiveModel || ""}
+                                    onChange={(e) => setSelectedAdaptiveModel(e.target.value || null)}
+                                    className="w-full px-4 py-2.5 rounded-xl bg-black border border-zinc-800 text-xs font-bold text-white outline-none focus:border-indigo-500 appearance-none cursor-pointer"
+                                    disabled={!trainingExchange}
+                                >
+                                    <option value="">All Models (Exchange Wide)</option>
+                                    {localModels
+                                        .filter(m => !trainingExchange || m.exchange === trainingExchange)
+                                        .map(m => (
+                                            <option key={m.name} value={m.name}>{m.name}</option>
+                                        ))}
+                                </select>
+                                <ChevronDown className="bg-black w-4 h-4 text-zinc-500 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                            </div>
                         </div>
 
-                        <div className="flex-1 min-h-[400px] space-y-3 overflow-y-auto pr-2 custom-scrollbar">
-                            {/* Local Models Section */}
-                            {loadingLocalModels && localModels.length === 0 ? (
-                                <div className="flex flex-col items-center justify-center h-full gap-4 text-zinc-600 grayscale">
-                                    <Loader2 className="w-8 h-8 animate-spin" />
-                                    <p className="text-xs font-bold uppercase tracking-widest">Fetching models...</p>
-                                </div>
-                            ) : (
-                                <>
-                                    {/* Local Models */}
-                                    {localModels.length > 0 && (
-                                        <>
-                                            <div className="px-1 pt-2">
-                                                <p className="text-[10px] text-zinc-500 font-black uppercase tracking-widest mb-2">Local Files</p>
-                                            </div>
-                                            {localModels.map(model => (
-                                                <div
-                                                    key={model.name}
-                                                    className="p-5 rounded-2xl bg-black border border-zinc-800/50 hover:border-zinc-700 transition-all flex items-center justify-between group"
-                                                >
-                                                    <div className="flex items-center gap-4 min-w-0 flex-1">
-                                                        <div className="p-2.5 rounded-xl bg-zinc-900 text-zinc-500 group-hover:bg-indigo-500/10 group-hover:text-indigo-400 transition-all">
-                                                            <Database className="w-5 h-5" />
-                                                        </div>
-                                                        <div className="min-w-0 flex-1">
-                                                            <div className="text-sm font-black text-zinc-100 truncate">{model.name}</div>
-                                                            <div className="flex items-center gap-2 mt-1 flex-wrap">
-                                                                <span className="text-[10px] text-zinc-600 font-mono">{model.size_mb} MB</span>
-                                                                <span className="w-1 h-1 rounded-full bg-zinc-800" />
-                                                                <span className="text-[10px] text-zinc-600">{new Date(model.modified_at).toLocaleDateString()}</span>
-                                                                {model.num_features !== undefined && (
-                                                                    <>
-                                                                        <span className="w-1 h-1 rounded-full bg-zinc-800" />
-                                                                        <span className="text-[10px] bg-indigo-600/20 text-indigo-300 px-2 py-0.5 rounded-md font-bold">
-                                                                            {model.num_features} Features
-                                                                        </span>
-                                                                    </>
-                                                                )}
-                                                                {model.num_parameters !== undefined && model.num_parameters > 0 && (
-                                                                    <>
-                                                                        <span className="w-1 h-1 rounded-full bg-zinc-800" />
-                                                                        <span className="text-[10px] bg-amber-600/20 text-amber-300 px-2 py-0.5 rounded-md font-bold">
-                                                                            {model.num_parameters} Params
-                                                                        </span>
-                                                                    </>
-                                                                )}
-                                                                {typeof model.trainingSamples === "number" && model.trainingSamples > 0 && (
-                                                                    <>
-                                                                        <span className="w-1 h-1 rounded-full bg-zinc-800" />
-                                                                        <span className="text-[10px] bg-emerald-600/20 text-emerald-300 px-2 py-0.5 rounded-md font-bold">
-                                                                            {model.trainingSamples} Samples
-                                                                        </span>
-                                                                    </>
-                                                                )}
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    <button
-                                                        onClick={() => deleteLocalModel(model.name)}
-                                                        disabled={deletingModels.has(model.name)}
-                                                        className="ml-4 p-3 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-500 hover:bg-red-600/20 hover:text-red-400 hover:border-red-600/50 transition-all disabled:opacity-50"
-                                                    >
-                                                        {deletingModels.has(model.name) ? (
-                                                            <Loader2 className="w-5 h-5 animate-spin" />
-                                                        ) : (
-                                                            <Trash2 className="w-5 h-5" />
-                                                        )}
-                                                    </button>
-                                                </div>
-                                            ))}
-                                        </>
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+                            <div className="space-y-6">
+                                <div className="space-y-2 text-sm text-zinc-400 font-medium leading-relaxed">
+                                    <p>Review recent predictions and retrain the model on mistakes to improve accuracy over time. This process helps the AI adapt to shifting market regimes.</p>
+                                    {!trainingExchange && (
+                                        <div className="p-4 mt-4 rounded-2xl bg-amber-900/10 border border-amber-500/20 text-amber-500 text-xs font-bold flex items-center gap-3">
+                                            <Info className="w-5 h-5 shrink-0" />
+                                            Select an exchange above to enable adaptive learning actions.
+                                        </div>
                                     )}
-                                </>
-                            )}
+                                </div>
+
+                                {adaptiveStats && (
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="p-4 rounded-2xl bg-black border border-zinc-800 shadow-xl shadow-black/20">
+                                            <p className="text-[10px] text-zinc-500 uppercase font-black tracking-widest mb-1">Total Logs</p>
+                                            <p className="text-2xl font-black text-white">{adaptiveStats.total_logs}</p>
+                                        </div>
+                                        <div className="p-4 rounded-2xl bg-black border border-zinc-800 shadow-xl shadow-black/20">
+                                            <p className="text-[10px] text-zinc-500 uppercase font-black tracking-widest mb-1">Pending Verify</p>
+                                            <p className="text-2xl font-black text-amber-500">{adaptiveStats.pending}</p>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Recent Results Table */}
+                                <div className="rounded-2xl bg-black/50 border border-zinc-800/50 overflow-hidden ring-1 ring-zinc-800">
+                                    <div className="px-4 py-3 border-b border-zinc-800/50 flex justify-between items-center bg-black/40">
+                                        <h3 className="text-[10px] font-black text-zinc-400 uppercase tracking-wider">Recent Verified Predictions</h3>
+                                        {loadingAdaptiveResults && <Loader2 className="w-3 h-3 animate-spin text-zinc-500" />}
+                                    </div>
+                                    <div className="max-h-[220px] overflow-y-auto custom-scrollbar">
+                                        {adaptiveResults.length === 0 ? (
+                                            <div className="p-8 text-center text-[10px] text-zinc-700 font-bold uppercase tracking-widest">No verified results found</div>
+                                        ) : (
+                                            <table className="w-full text-left border-collapse">
+                                                <thead className="sticky top-0 bg-zinc-900/90 backdrop-blur-sm text-[9px] text-zinc-500 font-bold uppercase tracking-wider z-10">
+                                                    <tr>
+                                                        <th className="px-3 py-2">Date</th>
+                                                        <th className="px-3 py-2">Sym</th>
+                                                        <th className="px-3 py-2 text-center">Pred</th>
+                                                        <th className="px-3 py-2 text-center">Res</th>
+                                                        <th className="px-3 py-2 text-right">Entry</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="text-[10px] font-medium text-zinc-300 divide-y divide-zinc-800/30">
+                                                    {adaptiveResults.map((row, i) => (
+                                                        <tr key={i} className="hover:bg-zinc-800/30 transition-colors">
+                                                            <td className="px-3 py-2 text-zinc-500 font-mono whitespace-nowrap">{new Date(row.date || row.created_at).toLocaleDateString(undefined, { month: 'numeric', day: 'numeric' })}</td>
+                                                            <td className="px-3 py-2 text-white font-bold">{row.symbol}</td>
+                                                            <td className="px-3 py-2 text-center">
+                                                                <span className={`px-1.5 py-0.5 rounded-[4px] text-[9px] font-black ${row.prediction === 1 ? "bg-emerald-500/10 text-emerald-400" : "bg-rose-500/10 text-rose-400"}`}>
+                                                                    {row.prediction === 1 ? "BUY" : "SELL"}
+                                                                </span>
+                                                            </td>
+                                                            <td className="px-3 py-2 text-center">
+                                                                {row.status === "win" && <span className="text-emerald-500 font-black">WIN</span>}
+                                                                {row.status === "loss" && <span className="text-rose-500 font-black">LOSS</span>}
+                                                                {row.status !== "win" && row.status !== "loss" && <span className="text-zinc-700">-</span>}
+                                                            </td>
+                                                            <td className="px-3 py-2 text-right font-mono text-zinc-400">{row.entry_price?.toFixed(2)}</td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="flex flex-col justify-center space-y-4 lg:border-l lg:border-zinc-800/50 lg:pl-12">
+
+                                <button
+                                    onClick={async () => {
+                                        console.log("[Adaptive] Verify Predictions clicked. Exchange:", trainingExchange);
+                                        if (!trainingExchange) {
+                                            toast.error("Please select an exchange first");
+                                            return;
+                                        }
+                                        setUpdatingActuals(true);
+                                        try {
+                                            console.log("[Adaptive] Calling update-actuals...");
+                                            await fetch("/api/admin/train/adaptive/update-actuals", {
+                                                method: "POST",
+                                                headers: { "Content-Type": "application/json" },
+                                                body: JSON.stringify({
+                                                    exchange: trainingExchange,
+                                                    look_forward_days: lookForwardDays,
+                                                    model_name: selectedAdaptiveModel // Pass selected model if matched
+                                                })
+                                            });
+                                            console.log("[Adaptive] Update actuals started.");
+                                            toast.success("Updating actuals started");
+                                            // The global polling will pick up the status message
+                                        } catch (e) {
+                                            console.error("[Adaptive] Update error:", e);
+                                            toast.error("Failed to start update");
+                                            setUpdatingActuals(false);
+                                        }
+                                        // Delay re-enabling locally to allow global state to pick up 'running=true'
+                                        setTimeout(() => setUpdatingActuals(false), 3000);
+                                    }}
+                                    disabled={updatingActuals || (trainingStatus?.running === true)}
+                                    className={`py-3 px-4 rounded-xl text-xs font-bold text-white flex items-center justify-center gap-2 disabled:opacity-50 transition-all ${!trainingExchange ? 'bg-zinc-800 border-zinc-700 text-zinc-500 cursor-not-allowed hover:bg-zinc-800' : 'bg-zinc-900 hover:bg-zinc-800 border-zinc-700 border'}`}
+                                >
+                                    {updatingActuals ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
+                                    VERIFY PREDICTIONS
+                                </button>
+
+                                {trainingStatus?.running && trainingStatus.last_message && (
+                                    <div className="p-3 rounded-xl bg-zinc-900/50 border border-zinc-800 text-[10px] font-mono text-zinc-400 text-center animate-pulse">
+                                        {trainingStatus.last_message}
+                                    </div>
+                                )}
+
+                                <button
+                                    onClick={async () => {
+                                        console.log("[Adaptive] Retrain clicked. Exchange:", trainingExchange);
+                                        if (!trainingExchange) {
+                                            toast.error("Please select an exchange first");
+                                            return;
+                                        }
+                                        setRetraining(true);
+                                        try {
+                                            console.log("[Adaptive] Calling retrain...");
+                                            const res = await fetch("/api/admin/train/adaptive/retrain", {
+                                                method: "POST",
+                                                headers: { "Content-Type": "application/json" },
+                                                body: JSON.stringify({
+                                                    exchange: trainingExchange,
+                                                    lookback_days: 30,
+                                                    model_name: selectedAdaptiveModel
+                                                })
+                                            });
+                                            if (res.ok) {
+                                                console.log("[Adaptive] Retraining started successfully.");
+                                                toast.success("Retraining started");
+                                            } else {
+                                                const err = await res.text();
+                                                console.error("[Adaptive] Retrain failed:", err);
+                                                toast.error("Retraining failed: " + err);
+                                                setRetraining(false);
+                                            }
+                                        } catch (e) {
+                                            console.error("[Adaptive] Retrain connection error:", e);
+                                            toast.error("Failed to start retraining");
+                                            setRetraining(false);
+                                        }
+                                        // Delay re-enabling locally to allow global state to pick up
+                                        setTimeout(() => setRetraining(false), 3000);
+                                    }}
+                                    disabled={retraining || (trainingStatus?.running === true)}
+                                    className={`py-3 px-4 rounded-xl text-xs font-bold text-white flex items-center justify-center gap-2 disabled:opacity-50 shadow-[0_0_15px_rgba(168,85,247,0.3)] transition-all ${!trainingExchange ? 'bg-zinc-800 text-zinc-500 shadow-none cursor-not-allowed' : 'bg-purple-600 hover:bg-purple-500'}`}
+                                >
+                                    {retraining ? <Loader2 className="w-3 h-3 animate-spin" /> : <Zap className="w-3 h-3" />}
+                                    RETRAIN ON MISTAKES
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1158,6 +1665,6 @@ export default function AIAutomationTab({
                 cancelLabel="Keep Model"
                 variant="danger"
             />
-        </div>
+        </div >
     );
 }

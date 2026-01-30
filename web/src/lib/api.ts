@@ -9,9 +9,13 @@ export type PredictParams = {
   rfParams?: Record<string, unknown>;
   modelName?: string;
   forceLocal?: boolean;
+  targetPct?: number;
+  stopLossPct?: number;
+  lookForwardDays?: number;
+  buyThreshold?: number;
 };
 
-export async function predictStock(params: PredictParams): Promise<PredictResponse> {
+export async function predictStock(params: PredictParams, signal?: AbortSignal): Promise<PredictResponse> {
   const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
 
   let ticker = params.ticker.trim().toUpperCase();
@@ -45,7 +49,11 @@ export async function predictStock(params: PredictParams): Promise<PredictRespon
     rf_preset: params.rfPreset ?? null,
     rf_params: params.rfParams ?? null,
     model_name: params.modelName ?? null,
-    force_local: params.forceLocal ?? false,
+    force_local: params.forceLocal ?? true, // Default to true to prevent slow external API calls
+    target_pct: params.targetPct ?? 0.15,
+    stop_loss_pct: params.stopLossPct ?? 0.05,
+    look_forward_days: params.lookForwardDays ?? 20,
+    buy_threshold: params.buyThreshold ?? 0.40,
   };
 
   async function doFetch(url: string) {
@@ -54,6 +62,7 @@ export async function predictStock(params: PredictParams): Promise<PredictRespon
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
       cache: "no-store",
+      signal,
     });
   }
 
@@ -110,6 +119,10 @@ export type LocalModelMeta = {
   num_features?: number;
   num_parameters?: number;
   trainingSamples?: number;
+  target_pct?: number;
+  stop_loss_pct?: number;
+  look_forward_days?: number;
+  buyThreshold?: number;
 };
 
 export type LocalModelsResponse = {
@@ -343,8 +356,18 @@ export type ScanResult = {
   signal: string;
   confidence: string;
   logo_url?: string | null;
-  status?: "win" | "loss" | "pending" | null;
+  status?: "win" | "loss" | "pending" | "open" | "hit_stop" | "hit_target" | null;
   profit_loss_pct?: number | null;
+  top_reasons?: string[];
+  target_price?: number;
+  stop_loss?: number;
+  id?: string;
+  created_at?: string;
+  updated_at?: string;
+  exit_price?: number;
+  features?: number[] | null;
+  technical_score?: number;
+  fundamental_score?: number;
 };
 
 export type ScanResponse = {
@@ -363,6 +386,10 @@ export type ScanAiParams = {
   modelName?: string;
   from_date?: string;
   to_date?: string;
+  target_pct?: number;
+  stop_loss_pct?: number;
+  look_forward_days?: number;
+  buy_threshold?: number;
 };
 
 export async function scanAiFastWithParams(params: ScanAiParams, signal?: AbortSignal): Promise<ScanResponse> {
@@ -371,9 +398,13 @@ export async function scanAiFastWithParams(params: ScanAiParams, signal?: AbortS
   const query = new URLSearchParams({
     country: params.country,
     limit: String(params.limit),
-    min_precision: String(params.minPrecision),
+    min_precision: String(params.minPrecision ?? 0.1),
     model_name: params.modelName ?? "",
     from_date: params.from_date || new Date(Date.now() - 300 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    target_pct: String(params.target_pct ?? 0.10),
+    stop_loss_pct: String(params.stop_loss_pct ?? 0.05),
+    look_forward_days: String(params.look_forward_days ?? 20),
+    buy_threshold: String(params.buy_threshold ?? 0.40),
   });
   if (params.to_date) {
     query.set("to_date", params.to_date);
@@ -390,10 +421,10 @@ export async function scanAiFastWithParams(params: ScanAiParams, signal?: AbortS
 
   let res: Response;
   try {
-    res = baseUrl ? await doFetch(`${baseUrl} /scan/fast ? ${query} `) : await doFetch(` / api / scan / fast ? ${query} `);
+    res = baseUrl ? await doFetch(`${baseUrl}/scan/fast?${query}`) : await doFetch(`/api/scan/fast?${query}`);
   } catch (e) {
     if (baseUrl) {
-      res = await doFetch(`/ api / scan / fast ? ${query} `);
+      res = await doFetch(`/api/scan/fast?${query}`);
     } else {
       throw e;
     }
@@ -442,10 +473,10 @@ export async function scanAiWithParams(params: ScanAiParams, signal?: AbortSigna
 
   let res: Response;
   try {
-    res = baseUrl ? await doFetch(`${baseUrl} /scan/ai ? ${query} `) : await doFetch(` / api / scan / ai ? ${query} `);
+    res = baseUrl ? await doFetch(`${baseUrl}/scan/ai?${query}`) : await doFetch(`/api/scan/ai?${query}`);
   } catch (e) {
     if (baseUrl) {
-      res = await doFetch(`/ api / scan / ai ? ${query} `);
+      res = await doFetch(`/api/scan/ai?${query}`);
     } else {
       throw e;
     }
@@ -484,10 +515,10 @@ export async function scanAi(country: string = "Egypt", signal?: AbortSignal): P
   const query = new URLSearchParams({ country, limit: "50", min_precision: "0.6" });
   let res: Response;
   try {
-    res = baseUrl ? await doFetch(`${baseUrl} /scan/ai ? ${query} `) : await doFetch(` / api / scan / ai ? ${query} `);
+    res = baseUrl ? await doFetch(`${baseUrl}/scan/ai?${query}`) : await doFetch(`/api/scan/ai?${query}`);
   } catch (e) {
     if (baseUrl) {
-      res = await doFetch(`/ api / scan / ai ? ${query} `);
+      res = await doFetch(`/api/scan/ai?${query}`);
     } else {
       throw e;
     }
@@ -615,10 +646,10 @@ export async function scanTech(filter: TechFilter, signal?: AbortSignal): Promis
 
   let res: Response;
   try {
-    res = baseUrl ? await doFetch(`${baseUrl} /scan/technical`) : await doFetch(` / api / scan / technical`);
+    res = baseUrl ? await doFetch(`${baseUrl}/scan/technical`) : await doFetch(`/api/scan/technical`);
   } catch (e) {
     if (baseUrl) {
-      res = await doFetch(`/ api / scan / technical`);
+      res = await doFetch(`/api/scan/technical`);
     } else {
       throw e;
     }
@@ -659,6 +690,8 @@ export interface AdminConfig {
   fundSource: string;
   maxWorkers: number;
   enabledModels: string[];
+  modelAliases?: Record<string, string>;
+  scanDays?: number;
 }
 
 export async function getAdminConfig(): Promise<AdminConfig> {
