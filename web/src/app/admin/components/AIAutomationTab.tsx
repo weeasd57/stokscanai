@@ -45,6 +45,10 @@ interface LocalModel {
     uses_fundamentals?: boolean;
     fundamentals_loaded?: boolean;
     has_meta_labeling?: boolean;
+    precision?: number;
+    recall?: number;
+    f1?: number;
+    auc?: number;
 }
 
 export default function AIAutomationTab({
@@ -613,6 +617,35 @@ export default function AIAutomationTab({
                                                 )}
                                             </div>
                                         </div>
+
+                                        {(model.precision !== undefined || model.recall !== undefined || model.auc !== undefined) && (
+                                            <div className="px-4 py-2.5 rounded-2xl bg-zinc-900/10 border border-zinc-800/30 grid grid-cols-4 gap-1">
+                                                <div className="flex flex-col items-center justify-center">
+                                                    <span className="text-[8px] text-zinc-600 uppercase font-black">P</span>
+                                                    <span className={`text-[10px] font-black ${model.precision && model.precision > 0.6 ? 'text-emerald-400' : 'text-zinc-400'}`}>
+                                                        {model.precision ? (model.precision * 100).toFixed(1) : "0"}%
+                                                    </span>
+                                                </div>
+                                                <div className="flex flex-col items-center justify-center border-l border-zinc-800/50">
+                                                    <span className="text-[8px] text-zinc-600 uppercase font-black">R</span>
+                                                    <span className={`text-[10px] font-black ${model.recall && model.recall > 0.6 ? 'text-emerald-400' : 'text-zinc-400'}`}>
+                                                        {model.recall ? (model.recall * 100).toFixed(1) : "0"}%
+                                                    </span>
+                                                </div>
+                                                <div className="flex flex-col items-center justify-center border-l border-zinc-800/50">
+                                                    <span className="text-[8px] text-zinc-600 uppercase font-black">F1</span>
+                                                    <span className="text-[10px] text-zinc-400 font-black">
+                                                        {model.f1 ? (model.f1 * 100).toFixed(1) : "0"}%
+                                                    </span>
+                                                </div>
+                                                <div className="flex flex-col items-center justify-center border-l border-zinc-800/50">
+                                                    <span className="text-[8px] text-zinc-600 uppercase font-black">AUC</span>
+                                                    <span className={`text-[10px] font-black ${model.auc && model.auc > 0.65 ? 'text-indigo-400' : 'text-zinc-400'}`}>
+                                                        {model.auc ? model.auc.toFixed(2) : "0.5"}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        )}
 
                                         <div className="pt-4 border-t border-zinc-800/50 grid grid-cols-3 gap-2">
                                             {model.target_pct !== undefined && (

@@ -1698,6 +1698,13 @@ def list_local_models():
                         info["uses_fundamentals"] = bool(di.get("uses_fundamentals"))
                         info["fundamentals_loaded"] = bool(di.get("fundamentals_loaded"))
                         info["has_meta_labeling"] = bool(caps.get("has_meta_labeling"))
+                        
+                        # Flatten Metrics for easier UI access
+                        metrics = card.get("training", {}).get("metrics", {})
+                        if isinstance(metrics, dict):
+                            for m in ("precision", "recall", "f1", "auc"):
+                                if m in metrics:
+                                    info[m] = metrics[m]
             except Exception as card_err:
                 print(f"Warning: failed to read model card for {filename}: {card_err}")
 

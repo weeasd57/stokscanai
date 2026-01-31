@@ -587,40 +587,224 @@ def add_technical_indicators(df):
 def prepare_for_ai(df, target_pct: float = 0.03, stop_loss_pct: float = 0.06, look_forward_days: int = 20, use_volatility: bool = False):
     """
     Implements 'The Triple Barrier Method' labeling.
+    
+    IMPROVED: Now checks which barrier is hit FIRST (TP or SL).
+    - Target = 1: Take Profit hit BEFORE Stop Loss
+    - Target = 0: Stop Loss hit first OR neither hit (time barrier)
     """
     if df.empty: return df
     out = df.copy()
     
-    # Use FixedForwardWindowIndexer for forward-looking rolling windows
-    indexer = pd.api.indexers.FixedForwardWindowIndexer(window_size=look_forward_days)
-    
-    # Entry Point (Next Day Open or close)
+    # Entry Point (Next Day Close as entry)
     out['entry_price'] = out['Close'].shift(-1)
     
     out['tp_barrier'] = out['entry_price'] * (1 + target_pct)
     out['sl_barrier'] = out['entry_price'] * (1 - stop_loss_pct)
-    out['future_high'] = out['Close'].shift(-1).rolling(window=indexer).max()
-    out['future_low'] = out['Close'].shift(-1).rolling(window=indexer).min()
     
-    # Labeling Logic: More relaxed for daily data
-    # Mark as Win if High hits Target
+    # Initialize Target column
     out['Target'] = 0
-    hit_tp = out['future_high'] >= out['tp_barrier']
     
-    # We label as 1 if we hit TP. 
-    out.loc[hit_tp, 'Target'] = 1
+    # For each row, we need to check which barrier is hit first
+    # This requires iterating through future prices
+    close_values = out['Close'].values
+    tp_values = out['tp_barrier'].values
+    sl_values = out['sl_barrier'].values
+    targets = np.zeros(len(out), dtype=int)
+    
+    for i in range(len(out) - look_forward_days - 1):
+        entry = close_values[i + 1]  # Entry at next day's close
+        tp = tp_values[i]
+        sl = sl_values[i]
+        
+        if np.isnan(entry) or np.isnan(tp) or np.isnan(sl):
+            continue
+            
+        # Look at future prices (day i+1 to i+1+look_forward_days)
+        first_tp_day = None
+        first_sl_day = None
+        
+        for j in range(1, look_forward_days + 1):
+            future_idx = i + 1 + j
+            if future_idx >= len(close_values):
+                break
+                
+            future_price = close_values[future_idx]
+            if np.isnan(future_price):
+                continue
+            
+            # Check if TP is hit (use future high if available, else close)
+            if 'High' in out.columns:
+                future_high = out['High'].values[future_idx]
+            else:
+                future_high = future_price
+                
+            if 'Low' in out.columns:
+                future_low = out['Low'].values[future_idx]
+            else:
+                future_low = future_price
+            
+            # Record first day each barrier is hit
+            if first_tp_day is None and future_high >= tp:
+                first_tp_day = j
+            if first_sl_day is None and future_low <= sl:
+                first_sl_day = j
+                
+            # Early exit if both barriers are hit
+            if first_tp_day is not None and first_sl_day is not None:
+                break
+        
+        # Labeling Logic: TP hit FIRST = Win, otherwise = Loss
+        if first_tp_day is not None:
+            if first_sl_day is None or first_tp_day <= first_sl_day:
+                targets[i] = 1  # TP hit first or SL never hit
+            # else: SL hit first, target stays 0
+        # else: Neither hit or only SL hit, target stays 0
+    
+    out['Target'] = targets
     
     # Stats for console monitoring
     counts = out['Target'].value_counts()
     pos = counts.get(1, 0)
-    print(f"[{datetime.now().strftime('%H:%M:%S')}] Labeled {len(out)} rows: Wins={pos} ({pos/len(out):.2%})")
+    neg = counts.get(0, 0)
+    total = pos + neg
+    ratio = pos / total if total > 0 else 0
+    print(f"[{datetime.now().strftime('%H:%M:%S')}] Triple Barrier Labeling: {len(out)} rows")
+    print(f"    Wins={pos} ({ratio:.2%}), Losses={neg} ({1-ratio:.2%})")
     
     # Clean up and drop rows we can't label
-    drop_cols = ['future_high', 'future_low', 'entry_price', 'tp_barrier', 'sl_barrier']
+    drop_cols = ['entry_price', 'tp_barrier', 'sl_barrier']
     out.drop(columns=drop_cols, inplace=True, errors='ignore')
     out = out.iloc[:-look_forward_days].copy()
     
     return out
+
+# =============================================================================
+# Training Monitor - Early Detection of Training Issues
+# =============================================================================
+class TrainingMonitor:
+    """Monitor training progress and detect issues early."""
+    
+    def __init__(self, log_cb: Optional[Callable] = None):
+        self.log_cb = log_cb
+        self.alerts = []
+    
+    def _log(self, msg: str):
+        """Log message via callback or print."""
+        if self.log_cb:
+            self.log_cb(msg)
+        else:
+            print(msg)
+    
+    def check_metrics(self, metrics: dict) -> list:
+        """
+        Check for problematic metric patterns.
+        Returns list of alert messages.
+        """
+        self.alerts = []
+        
+        recall = metrics.get('recall', 0)
+        precision = metrics.get('precision', 0)
+        auc = metrics.get('auc', 1.0)
+        
+        # Alert 1: Perfect or near-perfect Recall (model predicting all 1s)
+        if recall > 0.95:
+            self.alerts.append(
+                f"⚠️ CRITICAL: Recall={recall:.2%} - Model may be predicting BUY for everything!"
+            )
+        
+        # Alert 2: Low AUC (barely better than random)
+        if auc < 0.6:
+            self.alerts.append(
+                f"⚠️ WARNING: AUC={auc:.3f} - Model barely better than random (0.5)!"
+            )
+        
+        # Alert 3: Large Precision-Recall gap
+        if abs(precision - recall) > 0.3:
+            self.alerts.append(
+                f"⚠️ WARNING: Large P-R gap (P={precision:.2%} vs R={recall:.2%})"
+            )
+        
+        # Alert 4: Very low precision
+        if precision < 0.5:
+            self.alerts.append(
+                f"⚠️ WARNING: Precision={precision:.2%} - Too many false positives!"
+            )
+        
+        return self.alerts
+    
+    def log_alerts(self):
+        """Log all accumulated alerts."""
+        if self.alerts:
+            self._log("\n" + "="*60)
+            self._log("⚠️ TRAINING ALERTS DETECTED:")
+            for alert in self.alerts:
+                self._log(f"  {alert}")
+            self._log("="*60 + "\n")
+    
+    def check_class_balance(self, y) -> dict:
+        """
+        Check class balance and return statistics.
+        """
+        import numpy as np
+        unique, counts = np.unique(y, return_counts=True)
+        total = len(y)
+        
+        stats = {}
+        for cls, cnt in zip(unique, counts):
+            stats[int(cls)] = {'count': int(cnt), 'pct': cnt / total}
+        
+        # Alert if heavily imbalanced
+        if len(stats) == 2:
+            pct_1 = stats.get(1, {}).get('pct', 0)
+            if pct_1 > 0.8:
+                self.alerts.append(
+                    f"⚠️ IMBALANCE: {pct_1:.1%} of labels are positive (Target=1). "
+                    "Consider adjusting target_pct/stop_loss_pct ratio."
+                )
+            elif pct_1 < 0.2:
+                self.alerts.append(
+                    f"⚠️ IMBALANCE: Only {pct_1:.1%} of labels are positive. "
+                    "May need more data or different labeling strategy."
+                )
+        
+        return stats
+
+
+def calculate_optimal_class_weight(y, max_ratio: float = 5.0) -> dict:
+    """
+    Calculate class weights that prevent model from predicting all 1s.
+    
+    Args:
+        y: Target labels (0 or 1)
+        max_ratio: Maximum weight ratio to prevent extreme imbalance
+        
+    Returns:
+        dict: Class weights {0: weight_0, 1: weight_1}
+    """
+    import numpy as np
+    
+    y_arr = np.array(y)
+    pos = np.sum(y_arr == 1)
+    neg = np.sum(y_arr == 0)
+    total = pos + neg
+    
+    if pos == 0 or neg == 0:
+        return {0: 1.0, 1: 1.0}
+    
+    # Calculate ratio
+    # If more positives than negatives, weight negatives higher
+    if pos > neg:
+        ratio = min(pos / neg, max_ratio)
+        weights = {0: ratio, 1: 1.0}
+    else:
+        ratio = min(neg / pos, max_ratio)
+        weights = {0: 1.0, 1: ratio}
+    
+    print(f"[ClassWeight] Pos={pos} ({pos/total:.1%}), Neg={neg} ({neg/total:.1%})")
+    print(f"[ClassWeight] Calculated weights: {weights}")
+    
+    return weights
+
 
 class ModelTrainer:
     """
@@ -647,6 +831,32 @@ class ModelTrainer:
         self.categorical_features = []
         self.min_history_needed = 200 # Default for safety (SMA200)
         self.embargo_pct = 0.01 # 1% embargo gap for purged k-fold
+
+    def _clean_dataset(self, X: pd.DataFrame) -> pd.DataFrame:
+        """
+        Centralized cleaning to ensure X has correct dtypes for LightGBM.
+        - Fills numeric NaNs with 0 (safe for trees).
+        - Fills categorical NaNs with "Unknown".
+        - Enforces 'category' dtype for self.categorical_features.
+        """
+        X = X.copy()
+        
+        # 1. Fill Numeric NaNs
+        num_cols = X.select_dtypes(include=[np.number]).columns
+        if not num_cols.empty:
+            X[num_cols] = X[num_cols].fillna(0)
+            
+        # 2. Handle Categorical Features
+        for cat in self.categorical_features:
+            if cat in X.columns:
+                # Ensure it's not null before casting
+                if X[cat].isnull().any():
+                     X[cat] = X[cat].astype(object).fillna("Unknown")
+                
+                # Strict Cast to Category
+                X[cat] = X[cat].astype('category')
+                
+        return X
         
     def _standardize_exchange(self, exchange: str) -> str:
         if not exchange: return "UNKNOWN"
@@ -883,8 +1093,8 @@ class ModelTrainer:
             if cat_col in df_train.columns:
                 try:
                     df_train[cat_col] = df_train[cat_col].fillna("Unknown").astype("category")
-                except Exception:
-                    # Keep training robust even if dtype conversion fails
+                except Exception as e:
+                    print(f"Warning: Failed to cast {cat_col} to category: {e}")
                     df_train[cat_col] = df_train[cat_col].fillna("Unknown")
 
         self._progress(f"Prepared training data: {len(df_train):,} total samples.")
@@ -930,7 +1140,7 @@ class ModelTrainer:
             
         self._progress(f"Selected {len(self.predictors)} predictors (Preset: {preset})")
 
-    def optimize_hyperparameters(self, df_train: pd.DataFrame, n_trials: int = 75) -> Dict[str, Any]:
+    def optimize_hyperparameters(self, df_train: pd.DataFrame, n_trials: int = 75, patience: int = 50) -> Dict[str, Any]:
         """
         Use Optuna to find the best hyperparameters for LightGBM.
         Strategy: 'Safe for EGX'
@@ -946,6 +1156,8 @@ class ModelTrainer:
         self._progress("Strategy: Fixed LR=0.01, Objective=(AUC+Precision)/2, Constrained Trees")
         
         X = df_train[self.predictors]
+        # Clean data BEFORE splitting to ensure types are consistent
+        X = self._clean_dataset(X)
         y = df_train["Target"]
         X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.2, shuffle=False)
 
@@ -1025,6 +1237,8 @@ class ModelTrainer:
         
         self._progress(f"Running Purged {n_splits}-Fold Cross Validation...")
         X = df[self.predictors]
+        # Clean data to ensure categorical features are properly typed
+        X = self._clean_dataset(X)
         y = df["Target"]
         # Use simple integer indexing for splitting
         indices = np.arange(len(df))
@@ -1076,9 +1290,12 @@ class ModelTrainer:
         
         # Data Validation
         if X.isnull().values.any():
-            self._progress("Warning: NaNs found in predictors. Filling with 0.")
-            X = X.fillna(0)
-            
+             self._progress("Warning: NaNs found in predictors. Applying centralized cleaning...")
+
+        # Centralized Cleaning
+        X = self._clean_dataset(X)
+        self._progress(f"Data types before training: {X.dtypes.to_dict()}")
+
         if len(np.unique(y)) < 2:
             raise ValueError(f"Training failed: Only one class present in target ({np.unique(y)}). Need both Win and No-Win samples.")
 
@@ -1099,6 +1316,11 @@ class ModelTrainer:
         X_val = X.iloc[split_idx:]
         y_val = y.iloc[split_idx:]
         
+        # Initialize Training Monitor for early issue detection
+        monitor = TrainingMonitor(log_cb=self._progress)
+        class_stats = monitor.check_class_balance(y_train)
+        self._progress(f"Class balance: {class_stats}")
+        
         # Optional: Run Purged CV for more reliable estimation
         avg_purged_f1 = None
         cv_scores = self.purged_cross_val(df_train, n_splits=3)
@@ -1106,6 +1328,10 @@ class ModelTrainer:
             avg_purged_f1 = np.mean([s['f1'] for s in cv_scores])
             self._progress(f"Average Purged CV F1: {avg_purged_f1:.4f}")
 
+        # Calculate optimal class weights instead of using is_unbalance=True
+        # This gives more control and prevents model from predicting all 1s
+        class_weight = calculate_optimal_class_weight(y_train, max_ratio=3.0)
+        
         params = {
             "n_estimators": n_estimators,
             "learning_rate": learning_rate,
@@ -1114,7 +1340,7 @@ class ModelTrainer:
             "random_state": 42,
             "n_jobs": -1,
             "verbose": -1,
-            "is_unbalance": True, # Automatically handle class imbalance for rare signals
+            "class_weight": class_weight,  # Use calculated weights instead of is_unbalance
             **(optimized_params or {})
         }
         
@@ -1133,12 +1359,21 @@ class ModelTrainer:
             X_train, y_train,
             eval_set=[(X_val, y_val)],
             eval_metric="logloss",
-            categorical_feature=self.categorical_features if self.categorical_features else 'auto',
+            # Use 'auto' - LightGBM will detect category dtype columns automatically
+            # This avoids errors when column names are passed but dtype isn't category
+            categorical_feature='auto',
             callbacks=[c for c in callbacks if c is not None]
         )
         
         # Evaluate
         metrics = self.calculate_validation_metrics(model, df_train)
+        
+        # Check for training issues and alert
+        monitor.check_metrics(metrics)
+        monitor.log_alerts()
+        
+        # Analyze and log feature importance
+        self.analyze_feature_importance(model, top_n=20)
         
         return model, metrics, avg_purged_f1
 
@@ -1167,6 +1402,54 @@ class ModelTrainer:
         }
         self._progress(f"Final Validation Metrics: P={metrics['precision']:.4f}, R={metrics['recall']:.4f}, F1={metrics['f1']:.4f}")
         return metrics
+
+    def analyze_feature_importance(
+        self, 
+        model, 
+        top_n: int = 30,
+        save_path: Optional[str] = None
+    ) -> pd.DataFrame:
+        """
+        Analyze and log feature importance after training.
+        
+        Args:
+            model: Trained LightGBM model
+            top_n: Number of top features to display
+            save_path: Optional path to save CSV
+            
+        Returns:
+            DataFrame with feature importance
+        """
+        try:
+            importance = model.feature_importances_
+            
+            feat_imp = pd.DataFrame({
+                'feature': self.predictors,
+                'importance': importance,
+                'importance_pct': (importance / importance.sum()) * 100
+            }).sort_values('importance', ascending=False)
+            
+            # Log top features
+            self._progress(f"\n📊 Top {top_n} Most Important Features:")
+            for idx, row in feat_imp.head(top_n).iterrows():
+                bar = "█" * int(row['importance_pct'])
+                self._progress(f"  {row['feature']}: {row['importance_pct']:.2f}% {bar}")
+            
+            # Identify low-importance features (< 0.1%)
+            low_imp = feat_imp[feat_imp['importance_pct'] < 0.1]
+            if len(low_imp) > 0:
+                self._progress(f"\n⚠️ {len(low_imp)} features with <0.1% importance (consider removing)")
+            
+            # Save to file if path provided
+            if save_path:
+                feat_imp.to_csv(save_path, index=False)
+                self._progress(f"Feature importance saved to {save_path}")
+            
+            return feat_imp
+            
+        except Exception as e:
+            self._progress(f"Warning: Could not analyze feature importance: {e}")
+            return pd.DataFrame()
 
     def save_model(self, model, filename: str, metadata: Dict[str, Any]) -> str:
         """Save model and metadata locally and to cloud."""
@@ -1384,11 +1667,16 @@ def train_model(exchange=None, supabase_url=None, supabase_key=None, *args, **kw
     if df_raw.empty: return
     
     use_volatility_label = bool(kwargs.get("use_volatility_label", False))
+    # Use kwargs for labeling parameters (important for realistic training)
+    target_pct = kwargs.get("target_pct", 0.03)
+    stop_loss_pct = kwargs.get("stop_loss_pct", 0.06)
+    look_forward_days = kwargs.get("look_forward_days", 20)
+    
     df_train = trainer.prepare_training_data(
         df_raw, 
-        0.03, 
-        0.06, 
-        20,
+        target_pct, 
+        stop_loss_pct, 
+        look_forward_days,
         preset=kwargs.get("feature_preset", "extended"),
         use_volatility_label=use_volatility_label,
     )
@@ -1402,11 +1690,14 @@ def train_model(exchange=None, supabase_url=None, supabase_key=None, *args, **kw
     if kwargs.get("optimize") and optuna:
         optimized_params = trainer.optimize_hyperparameters(df_train, n_trials=kwargs.get("n_trials", 30))
 
+    # Get use_early_stopping from kwargs (defaults to True for backward compat)
+    use_early_stopping = kwargs.get("use_early_stopping", True)
+    
     model, val_metrics, avg_purged_f1 = trainer.train_model(
         df_train, 
         n_estimators=kwargs.get("n_estimators") or 500,
         learning_rate=kwargs.get("learning_rate", 0.01),
-        patience=kwargs.get("patience", 100),
+        patience=kwargs.get("patience", 100) if use_early_stopping else 0,
         optimized_params=optimized_params
     )
     
