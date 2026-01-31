@@ -1,3 +1,4 @@
+# RESTART_DEBUG: 2
 import os
 import sys
 import json
@@ -9,8 +10,7 @@ import warnings
 # Suppress specific FutureWarnings from libraries like 'ta'
 warnings.filterwarnings("ignore", category=FutureWarning)
 
-# Add the directory containing this file to sys.path to allow local imports
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+# from dotenv import load_dotenv
 
 from dotenv import load_dotenv
 # Explicitly load .env from the root directory
@@ -30,9 +30,13 @@ from pydantic import BaseModel, Field
 
 import yfinance as yf
 
-from stock_ai import run_pipeline
-from symbols_local import list_countries, search_symbols
-from routers import scan_ai, scan_ai_fast, scan_tech, admin
+print("Main: Importing stock_ai...")
+from api.stock_ai import run_pipeline
+print("Main: Importing symbols_local...")
+from api.symbols_local import list_countries, search_symbols
+print("Main: Importing routers...")
+from api.routers import scan_ai, scan_ai_fast, scan_tech, admin
+print("Main: Imports done.")
 
 load_dotenv()
 
@@ -43,7 +47,7 @@ print(f"DEBUG: SUPABASE_SERVICE_ROLE_KEY loaded: {'Yes' if os.getenv('SUPABASE_S
 app = FastAPI(title="AI Stocks API", version="1.0.0")
 
 # Initialize Supabase at startup
-from stock_ai import _init_supabase
+from api.stock_ai import _init_supabase
 _init_supabase()
 
 
@@ -52,7 +56,9 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
     if isinstance(exc, HTTPException):
         return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
     print(f"Unhandled exception for {request.method} {request.url.path}: {exc}")
-    return JSONResponse(status_code=500, content={"detail": "Internal server error"})
+    import traceback
+    traceback.print_exc()
+    return JSONResponse(status_code=500, content={"detail": f"Internal server error: {str(exc)}"})
 
 app.include_router(scan_ai.router)
 app.include_router(scan_ai_fast.router)
@@ -140,6 +146,7 @@ class PredictRequest(BaseModel):
     ticker: str = Field(..., min_length=1, max_length=24, pattern=r"^[A-Za-z0-9.\-]{1,24}$")
     exchange: Optional[str] = Field(default=None)
     from_date: str = Field(default="2020-01-01")
+    to_date: Optional[str] = Field(default=None)
     include_fundamentals: bool = Field(default=True)
     rf_preset: Optional[str] = Field(default=None)
     rf_params: Optional[Dict[str, Any]] = Field(default=None)
@@ -149,6 +156,7 @@ class PredictRequest(BaseModel):
     stop_loss_pct: float = Field(default=0.05)
     look_forward_days: int = Field(default=20)
     buy_threshold: float = Field(default=0.40)
+    use_volatility_label: bool = Field(default=False)
 
 
 class EvaluatePositionIn(BaseModel):
@@ -361,7 +369,7 @@ def list_local_models():
 @app.get("/symbols/inventory")
 def symbols_inventory():
     """Returns mapping of countries/exchanges to symbol/price counts."""
-    from stock_ai import get_supabase_inventory
+    from api.stock_ai import get_supabase_inventory
     return {"inventory": get_supabase_inventory()}
 
 @app.get("/symbols/countries")
@@ -370,7 +378,7 @@ def symbols_countries(source: str = Query(default="supabase")):
         if source == "local":
             return {"countries": list_countries()}
         
-        from stock_ai import get_supabase_countries
+        from api.stock_ai import get_supabase_countries
         sb_countries = get_supabase_countries()
         if sb_countries:
             return {"countries": sb_countries}
@@ -525,15 +533,18 @@ def symbols_search(
             return {"results": results}
         
         # Supabase search
-        from stock_ai import get_supabase_symbols
+        from api.stock_ai import get_supabase_symbols
         all_sb = get_supabase_symbols(country=country)
         
         q_low = q.lower().strip()
         results = []
         for s in all_sb:
-            if not q_low or q_low in s['symbol'].lower() or q_low in s['name'].lower():
+            s_name = str(s.get('name') or '')
+            s_symbol = str(s.get('symbol') or '')
+            if not q_low or q_low in s_symbol.lower() or q_low in s_name.lower():
                 # Apply exchange filter if provided
-                if exchange and s['exchange'].lower() != exchange.lower():
+                s_exchange = str(s.get('exchange') or '')
+                if exchange and s_exchange.lower() != exchange.lower():
                     continue
                 results.append(s)
                 if len(results) >= limit:
@@ -560,7 +571,7 @@ _PREDICT_CACHE_TTL = 300 # 5 minutes
 @app.post("/predict")
 def predict(req: PredictRequest):
     # 1. Generate a cache key based on most important request fields
-    cache_key = f"{req.ticker.strip().upper()}_{req.exchange or 'AUTO'}_{req.model_name or 'DEFAULT'}_{req.rf_preset}_{req.from_date}_{req.target_pct}_{req.stop_loss_pct}_{req.look_forward_days}_{req.buy_threshold}"
+    cache_key = f"{req.ticker.strip().upper()}_{req.exchange or 'AUTO'}_{req.model_name or 'DEFAULT'}_{req.rf_preset}_{req.from_date}_{req.to_date}_{req.target_pct}_{req.stop_loss_pct}_{req.look_forward_days}_{req.buy_threshold}_{req.use_volatility_label}"
     
     # 2. Check cache
     with _PREDICT_CACHE_LOCK:
@@ -577,6 +588,7 @@ def predict(req: PredictRequest):
             api_key=api_key or "",
             ticker=req.ticker.strip().upper(),
             from_date=req.from_date,
+            to_date=req.to_date,
             include_fundamentals=req.include_fundamentals,
             exchange=req.exchange,
             force_local=req.force_local,
@@ -587,6 +599,7 @@ def predict(req: PredictRequest):
             stop_loss_pct=req.stop_loss_pct,
             look_forward_days=req.look_forward_days,
             buy_threshold=req.buy_threshold,
+            use_volatility_label=req.use_volatility_label,
         )
         
         # 3. Store in cache

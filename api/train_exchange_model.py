@@ -8,22 +8,60 @@ import sys
 import argparse
 import pickle
 import json
-from typing import Optional, Callable, Any, Dict
+from typing import Optional, Callable, Any, Dict, List
 
 import pandas as pd
 import numpy as np
 from datetime import datetime
 from ta import add_all_ta_features
+import ta
 from lightgbm import LGBMClassifier
 import lightgbm as lgb
 from pandas.api.types import is_numeric_dtype
 from sklearn.model_selection import train_test_split, GridSearchCV
-from sklearn.metrics import precision_score, make_scorer
+from sklearn.metrics import precision_score, recall_score, f1_score, roc_auc_score, make_scorer
 from supabase import create_client, Client
 from concurrent.futures import ProcessPoolExecutor, as_completed
+from joblib import Memory
+
+import tempfile
+
+# Initialize memory cache for heavy feature engineering.
+# IMPORTANT: keep it OUTSIDE the repo tree, otherwise uvicorn --reload will detect changes and restart mid-training.
+_JOBLIB_CACHE_DIR = os.getenv("STOKSCANAI_JOBLIB_CACHE_DIR")
+_DISABLE_JOBLIB_CACHE = os.getenv("STOKSCANAI_DISABLE_JOBLIB_CACHE", "0").strip().lower() in {"1", "true", "yes"}
+
+if _DISABLE_JOBLIB_CACHE:
+    memory_cache = Memory(location=None, verbose=0)
+else:
+    cache_dir = _JOBLIB_CACHE_DIR or os.path.join(tempfile.gettempdir(), "stokscanai_joblib_cache")
+    try:
+        os.makedirs(cache_dir, exist_ok=True)
+    except Exception:
+        # If temp dir creation fails, fall back to no caching (prefer stability over speed)
+        cache_dir = None
+    memory_cache = Memory(location=cache_dir, verbose=0)
+
+try:
+    import xgboost as xgb
+except Exception:
+    xgb = None
+
+try:
+    import optuna
+except ImportError:
+    optuna = None
 
 # Add parent directory to path for potential imports
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+# sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
+def _downcast_df(df: pd.DataFrame) -> pd.DataFrame:
+    """Downcast numeric columns to save memory."""
+    fcols = df.select_dtypes('float').columns
+    icols = df.select_dtypes('integer').columns
+    df[fcols] = df[fcols].apply(pd.to_numeric, downcast='float')
+    df[icols] = df[icols].apply(pd.to_numeric, downcast='integer')
+    return df
 
 def _finite_float(value):
     try:
@@ -119,26 +157,7 @@ def fetch_fundamentals_for_exchange(supabase: Client, exchange: str) -> pd.DataF
 
 
 
-def optimize_and_train_model(X_train, y_train):
-    scorer = make_scorer(precision_score)
-    base_model = LGBMClassifier(random_state=1, n_jobs=-1, verbose=-1)
-    param_grid = {
-        "n_estimators": [50, 100, 200, 500],
-        "learning_rate": [0.01, 0.05, 0.1],
-        "num_leaves": [20, 31, 50],
-        "max_depth": [-1, 10, 20],
-    }
-    search = GridSearchCV(
-        estimator=base_model,
-        param_grid=param_grid,
-        scoring=scorer,
-        cv=3,
-        n_jobs=-1,
-    )
-    search.fit(X_train, y_train)
-    print("Best parameters (precision):", search.best_params_)
-    print("Best precision score:", search.best_score_)
-    return search.best_estimator_
+# Removed legacy optimize_and_train_model (GridSearchCV) in favor of Optuna-based optimization in ModelTrainer.
 
 def add_indicator_signals(df):
     """
@@ -268,6 +287,7 @@ def add_market_context(stock_df, market_df):
     
     return stock_df
 
+@memory_cache.cache
 def add_massive_features(df):
     """
     Generate over 250 features using:
@@ -355,6 +375,7 @@ def add_massive_features(df):
     
     return df
 
+@memory_cache.cache
 def add_technical_indicators(df):
     cols = {c.lower(): c for c in df.columns}
     close_col = cols.get("close")
@@ -378,12 +399,18 @@ def add_technical_indicators(df):
     out["SMA_200"] = out["Close"].rolling(window=200, min_periods=1).mean()
     out["EMA_50"] = out["Close"].ewm(span=50, adjust=False).mean()
     out["EMA_200"] = out["Close"].ewm(span=200, adjust=False).mean()
+
+    # Cross features (Golden Cross / Death Cross logic)
+    out["SMA_Cross"] = (out["SMA_50"] - out["SMA_200"]) / out["SMA_200"].replace(0, np.nan)
+    out["EMA_Cross"] = (out["EMA_50"] - out["EMA_200"]) / out["EMA_200"].replace(0, np.nan)
+    out["Price_vs_SMA200"] = (out["Close"] - out["SMA_200"]) / out["SMA_200"].replace(0, np.nan)
     
     # 2. MACD
     ema_12 = out["Close"].ewm(span=12, adjust=False).mean()
     ema_26 = out["Close"].ewm(span=26, adjust=False).mean()
     out["MACD"] = ema_12 - ema_26
     out["MACD_Signal"] = out["MACD"].ewm(span=9, adjust=False).mean()
+    out["MACD_Hist"] = out["MACD"] - out["MACD_Signal"]
     
     # 3. RSI
     delta = out["Close"].diff()
@@ -392,12 +419,19 @@ def add_technical_indicators(df):
     rs = gain / loss.replace(0.0, np.nan)
     out["RSI"] = 100 - (100 / (1 + rs))
     
+    # RSI 7 (Fast Momentum)
+    gain7 = (delta.where(delta > 0, 0.0)).rolling(window=7).mean()
+    loss7 = (-delta.where(delta < 0, 0.0)).rolling(window=7).mean()
+    rs7 = gain7 / loss7.replace(0.0, np.nan)
+    out["RSI_7"] = 100 - (100 / (1 + rs7))
+    
     # 4. Momentum & ROC
     out["Momentum"] = out["Close"].pct_change().fillna(0)
     out["ROC_12"] = out["Close"].pct_change(periods=12).fillna(0) * 100
     
     # 5. Volume Indicators
     out["VOL_SMA20"] = out["Volume"].rolling(window=20, min_periods=1).mean()
+    out["VOL_Change"] = out["Volume"].pct_change().fillna(0)
     
     # 6. Advanced (Requires High/Low)
     if "High" in out.columns and "Low" in out.columns:
@@ -550,11 +584,9 @@ def add_technical_indicators(df):
 
     return out
 
-def prepare_for_ai(df, target_pct: float = 0.15, stop_loss_pct: float = 0.05, look_forward_days: int = 20):
+def prepare_for_ai(df, target_pct: float = 0.03, stop_loss_pct: float = 0.06, look_forward_days: int = 20, use_volatility: bool = False):
     """
-    Implements 'The Sniper Strategy' labeling with configurable parameters.
-    - Target: +target_pct gain within look_forward_days.
-    - Stop Loss: -stop_loss_pct loss (must not be hit before the target).
+    Implements 'The Triple Barrier Method' labeling.
     """
     if df.empty: return df
     out = df.copy()
@@ -562,620 +594,959 @@ def prepare_for_ai(df, target_pct: float = 0.15, stop_loss_pct: float = 0.05, lo
     # Use FixedForwardWindowIndexer for forward-looking rolling windows
     indexer = pd.api.indexers.FixedForwardWindowIndexer(window_size=look_forward_days)
     
-    # Fix Gap Trap: Entry is Next Day Open
-    out['next_open'] = out['Open'].shift(-1)
+    # Entry Point (Next Day Open or close)
+    out['entry_price'] = out['Close'].shift(-1)
     
-    # Future High/Low: Start checking from next day (shift -1)
-    # This aligns the window [t+1, t+1+look_forward] to row t
-    out['future_high'] = out['High'].shift(-1).rolling(window=indexer).max()
-    out['future_low'] = out['Low'].shift(-1).rolling(window=indexer).min()
+    out['tp_barrier'] = out['entry_price'] * (1 + target_pct)
+    out['sl_barrier'] = out['entry_price'] * (1 - stop_loss_pct)
+    out['future_high'] = out['Close'].shift(-1).rolling(window=indexer).max()
+    out['future_low'] = out['Close'].shift(-1).rolling(window=indexer).min()
     
-    # Labeling Logic
+    # Labeling Logic: More relaxed for daily data
+    # Mark as Win if High hits Target
     out['Target'] = 0
+    hit_tp = out['future_high'] >= out['tp_barrier']
     
-    # Condition: Future High >= Entry + Target
-    hit_target = out['future_high'] >= (out['next_open'] * (1 + target_pct))
+    # We label as 1 if we hit TP. 
+    out.loc[hit_tp, 'Target'] = 1
     
-    # Condition: Future Low > Entry - Stop (Stop NOT hit)
-    safe_from_stop = out['future_low'] > (out['next_open'] * (1 - stop_loss_pct))
+    # Stats for console monitoring
+    counts = out['Target'].value_counts()
+    pos = counts.get(1, 0)
+    print(f"[{datetime.now().strftime('%H:%M:%S')}] Labeled {len(out)} rows: Wins={pos} ({pos/len(out):.2%})")
     
-    # Mark as Buy (1) only if both conditions met
-    out.loc[hit_target & safe_from_stop, 'Target'] = 1
-    
-    # Remove rows where we can't look forward (the last 'look_forward_days' rows)
-    # and helper columns
-    out.drop(columns=['future_high', 'future_low', 'next_open'], inplace=True, errors='ignore')
+    # Clean up and drop rows we can't label
+    drop_cols = ['future_high', 'future_low', 'entry_price', 'tp_barrier', 'sl_barrier']
+    out.drop(columns=drop_cols, inplace=True, errors='ignore')
     out = out.iloc[:-look_forward_days].copy()
     
     return out
 
-def train_model(
-    exchange: str,
-    supabase_url: str,
-    supabase_key: str,
-    use_early_stopping: bool = True,
-    n_estimators: Optional[int] = None,
-    model_name: Optional[str] = None,
-    upload_to_cloud: bool = True,
-    feature_preset: str = "extended",  # "core" | "extended" | "max"
-    max_features_override: Optional[int] = None,
-    training_strategy: Optional[str] = None,
-    random_search_iter: Optional[int] = None,
-    max_features: Optional[int] = None,
-    progress_cb: Optional[Callable[[Any], None]] = None,
-    target_pct: float = 0.15,
-    stop_loss_pct: float = 0.05,
-    look_forward_days: int = 20,
-    use_grid: bool = False,
-    learning_rate: float = 0.05,
-    patience: int = 50,
-):
-    # Standardize exchange
-    if exchange:
+class ModelTrainer:
+    """
+    Modular class for handling stock price data loading, 
+    feature engineering, and model training.
+    """
+    def __init__(
+        self, 
+        exchange: str, 
+        supabase_url: str, 
+        supabase_key: str, 
+        progress_cb: Optional[Callable[[Any], None]] = None
+    ):
+        self.exchange = self._standardize_exchange(exchange)
+        self.supabase: Client = create_client(supabase_url, supabase_key)
+        self.progress_cb = progress_cb
+        self.market_df = None
+        self.market_index_symbol = None
+        self.market_index_loaded = False
+        self.market_index_local_json = None
+        self.fundamentals_loaded = False
+        self.df_all = None
+        self.predictors = []
+        self.categorical_features = []
+        self.min_history_needed = 200 # Default for safety (SMA200)
+        self.embargo_pct = 0.01 # 1% embargo gap for purged k-fold
+        
+    def _standardize_exchange(self, exchange: str) -> str:
+        if not exchange: return "UNKNOWN"
         e_lower = exchange.strip().lower()
         if e_lower in ["ca", "cc", "cairo", "egypt"]:
-            exchange = "EGX"
+            return "EGX"
         elif e_lower in ["us", "usa", "nasdaq", "nyse"]:
-            exchange = "US"
+            return "US"
         else:
-            exchange = exchange.upper()
+            return exchange.upper()
 
-    print(f"Starting training for exchange: {exchange} (Grid Search: {use_grid})")
-    start_time_total = time.time()
-    supabase: Client = create_client(supabase_url, supabase_key)
-    def _progress(msg: str) -> None:
+    def _progress(self, msg: str) -> None:
         print(msg)
-        if progress_cb:
-            try:
-                progress_cb(msg)
-            except Exception:
-                pass
-    def _progress_stats(phase: str, message: str, stats: Dict[str, Any]) -> None:
-        if not progress_cb:
-            return
-        payload = {
-            "phase": phase,
-            "message": message,
-            "stats": stats,
-        }
+        if self.progress_cb:
+            try: self.progress_cb(msg)
+            except Exception: pass
+
+    def _progress_stats(self, phase: str, message: str, stats: Dict[str, Any]) -> None:
+        if not self.progress_cb: return
+        payload = {"phase": phase, "message": message, "stats": stats}
+        try: self.progress_cb(payload)
+        except Exception: pass
+
+    def load_market_data(self) -> None:
+        """Fetch Market Index Data for context."""
+        candidates = []
+        if self.exchange == "EGX": candidates = ["EGX30.INDX", "COMI.CA"]
+        elif self.exchange == "US": candidates = ["GSPC.INDX", "SPY.US", "AAPL.US"]
+        else: candidates = ["GSPC.INDX"]
+            
+        self.market_index_symbol = None
+        self.market_index_loaded = False
+        self.market_index_local_json = None
         try:
-            progress_cb(payload)
+            if self.exchange == "EGX":
+                api_dir = os.path.dirname(os.path.abspath(__file__))
+                project_root = os.path.dirname(api_dir)
+                cand = os.path.join(project_root, "symbols_data", "EGX30-INDEX.json")
+                if os.path.exists(cand):
+                    self.market_index_local_json = os.path.join("symbols_data", "EGX30-INDEX.json")
         except Exception:
             pass
-    
-    # 1. Bulk fetch all price data for this exchange
-    _progress(f"Loading price data for exchange {exchange}...")
-    start_time_loading = time.time()
-    
-    # NEW: Fetch Market Index Data first
-    # Strategy: 
-    # 1. Try "EGX30.INDX" (standard index)
-    # 2. Fallback to "COMI.CA" (Blue chip proxy, often more reliable data availability)
-    
-    market_df = None
-    
-    if exchange == "EGX":
-        candidates = ["EGX30.INDX", "COMI.CA"]
-    elif exchange == "US":
-        candidates = ["GSPC.INDX", "SPY.US", "AAPL.US"]
-    else:
-        candidates = ["GSPC.INDX"] # Default global proxy
-        
-    for idx_sym in candidates:
-        _progress(f"Attempting to load market index data: {idx_sym}...")
-        try:
-            idx_res = (
-                 supabase.table("stock_prices")
-                .select("date, close") # We only need close for now (and date)
-                .eq("symbol", idx_sym)
-                .order("date", desc=False)
-                .execute()
-            )
-            if idx_res.data and len(idx_res.data) > 200:
-                market_df = pd.DataFrame(idx_res.data)
-                market_df["date"] = pd.to_datetime(market_df["date"])
-                market_df = market_df.set_index("date").sort_index()
-                # Calculate simple volatility proxy for market
-                market_df['atr'] = market_df['close'].pct_change().rolling(20).std().fillna(0)
-                _progress(f"Successfully loaded market context from {idx_sym}")
-                break
-        except Exception as e:
-            print(f"Warning: Failed to fetch market index {idx_sym}: {e}")
             
-    if market_df is None:
-        _progress("Warning: No market index data found. Market Context features will be 0.")
-
-    rows_total = None
-    try:
-        count_res = (
-            supabase.table("stock_prices")
-            .select("symbol", count="exact")
-            .eq("exchange", exchange)
-            .limit(1)
-            .execute()
-        )
-        rows_total = count_res.count
-    except Exception as e:
-        print(f"Warning: Failed to fetch total row count: {e}")
-        rows_total = None
-
-    all_rows = []
-    page_size = 1000
-    
-    _progress(f"Starting parallel data load for {exchange}...")
-    
-    def _fetch_page(off, retries=3):
-        for attempt in range(retries):
+        for idx_sym in candidates:
+            self._progress(f"Attempting to load market index data: {idx_sym}...")
             try:
-                # Optimized query: select only needed columns, use PK-compatible order
-                res = (
-                    supabase.table("stock_prices")
-                    .select("symbol, date, open, high, low, close, volume")
-                    .eq("exchange", exchange)
-                    .order("symbol", desc=False)
+                idx_res = (
+                     self.supabase.table("stock_prices")
+                    .select("date, close")
+                    .eq("symbol", idx_sym)
                     .order("date", desc=False)
-                    .range(off, off + page_size - 1)
                     .execute()
                 )
-                return res.data or []
+                if idx_res.data and len(idx_res.data) > 200:
+                    df = pd.DataFrame(idx_res.data)
+                    df["date"] = pd.to_datetime(df["date"])
+                    df = df.set_index("date").sort_index()
+                    df['atr'] = df['close'].pct_change().rolling(20).std().fillna(0)
+                    self.market_df = df
+                    self.market_index_symbol = idx_sym
+                    self.market_index_loaded = True
+                    self._progress(f"Successfully loaded market context from {idx_sym}")
+                    break
             except Exception as e:
-                wait = (attempt + 1) * 2
-                print(f"Fetch error at offset {off}: {e}. Retrying in {wait}s...")
-                time.sleep(wait)
-        return []
+                print(f"Warning: Failed to fetch market index {idx_sym}: {e}")
 
-    # Initial fetch to get first page and confirm data exists
-    first_page = _fetch_page(0)
-    if not first_page:
-        _progress(f"No price data found or first fetch failed for exchange {exchange}")
-        return
-    
-    all_rows.extend(first_page)
-    
-    # If we have rows_total, calculate remaining offsets
-    if rows_total and rows_total > page_size:
-        offsets = range(page_size, rows_total, page_size)
-        
-        # Parallel fetch remaining pages
-        max_fetch_workers = 5 # Conservative parallel workers
-        with ThreadPoolExecutor(max_workers=max_fetch_workers) as executor:
-            future_to_offset = {executor.submit(_fetch_page, o): o for o in offsets}
-            
-            for future in as_completed(future_to_offset):
-                offset = future_to_offset[future]
-                try:
-                    data = future.result()
-                    if data:
-                        all_rows.extend(data)
-                        
-                    # Periodic progress update
-                    if len(all_rows) % (page_size * 5) == 0 or len(all_rows) >= (rows_total or 0):
-                        msg = f"Loaded {len(all_rows):,} rows so far"
-                        _progress_stats(
-                            "loading_rows",
-                            msg,
-                            {"rows_loaded": len(all_rows), "rows_total": rows_total},
-                        )
-                except Exception as e:
-                    print(f"Error processing page at offset {offset}: {e}")
-    else:
-        # Fallback for if rows_total is unknown: sequential fetch until empty
-        # This is rare as the initial fetch usually gives us info or we already have it
-        if rows_total is None:
-            offset = page_size
-            while True:
-                batch = _fetch_page(offset)
-                if not batch:
-                    break
-                all_rows.extend(batch)
-                msg = f"Loaded {len(all_rows):,} rows (sequential fallback)"
-                _progress_stats("loading_rows", msg, {"rows_loaded": len(all_rows)})
-                if len(batch) < page_size:
-                    break
-                offset += page_size
-
-    if not all_rows:
-        _progress(f"No price data found for exchange {exchange}")
-        return
-
-    df_all = pd.DataFrame(all_rows)
-    if df_all.empty:
-        _progress(f"No price data found for exchange {exchange}")
-        return
-
-    duration_loading = time.time() - start_time_loading
-    print(f"DEBUG: Data loading took {duration_loading:.2f}s for {len(all_rows)} rows")
-
-    all_symbols = sorted(df_all["symbol"].dropna().unique().tolist())
-    raw_rows = len(df_all)
-    msg = f"Loaded {raw_rows:,} rows for {len(all_symbols):,} symbols ({exchange})"
-    _progress(msg)
-    _progress_stats(
-        "data_loaded",
-        msg,
-        {"raw_rows": raw_rows, "symbols_total": len(all_symbols), "rows_total": raw_rows},
-    )
-
-    # --- Fetch and merge fundamentals ---
-    df_funds = fetch_fundamentals_for_exchange(supabase, exchange)
-    categorical_cols = []
-    if not df_funds.empty:
-        _progress(f"Loaded fundamentals for {len(df_funds)} symbols.")
-        df_all = df_all.merge(df_funds, on="symbol", how="left")
-        # Pre-process categorical features (sector, industry) for LGBM
-        # Fill NA with "Unknown" BEFORE converting to category to avoid setitem error
-        for cat_col in ["sector", "industry"]:
-            if cat_col in df_all.columns:
-                df_all[cat_col] = df_all[cat_col].fillna("Unknown").astype("category")
-                categorical_cols.append(cat_col)
-    else:
-        _progress("No fundamentals found for this exchange. Proceeding with price data only.")
-
-    combined_data = []
-    symbols_used = 0
-    symbols_total = len(all_symbols)
-    symbols_processed = 0
-    progress_step = max(1, symbols_total // 50) if symbols_total else 1
-    
-    start_time_features = time.time()
-    
-    _progress(f"Starting parallel feature engineering for {symbols_total} symbols...")
-    
-    # Prepare arguments for parallel processing - include context
-    symbol_params = [
-        (sym, df_sym, market_df, target_pct, stop_loss_pct, look_forward_days)
-        for sym, df_sym in df_all.groupby("symbol")
-    ]
-    
-    # Process in parallel using ProcessPool for CPU-bound TA calculations
-    with ProcessPoolExecutor(max_workers=os.cpu_count() or 4) as executor:
-        # Use map to process all symbols
-        results = list(executor.map(_process_single_symbol, symbol_params))
-        
-        # Collect valid results
-        for i, res in enumerate(results):
-            symbols_processed += 1
-            if res is not None:
-                combined_data.append(res)
-                symbols_used += 1
+        # Fallback to local JSON if Database failed
+        if self.market_df is None and self.market_index_local_json:
+            try:
+                api_dir = os.path.dirname(os.path.abspath(__file__))
+                project_root = os.path.dirname(api_dir)
+                full_path = os.path.join(project_root, self.market_index_local_json)
+                if os.path.exists(full_path):
+                    import json
+                    with open(full_path, 'r') as f:
+                        data = json.load(f)
+                        if data:
+                            df = pd.DataFrame(data)
+                            df["date"] = pd.to_datetime(df["date"])
+                            df = df.set_index("date").sort_index()
+                            # Standardization: ensure 'close' column exists
+                            if 'close' not in df.columns and 'Close' in df.columns:
+                                df['close'] = df['Close']
+                            
+                            if 'close' in df.columns:
+                                df['atr'] = df['close'].pct_change().rolling(20).std().fillna(0)
+                                self.market_df = df
+                                self.market_index_loaded = True
+                                self._progress(f"Successfully loaded market context from local JSON: {self.market_index_local_json}")
+            except Exception as e:
+                self._progress(f"Warning: Failed to load local market index JSON: {e}")
                 
-            # Progress update (batched)
-            if symbols_processed % progress_step == 0 or symbols_processed == symbols_total:
-                msg = f"Processed {symbols_processed}/{symbols_total} symbols"
-                # Only log every 5th step to reduce spam, or if it's the last one
-                if symbols_processed % (progress_step * 5) == 0 or symbols_processed == symbols_total:
-                    _progress(msg)
-                    _progress_stats(
-                        "processing_symbols",
-                        msg,
-                        {"symbols_processed": symbols_processed, "symbols_total": symbols_total},
-                    )
+        if self.market_df is None:
+            self._progress("Warning: No market index data found. Market Context features will be 0.")
 
-    if not combined_data:
-        _progress("No valid data collected for training")
-        return
-
-    duration_features = time.time() - start_time_features
-    print(f"DEBUG: Feature engineering took {duration_features:.2f}s ({duration_features/symbols_total:.3f}s/symbol avg)")
-
-    df_train = pd.concat(combined_data)
-    total_samples = len(df_train)
-    msg = f"Prepared training data: {symbols_used:,} symbols used, {total_samples:,} samples"
-    _progress(msg)
-    _progress_stats(
-        "data_prepared",
-        msg,
-        {"symbols_used": symbols_used, "samples": total_samples},
-    )
-
-    # 3. Select feature set based on preset
-    core_predictors = [
-        "Close",
-        "Volume",
-        "SMA_50",
-        "RSI",
-        "MACD",
-        "MACD_Signal",
-        "Z_Score",
-    ]
-
-    extended_predictors = [
-        # Core price/volume and trend
-        "Close",
-        "Volume",
-        "SMA_50",
-        "SMA_200",
-        "EMA_50",
-        "MACD",
-        "MACD_Signal",
-        "RSI",
-
-        # Bollinger and volatility context
-        "BB_PctB",
-        "BB_Width",
-
-        # Volume structure
-        "OBV",
-        "OBV_Slope",
-
-        # Distance from recent extremes
-        "Dist_From_High",
-        "Dist_From_Low",
-
-        # Standardization and candle geometry
-        "Z_Score",
-        "Body_Size",
-        "Upper_Shadow",
-        "Lower_Shadow",
-
-        # Calendar features
-        "Day_Of_Week",
-        "Day_Of_Month",
-
-        # Lagged values and differences (memory)
-        "Close_Lag1",
-        "Close_Diff",
-        "RSI_Lag1",
-        "RSI_Diff",
-        "Volume_Lag1",
-        "Volume_Diff",
-        "OBV_Lag1",
-        "OBV_Diff",
-
-        # Smart Indicators (Stacking)
-        "feat_rsi_signal", "feat_rsi_acc",
-        "feat_ema_signal", "feat_ema_acc",
-        "feat_bb_signal", "feat_bb_acc",
-
-        # Market Context
-        "feat_mkt_trend", "feat_mkt_volatility", "feat_rel_strength",
-    ]
-
-    max_predictors = extended_predictors + [
-        # Extra volatility/advanced indicators already computed above
-        "ATR_14",
-        "ADX_14",
-        "STOCH_K",
-        "STOCH_D",
-        "CCI_20",
-        "VWAP_20",
-        # Extra momentum/volume context
-        "Momentum",
-        "ROC_12",
-        "VOL_SMA20",
-    ]
-
-    preset = (feature_preset or "extended").strip().lower()
-    if preset == "core":
-        chosen = core_predictors
-    elif preset == "max":
-        chosen = max_predictors
-    else:
-        chosen = extended_predictors
-
-    # Ensure all chosen columns exist (in case of legacy data)
-    predictors = [c for c in chosen if c in df_train.columns]
-    
-    # Add categorical fundamentals if they exist
-    categorical_features = [c for c in ["sector", "industry"] if c in df_train.columns]
-    for cf in categorical_features:
-        if cf not in predictors:
-            predictors.append(cf)
-
-    if preset == "max":
-        exclude = {"Target", "symbol", "date", "datetime", "timestamp"}
-        all_numeric = [
-            c
-            for c in df_train.columns
-            if c not in exclude and c not in predictors and is_numeric_dtype(df_train[c])
-        ]
-        predictors = predictors + all_numeric
-    
-    if max_features_override is None and max_features is not None:
-        max_features_override = max_features
-
-    # Apply max_features_override if provided and positive
-    if max_features_override is not None and max_features_override > 0:
-        predictors = predictors[:max_features_override]
-
-    msg = f"Feature preset '{preset}' -> {len(predictors)} predictors"
-    _progress(msg)
-    _progress_stats(
-        "features_ready",
-        msg,
-        {"features": len(predictors), "feature_preset": preset},
-    )
-
-    X = df_train[predictors]
-    y = df_train["Target"]
-
-    start_time_train = time.time()
-
-    # Use a large number of estimators with early stopping to prevent overfitting.
-    if use_grid:
-        msg = f"Starting GridSearchCV optimization..."
-        _progress(msg)
-        _progress_stats("training", msg, {"grid_search": True})
+    def fetch_stock_prices(self, page_size: int = 1000) -> pd.DataFrame:
+        """Fetch all stock prices for the exchange using parallel paging."""
+        self._progress(f"Loading price data for exchange {self.exchange}...")
         
-        # optimize_and_train_model already prints best params
-        model = optimize_and_train_model(X, y)
-        final_n_estimators = getattr(model, "n_estimators", 100)
-    elif use_early_stopping:
-        final_n_estimators = n_estimators or 5000  # Increased for better convergence
-        msg = f"Training LightGBM (early_stopping=True, n_estimators={final_n_estimators})"
-        _progress(msg)
-        _progress_stats(
-            "training",
-            msg,
-            {"n_estimators": final_n_estimators, "early_stopping": True},
-        )
-        # Split data (preserve time order for stock data)
-        X_train, X_val, y_train, y_val = train_test_split(
-            X,
-            y,
-            test_size=0.2,
-            random_state=42,
-            shuffle=False,  # Critical for time-series data
-        )
-        # Debug: log final n_estimators for early-stopping mode
-        print(f"Final n_estimators: {final_n_estimators}, Training samples: {len(X_train)}, Validation: {len(X_val)}")
-        model = LGBMClassifier(
-            n_estimators=final_n_estimators,
-            learning_rate=learning_rate,  # User configured
-            max_depth=10,
-            num_leaves=31,
-            random_state=42,
-            n_jobs=-1,
-            verbose=-1,
-        )
+        # 1. Get total count
+        rows_total = None
+        try:
+            count_res = self.supabase.table("stock_prices").select("symbol", count="exact")\
+                .eq("exchange", self.exchange).limit(1).execute()
+            rows_total = count_res.count
+        except Exception as e:
+            print(f"Warning: Failed to fetch total row count: {e}")
+
+        # 2. Parallel Fetch
+        def _fetch_page(off, retries=3):
+            for attempt in range(retries):
+                try:
+                    res = self.supabase.table("stock_prices")\
+                        .select("symbol, date, open, high, low, close, volume")\
+                        .eq("exchange", self.exchange)\
+                        .order("symbol", desc=False).order("date", desc=False)\
+                        .range(off, off + page_size - 1).execute()
+                    return res.data or []
+                except Exception as e:
+                    time.sleep((attempt + 1) * 2)
+            return []
+
+        all_rows = []
+        first_page = _fetch_page(0)
+        if not first_page: return pd.DataFrame()
+        all_rows.extend(first_page)
+
+        if rows_total and rows_total > page_size:
+            offsets = range(page_size, rows_total, page_size)
+            from concurrent.futures import ThreadPoolExecutor
+            with ThreadPoolExecutor(max_workers=5) as executor:
+                futures = {executor.submit(_fetch_page, o): o for o in offsets}
+                for future in as_completed(futures):
+                    data = future.result()
+                    if data: all_rows.extend(data)
+                    if len(all_rows) % (page_size * 10) == 0:
+                        self._progress_stats("loading_rows", f"Loaded {len(all_rows):,} rows", {"rows_loaded": len(all_rows), "rows_total": rows_total})
+
+        df = pd.DataFrame(all_rows)
+        self._progress(f"Loaded {len(df):,} rows for {len(df['symbol'].unique()):,} symbols.")
+        return df
+
+    @staticmethod
+    def _process_single_symbol(params):
+        """Worker function for parallel processing. Must be static for pickleability."""
+        try:
+            sym, df_sym, market_df, target_pct, stop_loss_pct, look_forward_days, use_vol_label, min_history = params
+            
+            if len(df_sym) < min_history: return None
+
+            # 1. Base Technical Indicators
+            df = add_technical_indicators(df_sym)
+            if df.empty: return None
+
+            # Preserve fundamentals/categorical columns (merged into df_sym) through the feature pipeline.
+            # add_technical_indicators() returns a new dataframe, so we must carry these columns forward.
+            for _c in ("marketCap", "peRatio", "eps", "dividendYield", "sector", "industry"):
+                if _c in df_sym.columns and _c not in df.columns:
+                    try:
+                        if len(df_sym[_c]) == len(df):
+                            df[_c] = df_sym[_c].values
+                        else:
+                            df[_c] = df_sym[_c].iloc[-1]
+                    except Exception:
+                        df[_c] = df_sym[_c].iloc[-1] if _c in df_sym.columns and len(df_sym) else None
+            
+            # 2. Massive Feature Set
+            df = add_massive_features(df)
+            
+            # 3. Market Context
+            df = add_market_context(df, market_df)
+            
+            # 4. Labeling (The Triple Barrier Strategy)
+            df = prepare_for_ai(df, target_pct, stop_loss_pct, look_forward_days, use_volatility=use_vol_label)
+            
+            # Require minimum history (redundant check but good for safety if indicators drop rows)
+            if len(df) < 10: return None 
+            df['symbol'] = sym
+            return df
+        except Exception as e:
+            print(f"Error processing {params[0]}: {e}")
+            return None
+
+    def prepare_training_data(
+        self, 
+        df_all: pd.DataFrame, 
+        target_pct: float, 
+        stop_loss_pct: float, 
+        look_forward_days: int,
+        preset: str = "extended",
+        use_volatility_label: bool = False,
+    ) -> pd.DataFrame:
+        """Process features in parallel for all symbols."""
+        self._progress(f"Starting parallel feature engineering (Preset: {preset})...")
+        
+        # Determine min history based on preset
+        self.min_history_needed = 200 if preset in ["extended", "max"] else 60
+        
+        # Merge fundamentals
+        start_time = time.time()
+        
+        # Merge fundamentals
+        df_funds = fetch_fundamentals_for_exchange(self.supabase, self.exchange)
+        self.fundamentals_loaded = bool(df_funds is not None and (not df_funds.empty))
+        if df_funds is not None and (not df_funds.empty):
+            df_all = df_all.merge(df_funds, on="symbol", how="left")
+            for cat_col in ["sector", "industry"]:
+                if cat_col in df_all.columns:
+                    df_all[cat_col] = df_all[cat_col].fillna("Unknown").astype("category")
+                    if cat_col not in self.categorical_features:
+                        self.categorical_features.append(cat_col)
+
+        # Memory optimization
+        df_all = _downcast_df(df_all)
+
+        use_vol_label = bool(use_volatility_label)
+        symbol_params = [
+            (sym, df_sym, self.market_df, target_pct, stop_loss_pct, look_forward_days, use_vol_label, self.min_history_needed) 
+            for sym, df_sym in df_all.groupby("symbol")
+        ]
+        
+        combined_data = []
+        with ProcessPoolExecutor(max_workers=os.cpu_count() or 4) as executor:
+            results = list(executor.map(self._process_single_symbol, symbol_params))
+            combined_data = [res for res in results if res is not None]
+
+        if not combined_data:
+            raise ValueError("No valid data collected for training")
+
+        df_train = pd.concat(combined_data)
+
+        # Ensure categorical dtypes exist post-parallel concat (workers may coerce types)
+        for cat_col in ["sector", "industry"]:
+            if cat_col in df_train.columns:
+                try:
+                    df_train[cat_col] = df_train[cat_col].fillna("Unknown").astype("category")
+                except Exception:
+                    # Keep training robust even if dtype conversion fails
+                    df_train[cat_col] = df_train[cat_col].fillna("Unknown")
+
+        self._progress(f"Prepared training data: {len(df_train):,} total samples.")
+        return df_train
+
+    def select_predictors(self, df: pd.DataFrame, preset: str = "extended", max_features: Optional[int] = None):
+        """Select feature set based on preset."""
+        core = ["Close", "Volume", "SMA_50", "RSI", "MACD", "MACD_Signal", "MACD_Hist", "Z_Score"]
+        extended = core + [
+            "SMA_200", "EMA_50", "RSI_7", "BB_PctB", "BB_Width", "OBV", "OBV_Slope",
+            "Dist_From_High", "Dist_From_Low", "Body_Size", "Upper_Shadow", "Lower_Shadow",
+            "SMA_Cross", "EMA_Cross", "Price_vs_SMA200", 
+            "Day_Of_Week", "Day_Of_Month", "Close_Lag1", "RSI_Lag1", "Volume_Lag1",
+            "feat_rsi_signal", "feat_rsi_acc", "feat_ema_signal", "feat_ema_acc",
+            "feat_bb_signal", "feat_bb_acc", "feat_mkt_trend", "feat_mkt_volatility", "feat_rel_strength"
+        ]
+        max_p = extended + ["ATR_14", "ADX_14", "STOCH_K", "STOCH_D", "CCI_20", "VWAP_20", "Momentum", "ROC_12", "VOL_SMA20", "VOL_Change"]
+        
+        self.predictors = []
+        if preset == "max":
+            # Dynamic Feature Selection: Use ALL numeric columns minus targets/metadata
+            exclude = set(["Target", "Date", "Symbol", "Open", "High", "Low", "Close", "Volume"])
+            numeric_cols = df.select_dtypes(include=[np.number]).columns
+            self.predictors = [c for c in numeric_cols if c not in exclude]
+            # Ensure core features are kept even if logic above misses them (unlikely)
+            for c in core:
+                if c in df.columns and c not in self.predictors:
+                    self.predictors.append(c)
+        else:
+            chosen = core if preset == "core" else extended
+            self.predictors = [c for c in chosen if c in df.columns]
+        
+        # Add categorical if present
+        for cf in self.categorical_features:
+            if cf in df.columns and cf not in self.predictors:
+                self.predictors.append(cf)
+
+        # Keep categorical_features aligned with predictors/df columns to avoid KeyError during X = df[predictors]
+        self.categorical_features = [c for c in self.categorical_features if c in df.columns and c in self.predictors]
+            
+        if max_features and max_features > 0:
+            self.predictors = self.predictors[:max_features]
+            
+        self._progress(f"Selected {len(self.predictors)} predictors (Preset: {preset})")
+
+    def optimize_hyperparameters(self, df_train: pd.DataFrame, n_trials: int = 75) -> Dict[str, Any]:
+        """
+        Use Optuna to find the best hyperparameters for LightGBM.
+        Strategy: 'Safe for EGX'
+        - Fixed Learning Rate: 0.01
+        - Objective: Maximize (AUC + Precision) / 2
+        - Constrained optimization space to prevent overfitting
+        """
+        if not optuna:
+            self._progress("Optuna not installed. Skipping optimization.")
+            return {}
+
+        self._progress(f"Starting Hyperparameter Optimization with Optuna for EGX ({n_trials} trials)...")
+        self._progress("Strategy: Fixed LR=0.01, Objective=(AUC+Precision)/2, Constrained Trees")
+        
+        X = df_train[self.predictors]
+        y = df_train["Target"]
+        X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.2, shuffle=False)
+
+        def objective(trial):
+            # 1. Constrained Search Space
+            params = {
+                "objective": "binary",
+                "metric": "auc", # Monitor AUC during early stopping
+                "verbosity": -1,
+                "boosting_type": "gbdt",
+                # Fixed Parameters
+                "learning_rate": 0.01,
+                # Optimized Parameters (Constrained)
+                "n_estimators": trial.suggest_int("n_estimators", 300, 700),
+                "max_depth": trial.suggest_int("max_depth", 3, 6),
+                "min_child_weight": trial.suggest_int("min_child_weight", 1, 5),
+                "subsample": trial.suggest_float("subsample", 0.6, 0.9),
+                "colsample_bytree": trial.suggest_float("colsample_bytree", 0.6, 0.9),
+                "lambda_l1": trial.suggest_float("lambda_l1", 1e-8, 10.0, log=True),
+                "lambda_l2": trial.suggest_float("lambda_l2", 1e-8, 10.0, log=True),
+                # Fixed structural params
+                "num_leaves": trial.suggest_int("num_leaves", 20, 40), # Tied to max_depth roughly (2^depth)
+            }
+
+            model = lgb.LGBMClassifier(**params)
+            
+            # 2. Early Stopping (Only if Patience > 0)
+            callbacks = []
+            if patience and patience > 0:
+                callbacks.append(lgb.early_stopping(stopping_rounds=patience))
+                
+            model.fit(
+                X_train, y_train,
+                eval_set=[(X_val, y_val)],
+                callbacks=callbacks
+            )
+            
+            # 3. Custom Objective Function
+            preds = model.predict(X_val)
+            y_prob = model.predict_proba(X_val)[:, 1]
+            
+            # Safety check for single-class predictions
+            if len(np.unique(preds)) < 2:
+                # Penalize trivial solutions (all 0s or all 1s)
+                return 0.0
+
+            precision = precision_score(y_val, preds, zero_division=0)
+            recall = recall_score(y_val, preds, zero_division=0)
+            auc = roc_auc_score(y_val, y_prob)
+
+            # Penalize cheating (Recall=1.0 often means it predicted all 1s)
+            if recall > 0.99 or recall < 0.01:
+                return 0.0
+            
+            # Target Metric: (AUC + Precision) / 2
+            score = (auc + precision) / 2.0
+            return score
+
+        study = optuna.create_study(direction="maximize")
+        study.optimize(objective, n_trials=n_trials)
+        
+        self._progress(f"Optimization complete! Best Score: {study.best_value:.4f}")
+        self._progress(f"Best Params: {study.best_params}")
+        
+        # Ensure fixed params are included in the return
+        final_params = study.best_params.copy()
+        final_params["learning_rate"] = 0.01
+        
+        return final_params
+
+    def purged_cross_val(self, df: pd.DataFrame, n_splits: int = 5) -> List[Dict[str, float]]:
+        """
+        Implementation of Purged K-Fold Cross Validation.
+        Ensures training data does not overlap (with embargo) with testing data.
+        """
+        if len(df) < (n_splits * 20): return []
+        
+        self._progress(f"Running Purged {n_splits}-Fold Cross Validation...")
+        X = df[self.predictors]
+        y = df["Target"]
+        # Use simple integer indexing for splitting
+        indices = np.arange(len(df))
+        test_size = len(df) // n_splits
+        embargo_size = int(len(df) * self.embargo_pct)
+        
+        results = []
+        for i in range(n_splits):
+            test_start = i * test_size
+            test_end = (i + 1) * test_size
+            test_indices = indices[test_start:test_end]
+            
+            # Purging: ensure training doesn't leak from look-forward period
+            # Embargo: extra buffer after the test set
+            train_indices = np.concatenate([
+                indices[:max(0, test_start - embargo_size)],
+                indices[test_end + embargo_size:]
+            ])
+            
+            if len(train_indices) < 50: continue
+            
+            X_train, y_train = X.iloc[train_indices], y.iloc[train_indices]
+            X_test, y_test = X.iloc[test_indices], y.iloc[test_indices]
+            
+            # Simple model for CV
+            model = LGBMClassifier(n_estimators=500, learning_rate=0.05, verbose=-1, is_unbalance=True)
+            model.fit(X_train, y_train)
+            
+            preds = model.predict(X_test)
+            results.append({
+                "precision": precision_score(y_test, preds, zero_division=0),
+                "recall": recall_score(y_test, preds, zero_division=0),
+                "f1": f1_score(y_test, preds, zero_division=0)
+            })
+            
+        return results
+
+    def train_model(
+        self, 
+        df_train: pd.DataFrame, 
+        n_estimators: int = 5000, 
+        learning_rate: float = 0.05, 
+        patience: int = 100,
+        optimized_params: Optional[Dict[str, Any]] = None
+    ) -> Any:
+        """Train LightGBM with early stopping and optional optimized params."""
+        X = df_train[self.predictors]
+        y = df_train["Target"]
+        
+        # Data Validation
+        if X.isnull().values.any():
+            self._progress("Warning: NaNs found in predictors. Filling with 0.")
+            X = X.fillna(0)
+            
+        if len(np.unique(y)) < 2:
+            raise ValueError(f"Training failed: Only one class present in target ({np.unique(y)}). Need both Win and No-Win samples.")
+
+        self._progress(f"Training LightGBM model (samples={len(X)}, target_pos={y.sum()})...")
+        
+        # Financial ML: Purged Time-Series Validation
+        # Instead of random split or single split, we implement a simple embargo/purge logic
+        # by ensuring a gap between training and validation data.
+        test_size = 0.2
+        split_idx = int(len(df_train) * (1 - test_size))
+        
+        # Embargo: remove look_forward_days from the end of training to avoid leakage
+        # (Though we already dropped them in prepare_for_ai, this is extra safety)
+        train_end_idx = max(0, split_idx - (patience + 20))
+        
+        X_train = X.iloc[:train_end_idx]
+        y_train = y.iloc[:train_end_idx]
+        X_val = X.iloc[split_idx:]
+        y_val = y.iloc[split_idx:]
+        
+        # Optional: Run Purged CV for more reliable estimation
+        avg_purged_f1 = None
+        cv_scores = self.purged_cross_val(df_train, n_splits=3)
+        if cv_scores:
+            avg_purged_f1 = np.mean([s['f1'] for s in cv_scores])
+            self._progress(f"Average Purged CV F1: {avg_purged_f1:.4f}")
+
+        params = {
+            "n_estimators": n_estimators,
+            "learning_rate": learning_rate,
+            "max_depth": 5,
+            "num_leaves": 31,
+            "random_state": 42,
+            "n_jobs": -1,
+            "verbose": -1,
+            "is_unbalance": True, # Automatically handle class imbalance for rare signals
+            **(optimized_params or {})
+        }
+        
+        model = LGBMClassifier(**params)
+        
+
+        callbacks = [
+            lgb.log_evaluation(period=100),
+            StreamCallback(self.progress_cb) if self.progress_cb else None
+        ]
+        
+        if patience and patience > 0:
+            callbacks.insert(0, lgb.early_stopping(stopping_rounds=patience))
+
         model.fit(
-            X_train,
-            y_train,
+            X_train, y_train,
             eval_set=[(X_val, y_val)],
             eval_metric="logloss",
-            categorical_feature=categorical_features if categorical_features else 'auto',
-            callbacks=[
-                lgb.early_stopping(stopping_rounds=patience),
-                lgb.log_evaluation(period=100),  # Log every 100 iterations
-                StreamCallback(progress_cb) if progress_cb else None, # Real-time frontend updates
-            ],
+            categorical_feature=self.categorical_features if self.categorical_features else 'auto',
+            callbacks=[c for c in callbacks if c is not None]
         )
-    else:
-        # Plain training without early stopping, n_estimators fully controlled by caller.
-        final_n_estimators = n_estimators or 200
-        msg = f"Training LightGBM (early_stopping=False, n_estimators={final_n_estimators})"
-        _progress(msg)
-        _progress_stats(
-            "training",
-            msg,
-            {"n_estimators": final_n_estimators, "early_stopping": False},
-        )
-        # Debug: log final n_estimators for non-early-stopping mode
-        print("Final n_estimators:", final_n_estimators)
-        model = LGBMClassifier(
-            n_estimators=final_n_estimators,
-            random_state=1,
-            n_jobs=-1,
-            verbose=-1,
-        )
-        model.fit(X, y)
-    
-    duration_train = time.time() - start_time_train
-    print(f"DEBUG: Training took {duration_train:.2f}s")
-    
-    total_duration = time.time() - start_time_total
-    print(f"DEBUG: Total pipeline took {total_duration:.2f}s")
-    
-    # Persist a lightweight summary for the UI
-    try:
-        num_features = int(getattr(model, "n_features_in_", X.shape[1]))
-        if num_features <= 20:
-            print(f"Warning: model for {exchange} has only {num_features} features (expected > 20)")
-        summary = {
-            "exchange": exchange,
-            "useEarlyStopping": use_early_stopping,
-            "nEstimators": int(final_n_estimators),
-            "bestIteration": int(getattr(model, "best_iteration_", 0)) if use_early_stopping else None,
-            "trainingSamples": int(total_samples),
-            "numFeatures": num_features,
-            "featurePreset": preset,
-            "symbolsUsed": int(symbols_used),
-            "rawRows": int(raw_rows),
-            "targetPct": target_pct,
-            "stopLossPct": stop_loss_pct,
-            "lookForwardDays": look_forward_days,
-            "timestamp": datetime.utcnow().isoformat() + "Z",
-            "timing": {
-                "loading": duration_loading,
-                "features": duration_features,
-                "training": duration_train,
-                "total": total_duration
-            }
+        
+        # Evaluate
+        metrics = self.calculate_validation_metrics(model, df_train)
+        
+        return model, metrics, avg_purged_f1
+
+    def calculate_validation_metrics(self, model, df_train: pd.DataFrame) -> Dict[str, float]:
+        """Calculate final metrics on the validation split."""
+        X = df_train[self.predictors]
+        y = df_train["Target"]
+        
+        # Consistent with train_model's split
+        test_size = 0.2
+        split_idx = int(len(df_train) * (1 - test_size))
+        X_val = X.iloc[split_idx:]
+        y_val = y.iloc[split_idx:]
+        
+        if len(np.unique(y_val)) < 2:
+            return {"precision": 0.0, "recall": 0.0, "f1": 0.0, "auc": 0.5}
+
+        y_pred = model.predict(X_val)
+        y_prob = model.predict_proba(X_val)[:, 1]
+        
+        metrics = {
+            "precision": float(precision_score(y_val, y_pred, zero_division=0)),
+            "recall": float(recall_score(y_val, y_pred, zero_division=0)),
+            "f1": float(f1_score(y_val, y_pred, zero_division=0)),
+            "auc": float(roc_auc_score(y_val, y_prob))
         }
-        _write_training_summary(summary)
-    except Exception as e:
-        print(f"Failed to write training summary JSON: {e}")
-    
-    # 4. Save and Upload
-    api_dir = os.path.dirname(os.path.abspath(__file__))
-    models_dir = os.path.join(api_dir, "models")
-    if not os.path.exists(models_dir):
-        os.makedirs(models_dir)
+        self._progress(f"Final Validation Metrics: P={metrics['precision']:.4f}, R={metrics['recall']:.4f}, F1={metrics['f1']:.4f}")
+        return metrics
 
-    # Resolve filename: either user-provided or default
-    if model_name:
-        safe_name = os.path.basename(model_name.strip())
-        if not safe_name.endswith(".pkl"):
-            safe_name = f"{safe_name}.pkl"
-        filename = safe_name
-    else:
-        filename = f"model_{exchange}.pkl"
+    def save_model(self, model, filename: str, metadata: Dict[str, Any]) -> str:
+        """Save model and metadata locally and to cloud."""
+        api_dir = os.path.dirname(os.path.abspath(__file__))
+        models_dir = os.path.join(api_dir, "models")
+        os.makedirs(models_dir, exist_ok=True)
+        
+        filepath = os.path.join(models_dir, filename)
+        booster = getattr(model, "booster_", None)
+        
+        num_features = None
+        num_trees = None
+        try:
+            if booster is not None:
+                num_features = booster.num_feature()
+                num_trees = booster.num_trees()
+        except Exception:
+            pass
 
-    filepath = os.path.join(models_dir, filename)
-    
-    booster = getattr(model, "booster_", None)
-    if booster is not None:
+        training_samples = metadata.get("trainingSamples")
+        if training_samples is None:
+            training_samples = metadata.get("training_samples")
+
+        feature_preset = metadata.get("featurePreset")
+        if feature_preset is None:
+            feature_preset = metadata.get("feature_preset")
+
         artifact = {
             "kind": "lgbm_booster",
-            "model_str": booster.model_to_string(),
-            "feature_names": predictors,
-            "n_estimators": int(final_n_estimators),
-            "num_features": int(len(predictors)),
-            "num_trees": int(getattr(booster, "num_trees", lambda: 0)()),
-            "exchange": exchange,
-            "featurePreset": preset,
-            "trainingSamples": int(total_samples),
-            "bestIteration": int(getattr(model, "best_iteration_", 0)) if use_early_stopping else None,
-            "target_pct": target_pct,
-            "stop_loss_pct": stop_loss_pct,
-            "look_forward_days": look_forward_days,
+            "model_str": booster.model_to_string() if booster else None,
+            "feature_names": self.predictors,
+            "categorical_features": self.categorical_features,
+            "exchange": self.exchange,
+            "featurePreset": feature_preset,
+            "trainingSamples": training_samples,
+            "num_features": num_features,
+            "num_trees": num_trees,
             "timestamp": datetime.utcnow().isoformat() + "Z",
+            **metadata
         }
+        
+        with open(filepath, "wb") as f:
+            pickle.dump(artifact if booster else model, f)
+            
+        try:
+            uses_fundamentals = False
+            for c in ("marketCap", "peRatio", "eps", "dividendYield", "sector", "industry"):
+                if c in self.predictors:
+                    uses_fundamentals = True
+                    break
+
+            uses_exchange_index_json = bool(self.market_index_local_json)
+            has_meta_labeling = False
+            if isinstance(metadata, dict):
+                has_meta_labeling = bool(metadata.get("has_meta_labeling") or metadata.get("meta_labeling"))
+
+            card = {
+                "model_name": filename,
+                "created_at": artifact.get("timestamp"),
+                "exchange": self.exchange,
+                "artifact_kind": artifact.get("kind"),
+                "feature_preset": feature_preset,
+                "training": {
+                    "training_samples": training_samples,
+                    "target_pct": metadata.get("target_pct"),
+                    "stop_loss_pct": metadata.get("stop_loss_pct"),
+                    "look_forward_days": metadata.get("look_forward_days"),
+                    "learning_rate": metadata.get("learning_rate"),
+                    "metrics": {
+                        "precision": metadata.get("precision"),
+                        "recall": metadata.get("recall"),
+                        "f1": metadata.get("f1"),
+                        "auc": metadata.get("auc"),
+                    },
+                },
+                "data_inputs": {
+                    "uses_exchange_index_json": uses_exchange_index_json,
+                    "exchange_index_json_path": self.market_index_local_json,
+                    "uses_exchange_index_data": bool(self.market_index_loaded),
+                    "exchange_index_symbol": self.market_index_symbol,
+                    "uses_fundamentals": uses_fundamentals,
+                    "fundamentals_loaded": bool(self.fundamentals_loaded),
+                },
+                "capabilities": {
+                    "has_meta_labeling": has_meta_labeling,
+                },
+            }
+
+            card_path = os.path.join(models_dir, f"{filename}.model_card.json")
+            with open(card_path, "w", encoding="utf-8") as cf:
+                json.dump(card, cf)
+        except Exception as e:
+            self._progress(f"Warning: failed to write model card for {filename}: {e}")
+
+        self._progress(f"Model saved: {filepath}")
+        return filepath
+
+    def save_meta_labeling_system(
+        self,
+        primary_model,
+        meta_model,
+        filename: str,
+        metadata: Dict[str, Any],
+        meta_threshold: float,
+        meta_feature_names: List[str],
+    ) -> str:
+        api_dir = os.path.dirname(os.path.abspath(__file__))
+        models_dir = os.path.join(api_dir, "models")
+        os.makedirs(models_dir, exist_ok=True)
+
+        filepath = os.path.join(models_dir, filename)
+        booster = getattr(primary_model, "booster_", None)
+
+        primary_artifact = {
+            "kind": "lgbm_booster",
+            "model_str": booster.model_to_string() if booster else None,
+            "feature_names": self.predictors,
+            "categorical_features": self.categorical_features,
+            "exchange": self.exchange,
+            "timestamp": datetime.utcnow().isoformat() + "Z",
+            **metadata,
+        }
+
+        artifact = {
+            "kind": "meta_labeling_system",
+            "primary_model": primary_artifact,
+            "meta_model": meta_model,
+            "meta_feature_names": list(meta_feature_names or []),
+            "meta_threshold": float(meta_threshold),
+            "exchange": self.exchange,
+            "timestamp": primary_artifact.get("timestamp"),
+            **metadata,
+        }
+
         with open(filepath, "wb") as f:
             pickle.dump(artifact, f)
-    else:
-        with open(filepath, "wb") as f:
-            pickle.dump(model, f)
 
-    msg = f"Model saved locally: {filepath}"
-    _progress(msg)
-    _progress_stats(
-        "saved",
-        msg,
-        {"model_path": filepath},
+        try:
+            uses_fundamentals = False
+            for c in ("marketCap", "peRatio", "eps", "dividendYield", "sector", "industry"):
+                if c in self.predictors:
+                    uses_fundamentals = True
+                    break
+
+            uses_exchange_index_json = bool(self.market_index_local_json)
+
+            training_samples = metadata.get("trainingSamples")
+            if training_samples is None:
+                training_samples = metadata.get("training_samples")
+
+            feature_preset = metadata.get("featurePreset")
+            if feature_preset is None:
+                feature_preset = metadata.get("feature_preset")
+
+            card = {
+                "model_name": filename,
+                "created_at": artifact.get("timestamp"),
+                "exchange": self.exchange,
+                "artifact_kind": artifact.get("kind"),
+                "feature_preset": feature_preset,
+                "training": {
+                    "training_samples": training_samples,
+                    "target_pct": metadata.get("target_pct"),
+                    "stop_loss_pct": metadata.get("stop_loss_pct"),
+                    "look_forward_days": metadata.get("look_forward_days"),
+                    "learning_rate": metadata.get("learning_rate"),
+                    "metrics": {
+                        "precision": metadata.get("precision"),
+                        "recall": metadata.get("recall"),
+                        "f1": metadata.get("f1"),
+                        "auc": metadata.get("auc"),
+                    },
+                },
+                "data_inputs": {
+                    "uses_exchange_index_json": uses_exchange_index_json,
+                    "exchange_index_json_path": self.market_index_local_json,
+                    "uses_exchange_index_data": bool(self.market_index_loaded),
+                    "exchange_index_symbol": self.market_index_symbol,
+                    "uses_fundamentals": uses_fundamentals,
+                    "fundamentals_loaded": bool(self.fundamentals_loaded),
+                },
+                "capabilities": {
+                    "has_meta_labeling": True,
+                    "meta_threshold": float(meta_threshold),
+                },
+            }
+
+            card_path = os.path.join(models_dir, f"{filename}.model_card.json")
+            with open(card_path, "w", encoding="utf-8") as cf:
+                json.dump(card, cf)
+        except Exception as e:
+            self._progress(f"Warning: failed to write model card for {filename}: {e}")
+
+        self._progress(f"Model saved: {filepath}")
+        return filepath
+
+def train_model(exchange=None, supabase_url=None, supabase_key=None, *args, **kwargs):
+    """Wrapper for backward compatibility and CLI."""
+    if exchange is None:
+        exchange = kwargs.get("exchange")
+    if supabase_url is None:
+        supabase_url = kwargs.get("supabase_url")
+    if supabase_key is None:
+        supabase_key = kwargs.get("supabase_key")
+
+    trainer = ModelTrainer(
+        exchange=exchange,
+        supabase_url=supabase_url,
+        supabase_key=supabase_key,
+        progress_cb=kwargs.get("progress_cb")
     )
     
-    # Upload to Supabase Storage (bucket 'ai-models') if enabled
-    if upload_to_cloud:
+    trainer.load_market_data()
+    df_raw = trainer.fetch_stock_prices()
+    if df_raw.empty: return
+    
+    use_volatility_label = bool(kwargs.get("use_volatility_label", False))
+    df_train = trainer.prepare_training_data(
+        df_raw, 
+        0.03, 
+        0.06, 
+        20,
+        preset=kwargs.get("feature_preset", "extended"),
+        use_volatility_label=use_volatility_label,
+    )
+    
+    max_features = kwargs.get("max_features")
+    if max_features is None:
+        max_features = kwargs.get("max_features_override")
+    trainer.select_predictors(df_train, kwargs.get("feature_preset", "extended"), max_features)
+    
+    optimized_params = None
+    if kwargs.get("optimize") and optuna:
+        optimized_params = trainer.optimize_hyperparameters(df_train, n_trials=kwargs.get("n_trials", 30))
+
+    model, val_metrics, avg_purged_f1 = trainer.train_model(
+        df_train, 
+        n_estimators=kwargs.get("n_estimators") or 500,
+        learning_rate=kwargs.get("learning_rate", 0.01),
+        patience=kwargs.get("patience", 100),
+        optimized_params=optimized_params
+    )
+    
+    # Save
+    filename = kwargs.get("model_name") or f"model_{trainer.exchange}.pkl"
+    if not filename.endswith(".pkl"): filename += ".pkl"
+    
+    use_meta_labeling = bool(kwargs.get("use_meta_labeling", True))
+    meta_threshold = float(kwargs.get("meta_threshold", 0.3))
+
+    metadata = {
+        "target_pct": kwargs.get("target_pct"),
+        "stop_loss_pct": kwargs.get("stop_loss_pct"),
+        "look_forward_days": kwargs.get("look_forward_days"),
+        "use_volatility_label": use_volatility_label,
+        "feature_preset": kwargs.get("feature_preset"),
+        "featurePreset": kwargs.get("feature_preset"),
+        "n_estimators": getattr(model, "best_iteration_", kwargs.get("n_estimators")),
+        "learning_rate": kwargs.get("learning_rate"),
+        "training_samples": len(df_train),
+        "trainingSamples": len(df_train),
+        "optimized": optimized_params is not None,
+        "purged_cv_f1": avg_purged_f1,
+        "has_meta_labeling": bool(use_meta_labeling),
+        "meta_threshold": float(meta_threshold),
+        **val_metrics
+    }
+    if optimized_params:
+        metadata["optuna_params"] = optimized_params
+    
+    if use_meta_labeling:
+        if xgb is None:
+            trainer._progress("Warning: xgboost not installed; falling back to LightGBM for meta-labeling.")
+
+        X_primary = df_train[trainer.predictors].copy()
+        y_primary = df_train["Target"].astype(int).copy()
+
         try:
-            msg = "Uploading model to Supabase storage..."
-            _progress(msg)
-            _progress_stats("uploading", msg, {})
-            with open(filepath, "rb") as f:
-                supabase.storage.from_("ai-models").upload(
-                    path=filename,
-                    file=f,
-                    file_options={"cache-control": "3600", "upsert": "true"}
-                )
-            msg = f"Model uploaded to Supabase Storage: ai-models/{filename}"
-            _progress(msg)
-            _progress_stats("uploaded", msg, {"model_path": filename})
-        except Exception as e:
-            print(f"Failed to upload model: {e}")
-            # If bucket doesn't exist, this might fail. In reality, the user should create it.
-            # But we can try to log it clearly.
+            primary_probs = model.predict_proba(X_primary)[:, 1]
+            primary_preds = (primary_probs >= 0.5).astype(int)
+        except Exception:
+            primary_preds = model.predict(X_primary)
+            try:
+                primary_probs = model.predict_proba(X_primary)[:, 1]
+            except Exception:
+                primary_probs = primary_preds.astype(float)
+
+        meta_feature_names = []
+        for c in trainer.predictors:
+            if c in (trainer.categorical_features or []):
+                continue
+            try:
+                if is_numeric_dtype(df_train[c]):
+                    meta_feature_names.append(c)
+            except Exception:
+                continue
+        X_meta_base = df_train[meta_feature_names].copy()
+        X_meta_base = X_meta_base.replace([np.inf, -np.inf], np.nan).fillna(0)
+
+        mask = (primary_preds == 1)
+        if int(mask.sum()) < 50:
+            mask = np.ones(len(df_train), dtype=bool)
+
+        X_meta = X_meta_base.loc[mask].copy()
+        X_meta["primary_prob"] = np.asarray(primary_probs)[mask]
+        y_meta = y_primary.loc[mask].values
+
+        if len(np.unique(y_meta)) < 2:
+            raise ValueError("Meta-labeling training failed: only one class present for meta labels")
+
+        pos = float(np.sum(y_meta == 1))
+        neg = float(np.sum(y_meta == 0))
+        scale_pos_weight = (neg / pos) if pos > 0 else 1.0
+
+        if xgb is not None:
+            meta_model = xgb.XGBClassifier(
+                n_estimators=300,
+                max_depth=5,
+                learning_rate=0.01,
+                subsample=0.8,
+                colsample_bytree=0.8,
+                reg_lambda=1.0,
+                objective="binary:logistic",
+                eval_metric="logloss",
+                random_state=42,
+                n_jobs=-1,
+                scale_pos_weight=scale_pos_weight,
+            )
+        else:
+            # LightGBM fallback (keeps meta-labeling available without xgboost)
+            meta_model = LGBMClassifier(
+                n_estimators=500,
+                learning_rate=0.05,
+                num_leaves=31,
+                subsample=0.8,
+                colsample_bytree=0.8,
+                random_state=42,
+                n_jobs=-1,
+            )
+        meta_model.fit(X_meta, y_meta)
+
+        meta_feature_names_with_prob = list(meta_feature_names) + ["primary_prob"]
+        trainer.save_meta_labeling_system(
+            primary_model=model,
+            meta_model=meta_model,
+            filename=filename,
+            metadata=metadata,
+            meta_threshold=meta_threshold,
+            meta_feature_names=meta_feature_names_with_prob,
+        )
+    else:
+        metadata["has_meta_labeling"] = False
+        trainer.save_model(model, filename, metadata)
+    
+    # Update global summary for the dashboard
+    summary = {
+        "exchange": trainer.exchange,
+        "model_name": filename,
+        "timestamp": datetime.now().isoformat(),
+        "metrics": val_metrics,
+        "features_count": len(trainer.predictors),
+        "samples": len(df_train),
+        "has_meta_labeling": bool(use_meta_labeling),
+        "meta_threshold": float(meta_threshold),
+    }
+    _write_training_summary(summary)
 
 if __name__ == "__main__":
-    parser.add_argument("--exchange", required=True, help="Exchange name to train on")
-    parser.add_argument("--max_features", type=int, help="Optional: maximum number of features to use for training")
-    parser.add_argument("--grid", action="store_true", help="Enable GridSearchCV for hyperparameter optimization")
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--exchange", required=True)
+    parser.add_argument("--learning_rate", type=float, default=0.05)
+    parser.add_argument("--optimize", action="store_true", help="Use Optuna to tune hyperparameters")
+    parser.add_argument("--trials", type=int, default=30, help="Number of Optuna trials")
     args = parser.parse_args()
     
-    url = os.getenv("NEXT_PUBLIC_SUPABASE_URL")
-    key = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
-    
-    if not url or not key:
-        print("Error: NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY environment variables are required.")
-        sys.exit(1)
-        
-    train_model(args.exchange, url, key, max_features_override=args.max_features, use_grid=args.grid)
+    train_model(
+        exchange=args.exchange,
+        supabase_url=os.getenv("NEXT_PUBLIC_SUPABASE_URL"),
+        supabase_key=os.getenv("SUPABASE_SERVICE_ROLE_KEY"),
+        learning_rate=args.learning_rate,
+        optimize=args.optimize,
+        n_trials=args.trials
+    )

@@ -40,6 +40,26 @@ export type TestPredictionRow = {
   outcome?: 'win' | 'loss' | 'pending';
 };
 
+export type ProfitSummary = {
+  trades: number;
+  wins: number;
+  losses: number;
+  win_rate: number;
+  avg_trade_return_pct: number;
+  total_return_pct: number;
+};
+
+export type WalkForwardFold = {
+  start: string | null;
+  end: string | null;
+  trades: number;
+  wins: number;
+  losses: number;
+  win_rate: number;
+  avg_trade_return_pct: number;
+  total_return_pct: number;
+};
+
 export type PredictResponse = {
   ticker: string;
   precision: number;
@@ -51,5 +71,7 @@ export type PredictResponse = {
   testPredictions: TestPredictionRow[];
   executionTime?: number; // milliseconds
   earnPercentage?: number; // cumulative strategy return
+  profitSummary?: ProfitSummary | null;
+  walkForwardFolds?: WalkForwardFold[];
   topReasons?: string[];
 };

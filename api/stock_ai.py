@@ -36,6 +36,12 @@ try:
 except Exception:
     lgb = None
 
+# Optional dependency for Meta-Labeling meta-model
+try:
+    import xgboost as xgb
+except Exception:
+    xgb = None
+
 
 class _LgbmBoosterClassifier:
     def __init__(self, booster, threshold: float = 0.40): # Lowered to 0.4
@@ -57,6 +63,63 @@ class _LgbmBoosterClassifier:
 
     def get_feature_importance(self):
         return self.booster.feature_importance()
+
+
+class _MetaLabelingClassifier:
+    def __init__(
+        self,
+        primary_model: Any,
+        meta_model: Any,
+        meta_feature_names: List[str],
+        meta_threshold: float = 0.7,
+    ):
+        self.primary_model = primary_model
+        self.meta_model = meta_model
+        self.meta_feature_names = list(meta_feature_names or [])
+        try:
+            self.meta_threshold = float(meta_threshold)
+        except Exception:
+            self.meta_threshold = 0.7
+
+    def predict_proba(self, X: pd.DataFrame):
+        # Primary probability
+        if hasattr(self.primary_model, "predict_proba"):
+            primary_prob = self.primary_model.predict_proba(X)[:, 1]
+        else:
+            primary_pred = np.asarray(self.primary_model.predict(X)).astype(float)
+            primary_prob = primary_pred
+
+        # Meta features: meta_feature_names typically includes "primary_prob".
+        mf = [c for c in self.meta_feature_names if c != "primary_prob"]
+        X_meta = X[mf].copy() if mf else pd.DataFrame(index=X.index)
+        X_meta = X_meta.replace([np.inf, -np.inf], np.nan).fillna(0)
+        X_meta["primary_prob"] = np.asarray(primary_prob)
+
+        # Ensure consistent column order
+        cols = [c for c in self.meta_feature_names if c in X_meta.columns]
+        X_meta = X_meta[cols]
+
+        if hasattr(self.meta_model, "predict_proba"):
+            meta_prob = self.meta_model.predict_proba(X_meta)[:, 1]
+        else:
+            meta_pred = np.asarray(self.meta_model.predict(X_meta)).astype(float)
+            meta_prob = meta_pred
+
+        # Filter: only keep primary probability when meta confidence passes threshold
+        filtered_prob = np.where(np.asarray(meta_prob) >= self.meta_threshold, np.asarray(primary_prob), 0.0)
+        return np.column_stack([1 - filtered_prob, filtered_prob])
+
+    def predict(self, X: pd.DataFrame):
+        probs = self.predict_proba(X)[:, 1]
+        return (np.asarray(probs) >= 0.5).astype(int)
+
+    def get_feature_importance(self):
+        if hasattr(self.primary_model, "get_feature_importance"):
+            try:
+                return self.primary_model.get_feature_importance()
+            except Exception:
+                pass
+        return []
 
 supabase: Optional[Client] = None
 
@@ -357,7 +420,7 @@ class IndicatorCache:
         return df_with_ind
 
     def get_with_massive_features(self, symbol: str, exchange: str, df: pd.DataFrame) -> pd.DataFrame:
-        from train_exchange_model import add_massive_features
+        from api.train_exchange_model import add_massive_features
         cache_key = f"MASS_{self._cache_key(symbol, exchange)}"
         data_hash = self._data_hash(df)
 
@@ -616,13 +679,16 @@ def get_supabase_inventory() -> List[Dict[str, Any]]:
         # Optimization: Only count symbols per country to find the 'primary' country for an exchange
         # Actually, the expected_map from local summary is the most reliable.
         # We only use fundamentals as secondary.
-        meta_res = supabase.table("stock_fundamentals").select("exchange, country:data->>country").execute()
+        # Optimization: Filter by country in SQL if needed, but here we want all for inventory
+        # get_supabase_inventory is usually called without specific country.
+        meta_res = supabase.table("stock_fundamentals").select("exchange, data").execute()
         if meta_res.data:
             # Simple voting logic: count symbols per (exchange, country)
             votes = {} 
             for row in meta_res.data:
                 ex = row.get('exchange')
-                c = row.get('country')
+                data_obj = row.get('data') or {}
+                c = data_obj.get('country') or data_obj.get('Country')
                 if ex and c:
                     key = (ex, c)
                     votes[key] = votes.get(key, 0) + 1
@@ -753,30 +819,34 @@ def get_supabase_symbols(country: Optional[str] = None) -> List[Dict[str, Any]]:
         if rpc_res.data:
             for r in rpc_res.data:
                 symbols_map[r['symbol']] = {
-                    "symbol": r['symbol'],
-                    "exchange": r['exchange'],
-                    "name": r.get('name', ''),
-                    "country": r.get('country', country or ''),
+                    "symbol": str(r.get('symbol') or ''),
+                    "exchange": str(r.get('exchange') or ''),
+                    "name": str(r.get('name') or ''),
+                    "country": str(r.get('country') or country or ''),
                     "hasLocal": True
                 }
 
         # 2. Add fallback for symbols in stock_fundamentals
         try:
-            fund_query = supabase.table("stock_fundamentals").select("symbol, exchange, country:data->>country")
+            fund_query = supabase.table("stock_fundamentals").select("symbol, exchange, data")
             if country:
-                # Some symbols might have nested data or flat country field
+                # Filter by country in JSONB
                 fund_query = fund_query.eq("data->>country", country)
             
             fund_res = fund_query.execute()
             if fund_res.data:
                 for r in fund_res.data:
+                    data_obj = r.get("data") or {}
+                    # Try to get country from nested data
+                    row_country = data_obj.get("country") or data_obj.get("Country") or "Unknown"
+                    
                     sym = r['symbol']
                     if sym not in symbols_map:
                         symbols_map[sym] = {
-                            "symbol": sym,
-                            "exchange": r['exchange'],
-                            "name": "", # Basic
-                            "country": r.get('country', country or 'Unknown'),
+                            "symbol": str(sym or ''),
+                            "exchange": str(r.get('exchange') or ''),
+                            "name": str(data_obj.get("name", data_obj.get("Name", ""))),
+                            "country": str(row_country or ''),
                             "hasLocal": True
                         }
         except Exception as fund_err:
@@ -812,16 +882,16 @@ def get_supabase_symbols(country: Optional[str] = None) -> List[Dict[str, Any]]:
                     sym = r['symbol']
                     if sym not in symbols_map:
                         symbols_map[sym] = {
-                            "symbol": sym,
-                            "exchange": r['exchange'],
+                            "symbol": str(sym or ''),
+                            "exchange": str(r.get('exchange') or ''),
                             "name": f"Unknown ({sym})",
-                            "country": country or 'Unknown',
+                            "country": str(country or 'Unknown'),
                             "hasLocal": True
                         }
         except Exception as price_err:
             print(f"Fallback price query failed: {price_err}")
 
-        return sorted(list(symbols_map.values()), key=lambda x: x['symbol'])
+        return sorted(list(symbols_map.values()), key=lambda x: str(x.get('symbol') or ''))
         
     except Exception as e:
         print(f"Error fetching symbols: {e}")
@@ -1842,10 +1912,17 @@ def add_trade_levels(df: pd.DataFrame, risk_reward_ratio: float = 2.0) -> Tuple[
     return round(float(target_price), 2), round(float(max(stop_loss, 0.01)), 2)
 
 
-def prepare_for_ai(df: pd.DataFrame, target_pct: float = 0.10, stop_loss_pct: float = 0.05, look_forward_days: int = 20, drop_labels: bool = True) -> pd.DataFrame:
+def prepare_for_ai(
+    df: pd.DataFrame,
+    target_pct: float = 0.15,
+    stop_loss_pct: float = 0.05,
+    look_forward_days: int = 20,
+    drop_labels: bool = True,
+    use_volatility_label: bool = False,
+) -> pd.DataFrame:
     """
     Sniper Strategy Labeling with configurable parameters.
-    Default target lowered to 10% for better sample distribution.
+    Aligns with training pipeline (next-day entry, TP-before-SL).
     """
     if df.empty: return df
     out = df.copy()
@@ -1858,8 +1935,8 @@ def prepare_for_ai(df: pd.DataFrame, target_pct: float = 0.10, stop_loss_pct: fl
     high_col = "High" if "High" in out.columns else "high"
     low_col = "Low" if "Low" in out.columns else "low"
     
-    # Fix Gap Trap: Entry is Next Day Open
-    out['next_open'] = out[open_col].shift(-1)
+    # Entry is next-day open to avoid signal-entry leakage
+    out['entry_price'] = out[open_col].shift(-1)
     
     # Future High/Low: Start checking from next day (shift -1)
     # This aligns the window [t+1, t+1+look_forward] to row t
@@ -1867,15 +1944,23 @@ def prepare_for_ai(df: pd.DataFrame, target_pct: float = 0.10, stop_loss_pct: fl
     out['future_low'] = out[low_col].shift(-1).rolling(window=indexer).min()
     
     out['Target'] = 0
-    
-    # Calculate Target/Stop based on Entry Price (Next Open), not Current Close
-    hit_target = out['future_high'] >= (out['next_open'] * (1 + target_pct))
-    safe_from_stop = out['future_low'] > (out['next_open'] * (1 - stop_loss_pct))
-    
-    out.loc[hit_target & safe_from_stop, 'Target'] = 1
+
+    if use_volatility_label and "ATR_14" in out.columns:
+        vol = (out["ATR_14"] / out[close_col]).rolling(100, min_periods=1).mean()
+        dynamic_target = vol * 2.0
+        dynamic_stop = vol * 1.0
+        out['tp_barrier'] = out['entry_price'] * (1 + np.maximum(target_pct, dynamic_target))
+        out['sl_barrier'] = out['entry_price'] * (1 - np.maximum(stop_loss_pct, dynamic_stop))
+    else:
+        out['tp_barrier'] = out['entry_price'] * (1 + target_pct)
+        out['sl_barrier'] = out['entry_price'] * (1 - stop_loss_pct)
+
+    hit_tp = out['future_high'] >= out['tp_barrier']
+    hit_sl = out['future_low'] <= out['sl_barrier']
+    out.loc[hit_tp & ~hit_sl, 'Target'] = 1
     
     # Cleanup and dropna
-    out.drop(columns=['future_high', 'future_low', 'next_open'], inplace=True, errors='ignore')
+    out.drop(columns=['future_high', 'future_low', 'entry_price', 'tp_barrier', 'sl_barrier'], inplace=True, errors='ignore')
     
     # Keep more rows by filling numeric gaps
     # Force common fundamental columns to numeric if they exist to prevent LightGBM dtype errors
@@ -2112,6 +2197,50 @@ def train_and_predict(
 
                 # New lightweight model artifact format from train_exchange_model.py
                 lgbm_artifact_loaded = False
+                if isinstance(loaded_model, dict) and loaded_model.get("kind") == "meta_labeling_system":
+                    if lgb is None:
+                        raise ValueError("lightgbm is required to load meta_labeling_system artifacts")
+                    if xgb is None:
+                        raise ValueError("xgboost is required to load meta_labeling_system artifacts")
+
+                    artifact = loaded_model
+                    primary_art = artifact.get("primary_model")
+                    if not isinstance(primary_art, dict) or primary_art.get("kind") != "lgbm_booster":
+                        raise ValueError("Invalid meta_labeling_system artifact: missing primary_model")
+
+                    model_str = primary_art.get("model_str")
+                    if not isinstance(model_str, str) or not model_str.strip():
+                        raise ValueError("Invalid meta_labeling_system artifact: missing primary model_str")
+
+                    booster = lgb.Booster(model_str=model_str)
+                    primary_clf = _LgbmBoosterClassifier(booster, 0.5)
+
+                    f_names = primary_art.get("feature_names")
+                    if isinstance(f_names, list) and f_names:
+                        predictors = f_names
+                    else:
+                        try:
+                            predictors = list(booster.feature_name())
+                        except Exception:
+                            predictors = LGBM_PREDICTORS
+
+                    meta_model = artifact.get("meta_model")
+                    meta_feature_names = artifact.get("meta_feature_names")
+                    if not isinstance(meta_feature_names, list):
+                        meta_feature_names = []
+                    meta_threshold = artifact.get("meta_threshold", 0.7)
+
+                    loaded_model = _MetaLabelingClassifier(primary_clf, meta_model, meta_feature_names, meta_threshold)
+                    lgbm_artifact_loaded = True
+
+                    # Extract target settings from artifact
+                    target_pct = primary_art.get("target_pct", target_pct)
+                    stop_loss_pct = primary_art.get("stop_loss_pct", stop_loss_pct)
+                    look_forward_days = primary_art.get("look_forward_days", look_forward_days)
+
+                    _ensure_feature_columns(df, predictors)
+                    print(f"Loaded Meta-Labeling system from {model_path} with {len(predictors)} primary predictors")
+
                 if isinstance(loaded_model, dict) and loaded_model.get("kind") == "lgbm_booster":
                     if lgb is None:
                         raise ValueError("lightgbm is required to load lgbm_booster artifacts")
@@ -2195,16 +2324,16 @@ def train_and_predict(
     if preset == "fast" and len(df) > 600:
         df = df.iloc[-600:].copy()
 
-    # If we have a loaded model, we don't need to "train" but we still need to generate 
+    # If we have a loaded model, we don't need to "train" but we still need to generate
     # test predictions and precision for the UI.
     if loaded_model:
-        if len(df) < 100: # Smaller threshold for pre-trained validation
+        if len(df) < 100:  # Smaller threshold for pre-trained validation
             # If really short, just return the last prediction with dummy precision
             last_row = df.iloc[[-1]][predictors]
             pred = int(loaded_model.predict(last_row)[0])
-            return loaded_model, predictors, df.iloc[[-1]], pd.Series([pred], index=[df.index[-1]]), 0.8
-            
-        # For precision metrics, we MUST exclude the trailing look_forward_days rows 
+            return loaded_model, predictors, df.iloc[[-1]], pd.Series([pred], index=[df.index[-1]]), 0.8, 0.0
+
+        # For precision metrics, we MUST exclude the trailing look_forward_days rows
         # because we don't know the ground truth for them yet.
         test_data_pool = df.iloc[:-look_forward_days].copy()
 
@@ -2212,7 +2341,7 @@ def train_and_predict(
         # Use all available data for testing to satisfy the "test all rows" request
         test_size = len(test_data_pool)
         test = test_data_pool.iloc[-test_size:]
-        
+
         if hasattr(loaded_model, "predict_proba"):
             try:
                 probs = loaded_model.predict_proba(test[predictors])[:, 1]
@@ -2225,7 +2354,7 @@ def train_and_predict(
                         # Try simple predict as fallback
                         preds = loaded_model.predict(test[predictors])
                     except:
-                        # Last resort: random-like or neutral prediction if model is totally broken for this stock
+                        # Last resort: neutral prediction if model is totally broken for this stock
                         preds = np.zeros(len(test), dtype=int)
                 else:
                     try:
@@ -2240,19 +2369,9 @@ def train_and_predict(
 
         preds = pd.Series(preds, index=test.index)
         precision = precision_score(test["Target"], preds, zero_division=0)
-        
-        # Calculate Earn Percentage (Average Return Per Trade)
-        buy_indices = preds[preds == 1].index
-        earn_pct = 0.0
-        if len(buy_indices) > 0:
-            wins = (test.loc[buy_indices, "Target"] == 1).sum()
-            losses = len(buy_indices) - wins
-            win_rate = wins / len(buy_indices)
-            
-            # Average return per trade = (win_rate × target_gain) - (loss_rate × stop_loss)
-            earn_pct = (win_rate * target_pct) - ((1 - win_rate) * stop_loss_pct)
-        
-        return loaded_model, predictors, test, preds, float(precision), float(earn_pct * 100)
+
+        profit = _profit_metrics_from_preds(test, preds, target_pct, stop_loss_pct)
+        return loaded_model, predictors, test, preds, float(precision), float(profit["avg_trade_return_pct"])
 
     # If a specific model was requested but not loaded, stop here to avoid on-the-fly training
     if model_name:
@@ -2262,7 +2381,7 @@ def train_and_predict(
 
     # Fallback to existing training logic (only when no explicit model_name)
     use_lgbm = (LGBMClassifier is not None)
-    
+
     if use_lgbm:
         # Use rich feature set for Gradient Boosting
         predictors = [p for p in LGBM_PREDICTORS if p in df.columns]
@@ -2277,7 +2396,7 @@ def train_and_predict(
         test_size = 60 if len(df) > 260 else max(40, int(len(df) * 0.2))
     else:
         test_size = 100 if len(df) > 400 else max(40, int(len(df) * 0.2))
-        
+
     train = df.iloc[:-test_size]
     test = df.iloc[-test_size:]
 
@@ -2286,7 +2405,7 @@ def train_and_predict(
         val_size = max(20, int(len(train) * 0.15))
         train_inner = train.iloc[:-val_size]
         val_inner = train.iloc[-val_size:]
-        
+
         # Configure LightGBM with robust parameters
         model = LGBMClassifier(
             n_estimators=1000,
@@ -2300,13 +2419,13 @@ def train_and_predict(
             importance_type='gain',
             verbose=-1
         )
-        
+
         callbacks = []
         if lgb:
             # Use LightGBM callbacks for early stopping (requires validation set)
             callbacks.append(lgb.early_stopping(stopping_rounds=50, verbose=False))
             callbacks.append(lgb.log_evaluation(period=0))
-            
+
         try:
             model.fit(
                 train_inner[predictors], train_inner["Target"],
@@ -2317,19 +2436,19 @@ def train_and_predict(
             print(f"Trained LGBM (Early Stopping @ {model.best_iteration_ if hasattr(model, 'best_iteration_') else 'N/A'})")
         except Exception as e:
             print(f"LGBM Training failed ({e}), falling back to RF...")
-            use_lgbm = False # Trigger fallback below
-            
+            use_lgbm = False  # Trigger fallback below
+
     if not use_lgbm:
         # Legacy Random Forest fallback
         min_split = min(100, max(2, int(len(train) * 0.2)))
-    
+
         model_kwargs = _sanitize_rf_params(
             rf_params,
             preset=rf_preset,
             train_len=len(train),
             default_min_split=min_split,
         )
-    
+
         model = RandomForestClassifier(**model_kwargs)
         model.fit(train[predictors], train["Target"])
 
@@ -2341,64 +2460,100 @@ def train_and_predict(
     except Exception:
         # Fallback if model doesn't support predict_proba
         preds = model.predict(test[predictors])
-        
+
     preds = pd.Series(preds, index=test.index)
     precision = precision_score(test["Target"], preds, zero_division=0)
 
-    # Calculate Earn Percentage (Average Return Per Trade)
-    buy_indices = preds[preds == 1].index
-    earn_pct = 0.0
-    if len(buy_indices) > 0:
-        wins = (test.loc[buy_indices, "Target"] == 1).sum()
-        losses = len(buy_indices) - wins
-        win_rate = wins / len(buy_indices)
-        
-        # Average return per trade = (win_rate × target_gain) - (loss_rate × stop_loss)
-        earn_pct = (win_rate * target_pct) - ((1 - win_rate) * stop_loss_pct)
+    profit = _profit_metrics_from_preds(test, preds, target_pct, stop_loss_pct)
+    return model, predictors, test, preds, float(precision), float(profit["avg_trade_return_pct"])
 
-    # --- ADAPTIVE LEARNING LOGGING ---
-    # Log the LATEST prediction (today's signal) for future retraining
-    try:
-        if loaded_model:  # Only log if using a stable/loaded model (not on-the-fly random forest)
-            from api.adaptive_learning import ActiveLearner
-            
-            # Get latest row
-            last_idx = test.index[-1]
-            last_row = test.iloc[-1]
-            last_pred = int(preds.iloc[-1])
-            
-            # Get probability if available
-            last_prob = 0.5
-            if 'probs' in locals():
-                last_prob = float(probs[-1])
-            elif hasattr(preds, 'iloc'):
-                last_prob = float(preds.iloc[-1]) # Binary confidence if prob unavailable
 
-            # Extract features used
-            # We need to pass the raw feature values used by the model
-            # Note: 'train_and_predict' predictors list matches columns in 'test'
-            feat_values = last_row[predictors].values
-            
-            # We assume the symbol comes from context or df metadata? 
-            # 'df' usually doesn't have symbol column if it's the index or dropped.
-            # But 'run_pipeline' calls this. 'train_and_predict' doesn't know the symbol explicitly unless passed?
-            # 'train_and_predict' doesn't take 'symbol' arg.
-            # However, 'run_pipeline' knows it. 
-            # We should probably do this logging in 'run_pipeline' instead to have the symbol context.
-            # BUT 'run_pipeline' receives the preds. 
-            # So I will NOT do it here. I will do it in run_pipeline.
-            pass
-    except Exception as e:
-        # print(f"Adaptive logging warning: {e}")
-        pass
+def _profit_metrics_from_preds(
+    test: pd.DataFrame,
+    preds: pd.Series,
+    target_pct: float,
+    stop_loss_pct: float,
+) -> Dict[str, Any]:
+    buy_mask = (preds == 1)
+    buy_indices = preds.index[buy_mask]
+    trades = int(len(buy_indices))
+    if trades <= 0:
+        return {
+            "trades": 0,
+            "wins": 0,
+            "losses": 0,
+            "win_rate": 0.0,
+            "avg_trade_return_pct": 0.0,
+            "total_return_pct": 0.0,
+        }
 
-    return model, predictors, test, preds, float(precision), float(earn_pct * 100)
+    wins = int((test.loc[buy_indices, "Target"].astype(int) == 1).sum())
+    losses = int(trades - wins)
+    win_rate = float(wins / trades) if trades > 0 else 0.0
+
+    trade_returns = np.where(
+        (test.loc[buy_indices, "Target"].astype(int).values == 1),
+        float(target_pct),
+        -float(stop_loss_pct),
+    )
+    avg_trade_return_pct = float(np.mean(trade_returns) * 100.0) if trades > 0 else 0.0
+    total_return_pct = float(np.sum(trade_returns) * 100.0) if trades > 0 else 0.0
+
+    return {
+        "trades": trades,
+        "wins": wins,
+        "losses": losses,
+        "win_rate": win_rate,
+        "avg_trade_return_pct": avg_trade_return_pct,
+        "total_return_pct": total_return_pct,
+    }
+
+
+def _walk_forward_profit_folds(
+    test: pd.DataFrame,
+    preds: pd.Series,
+    target_pct: float,
+    stop_loss_pct: float,
+    folds: int = 5,
+) -> List[Dict[str, Any]]:
+    if test is None or test.empty:
+        return []
+
+    if folds < 2:
+        folds = 2
+
+    test_sorted = test.sort_index()
+    preds_sorted = preds.loc[test_sorted.index]
+
+    n = int(len(test_sorted))
+    if n < folds * 10:
+        return []
+
+    fold_size = max(10, n // folds)
+    out: List[Dict[str, Any]] = []
+    start = 0
+    while start < n:
+        end = min(n, start + fold_size)
+        fold_test = test_sorted.iloc[start:end]
+        fold_preds = preds_sorted.loc[fold_test.index]
+        m = _profit_metrics_from_preds(fold_test, fold_preds, target_pct, stop_loss_pct)
+        out.append(
+            {
+                "start": str(pd.to_datetime(fold_test.index.min()).date()) if len(fold_test) else None,
+                "end": str(pd.to_datetime(fold_test.index.max()).date()) if len(fold_test) else None,
+                **m,
+            }
+        )
+        start = end
+
+    return out
 
 
 def run_pipeline(
     api_key: str,
     ticker: str,
     from_date: str = "2020-01-01",
+    to_date: Optional[str] = None,
     include_fundamentals: bool = True,
     tolerance_days: int = 0,
     exchange: Optional[str] = None,
@@ -2410,6 +2565,7 @@ def run_pipeline(
     stop_loss_pct: float = 0.05,
     look_forward_days: int = 20,
     buy_threshold: float = 0.40,
+    use_volatility_label: bool = False,
 ) -> Dict[str, Any]:
     api = APIClient(api_key)
 
@@ -2417,7 +2573,8 @@ def run_pipeline(
     prices_ai: Optional[pd.DataFrame] = None
     selected_symbol: Optional[str] = None
     last_candidate_len: Optional[int] = None
-    min_required = 60 if model_name else 120
+    # For model testing, we only need ~10-20 rows after engineering to make a valid current prediction
+    min_required = 10 if model_name else 120
 
     for sym in _candidate_symbols(ticker, exchange):
         try:
@@ -2425,6 +2582,7 @@ def run_pipeline(
                 api, 
                 sym, 
                 from_date=from_date, 
+                to_date=to_date,
                 tolerance_days=tolerance_days, 
                 exchange=exchange,
                 force_local=force_local
@@ -2450,9 +2608,10 @@ def run_pipeline(
                     feat_with_ind = _get_data_with_indicators_cached(sym, exchange or "US", feat, add_technical_indicators)
                     if feat_with_ind is not None and not feat_with_ind.empty:
                         # Merge instead of overwrite to keep massive features
-                        for col in feat_with_ind.columns:
-                            if col not in feat.columns:
-                                feat[col] = feat_with_ind[col]
+                        # Use concat to avoid fragmentation warning
+                        new_cols = [c for c in feat_with_ind.columns if c not in feat.columns]
+                        if new_cols:
+                            feat = pd.concat([feat, feat_with_ind[new_cols]], axis=1)
             except Exception:
                 pass
 
@@ -2496,14 +2655,27 @@ def run_pipeline(
                     print(f"Warning: Fundamental merge failed for {sym}: {e}")
 
             # 1. Try with all features, keeping trailing rows for prediction
-            candidate = prepare_for_ai(feat, target_pct=target_pct, stop_loss_pct=stop_loss_pct, look_forward_days=look_forward_days, drop_labels=False)
+            candidate = prepare_for_ai(
+                feat, 
+                target_pct=target_pct, 
+                stop_loss_pct=stop_loss_pct, 
+                look_forward_days=look_forward_days, 
+                drop_labels=False,
+                use_volatility_label=use_volatility_label
+            )
             
             # 2. If not enough data (likely due to SMA_200 NaNs on a short history), 
             #    drop SMA_200 and try again.
             if len(candidate) < 120 and "SMA_200" in feat.columns:
                 print(f"Warning: Insufficient data for SMA_200 (rows={len(candidate)}). Retrying without it.")
                 feat_reduced = feat.drop(columns=["SMA_200"])
-                candidate = prepare_for_ai(feat_reduced, target_pct=target_pct, stop_loss_pct=stop_loss_pct, look_forward_days=look_forward_days)
+                candidate = prepare_for_ai(
+                    feat_reduced, 
+                    target_pct=target_pct, 
+                    stop_loss_pct=stop_loss_pct, 
+                    look_forward_days=look_forward_days,
+                    use_volatility_label=use_volatility_label
+                )
 
             last_candidate_len = len(candidate)
 
@@ -2520,13 +2692,16 @@ def run_pipeline(
         suffix = ""
         if selected_symbol:
             suffix = f" (tried {selected_symbol})"
+        
         if last_candidate_len is not None:
             raise ValueError(
                 f"Insufficient historical data for {ticker}{suffix}. Need at least ~{min_required} rows after feature engineering, got {last_candidate_len}."
             ) from last_error
-        raise ValueError(
-            f"Insufficient historical data or symbol not available on your API plan for {ticker}{suffix}. Try specifying exchange, e.g. AAPL.US"
-        ) from last_error
+        
+        err_msg = f"Insufficient historical data or symbol not available on your API plan for {ticker}{suffix}."
+        if last_error:
+            err_msg += f" Details: {str(last_error)}"
+        raise ValueError(err_msg) from last_error
 
     # For scanning mode (FAST SCAN), limit rows to shrink indicator computation and speed up
     # But if we are running a specific MODEL TEST (model_name is set), we want more history.
@@ -2549,6 +2724,15 @@ def run_pipeline(
         look_forward_days=look_forward_days,
         buy_threshold=buy_threshold,
     )
+
+    profit_summary = None
+    walk_forward_folds = []
+    try:
+        profit_summary = _profit_metrics_from_preds(test_df, preds, target_pct, stop_loss_pct)
+        walk_forward_folds = _walk_forward_profit_folds(test_df, preds, target_pct, stop_loss_pct, folds=5)
+    except Exception:
+        profit_summary = None
+        walk_forward_folds = []
 
     last_row = prices_ai.iloc[[-1]][predictors]
     if hasattr(model, "predict_proba"):
@@ -2612,7 +2796,7 @@ def run_pipeline(
                 "status": "open",
                 "entry_price": last_close,
                 "features": json.dumps(feat_vals.tolist()) if hasattr(feat_vals, "tolist") else json.dumps(list(feat_vals)),
-                "created_at": datetime.now().isoformat()
+                "created_at": dt.datetime.now().isoformat()
             }
             supabase.table("scan_results").insert(data).execute()
         except Exception as e:
@@ -2733,6 +2917,8 @@ def run_pipeline(
         "ticker": selected_symbol or ticker,
         "precision": precision,
         "earnPercentage": earn_percentage,
+        "profitSummary": profit_summary,
+        "walkForwardFolds": walk_forward_folds,
         "tomorrowPrediction": tomorrow_prediction,
         "lastClose": last_close,
         "lastDate": last_date,

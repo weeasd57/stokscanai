@@ -13,3 +13,5 @@ tradingview-screener==3.0.0
 lightgbm==4.3.0
 supabase==2.5.3
 ta
+
+xgboost==2.1.3

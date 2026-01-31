@@ -4,6 +4,7 @@ export type PredictParams = {
   ticker: string;
   exchange?: string;
   fromDate?: string;
+  toDate?: string;
   includeFundamentals?: boolean;
   rfPreset?: string;
   rfParams?: Record<string, unknown>;
@@ -45,6 +46,7 @@ export async function predictStock(params: PredictParams, signal?: AbortSignal):
     ticker,
     exchange: exchange ?? null,
     from_date: params.fromDate ?? "2020-01-01",
+    to_date: params.toDate ?? null,
     include_fundamentals: params.includeFundamentals ?? true,
     rf_preset: params.rfPreset ?? null,
     rf_params: params.rfParams ?? null,

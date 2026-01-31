@@ -7,8 +7,8 @@ from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, HTTPException, Query
 
-from symbols_local import load_symbols_for_country
-from stock_ai import (
+from api.symbols_local import load_symbols_for_country
+from api.stock_ai import (
     _get_exchange_bulk_data,
     _get_data_with_indicators_cached,
     _get_model_cached,

@@ -1,6 +1,6 @@
 "use client";
 
-import { Zap, ChevronDown, Check, Loader2, Download, Database, Info, History, Trash2, TrendingUp, Clock } from "lucide-react";
+import { Zap, ChevronDown, Check, Loader2, Download, Database, Info, History, Trash2, TrendingUp, Clock, Sparkles } from "lucide-react";
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts";
 import { useState, useEffect, useMemo } from "react";
 import { toast } from "sonner";
@@ -38,6 +38,13 @@ interface LocalModel {
     target_pct?: number;
     stop_loss_pct?: number;
     look_forward_days?: number;
+    learning_rate?: number;
+
+    uses_exchange_index_json?: boolean;
+    exchange_index_json_path?: string;
+    uses_fundamentals?: boolean;
+    fundamentals_loaded?: boolean;
+    has_meta_labeling?: boolean;
 }
 
 export default function AIAutomationTab({
@@ -63,8 +70,9 @@ export default function AIAutomationTab({
     const [triggeringTraining, setTriggeringTraining] = useState<boolean>(false);
     const [useEarlyStopping, setUseEarlyStopping] = useState<boolean>(true);
     const [nEstimators, setNEstimators] = useState<number>(1000);
-    const [trainingStrategy, setTrainingStrategy] = useState<"golden" | "grid_small" | "random">("golden");
+    const [trainingStrategy, setTrainingStrategy] = useState<"golden" | "grid_small" | "random" | "optuna">("golden");
     const [randomSearchIter, setRandomSearchIter] = useState<number>(5);
+    const [optunaTrials, setOptunaTrials] = useState<number>(30);
     const [lastTrainingSummary, setLastTrainingSummary] = useState<{
         exchange: string;
         useEarlyStopping: boolean;
@@ -115,6 +123,9 @@ export default function AIAutomationTab({
         training: 85,
         saved: 95,
         uploaded: 100,
+        adaptive_starting: 5,
+        adaptive_verifying: 40,
+        adaptive_learning: 80,
     };
     const phaseTimeline = ["loading_rows", "data_loaded", "processing_symbols", "data_prepared", "features_ready", "training", "saved", "uploaded"];
     const phaseLabels: Record<string, string> = {
@@ -126,11 +137,14 @@ export default function AIAutomationTab({
         training: "Training",
         saved: "Saved",
         uploaded: "Uploaded",
+        adaptive_starting: "Start",
+        adaptive_verifying: "Verify",
+        adaptive_learning: "Learning",
     };
     const overallProgressPct = (() => {
         const phase = trainingStatus?.phase ?? null;
         if (!phase) return null;
-        if (phase === "processing_symbols" && symbolProgressPct !== null) {
+        if (phase === "adaptive_verifying" && symbolProgressPct !== null) {
             return Math.min(60, 10 + Math.round(symbolProgressPct * 0.5));
         }
         return phaseProgressMap[phase] ?? null;
@@ -171,14 +185,17 @@ export default function AIAutomationTab({
     const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
     const [pendingDeleteModel, setPendingDeleteModel] = useState<string | null>(null);
     // Sniper Strategy Parameters
-    const [targetPct, setTargetPct] = useState<number>(0.15);
-    const [stopLossPct, setStopLossPct] = useState<number>(0.05);
+    const [targetPct, setTargetPct] = useState<number>(0.03);
+    const [stopLossPct, setStopLossPct] = useState<number>(0.06);
     const [lookForwardDays, setLookForwardDays] = useState<number>(20);
     const [learningRate, setLearningRate] = useState<number>(0.05);
     const [patience, setPatience] = useState<number>(50);
 
-    // Adaptive Learning State
+    // Meta-Labeling (default ON)
+    const [useMetaLabeling, setUseMetaLabeling] = useState<boolean>(true);
+    const [metaThreshold, setMetaThreshold] = useState<number>(0.33);
 
+    // Adaptive Learning State
     const [retraining, setRetraining] = useState(false);
     const [updatingActuals, setUpdatingActuals] = useState(false);
 
@@ -573,6 +590,27 @@ export default function AIAutomationTab({
                                                         {model.trainingSamples} Samples
                                                     </span>
                                                 )}
+                                                {model.learning_rate !== undefined && (
+                                                    <span className="text-[10px] bg-sky-600/20 text-sky-300 px-2 py-1 rounded-lg font-bold">
+                                                        LR: {model.learning_rate}
+                                                    </span>
+                                                )}
+
+                                                {model.uses_exchange_index_json && (
+                                                    <span className="text-[10px] bg-purple-600/20 text-purple-300 px-2 py-1 rounded-lg font-bold">
+                                                        Index JSON
+                                                    </span>
+                                                )}
+                                                {model.uses_fundamentals && (
+                                                    <span className="text-[10px] bg-emerald-600/20 text-emerald-300 px-2 py-1 rounded-lg font-bold">
+                                                        Fundamentals
+                                                    </span>
+                                                )}
+                                                {model.has_meta_labeling && (
+                                                    <span className="text-[10px] bg-amber-600/20 text-amber-300 px-2 py-1 rounded-lg font-bold">
+                                                        Meta-Labeling
+                                                    </span>
+                                                )}
                                             </div>
                                         </div>
 
@@ -722,7 +760,15 @@ export default function AIAutomationTab({
                                 </div>
 
                                 <div className="space-y-1">
-                                    <label className="text-[10px] text-zinc-500 uppercase font-black px-1">Learning Rate</label>
+                                    <label className="text-[10px] text-zinc-500 uppercase font-black px-1 flex items-center justify-between">
+                                        <span>Learning Rate</span>
+                                        {trainingStrategy === "optuna" && (
+                                            <span className="text-[9px] text-indigo-400 animate-pulse flex items-center gap-1">
+                                                <Sparkles className="w-3 h-3" />
+                                                AUTO
+                                            </span>
+                                        )}
+                                    </label>
                                     <input
                                         type="number"
                                         min={0.001}
@@ -730,7 +776,9 @@ export default function AIAutomationTab({
                                         step={0.001}
                                         value={learningRate}
                                         onChange={(e) => setLearningRate(Number(e.target.value) || 0.05)}
-                                        className="w-full h-11 rounded-xl border border-zinc-800 bg-black px-3 text-sm text-zinc-300 focus:border-indigo-500"
+                                        disabled={trainingStrategy === "optuna"}
+                                        className="w-full h-11 rounded-xl border border-zinc-800 bg-black px-3 text-sm text-zinc-300 focus:border-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        title={trainingStrategy === "optuna" ? "Automatically managed by Optuna" : ""}
                                     />
                                 </div>
 
@@ -778,6 +826,7 @@ export default function AIAutomationTab({
                                         <option value="golden">Golden Mix (default)</option>
                                         <option value="grid_small">Full Grid Search (small data)</option>
                                         <option value="random">Random Search (fast tuning)</option>
+                                        <option value="optuna">Optuna Optimization (Bayesian - Recommended)</option>
                                     </select>
                                 </div>
 
@@ -791,6 +840,21 @@ export default function AIAutomationTab({
                                             step={1}
                                             value={randomSearchIter}
                                             onChange={(e) => setRandomSearchIter(Number(e.target.value) || 5)}
+                                            className="w-full h-11 rounded-xl border border-zinc-800 bg-black px-3 text-sm text-zinc-300 focus:border-indigo-500"
+                                        />
+                                    </div>
+                                )}
+
+                                {trainingStrategy === "optuna" && (
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] text-zinc-500 uppercase font-black px-1">Optuna Trials</label>
+                                        <input
+                                            type="number"
+                                            min={5}
+                                            max={200}
+                                            step={5}
+                                            value={optunaTrials}
+                                            onChange={(e) => setOptunaTrials(Number(e.target.value) || 30)}
                                             className="w-full h-11 rounded-xl border border-zinc-800 bg-black px-3 text-sm text-zinc-300 focus:border-indigo-500"
                                         />
                                     </div>
@@ -811,6 +875,7 @@ export default function AIAutomationTab({
                                                 className="w-full h-11 rounded-xl border border-zinc-800 bg-black px-3 text-sm text-zinc-300 focus:border-indigo-500"
                                             >
                                                 <option value={0.01}>1%</option>
+                                                <option value={0.03}>3%</option>
                                                 <option value={0.05}>5%</option>
                                                 <option value={0.10}>10%</option>
                                                 <option value={0.15}>15%</option>
@@ -828,6 +893,7 @@ export default function AIAutomationTab({
                                                 <option value={0.01}>1%</option>
                                                 <option value={0.03}>3%</option>
                                                 <option value={0.05}>5%</option>
+                                                <option value={0.06}>6%</option>
                                                 <option value={0.07}>7%</option>
                                                 <option value={0.10}>10%</option>
                                             </select>
@@ -844,6 +910,46 @@ export default function AIAutomationTab({
                                                 <option value={20}>20 days</option>
                                                 <option value={30}>30 days</option>
                                             </select>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Meta-Labeling Settings */}
+                                <div className="col-span-2 pt-4 border-t border-zinc-800">
+                                    <div className="flex items-center justify-between gap-3 mb-4">
+                                        <div className="flex flex-col">
+                                            <span className="text-[10px] text-zinc-500 uppercase font-black">Meta-Labeling</span>
+                                            <span className="text-[10px] text-zinc-600">(XGBoost filter)</span>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => setUseMetaLabeling(v => !v)}
+                                            className={`px-3 py-2 rounded-xl border text-[11px] font-black transition-all ${useMetaLabeling ? "bg-amber-500/20 border-amber-500/30 text-amber-200" : "bg-zinc-900 border-zinc-800 text-zinc-400"}`}
+                                        >
+                                            {useMetaLabeling ? "ON" : "OFF"}
+                                        </button>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div className="space-y-1 col-span-2">
+                                            <label className="text-[10px] text-zinc-500 uppercase font-black px-1">
+                                                Meta Confidence Threshold
+                                            </label>
+                                            <input
+                                                type="range"
+                                                min={0.1}
+                                                max={0.95}
+                                                step={0.01}
+                                                value={metaThreshold}
+                                                onChange={(e) => setMetaThreshold(Number(e.target.value) || 0.30)}
+                                                disabled={!useMetaLabeling}
+                                                className="w-full"
+                                            />
+                                            <div className="flex items-center justify-between text-[10px] text-zinc-500 px-1">
+                                                <span>0.10</span>
+                                                <span className="text-amber-300 font-black">{metaThreshold.toFixed(2)}</span>
+                                                <span>0.95</span>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -1026,12 +1132,15 @@ export default function AIAutomationTab({
                                                 featurePreset,
                                                 trainingStrategy,
                                                 randomSearchIter: trainingStrategy === "random" ? randomSearchIter : undefined,
+                                                optunaTrials: trainingStrategy === "optuna" ? optunaTrials : undefined,
                                                 maxFeatures: maxFeatures ?? undefined,
                                                 targetPct,
                                                 stopLossPct,
                                                 lookForwardDays,
                                                 learningRate,
                                                 patience,
+                                                useMetaLabeling,
+                                                metaThreshold,
                                             }),
                                         });
                                         const data = await res.json();
@@ -1578,8 +1687,7 @@ export default function AIAutomationTab({
                                                 })
                                             });
                                             console.log("[Adaptive] Update actuals started.");
-                                            toast.success("Updating actuals started");
-                                            // The global polling will pick up the status message
+                                            // The global polling will pick up the status message, no toast needed as per request
                                         } catch (e) {
                                             console.error("[Adaptive] Update error:", e);
                                             toast.error("Failed to start update");
@@ -1596,8 +1704,24 @@ export default function AIAutomationTab({
                                 </button>
 
                                 {trainingStatus?.running && trainingStatus.last_message && (
-                                    <div className="p-3 rounded-xl bg-zinc-900/50 border border-zinc-800 text-[10px] font-mono text-zinc-400 text-center animate-pulse">
-                                        {trainingStatus.last_message}
+                                    <div className="space-y-4">
+                                        <div className="p-3 rounded-xl bg-purple-500/10 border border-purple-500/20 text-[10px] font-mono text-purple-400 text-center animate-pulse">
+                                            {trainingStatus.last_message}
+                                        </div>
+                                        {overallProgressPct !== null && trainingStatus.phase?.startsWith('adaptive') && (
+                                            <div className="space-y-1.5 px-1">
+                                                <div className="flex items-center justify-between text-[9px] font-black uppercase tracking-widest text-zinc-500">
+                                                    <span>{trainingStatus.phase.replace('adaptive_', '').replace('_', ' ')}</span>
+                                                    <span>{overallProgressPct}%</span>
+                                                </div>
+                                                <div className="h-1.5 rounded-full bg-zinc-800 overflow-hidden border border-zinc-700/50">
+                                                    <div
+                                                        className="h-full bg-gradient-to-r from-purple-600 to-indigo-500 transition-all duration-500"
+                                                        style={{ width: `${overallProgressPct}%` }}
+                                                    />
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
                                 )}
 
@@ -1622,7 +1746,7 @@ export default function AIAutomationTab({
                                             });
                                             if (res.ok) {
                                                 console.log("[Adaptive] Retraining started successfully.");
-                                                toast.success("Retraining started");
+                                                // Removed toast as per request
                                             } else {
                                                 const err = await res.text();
                                                 console.error("[Adaptive] Retrain failed:", err);

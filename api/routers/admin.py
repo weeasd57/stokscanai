@@ -1,7 +1,7 @@
 import os
 import json
 import requests
-from typing import List, Optional
+from typing import List, Optional, Dict
 from collections import defaultdict
 from fastapi import APIRouter, BackgroundTasks, HTTPException
 from fastapi.responses import JSONResponse, StreamingResponse
@@ -1009,20 +1009,34 @@ def recalculate_indicators(req: RecalculateTechRequest, background_tasks: Backgr
     background_tasks.add_task(_worker, symbols, req.exchange)
     return {"status": "success", "message": f"Recalculation started for {len(symbols)} symbols in background"}
 
+class AISimulateRequest(BaseModel):
+    modelName: str
+    featureValues: Dict[str, float]
+
+class AIHeatmapRequest(BaseModel):
+    modelName: str
+    featureX: str
+    featureY: str
+    fixedValues: Dict[str, float]
+    gridRes: Optional[int] = 50
+
 class TrainTriggerRequest(BaseModel):
     exchange: str
     useEarlyStopping: bool = True
     nEstimators: Optional[int] = None
     modelName: Optional[str] = None
     featurePreset: Optional[str] = None  # "core" | "extended" | "max"
-    trainingStrategy: Optional[str] = None  # "golden" | "grid_small" | "random"
+    trainingStrategy: Optional[str] = None  # "golden" | "grid_small" | "random" | "optuna"
     randomSearchIter: Optional[int] = None
+    optunaTrials: int = 30
     maxFeatures: Optional[int] = None
     targetPct: float = 0.15  # Target gain percentage (e.g., 0.15 = 15%)
     stopLossPct: float = 0.05  # Stop loss percentage (e.g., 0.05 = 5%)
     lookForwardDays: int = 20  # Look-ahead window in trading days
     learningRate: float = 0.05
     patience: int = 50
+    useMetaLabeling: bool = True
+    metaThreshold: float = 0.7
 
 @router.post("/train/trigger")
 async def trigger_training(req: TrainTriggerRequest):
@@ -1063,7 +1077,7 @@ async def trigger_training(req: TrainTriggerRequest):
 @router.post("/train/local")
 async def trigger_local_training(req: TrainTriggerRequest, background_tasks: BackgroundTasks):
     try:
-        from train_exchange_model import train_model
+        from api.train_exchange_model import train_model
     except ImportError as e:
         print(f"Import Error: {e}")
         if "lightgbm" in str(e):
@@ -1099,6 +1113,10 @@ async def trigger_local_training(req: TrainTriggerRequest, background_tasks: Bac
         look_forward_days: int,
         learning_rate: float,
         patience: int,
+        use_meta_labeling: bool,
+        meta_threshold: float,
+        optimize: bool = False,
+        n_trials: int = 30,
     ):
         try:
             print(f"Starting local training for {ex}")
@@ -1143,6 +1161,10 @@ async def trigger_local_training(req: TrainTriggerRequest, background_tasks: Bac
                 look_forward_days=look_forward_days,
                 learning_rate=learning_rate,
                 patience=patience,
+                use_meta_labeling=use_meta_labeling,
+                meta_threshold=meta_threshold,
+                optimize=optimize,
+                n_trials=n_trials,
             )
             print(f"Local training for {ex} completed")
             with _local_training_lock:
@@ -1178,6 +1200,10 @@ async def trigger_local_training(req: TrainTriggerRequest, background_tasks: Bac
         req.lookForwardDays,
         req.learningRate,
         req.patience,
+        req.useMetaLabeling,
+        req.metaThreshold,
+        optimize=(req.trainingStrategy == "optuna"),
+        n_trials=req.optunaTrials
     )
     return {"status": "success", "message": f"Local training started for {req.exchange}. Check server logs for progress."}
 
@@ -1456,8 +1482,79 @@ def list_local_models():
                     with open(filepath, "rb") as f:
                         model = pickle.load(f)
 
+                    is_meta_labeling_artifact = False
+
+                    # Meta-labeling system artifact (2-stage) support
+                    if isinstance(model, dict) and ("primary_model" in model and "meta_model" in model):
+                        info["model_type"] = "meta_labeling"
+                        info["has_meta_labeling"] = True
+                        is_meta_labeling_artifact = True
+                        try:
+                            pm = model.get("primary_model")
+                            if isinstance(pm, dict):
+                                ex = pm.get("exchange")
+                                if isinstance(ex, str):
+                                    info.setdefault("exchange", ex)
+                                fp = pm.get("featurePreset")
+                                if isinstance(fp, str):
+                                    info.setdefault("featurePreset", fp)
+                                ts = pm.get("trainingSamples")
+                                if isinstance(ts, (int, float)):
+                                    info.setdefault("trainingSamples", int(ts))
+
+                                # Surface key card fields for the UI (same shape as non-meta artifacts)
+                                feat_names = pm.get("feature_names")
+                                if isinstance(feat_names, list):
+                                    info.setdefault("num_features", int(len(feat_names)))
+
+                                lr = pm.get("learning_rate")
+                                if isinstance(lr, (int, float)):
+                                    info.setdefault("learning_rate", float(lr))
+
+                                for k in ("target_pct", "stop_loss_pct", "look_forward_days"):
+                                    v = pm.get(k)
+                                    if isinstance(v, (int, float)):
+                                        info.setdefault(k, float(v) if k != "look_forward_days" else int(v))
+
+                                # Tree count / capacity (prefer best iteration if present)
+                                best_it = pm.get("bestIteration")
+                                if isinstance(best_it, (int, float)):
+                                    info.setdefault("bestIteration", int(best_it))
+                                    info.setdefault("num_parameters", int(best_it))
+                                else:
+                                    ne = pm.get("n_estimators")
+                                    if isinstance(ne, (int, float)):
+                                        info.setdefault("num_parameters", int(ne))
+                        except Exception:
+                            pass
+
+                        # Meta threshold is stored at the top-level of the artifact
+                        try:
+                            mt = model.get("meta_threshold")
+                            if isinstance(mt, (int, float)):
+                                info.setdefault("meta_threshold", float(mt))
+                        except Exception:
+                            pass
+
+                        # Strategy params are also stored at the top-level of the artifact
+                        try:
+                            for k in ("target_pct", "stop_loss_pct", "look_forward_days", "learning_rate"):
+                                v = model.get(k)
+                                if isinstance(v, (int, float)):
+                                    info.setdefault(k, float(v) if k != "look_forward_days" else int(v))
+                        except Exception:
+                            pass
+
+                        # Try to surface basic stats when present
+                        try:
+                            stats = model.get("training_stats")
+                            if isinstance(stats, dict):
+                                info["training_stats"] = stats
+                        except Exception:
+                            pass
+
                     # Lightweight artifact format (fast to load)
-                    if isinstance(model, dict) and model.get("kind") == "lgbm_booster":
+                    if (not is_meta_labeling_artifact) and isinstance(model, dict) and model.get("kind") == "lgbm_booster":
                         nf = model.get("num_features")
                         nt = model.get("num_trees")
                         ne = model.get("n_estimators")
@@ -1475,9 +1572,30 @@ def list_local_models():
                         # New fields
                         info["n_estimators"] = int(ne) if isinstance(ne, (int, float)) else None
                         info["num_trees"] = int(nt) if isinstance(nt, (int, float)) else None
+                        info["learning_rate"] = model.get("learning_rate")
                         info["exchange"] = model.get("exchange")
                         info["featurePreset"] = model.get("featurePreset")
                         info["bestIteration"] = model.get("bestIteration")
+
+                        # Derived flags (fallback when no model card exists)
+                        try:
+                            feat_names = model.get("feature_names")
+                            if not isinstance(feat_names, list):
+                                feat_names = []
+                            fund_cols = {"marketCap", "peRatio", "eps", "dividendYield", "sector", "industry"}
+                            info.setdefault("uses_fundamentals", any((f in fund_cols) for f in feat_names))
+                        except Exception:
+                            pass
+                        try:
+                            ex = model.get("exchange")
+                            if isinstance(ex, str) and ex.upper() == "EGX":
+                                project_root = os.path.abspath(os.path.join(models_dir, "..", ".."))
+                                cand = os.path.join(project_root, "symbols_data", "EGX30-INDEX.json")
+                                if os.path.exists(cand):
+                                    info.setdefault("uses_exchange_index_json", True)
+                                    info.setdefault("exchange_index_json_path", "symbols_data/EGX30-INDEX.json")
+                        except Exception:
+                            pass
 
                         # Add Sniper Strategy Params
                         info["target_pct"] = model.get("target_pct")
@@ -1489,7 +1607,10 @@ def list_local_models():
                         continue
 
                     # sklearn-style models often expose n_features_in_
-                    num_features = getattr(model, "n_features_in_", None)
+                    if is_meta_labeling_artifact:
+                        num_features = None
+                    else:
+                        num_features = getattr(model, "n_features_in_", None)
                     if isinstance(num_features, (int, float)):
                         num_features = int(num_features)
                         info["num_features"] = num_features
@@ -1555,8 +1676,30 @@ def list_local_models():
                         fp = meta.get("featurePreset")
                         if isinstance(fp, str):
                             info.setdefault("featurePreset", fp)
+                        lr = meta.get("learning_rate")
+                        if lr is not None:
+                            info.setdefault("learning_rate", lr)
             except Exception as meta_err:
                 print(f"Warning: failed to read per-model meta for {filename}: {meta_err}")
+
+            # Attach Model Card when available (generated by training pipeline)
+            try:
+                card_path = os.path.join(models_dir, f"{filename}.model_card.json")
+                if os.path.exists(card_path):
+                    with open(card_path, "r", encoding="utf-8") as cf:
+                        card = json.load(cf)
+                    if isinstance(card, dict):
+                        di = card.get("data_inputs") if isinstance(card.get("data_inputs"), dict) else {}
+                        caps = card.get("capabilities") if isinstance(card.get("capabilities"), dict) else {}
+
+                        info["model_card"] = card
+                        info["uses_exchange_index_json"] = bool(di.get("uses_exchange_index_json"))
+                        info["exchange_index_json_path"] = di.get("exchange_index_json_path")
+                        info["uses_fundamentals"] = bool(di.get("uses_fundamentals"))
+                        info["fundamentals_loaded"] = bool(di.get("fundamentals_loaded"))
+                        info["has_meta_labeling"] = bool(caps.get("has_meta_labeling"))
+            except Exception as card_err:
+                print(f"Warning: failed to read model card for {filename}: {card_err}")
 
             models.append(info)
 
@@ -1598,16 +1741,24 @@ def get_model_info(model_name: str):
             nf = model.get("num_features")
             nt = model.get("num_trees")
             ne = model.get("n_estimators")
+            
+            # Prefer num_trees for parameter count if it exists and looks realistic
+            param_count = 0
+            if isinstance(nt, (int, float)) and nt > 0:
+                param_count = int(nt)
+            elif isinstance(ne, (int, float)) and ne > 0:
+                param_count = int(ne)
+                
             info = {
                 "name": model_name,
                 "num_features": int(nf) if isinstance(nf, (int, float)) else len(features),
-                "num_parameters": int(ne) if isinstance(ne, (int, float)) else int(nt) if isinstance(nt, (int, float)) else 0,
+                "num_parameters": param_count,
                 "model_type": "lgbm_booster",
                 "features": features,
             }
 
             # Optional metadata
-            for k in ("exchange", "featurePreset", "trainingStrategy", "timestamp", "trainingSamples"):
+            for k in ("exchange", "featurePreset", "trainingStrategy", "timestamp", "trainingSamples", "learning_rate"):
                 v = model.get(k)
                 if v is not None:
                     info[k] = v
@@ -1681,6 +1832,94 @@ def delete_local_model(model_name: str):
 @router.delete("/train/models/{model_name}")
 def delete_local_model_from_train(model_name: str):
     return _delete_local_model(model_name)
+
+@router.post("/ai-brain/simulate")
+def simulate_ai_decision(req: AISimulateRequest):
+    try:
+        models_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "models"))
+        model_path = os.path.join(models_dir, req.modelName)
+        if not os.path.exists(model_path):
+            raise HTTPException(status_code=404, detail=f"Model not found: {req.modelName}")
+        
+        from api.ai_brain_visualizer import AIBrainVisualizer
+        visualizer = AIBrainVisualizer(model_path)
+        result = visualizer.simulate_decision(req.featureValues)
+        
+        if "error" in result:
+            raise HTTPException(status_code=400, detail=result["error"])
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Simulation error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/ai-brain/heatmap")
+def get_ai_heatmap(req: AIHeatmapRequest):
+    try:
+        models_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "models"))
+        model_path = os.path.join(models_dir, req.modelName)
+        if not os.path.exists(model_path):
+            raise HTTPException(status_code=404, detail=f"Model not found: {req.modelName}")
+        
+        from api.ai_brain_visualizer import AIBrainVisualizer
+        visualizer = AIBrainVisualizer(model_path)
+        result = visualizer.generate_heatmap(req.featureX, req.featureY, req.fixedValues, req.gridRes)
+        
+        if "error" in result:
+            raise HTTPException(status_code=400, detail=result["error"])
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Heatmap error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/ai-brain/symbol-data/{symbol}")
+def get_ai_brain_symbol_data(symbol: str):
+    """Fetches latest indicators for a symbol from Supabase for AI Brain simulation."""
+    try:
+        _init_supabase()
+        if not supabase:
+            raise HTTPException(status_code=500, detail="Supabase not initialized")
+
+        # Fetch enough data for indicators (at least 201 days for SMA_200)
+        res = supabase.table("stock_prices").select("*").eq("symbol", symbol).order("date", desc=True).limit(250).execute()
+        
+        if not res.data:
+            raise HTTPException(status_code=404, detail=f"No data found for symbol: {symbol}")
+            
+        df = pd.DataFrame(res.data)
+        df['date'] = pd.to_datetime(df['date'])
+        df = df.sort_values('date')
+        
+        # Calculate indicators
+        from api.train_exchange_model import add_technical_indicators, add_massive_features
+        df = add_technical_indicators(df)
+        df = add_massive_features(df)
+        
+        # Get latest row
+        latest = df.iloc[-1].to_dict()
+        
+        # Clean up JSON serializable
+        clean_data = {}
+        for k, v in latest.items():
+            if isinstance(v, (int, float, np.integer, np.floating)):
+                if np.isnan(v) or np.isinf(v):
+                    clean_data[k] = 0.0
+                else:
+                    clean_data[k] = float(v)
+            elif isinstance(v, (datetime, pd.Timestamp)):
+                clean_data[k] = v.isoformat()
+            else:
+                clean_data[k] = v
+                
+        return clean_data
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error fetching symbol data: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/update-symbols-inventory")
 async def update_symbols_inventory(background_tasks: BackgroundTasks, country: Optional[str] = None):
@@ -1881,7 +2120,7 @@ def admin_retrain_adaptive(req: RetrainRequest, background_tasks: BackgroundTask
                 LOCAL_TRAINING_STATE["last_update"] = datetime.utcnow().isoformat()
 
         try:
-            _log_cb(f"Starting manual retraining for {req.exchange}...")
+            _log_cb({"phase": "adaptive_starting", "message": f"Initializing retraining for {req.exchange}..."})
             # Load current model
             # If model_name is set, load that specific picker, otherwise fallback to default
             target_model_name = req.model_name or f"model_{req.exchange}.pkl"
@@ -1902,6 +2141,7 @@ def admin_retrain_adaptive(req: RetrainRequest, background_tasks: BackgroundTask
                 return
 
             retrainer = ManualRetrainer(req.exchange, log_cb=_log_cb)
+            _log_cb({"phase": "adaptive_verifying", "message": f"Fetching mistakes for {target_model_name}..."})
             mistakes = retrainer.fetch_mistakes(req.lookback_days, model_name=req.model_name)
             if not mistakes:
                 _log_cb(f"No recent mistakes found for {target_model_name} to retrain on.")
@@ -1978,7 +2218,7 @@ def get_adaptive_results(exchange: str = "EGX", model_name: Optional[str] = None
         return []
     try:
         query = supabase.table("scan_results")\
-            .select("symbol, prediction, status, entry_price, created_at")\
+            .select("symbol, precision, status, entry_price, created_at")\
             .eq("exchange", exchange)\
             .not_.eq("status", "open")\
             .order("created_at", desc=True)\

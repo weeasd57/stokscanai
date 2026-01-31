@@ -3,8 +3,8 @@ from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, HTTPException, Query, Request
 from pydantic import BaseModel
 
-from stock_ai import run_pipeline, check_local_cache, _get_exchange_bulk_data
-from symbols_local import load_symbols_for_country
+from api.stock_ai import run_pipeline, check_local_cache, _get_exchange_bulk_data
+from api.symbols_local import load_symbols_for_country
 
 router = APIRouter(prefix="/scan", tags=["scan"])
 

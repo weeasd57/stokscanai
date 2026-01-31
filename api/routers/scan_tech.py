@@ -4,8 +4,8 @@ from fastapi import APIRouter, HTTPException, Body, Request
 from pydantic import BaseModel, field_validator
 from eodhd import APIClient
 
-from stock_ai import get_stock_data_eodhd, add_technical_indicators, check_local_cache, is_ticker_synced, get_company_fundamentals
-from symbols_local import load_symbols_for_country
+from api.stock_ai import get_stock_data_eodhd, add_technical_indicators, check_local_cache, is_ticker_synced, get_company_fundamentals
+from api.symbols_local import load_symbols_for_country
 
 router = APIRouter(prefix="/scan", tags=["scan"])
 
@@ -103,7 +103,7 @@ async def scan_technical(
     except FileNotFoundError:
         raise HTTPException(status_code=404, detail=f"No symbols found for country: {f.country}")
 
-    from stock_ai import is_ticker_synced
+    from api.stock_ai import is_ticker_synced
     
     # Pre-calculate sync status for ALL symbols in the country to avoid O(N) single queries
     # Sort candidates to prioritize those already in cache
@@ -209,7 +209,7 @@ async def scan_technical(
             ai_prec = None
             ai_sig = None
             if f.use_ai_filter:
-                from stock_ai import run_pipeline
+                from api.stock_ai import run_pipeline
                 prediction = run_pipeline(
                     api_key=api_key,
                     ticker=symbol,
@@ -288,8 +288,8 @@ async def get_scan_dashboard(request: Request, country: str = "Egypt", limit: in
         candidates = symbols_data[:5]
 
     api = APIClient(api_key)
-    from lib.indicators import calculate_indicator_stats_v2
-    from stock_ai import run_pipeline
+    from api.lib.indicators import calculate_indicator_stats_v2
+    from api.stock_ai import run_pipeline
     
     aggr = {
         "rsi": {"wins": 0, "total": 0, "buys": 0, "sells": 0},
