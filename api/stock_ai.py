@@ -121,6 +121,102 @@ class _MetaLabelingClassifier:
                 pass
         return []
 
+
+class TheCouncil:
+    """
+    Ensemble Learning (Voting System) that aggregates predictions from multiple experts.
+    Decision logic:
+    - Decisions are based on a mix of Hard Voting (consensus) and Soft Voting (confidence).
+    - If 75% of experts agree on a BUY, it triggers a STRONG BUY signal.
+    - If 50% agree and average confidence is above threshold, it triggers a BUY signal.
+    """
+    def __init__(self, models_and_predictors: List[Tuple[Any, List[str]]], threshold: float = 0.6):
+        """
+        models_and_predictors: List of tuples (model_object, list_of_predictors)
+        threshold: Minimum confidence for a 'BUY' signal if consensus is split.
+        """
+        self.experts = models_and_predictors
+        self.threshold = threshold
+
+    def predict_proba(self, X: pd.DataFrame):
+        all_probs = []
+        for model, predictors in self.experts:
+            # Ensure features are present
+            missing = [p for p in predictors if p not in X.columns]
+            if missing:
+                # Fill missing columns with 0 as a safety measure
+                X_temp = X.copy()
+                for m in missing:
+                    X_temp[m] = 0
+                X_subset = X_temp[predictors]
+            else:
+                X_subset = X[predictors]
+
+            if hasattr(model, "predict_proba"):
+                # Handle 2D output from predict_proba
+                res = model.predict_proba(X_subset)
+                if res.ndim == 2 and res.shape[1] == 2:
+                    prob = res[:, 1]
+                else:
+                    prob = res.flatten()
+            else:
+                prob = np.asarray(model.predict(X_subset)).astype(float)
+            all_probs.append(np.asarray(prob))
+        
+        avg_prob = np.mean(all_probs, axis=0)
+        return np.column_stack([1 - avg_prob, avg_prob])
+
+    def predict(self, X: pd.DataFrame):
+        all_votes = []
+        all_probs = []
+        for model, predictors in self.experts:
+            missing = [p for p in predictors if p not in X.columns]
+            if missing:
+                X_temp = X.copy()
+                for m in missing:
+                    X_temp[m] = 0
+                X_subset = X_temp[predictors]
+            else:
+                X_subset = X[predictors]
+
+            if hasattr(model, "predict_proba"):
+                res = model.predict_proba(X_subset)
+                prob = res[:, 1] if (res.ndim == 2 and res.shape[1] == 2) else res.flatten()
+                # Individual expert threshold (usually 0.5, but can be looser)
+                vote = (prob >= 0.5).astype(int)
+            else:
+                vote = np.asarray(model.predict(X_subset)).astype(int)
+                prob = vote.astype(float)
+            
+            all_votes.append(vote)
+            all_probs.append(prob)
+            
+        votes_array = np.array(all_votes)
+        buy_votes = np.sum(votes_array, axis=0)
+        total_experts = len(self.experts)
+        consensus_ratio = buy_votes / total_experts
+        avg_prob = np.mean(all_probs, axis=0)
+        
+        final_preds = np.zeros(len(X), dtype=int)
+        for i in range(len(X)):
+            # 75% Consensus (e.g. 3/4 or 4/4)
+            if consensus_ratio[i] >= 0.75:
+                final_preds[i] = 1
+            # 50% Consensus + High Confidence
+            elif consensus_ratio[i] >= 0.50 and avg_prob[i] > self.threshold:
+                final_preds[i] = 1
+                
+        return final_preds
+
+    def get_feature_importance(self):
+        # Weighted average of feature importance if possible, or just the first one
+        try:
+            if self.experts and hasattr(self.experts[0][0], "get_feature_importance"):
+                return self.experts[0][0].get_feature_importance()
+        except Exception:
+            pass
+        return []
+
 supabase: Optional[Client] = None
 
 # Predictors used by the pre-trained LightGBM models
@@ -1972,7 +2068,7 @@ def prepare_for_ai(
     for c in ["sector", "industry"]:
         if c in out.columns:
             # Force to string then category to handle varied input types gracefully
-            out[c] = out[c].fillna("Unknown").astype(str).astype("category")
+            out[c] = out[c].astype(str).replace(['nan', 'None', ''], "Unknown").astype("category")
 
     numeric_cols = out.select_dtypes(include=["number"]).columns
     out[numeric_cols] = out[numeric_cols].fillna(0.0)
@@ -2150,6 +2246,83 @@ def _sanitize_rf_params(
     return out
 
 
+def _load_the_council():
+    """
+    Loads multiple pre-trained models and initializes TheCouncil ensemble.
+    """
+    api_dir = os.path.dirname(os.path.abspath(__file__))
+    models_dir = os.path.join(api_dir, "models")
+    
+    # Define the experts to include in the council
+    model_files = [
+        "KING 👑.pkl",
+        "MINER ⛏.pkl",
+        "SUPER_EGX_EXTENDED_RANDOM_3000.pkl"
+    ]
+    
+    experts = []
+    for filename in model_files:
+        path = os.path.join(models_dir, filename)
+        if not os.path.exists(path):
+            continue
+            
+        try:
+            with open(path, "rb") as f:
+                artifact = pickle.load(f)
+            
+            model = None
+            predictors = LGBM_PREDICTORS
+            
+            # Use same logic as train_and_predict for different artifact kinds
+            if isinstance(artifact, dict) and artifact.get("kind") == "meta_labeling_system":
+                if lgb is not None and xgb is not None:
+                    primary_art = artifact.get("primary_model")
+                    booster = lgb.Booster(model_str=primary_art.get("model_str"))
+                    primary_clf = _LgbmBoosterClassifier(booster, 0.5)
+                    meta_model = artifact.get("meta_model")
+                    meta_feature_names = artifact.get("meta_feature_names")
+                    meta_threshold = artifact.get("meta_threshold", 0.7)
+                    model = _MetaLabelingClassifier(primary_clf, meta_model, meta_feature_names, meta_threshold)
+                    predictors = primary_art.get("feature_names") or list(booster.feature_name())
+            
+            elif isinstance(artifact, dict) and artifact.get("kind") == "lgbm_booster":
+                if lgb is not None:
+                    booster = lgb.Booster(model_str=artifact.get("model_str"))
+                    model = _LgbmBoosterClassifier(booster, artifact.get("threshold", 0.5))
+                    predictors = artifact.get("feature_names") or list(booster.feature_name())
+            
+            else:
+                model = artifact
+                # Guess predictors based on model type if possible, or use RF defaults
+                try:
+                    if hasattr(model, "feature_name_"):
+                        predictors = list(model.feature_name_)
+                    elif hasattr(model, "booster_"):
+                        predictors = list(model.booster_.feature_name())
+                except Exception:
+                    predictors = RF_PREDICTORS
+            
+            if model:
+                experts.append((model, predictors))
+                try:
+                    print(f"Council: Loaded expert from {filename} with {len(predictors)} predictors")
+                except UnicodeEncodeError:
+                    safe_name = filename.encode('ascii', 'ignore').decode('ascii')
+                    print(f"Council: Loaded expert from {safe_name} with {len(predictors)} predictors")
+        except Exception as e:
+            try:
+                print(f"Council: Failed to load expert {filename}: {e}")
+            except UnicodeEncodeError:
+                safe_name = filename.encode('ascii', 'ignore').decode('ascii')
+                print(f"Council: Failed to load expert {safe_name}: {e}")
+
+    if not experts:
+        return None
+    
+    # Threshold 0.6 means if consensus is 50/50, we need 60%+ average probability to BUY
+    return TheCouncil(experts, threshold=0.6)
+
+
 def train_and_predict(
     df: pd.DataFrame,
     rf_params: Optional[Dict[str, Any]] = None,
@@ -2181,7 +2354,19 @@ def train_and_predict(
     predictors = RF_PREDICTORS
     lgbm_artifact_loaded = False
     
-    if model_path and os.path.exists(model_path):
+    # SPECIAL CASE: THE COUNCIL (Ensemble)
+    if model_name == "THE_COUNCIL":
+        loaded_model = _load_the_council()
+        if loaded_model:
+            # Union of all features needed by experts
+            all_preds = set()
+            for _, p_list in loaded_model.experts:
+                all_preds.update(p_list)
+            predictors = list(all_preds)
+            lgbm_artifact_loaded = True # Treat as complex artifact to avoid RF fallbacks
+            print(f"Council active with {len(loaded_model.experts)} experts.")
+    
+    if (not loaded_model) and model_path and os.path.exists(model_path):
         # Try cached model first
         cached = _get_model_cached(model_path)
         if cached:
@@ -2239,7 +2424,10 @@ def train_and_predict(
                     look_forward_days = primary_art.get("look_forward_days", look_forward_days)
 
                     _ensure_feature_columns(df, predictors)
-                    print(f"Loaded Meta-Labeling system from {model_path} with {len(predictors)} primary predictors")
+                    try:
+                        print(f"Loaded Meta-Labeling system from {model_path} with {len(predictors)} primary predictors")
+                    except UnicodeEncodeError:
+                        print(f"Loaded Meta-Labeling system (path contains special characters) with {len(predictors)} primary predictors")
 
                 if isinstance(loaded_model, dict) and loaded_model.get("kind") == "lgbm_booster":
                     if lgb is None:
@@ -2650,7 +2838,8 @@ def run_pipeline(
                         # Handle categorical explicitly for LGBM
                         for c in ["sector", "industry"]:
                             if c in feat.columns:
-                                feat[c] = feat[c].fillna("Unknown").astype("category")
+                                # Safe categorical fillna
+                                feat[c] = feat[c].astype(str).replace(['nan', 'None', 'None', ''], "Unknown").astype("category")
                 except Exception as e:
                     print(f"Warning: Fundamental merge failed for {sym}: {e}")
 
@@ -2752,6 +2941,43 @@ def run_pipeline(
             tomorrow_prediction = int(model.predict(last_row)[0])
         except:
             tomorrow_prediction = 0
+            
+    # --- PHASE: Ensemble Consensus ---
+    consensus_info = None
+    if isinstance(model, TheCouncil):
+        try:
+            v_list = []
+            p_list = []
+            for expert_model, expert_preds in model.experts:
+                # Prepare row for this expert, handling missing features gracefully
+                missing = [p for p in expert_preds if p not in last_row.columns]
+                if missing:
+                    row_copy = last_row.copy()
+                    for m in missing: row_copy[m] = 0
+                    row_final = row_copy[expert_preds]
+                else:
+                    row_final = last_row[expert_preds]
+
+                if hasattr(expert_model, "predict_proba"):
+                    res = expert_model.predict_proba(row_final)
+                    prob = res[:, 1][0] if (res.ndim == 2 and res.shape[1] == 2) else res.flatten()[0]
+                    vote = 1 if prob >= 0.5 else 0
+                else:
+                    vote = int(expert_model.predict(row_final)[0])
+                    prob = float(vote)
+                v_list.append(vote)
+                p_list.append(prob)
+            
+            buy_votes = sum(v_list)
+            total = len(v_list)
+            avg_conf = sum(p_list) / total
+            consensus_info = {
+                "vote_count": f"{buy_votes}/{total}",
+                "avg_confidence": f"{round(avg_conf * 100)}%",
+                "ratio": round(buy_votes / total, 2)
+            }
+        except Exception as e:
+            print(f"Warning: Failed to calculate ensemble consensus: {e}")
 
     # --- Phase 7: Finalize Data ---
     last_close = float(prices_ai.iloc[-1]["Close"])
@@ -2927,6 +3153,7 @@ def run_pipeline(
         "testPredictions": out_preds,
         "note": "Precision is the % of correct UP predictions in the test set. Higher is better.",
         "topReasons": top_reasons,
+        "consensus": consensus_info,
     }
 
 # Alias for compatibility

@@ -353,10 +353,12 @@ def health():
 def list_local_models():
     try:
         # Prefer the richer metadata format used by the admin UI.
-        from routers.admin import list_local_models as _list_local_models
+        from api.routers.admin import list_local_models as _list_local_models
         return _list_local_models()
-    except Exception:
+    except Exception as e:
+        print(f"Warning: Failed to use admin router for local models: {e}")
         api_dir = os.path.dirname(os.path.abspath(__file__))
+
         models_dir = os.path.join(api_dir, "models")
         if not os.path.exists(models_dir):
             return {"models": []}
@@ -491,10 +493,11 @@ def symbols_synced(
     """API for frontend to fetch all synced symbols once and cache."""
     try:
         if source == "local" and country:
-            from symbols_local import load_symbols_for_country
-            from stock_ai import is_ticker_synced, _init_supabase
+            from api.symbols_local import load_symbols_for_country
+            from api.stock_ai import is_ticker_synced, _init_supabase
             _init_supabase()
             raw = load_symbols_for_country(country)
+
             # Map to consistent format, handling potential case differences in JSON keys
             results = []
             for r in raw:
@@ -512,8 +515,9 @@ def symbols_synced(
                     })
             return {"results": results}
 
-        from stock_ai import get_supabase_symbols
+        from api.stock_ai import get_supabase_symbols
         results = get_supabase_symbols(country=country)
+
         return {"results": results}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

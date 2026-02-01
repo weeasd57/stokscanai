@@ -1,20 +1,22 @@
+# AI Stocks Project TODO
 
-# 🚀 AI Stocks: Future Roadmap (AI Brain Phase)
+## Phase 1: Ensemble Learning (The Council) 🗳️
+Implementing a multi-model voting system to improve prediction accuracy and stability.
 
-## 🧠 Phase 4: AI Brain Visualizer & Dashboard
-- [x] **Backend: Visualizer Engine**
-    - [x] Create `ai_brain_visualizer.py` for heatmap/3D data generation.
-    - [x] Implement Risk Zone identification logic.
-    - [x] Add real-time Decision Simulator endpoint.
-- [x] **Frontend: Interactive UI**
-    - [x] Build `AIBrainDashboard.tsx` with Recharts-based Heatmaps.
-    - [x] Implement `AIDecisionSimulator.tsx` with live model feedback.
-    - [x] Create 3D Interactive Map (CSS-transformed or SVG-based).
-- [x] **Advanced Analytics**
-    - [x] Local Feature Importance (Sensitivity Analysis).
-    - [ ] Temporal Confidence Flow (how confidence changed over time).
+- [ ] Define the `TheCouncil` class to aggregate predictions from multiple models.
+- [ ] Integrate the top 4 performing models into the council:
+    - [ ] King Model
+    - [ ] Miner Model
+    - [ ] collector Model
+    - [ ] (Optional) Core Model or Price Action specialist
+- [ ] Implement Voting Logic:
+    - [ ] **Hard Voting:** Decision based on majority vote (e.g., 3/4 or 4/4).
+    - [ ] **Confidence Weighting:** Use model probabilities to weight votes.
+- [ ] Update API predict endpoints to use `TheCouncil` instead of a single model.
+- [ ] Add "Consensus Score" to the prediction response for better transparency.
+- [ ] Verify performance improvement through backtesting with `TheCouncil`.
 
-## 📋 General Maintenance
-- [ ] Performance Virtualization for large tables.
-- [ ] Automated Integration Tests for the training pipeline.
-- [ ] Skeleton Loaders and UX polish.
+## Phase 2: Stacking (Meta-Model) 🧠
+*Coming soon after Voting is stable.*
+- [ ] Train a "Boss" model that takes other models' outputs as features.
+- [ ] Implement adaptive weighting based on historical performance in different market conditions.

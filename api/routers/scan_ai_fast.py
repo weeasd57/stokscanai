@@ -49,12 +49,22 @@ def _load_model(model_name: str):
 
     predictors: Optional[List[str]] = None
     is_lgbm = False
+    
+    # Handle Meta Labeling System or complex artifact dicts
+    if isinstance(artifact, dict) and "primary_model" in artifact:
+        # Extract the underlying model and use its metrics if available
+        predictors = artifact.get("predictors")
+        is_lgbm = artifact.get("is_lgbm", False)
+        # If the outer dict has predictors, we use them, otherwise we fall through to the primary_model
+        artifact = artifact["primary_model"]
+
     model = artifact  # Default: artifact is the model itself
 
     # Handle dict artifact format (LightGBM booster saved as dict)
     if isinstance(artifact, dict) and artifact.get("kind") == "lgbm_booster":
         is_lgbm = True
-        predictors = artifact.get("feature_names", [])
+        if predictors is None:
+            predictors = artifact.get("feature_names", [])
         model_str = artifact.get("model_str")
         if model_str:
             try:
@@ -313,7 +323,7 @@ def _calculate_fundamental_score(row) -> int:
 @router.get("")
 async def fast_scan(
     country: str = Query(default="Egypt", description="Country to scan"),
-    limit: int = Query(default=200, ge=1, le=400, description="Max symbols to scan"),
+    limit: int = Query(default=200, ge=1, le=1000, description="Max symbols to scan"),
     min_precision: float = Query(default=0.5, ge=0.0, le=1.0),
     model_name: str = Query(..., description="Model file name in api/models"),
     from_date: str = Query(default=None, description="Start date (YYYY-MM-DD). Defaults to 300 days ago."),
@@ -321,7 +331,7 @@ async def fast_scan(
     target_pct: float = Query(default=0.10),
     stop_loss_pct: float = Query(default=0.05),
     look_forward_days: int = Query(default=20),
-    buy_threshold: float = Query(default=0.40),
+    buy_threshold: float = Query(default=0.60),
 ):
     start = time.time()
     
@@ -406,7 +416,7 @@ def evaluate_scan(batch_id: str):
     Checks for Target Price or Stop Loss hits chronologically.
     """
     _init_supabase()
-    from stock_ai import supabase as sb
+    from api.stock_ai import supabase as sb
     if not sb:
         raise HTTPException(status_code=500, detail="Supabase not initialized")
 

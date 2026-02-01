@@ -118,12 +118,14 @@ LOCAL_TRAINING_STATE = {
 _local_training_lock = threading.RLock()
 
 
-def _list_local_model_names() -> List[str]:
+def list_local_models() -> List[str]:
     base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
     models_dir = os.path.join(base_dir, "models")
     if not os.path.exists(models_dir):
         return []
-    return [f for f in os.listdir(models_dir) if f.endswith(".pkl")]
+    models = [f for f in os.listdir(models_dir) if f.endswith(".pkl")]
+    models.append("THE_COUNCIL")
+    return models
 
 @router.get("/db-inventory")
 def get_db_inventory():

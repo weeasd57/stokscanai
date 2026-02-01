@@ -210,48 +210,49 @@ def add_rolling_win_rate(df, window=30):
     if not close_col:
         return df  # Cannot calculate without close column
     
-    # Target: Did price go up tomorrow? (Shift -1)
-    target_up = (df[close_col].shift(-1) > df[close_col]).astype(int)
+    # Target: Did price go UP today compared to yesterday?
+    # We want to know: "Was the signal generated yesterday correct today?"
+    # At time T, we know Close[T] and Close[T-1].
+    # Signal[T-1] predicted move T-1 -> T.
+    target_up = (df[close_col] > df[close_col].shift(1)).astype(int)
     
-    # Check correctness
-    # Correct if (Signal=1 AND Up) OR (Signal=-1 AND Down)
+    # Check correctness of PAST signals
+    # rsi_correct[T] = 1 if Signal[T-1] correctly predicted Target[T]
     rsi_correct = (
-        ((df['feat_rsi_signal'] == 1) & (target_up == 1)) | 
-        ((df['feat_rsi_signal'] == -1) & (target_up == 0))
+        ((df['feat_rsi_signal'].shift(1) == 1) & (target_up == 1)) | 
+        ((df['feat_rsi_signal'].shift(1) == -1) & (target_up == 0))
     ).astype(int)
     
     ema_correct = (
-         ((df['feat_ema_signal'] == 1) & (target_up == 1)) | 
-         ((df['feat_ema_signal'] == -1) & (target_up == 0))
+         ((df['feat_ema_signal'].shift(1) == 1) & (target_up == 1)) | 
+         ((df['feat_ema_signal'].shift(1) == -1) & (target_up == 0))
     ).astype(int)
     
     bb_correct = (
-         ((df['feat_bb_signal'] == 1) & (target_up == 1)) | 
-         ((df['feat_bb_signal'] == -1) & (target_up == 0))
+         ((df['feat_bb_signal'].shift(1) == 1) & (target_up == 1)) | 
+         ((df['feat_bb_signal'].shift(1) == -1) & (target_up == 0))
     ).astype(int)
     
-    # Rolling Mean with Shift(1) to avoid data leakage
-    # We use shift(1) because at time T, we can only measure if signal at T-1 was correct (which resolves at T).
-    # Actually, signal at T-1 predicts T. So at T we look back. 
-    # But to use it as a feature at T, we need "Past Accuracy".
-    # Correctness of T-1 is available at T.
-    # So we take rolling mean of correctness shifted by 1.
-    df['feat_rsi_acc'] = rsi_correct.shift(1).rolling(window=window).mean().fillna(0.5)
-    df['feat_ema_acc'] = ema_correct.shift(1).rolling(window=window).mean().fillna(0.5)
-    df['feat_bb_acc'] = bb_correct.shift(1).rolling(window=window).mean().fillna(0.5)
+    # Rolling Accuracy of signals
+    # At time T, we want average accuracy of previous N days.
+    # We can include T's result in the rolling mean if we assume we run this after market close.
+    # To be safe and purely predictive for tomorrow T+1, we usually use data up to T.
+    # So rolling().mean() at T includes T.
+    df['feat_rsi_acc'] = rsi_correct.rolling(window=window).mean().fillna(0.5)
+    df['feat_ema_acc'] = ema_correct.rolling(window=window).mean().fillna(0.5)
+    df['feat_bb_acc'] = bb_correct.rolling(window=window).mean().fillna(0.5)
     
     return df
 
 def add_market_context(stock_df, market_df):
     """
-    Add Market Context features (Trend, Volatility, Relative Strength).
+    Add Advanced Market Context features (Beta, Correlation, Market Regime).
     """
     if market_df is None or market_df.empty:
-        # Return with 0s if no market data, to avoid crashing
-        stock_df = stock_df.copy()
-        stock_df['feat_mkt_trend'] = 0
-        stock_df['feat_mkt_volatility'] = 0
-        stock_df['feat_rel_strength'] = 0
+        # Fill with zeros and defaults
+        for feat in ['feat_mkt_trend', 'feat_mkt_volatility', 'feat_rel_strength', 
+                     'beta', 'correlation_20']:
+            stock_df[feat] = 0
         return stock_df
 
     # Ensure indexes are DatetimeIndex
@@ -262,25 +263,31 @@ def add_market_context(stock_df, market_df):
 
     # Reindex market data to match stock data (forward fill)
     market_reindexed = market_df.reindex(stock_df.index, method='ffill')
-
     stock_df = stock_df.copy()
     
-    # 1. Market Trend (is Market > SMA200?)
-    # We calculate on the reindexed series to align with stock dates
+    # 1. Market Trend
     stock_df['mkt_close'] = market_reindexed['close']
     stock_df['mkt_sma200'] = stock_df['mkt_close'].rolling(200).mean()
     stock_df['feat_mkt_trend'] = 0
     stock_df.loc[stock_df['mkt_close'] > stock_df['mkt_sma200'], 'feat_mkt_trend'] = 1
     stock_df.loc[stock_df['mkt_close'] < stock_df['mkt_sma200'], 'feat_mkt_trend'] = -1
     
-    # 2. Market Volatility (ATR) - Assuming market_reindexed has ATR or we compute rolling std
-    # Simple proxy: Rolling std of returns
+    # 2. Market Volatility (ATR Proxy)
     stock_df['feat_mkt_volatility'] = stock_df['mkt_close'].pct_change().rolling(20).std().fillna(0)
 
-    # 3. Relative Strength (Stock vs Market)
+    # 3. Relative Strength
     stock_ret = stock_df['close'].pct_change()
     market_ret = stock_df['mkt_close'].pct_change()
     stock_df['feat_rel_strength'] = (stock_ret - market_ret).fillna(0)
+    
+    # 4. Beta (Sensitivity)
+    window = 60
+    covariance = stock_ret.rolling(window).cov(market_ret)
+    market_variance = market_ret.rolling(window).var()
+    stock_df['beta'] = (covariance / market_variance.replace(0, np.nan)).fillna(1.0)
+    
+    # 5. Rolling Correlation
+    stock_df['correlation_20'] = stock_ret.rolling(20).corr(market_ret).fillna(0)
     
     # Cleanup
     stock_df.drop(columns=['mkt_close', 'mkt_sma200'], inplace=True, errors='ignore')
@@ -584,7 +591,7 @@ def add_technical_indicators(df):
 
     return out
 
-def prepare_for_ai(df, target_pct: float = 0.03, stop_loss_pct: float = 0.06, look_forward_days: int = 20, use_volatility: bool = False):
+def prepare_for_ai(df, target_pct: float = 0.12, stop_loss_pct: float = 0.04, look_forward_days: int = 15, use_volatility: bool = False):
     """
     Implements 'The Triple Barrier Method' labeling.
     
@@ -595,8 +602,12 @@ def prepare_for_ai(df, target_pct: float = 0.03, stop_loss_pct: float = 0.06, lo
     if df.empty: return df
     out = df.copy()
     
-    # Entry Point (Next Day Close as entry)
-    out['entry_price'] = out['Close'].shift(-1)
+    # Entry Point: Assume entry at CURRENT Close (no look-ahead)
+    # Ideally we enter at T+1 Open, but T Close is the best proxy without Future data.
+    out['entry_price'] = out['Close']
+    
+    # [DEBUG] Verify No Leakage
+    # print(f"[DEBUG] Entry Price Leakage Check: {(out['entry_price'] == out['Close']).mean():.1%} match Close")
     
     out['tp_barrier'] = out['entry_price'] * (1 + target_pct)
     out['sl_barrier'] = out['entry_price'] * (1 - stop_loss_pct)
@@ -729,6 +740,25 @@ class TrainingMonitor:
             self.alerts.append(
                 f"⚠️ WARNING: Precision={precision:.2%} - Too many false positives!"
             )
+            
+        return self.alerts
+
+    def calculate_strategy_suggestions(self, metrics: dict, target_pct: float, stop_loss_pct: float):
+        """Analyze metrics and suggest strategy parameter adjustments."""
+        precision = metrics.get('precision', 0)
+        recall = metrics.get('recall', 0)
+        
+        self._log("\n💡 STRATEGY SUGGESTIONS:")
+        
+        if precision < 0.4:
+            self._log(f"  - Precision is low ({precision:.1%}). Suggest tightening Stop Loss from {stop_loss_pct:.1%} to {max(0.01, stop_loss_pct*0.7):.1%}")
+            self._log(f"  - High False Positive rate detected. Consider increasing Target from {target_pct:.1%} to {target_pct*1.2:.1%}")
+        elif precision > 0.6 and recall < 0.3:
+            self._log(f"  - Precision is great ({precision:.1%}) but Recall is low ({recall:.1%}).")
+            self._log(f"  - Suggest loosening Stop Loss from {stop_loss_pct:.1%} to {stop_loss_pct*1.3:.1%} to catch more trends.")
+        else:
+            self._log("  - Balanced results! Current Target/Stop settings appear optimal for this model.")
+
         
         return self.alerts
     
@@ -770,7 +800,7 @@ class TrainingMonitor:
         return stats
 
 
-def calculate_optimal_class_weight(y, max_ratio: float = 5.0) -> dict:
+def calculate_optimal_class_weight(y, max_ratio: float = 10.0) -> dict:
     """
     Calculate class weights that prevent model from predicting all 1s.
     
@@ -869,7 +899,15 @@ class ModelTrainer:
             return exchange.upper()
 
     def _progress(self, msg: str) -> None:
-        print(msg)
+        try:
+            # Safe print for Windows consoles that might not support emojis
+            print(msg.encode(sys.stdout.encoding, errors='replace').decode(sys.stdout.encoding))
+        except Exception:
+            try:
+                print(msg.encode('utf-8', errors='ignore').decode('utf-8'))
+            except Exception:
+                pass
+                
         if self.progress_cb:
             try: self.progress_cb(msg)
             except Exception: pass
@@ -1279,12 +1317,18 @@ class ModelTrainer:
     def train_model(
         self, 
         df_train: pd.DataFrame, 
-        n_estimators: int = 5000, 
-        learning_rate: float = 0.05, 
+        n_estimators: int = 500, 
+        learning_rate: float = 0.01, 
         patience: int = 100,
-        optimized_params: Optional[Dict[str, Any]] = None
+        optimized_params: Optional[Dict[str, Any]] = None,
+        auto_prune: bool = False,
+        target_pct: float = 0.12,
+        stop_loss_pct: float = 0.04
     ) -> Any:
-        """Train LightGBM with early stopping and optional optimized params."""
+        """
+        Train LightGBM with early stopping and optional optimized params.
+        If auto_prune is True, it performs a first pass to identify and remove noise.
+        """
         X = df_train[self.predictors]
         y = df_train["Target"]
         
@@ -1330,7 +1374,7 @@ class ModelTrainer:
 
         # Calculate optimal class weights instead of using is_unbalance=True
         # This gives more control and prevents model from predicting all 1s
-        class_weight = calculate_optimal_class_weight(y_train, max_ratio=3.0)
+        class_weight = calculate_optimal_class_weight(y_train, max_ratio=10.0)
         
         params = {
             "n_estimators": n_estimators,
@@ -1365,6 +1409,19 @@ class ModelTrainer:
             callbacks=[c for c in callbacks if c is not None]
         )
         
+        # Step 2: Auto-Pruning Logic
+        if auto_prune:
+            important_features = self.prune_low_importance_features(model)
+            if len(important_features) < len(self.predictors):
+                self._progress(f"🚀 RE-TRAINING: Feature set optimized to {len(important_features)} features.")
+                self.predictors = important_features
+                # Recursively call with auto_prune=False to avoid infinite loop
+                return self.train_model(
+                    df_train, n_estimators, learning_rate, patience, 
+                    optimized_params, auto_prune=False,
+                    target_pct=target_pct, stop_loss_pct=stop_loss_pct
+                )
+
         # Evaluate
         metrics = self.calculate_validation_metrics(model, df_train)
         
@@ -1372,13 +1429,16 @@ class ModelTrainer:
         monitor.check_metrics(metrics)
         monitor.log_alerts()
         
+        # Strategy Suggestions
+        monitor.calculate_strategy_suggestions(metrics, target_pct, stop_loss_pct)
+        
         # Analyze and log feature importance
         self.analyze_feature_importance(model, top_n=20)
         
         return model, metrics, avg_purged_f1
 
     def calculate_validation_metrics(self, model, df_train: pd.DataFrame) -> Dict[str, float]:
-        """Calculate final metrics on the validation split."""
+        """Calculate final metrics on the validation split with Dynamic Threshold Optimization."""
         X = df_train[self.predictors]
         y = df_train["Target"]
         
@@ -1391,16 +1451,44 @@ class ModelTrainer:
         if len(np.unique(y_val)) < 2:
             return {"precision": 0.0, "recall": 0.0, "f1": 0.0, "auc": 0.5}
 
-        y_pred = model.predict(X_val)
+        # Get Probabilities
         y_prob = model.predict_proba(X_val)[:, 1]
+        
+        # --- Threshold Optimization Logic ---
+        from sklearn.metrics import precision_recall_curve
+        precisions, recalls, thresholds = precision_recall_curve(y_val, y_prob)
+        
+        # Calculate F1 for all thresholds
+        with np.errstate(divide='ignore', invalid='ignore'):
+            f1_scores = 2 * (precisions[:-1] * recalls[:-1]) / (precisions[:-1] + recalls[:-1])
+        f1_scores = np.nan_to_num(f1_scores)
+        
+        # Strategy: Find best F1 where Precision >= 0.50
+        valid_indices = precisions[:-1] >= 0.50
+        
+        if valid_indices.any():
+            valid_f1 = np.where(valid_indices, f1_scores, -1)
+            best_idx = np.argmax(valid_f1)
+        else:
+            self._progress("⚠️ No threshold achieves P>=50%, falling back to best F1.")
+            best_idx = np.argmax(f1_scores)
+            
+        optimal_threshold = thresholds[best_idx] if best_idx < len(thresholds) else 0.5
+        
+        # Final Prediction with Optimal Threshold
+        y_pred = (y_prob >= optimal_threshold).astype(int)
         
         metrics = {
             "precision": float(precision_score(y_val, y_pred, zero_division=0)),
             "recall": float(recall_score(y_val, y_pred, zero_division=0)),
             "f1": float(f1_score(y_val, y_pred, zero_division=0)),
-            "auc": float(roc_auc_score(y_val, y_prob))
+            "auc": float(roc_auc_score(y_val, y_prob)),
+            "optimal_threshold": float(optimal_threshold)
         }
-        self._progress(f"Final Validation Metrics: P={metrics['precision']:.4f}, R={metrics['recall']:.4f}, F1={metrics['f1']:.4f}")
+        
+        self._progress(f"Optimal Threshold Found: {optimal_threshold:.3f}")
+        self._progress(f"Metrics @ Threshold: P={metrics['precision']:.1%}, R={metrics['recall']:.1%}, F1={metrics['f1']:.1%}")
+        
         return metrics
 
     def analyze_feature_importance(
@@ -1450,6 +1538,33 @@ class ModelTrainer:
         except Exception as e:
             self._progress(f"Warning: Could not analyze feature importance: {e}")
             return pd.DataFrame()
+
+    def prune_low_importance_features(self, model, threshold: float = 0.1) -> List[str]:
+        """
+        Identify and return list of features with importance >= threshold.
+        """
+        try:
+            importance = model.feature_importances_
+            total_imp = importance.sum()
+            
+            if total_imp == 0:
+                return self.predictors
+                
+            important_features = []
+            for feat, imp in zip(self.predictors, importance):
+                pct = (imp / total_imp) * 100
+                if pct >= threshold or feat in ["sector", "industry"]: # Always keep categorical
+                    important_features.append(feat)
+            
+            pruned_count = len(self.predictors) - len(important_features)
+            if pruned_count > 0:
+                self._progress(f"✂️ PRUNING: Removing {pruned_count} features with <{threshold}% importance.")
+                
+            return important_features
+        except Exception as e:
+            self._progress(f"Warning during pruning: {e}")
+            return self.predictors
+
 
     def save_model(self, model, filename: str, metadata: Dict[str, Any]) -> str:
         """Save model and metadata locally and to cloud."""
@@ -1693,13 +1808,20 @@ def train_model(exchange=None, supabase_url=None, supabase_key=None, *args, **kw
     # Get use_early_stopping from kwargs (defaults to True for backward compat)
     use_early_stopping = kwargs.get("use_early_stopping", True)
     
+    target_pct = kwargs.get("target_pct", 0.1)
+    stop_loss_pct = kwargs.get("stop_loss_pct", 0.05)
+
     model, val_metrics, avg_purged_f1 = trainer.train_model(
         df_train, 
         n_estimators=kwargs.get("n_estimators") or 500,
         learning_rate=kwargs.get("learning_rate", 0.01),
         patience=kwargs.get("patience", 100) if use_early_stopping else 0,
-        optimized_params=optimized_params
+        optimized_params=optimized_params,
+        auto_prune=kwargs.get("auto_prune", False),
+        target_pct=target_pct,
+        stop_loss_pct=stop_loss_pct
     )
+
     
     # Save
     filename = kwargs.get("model_name") or f"model_{trainer.exchange}.pkl"
