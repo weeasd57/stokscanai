@@ -226,7 +226,7 @@ export default function TableView({ rows, ticker }: { rows: TestPredictionRow[],
                             {/* Grouped Headers */}
                             <tr className="bg-yellow-400 text-black font-bold border-b border-zinc-500">
                                 <th className="border-r border-zinc-500 p-1 text-center" colSpan={5}>MARKET DATA</th>
-                                <th className="border-r border-zinc-500 p-1 text-center bg-blue-300" colSpan={2}>AI SIGNAL</th>
+                                <th className="border-r border-zinc-500 p-1 text-center bg-blue-300" colSpan={4}>AI SIGNAL</th>
                                 <th className="border-r border-zinc-500 p-1 text-center bg-green-300" colSpan={4}>INDICATOR SIGNALS</th>
                                 <th className="p-1 text-center bg-gray-300" colSpan={5}>VALUES</th>
                             </tr>
@@ -238,6 +238,8 @@ export default function TableView({ rows, ticker }: { rows: TestPredictionRow[],
                                 <th className="px-3 py-2 border-r border-zinc-600 text-right bg-blue-900/30 whitespace-nowrap">Close</th>
 
                                 <th className="px-3 py-2 border-r border-zinc-600 text-center whitespace-nowrap">AI</th>
+                                <th className="px-3 py-2 border-r border-zinc-600 text-center whitespace-nowrap">Council</th>
+                                <th className="px-3 py-2 border-r border-zinc-600 text-center whitespace-nowrap">Consensus</th>
                                 <th className="px-3 py-2 border-r border-zinc-600 text-center whitespace-nowrap">Result</th>
 
                                 <th className="px-3 py-2 border-r border-zinc-600 text-center whitespace-nowrap bg-purple-900/20">RSI</th>
@@ -279,6 +281,13 @@ export default function TableView({ rows, ticker }: { rows: TestPredictionRow[],
                                         {/* AI Signal */}
                                         <td className={`${itemsClass} text-center font-bold text-xs ${isBuy ? "bg-green-600 text-white" : "bg-zinc-800 text-zinc-500"}`}>
                                             {isBuy ? "BUY" : "HOLD"}
+                                        </td>
+
+                                        <td className={`${itemsClass} text-center font-bold text-white italic whitespace-nowrap`}>
+                                            {r.councilScore ? `${r.councilScore.toFixed(1)}%` : '-'}
+                                        </td>
+                                        <td className={`${itemsClass} text-center font-bold text-indigo-400 uppercase tracking-widest whitespace-nowrap`}>
+                                            {r.consensusRatio || '-'}
                                         </td>
 
                                         {/* Target (Actual Result) */}

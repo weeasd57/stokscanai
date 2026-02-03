@@ -38,6 +38,8 @@ export type TestPredictionRow = {
   rsi?: number;
   momentum?: number;
   outcome?: 'win' | 'loss' | 'pending';
+  councilScore?: number;
+  consensusRatio?: string;
 };
 
 export type ProfitSummary = {
@@ -74,4 +76,6 @@ export type PredictResponse = {
   profitSummary?: ProfitSummary | null;
   walkForwardFolds?: WalkForwardFold[];
   topReasons?: string[];
+  councilScore?: number;
+  consensusRatio?: string;
 };

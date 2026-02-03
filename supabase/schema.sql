@@ -798,6 +798,7 @@ create table if not exists public.scan_results (
     stop_loss numeric(18,6),
     logo_url text,
     features jsonb,
+    source text default 'scan',
     
     created_at timestamptz not null default now(),
     updated_at timestamptz not null default now()
@@ -813,6 +814,9 @@ create policy "allow_own_scan_results" on public.scan_results for all using (aut
 create policy "allow_public_scan_results" on public.scan_results for select using (is_public = true);
 grant all on public.scan_results to authenticated;
 grant select on public.scan_results to anon;
+
+alter table public.scan_results
+  add column if not exists source text default 'scan';
 
 -- AI Model Config (For public display and toggling)
 create table if not exists public.public_models_config (
@@ -830,3 +834,35 @@ grant all on public.public_models_config to authenticated;
 
 
 -- Legacy predictions_log removed in favor of consolidated scan_results
+
+
+create table if not exists public.backtests (
+    id uuid not null default gen_random_uuid (),
+    exchange text not null,
+    model_name text not null,
+    council_model text null, -- Essential for the filter feature
+    start_date date not null,
+    end_date date not null,
+    total_trades integer not null,
+    win_rate numeric(10, 4) null,
+    avg_return_per_trade numeric(10, 4) null,
+    net_profit numeric(18, 2) null,
+    trades_log jsonb null default '[]'::jsonb,
+    created_at timestamp with time zone not null default now(),
+    is_public boolean null default false,
+    status text null default 'queued'::text,
+    status_msg text null default ''::text,
+    profit_pct numeric(10, 4) null,
+    benchmark_return_pct numeric(10, 4) null,
+    alpha_pct numeric(10, 4) null,
+    benchmark_name text null default 'EGX30'::text,
+    pre_council_trades integer null,
+    post_council_trades integer null,
+    pre_council_win_rate double precision null,
+    post_council_win_rate double precision null,
+    pre_council_profit_pct double precision null,
+    post_council_profit_pct double precision null,
+    constraint backtests_pkey primary key (id)
+) TABLESPACE pg_default;
+
+-- Redundant migrations consolidated above

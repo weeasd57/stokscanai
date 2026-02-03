@@ -5,6 +5,7 @@ import json
 import datetime as dt
 import urllib.request
 import pandas as pd
+import numpy as np
 import warnings
 
 # Suppress specific FutureWarnings from libraries like 'ta'
@@ -20,7 +21,7 @@ load_dotenv(os.path.join(base_dir, "web", ".env.local"), override=True)
 
 print(f"DEBUG: EODHD_API_KEY loaded: {'Yes' if os.getenv('EODHD_API_KEY') else 'No'}")
 
-from fastapi import FastAPI, HTTPException, Request, Query
+from fastapi import FastAPI, HTTPException, Request, Query, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from typing import Any, Dict, Optional, List, Literal
 
@@ -137,7 +138,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=allow_origins,
     allow_credentials=False,
-    allow_methods=["GET", "POST"],
+    allow_methods=["GET", "POST", "DELETE", "PATCH", "PUT", "OPTIONS"],
     allow_headers=["*"]
 )
 
@@ -234,7 +235,7 @@ def evaluate_open_positions_history(req: EvaluatePositionsRequest):
 
         symbol = p.symbol.strip().upper()
         # Standardize symbol/exchange inference
-        from stock_ai import _infer_symbol_exchange, get_stock_data_eodhd, _finite_float
+        from api.stock_ai import _infer_symbol_exchange, get_stock_data_eodhd, _finite_float
         from eodhd import APIClient
 
         s, e = _infer_symbol_exchange(symbol)
@@ -399,7 +400,7 @@ def symbols_by_date(
     limit: int = Query(default=200, ge=1, le=5000),
     search_term: Optional[str] = Query(default=None),
 ):
-    from stock_ai import _init_supabase, supabase
+    from api.stock_ai import _init_supabase, supabase
 
     def _chunks(items: list, size: int):
         for i in range(0, len(items), size):
@@ -672,3 +673,699 @@ def get_news(symbol: str = Query(default="all_symbols")):
     except Exception as e:
         print(f"News fetch error: {e}")
         return {"articles": [], "error": str(e)}
+
+
+# ------------------------------------------------------------------
+# Backtest Endpoint
+# ------------------------------------------------------------------
+from pydantic import BaseModel as PBM
+
+class BacktestRequest(PBM):
+    exchange: str
+    model: str
+    start_date: str = "2024-01-01"
+    end_date: str | None = None
+    council_model: str | None = None
+    validator_model: str | None = None
+
+
+def _safe_basename(name: str) -> str:
+    # Prevent path traversal and accidental directory usage in user-provided model names.
+    name = (name or "").strip()
+    name = name.replace("\\", "/")
+    return name.split("/")[-1]
+
+
+def _available_local_models(models_dir: str) -> list[str]:
+    try:
+        names = []
+        for fn in os.listdir(models_dir):
+            if fn.lower().endswith(".pkl"):
+                names.append(fn)
+        return sorted(names)
+    except Exception:
+        return []
+
+def _load_model_card(models_dir: str, model_name: str) -> dict | None:
+    try:
+        p = os.path.join(models_dir, f"{model_name}.model_card.json")
+        if not os.path.exists(p):
+            return None
+        with open(p, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return None
+
+def _compute_benchmark_metrics(project_root: str, model_name: str, start_date: str, end_date: str | None, exchange: str | None = None) -> tuple[float | None, float | None, str | None]:
+    """
+    Returns (benchmark_return_pct, benchmark_win_rate, benchmark_name).
+    Uses local index JSON referenced by the model card.
+    """
+    try:
+        models_dir = os.path.join(project_root, "api", "models")
+        card = _load_model_card(models_dir, model_name)
+        index_rel = None
+        if isinstance(card, dict):
+            index_rel = (card.get("data_inputs") or {}).get("exchange_index_json_path")
+
+        # Basic fallback for EGX models if the card is missing.
+        ex = (exchange or (card or {}).get("exchange") or "").upper()
+        if not index_rel and ex == "EGX":
+            index_rel = os.path.join("symbols_data", "EGX30-INDEX.json")
+
+        if not index_rel:
+            return None, None, None
+
+        index_rel = str(index_rel).replace("\\", "/").lstrip("/")
+        index_path = os.path.join(project_root, index_rel)
+        if not os.path.exists(index_path):
+            return None, None, None
+
+        with open(index_path, "r", encoding="utf-8") as f:
+            rows = json.load(f)
+        if not isinstance(rows, list) or not rows:
+            return None, None, None
+
+        df = pd.DataFrame(rows)
+        if "date" not in df.columns or "close" not in df.columns:
+            return None, None, None
+
+        df["date"] = pd.to_datetime(df["date"], errors="coerce")
+        df = df.dropna(subset=["date", "close"]).sort_values("date")
+
+        sd = pd.to_datetime(start_date, errors="coerce")
+        ed = pd.to_datetime(end_date, errors="coerce") if end_date else None
+        if pd.isna(sd):
+            return None, None, None
+            
+        # Filter for the simulation period
+        mask = (df["date"] >= sd)
+        if ed is not None and not pd.isna(ed):
+            mask = mask & (df["date"] <= ed)
+        
+        period_df = df[mask]
+        
+        # Calculate Return
+        start_row = df.loc[df["date"] >= sd].head(1)
+        if ed is not None and not pd.isna(ed):
+            end_row = df.loc[df["date"] <= ed].tail(1)
+        else:
+            end_row = df.tail(1)
+            
+        benchmark_return_pct = None
+        if not start_row.empty and not end_row.empty:
+            start_close = float(start_row["close"].iloc[0])
+            end_close = float(end_row["close"].iloc[0])
+            if (np.isfinite(start_close) and np.isfinite(end_close)) and start_close != 0:
+                benchmark_return_pct = ((end_close / start_close) - 1.0) * 100.0
+
+        # Calculate Win Rate (Positive daily returns)
+        benchmark_win_rate = None
+        if not period_df.empty and len(period_df) > 1:
+            period_df = period_df.copy()
+            # Calculate % change from previous close
+            period_df["pct_change"] = period_df["close"].pct_change()
+            # Drop the first row which is NaN
+            period_df = period_df.dropna(subset=["pct_change"])
+            
+            if not period_df.empty:
+                positive_days = len(period_df[period_df["pct_change"] > 0])
+                total_days = len(period_df)
+                benchmark_win_rate = (positive_days / total_days) * 100.0
+
+        benchmark_name = os.path.splitext(os.path.basename(index_path))[0]
+        return benchmark_return_pct, benchmark_win_rate, str(benchmark_name)
+    except Exception:
+        return None, None, None
+
+@app.post("/backtest")
+async def backtest_endpoint(req: BacktestRequest, background_tasks: BackgroundTasks):
+    """
+    Run backtest simulation as a background task to avoid timeouts.
+    """
+    # Validate the model name early to avoid expensive work and noisy background failures.
+    api_dir = os.path.dirname(os.path.abspath(__file__))
+    models_dir = os.path.join(api_dir, "models")
+    requested_model = _safe_basename(req.model)
+    model_path = os.path.join(models_dir, requested_model)
+    if not os.path.exists(model_path):
+        # Provide a helpful hint with closest matches.
+        import difflib
+
+        available = _available_local_models(models_dir)
+        suggestions = difflib.get_close_matches(requested_model, available, n=5, cutoff=0.1)
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "error": "model_not_found",
+                "model": requested_model,
+                "message": f"Model not found in {models_dir}",
+                "suggestions": suggestions,
+            },
+        )
+
+    # Optional validator model (Council Validator)
+    requested_validator = None
+    if req.validator_model:
+        requested_validator = _safe_basename(req.validator_model)
+        validator_path = os.path.join(models_dir, requested_validator)
+        if not os.path.exists(validator_path):
+            import difflib
+
+            available = _available_local_models(models_dir)
+            suggestions = difflib.get_close_matches(requested_validator, available, n=5, cutoff=0.1)
+            raise HTTPException(
+                status_code=422,
+                detail={
+                    "error": "validator_model_not_found",
+                    "model": requested_validator,
+                    "message": f"Validator model not found in {models_dir}",
+                    "suggestions": suggestions,
+                },
+            )
+
+    # 1. Create a placeholder record in Supabase to track status
+    from api.stock_ai import supabase
+    try:
+        # Use today as default end_date if none provided
+        end_date = req.end_date or dt.datetime.utcnow().date().isoformat()
+        
+        res = supabase.table("backtests").insert({
+            "model_name": req.model,
+            "exchange": req.exchange,
+            "council_model": req.council_model,
+            "start_date": req.start_date,
+            "end_date": end_date,
+            "status": "pending",
+            "total_trades": 0,
+            "win_rate": 0,
+            "net_profit": 0,
+            "avg_return_per_trade": 0
+        }).execute()
+        
+        backtest_id = res.data[0]["id"] if res.data else None
+    except Exception as e:
+        print(f"Error creating backtest record: {e}")
+        backtest_id = None
+
+    # Use the sanitized model name end-to-end (subprocess + model card lookup).
+    req_sanitized = BacktestRequest(
+        exchange=req.exchange,
+        model=requested_model,
+        start_date=req.start_date,
+        end_date=req.end_date,
+        council_model=req.council_model,
+        validator_model=requested_validator,
+    )
+
+    background_tasks.add_task(run_backtest_task, req_sanitized, backtest_id)
+    return {
+        "status": "queued", 
+        "id": backtest_id,
+        "message": f"Backtest for {req.model} on {req.exchange} has been started. Trace ID: {backtest_id}"
+    }
+
+def run_backtest_task(req: BacktestRequest, backtest_id: str = None):
+    """Internal task runner for backtests with real-time status updates."""
+    import subprocess
+    import csv
+    import json
+    import os
+    import sys
+    import datetime as dt
+    from api.stock_ai import supabase
+    
+    model_name = req.model
+    exchange = req.exchange
+    start_date = req.start_date
+    end_date = req.end_date or dt.datetime.utcnow().date().isoformat()
+    
+    # Build command
+    api_dir = os.path.dirname(os.path.abspath(__file__))
+    project_root = os.path.dirname(api_dir)
+    script_path = os.path.join(api_dir, "backtest_radar.py")
+    
+    cmd = [
+        sys.executable, script_path,
+        "--exchange", exchange,
+        "--model", model_name,
+        "--start", start_date,
+        "--end", end_date
+    ]
+    
+    if req.council_model:
+        cmd.extend(["--council", req.council_model])
+
+    if req.validator_model:
+        cmd.extend(["--validator", req.validator_model])
+    
+    if not os.path.exists(script_path):
+        print(f"Error: Backtest script not found at {script_path}")
+        return
+    
+    try:
+        print(f"Background Backtest Started: {model_name} on {exchange} (ID: {backtest_id})")
+        
+        # Update status to processing
+        if backtest_id:
+            try: supabase.table("backtests").update({"status": "processing", "status_msg": "Starting subprocess..."}).eq("id", backtest_id).execute()
+            except: pass
+
+        csv_path = os.path.join(api_dir, f"backtest_results_{exchange}_{backtest_id or 'latest'}.csv")
+        cmd.extend(["--out", csv_path])
+
+        process = subprocess.Popen(
+            cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            cwd=api_dir,
+            encoding='utf-8',
+            errors='replace',
+            bufsize=1, # Line buffered
+            universal_newlines=True
+        )
+        
+        stdout_lines = []
+        stderr_lines = []
+
+        # Read stdout in real-time
+        while True:
+            line = process.stdout.readline()
+            if not line and process.poll() is not None:
+                break
+            if line:
+                clean_line = line.strip()
+                stdout_lines.append(line)
+                print(f"[BT-LIVE] {clean_line}")
+                
+                # Update status if interesting progress found
+                if backtest_id and any(x in clean_line for x in ["Fetching", "Progress:", "Loading", "Processing"]):
+                    try:
+                        # Extract "Progress: 60/246" or just use the line
+                        msg = clean_line
+                        if "Progress:" in clean_line:
+                            msg = clean_line.split("...") [0].strip()
+                        
+                        supabase.table("backtests").update({"status_msg": msg}).eq("id", backtest_id).execute()
+                    except:
+                        pass
+
+        # Capture remaining stderr
+        for line in process.stderr:
+            stderr_lines.append(line)
+            print(f"[BT-ERR] {line.strip()}")
+
+        stdout = "".join(stdout_lines)
+        stderr = "".join(stderr_lines)
+        
+        # Log to server console for finality
+        print(f"--- Backtest Finished [{model_name}] ---")
+        
+        # Simple extraction logic (keep as-is or improve)
+        total_trades = 0
+        win_rate = 0.0
+        net_profit = 0
+        avg_return = 0.0
+        trades = []
+        
+        lines = stdout.split("\n")
+        pre_council_trades = 0
+        post_council_trades = 0
+        pre_council_win_rate = 0.0
+        post_council_win_rate = 0.0
+        pre_council_profit_pct = None
+        post_council_profit_pct = None
+        
+        for line in lines:
+            if "Total Trades Detected" in line:
+                try: total_trades = int(line.split(":")[1].strip())
+                except: pass
+            elif "Win Rate:" in line and "Pre-Council" not in line and "Post-Council" not in line:
+                try: win_rate = float(line.split(":")[1].strip().replace("%", ""))
+                except: pass
+            elif "Simulated Profit" in line or "Net Profit" in line:
+                try:
+                    parts = line.split(":")
+                    if len(parts) > 1:
+                        # Extract number, handle commas and currency suffix
+                        clean_val = parts[1].strip().split(" ")[0].replace(",", "")
+                        net_profit = int(float(clean_val))
+                except: pass
+            elif "Avg Return" in line:
+                try: avg_return = float(line.split(":")[1].strip().replace("%", ""))
+                except: pass
+            elif "Pre-Council Trades:" in line:
+                try: pre_council_trades = int(line.split(":")[1].strip())
+                except: pass
+            elif "Post-Council Trades:" in line:
+                try: post_council_trades = int(line.split(":")[1].strip())
+                except: pass
+            elif "Pre-Council Win Rate:" in line:
+                try: pre_council_win_rate = float(line.split(":")[1].strip().replace("%", ""))
+                except: pass
+            elif "Post-Council Win Rate:" in line:
+                try: post_council_win_rate = float(line.split(":")[1].strip().replace("%", ""))
+                except: pass
+            elif "Pre-Council Profit:" in line:
+                try: pre_council_profit_pct = float(line.split(":")[1].strip().replace("%", ""))
+                except: pass
+            elif "Post-Council Profit:" in line:
+                try: post_council_profit_pct = float(line.split(":")[1].strip().replace("%", ""))
+                except: pass
+            elif "Rejected Profitable:" in line:
+                try: rejected_profitable = int(line.split(":")[1].strip())
+                except: pass
+        
+        # Parse JSON Trades Log from stdout
+        try:
+            val_start = stdout.find("--- JSON TRADES LOG START ---")
+            val_end = stdout.find("--- JSON TRADES LOG END ---")
+            if val_start != -1 and val_end != -1:
+                json_str = stdout[val_start + len("--- JSON TRADES LOG START ---"):val_end].strip()
+                parsed_trades = json.loads(json_str)
+                for row in parsed_trades:
+                    trades.append({
+                        "date": row.get("Date", ""),
+                        "symbol": row.get("Symbol", ""),
+                        "entry": float(row.get("Entry", 0) or 0),
+                        "exit": float(row.get("Exit", 0) or 0),
+                        "result": row.get("Result", ""),
+                        "pnl_pct": float(row.get("PnL_Pct", 0) or 0),
+                        "status": row.get("Status", "Accepted"),
+                        "votes": row.get("Votes", {}), # JSON keeps it as dict if it was dict
+                        "Entry_Date": row.get("Entry_Date", ""),
+                        "Exit_Date": row.get("Exit_Date", ""),
+                        "Entry_Day": row.get("Entry_Day", ""),
+                        "Exit_Day": row.get("Exit_Day", ""),
+                        "Profit_Cash": float(row.get("Profit_Cash", 0) or 0),
+                        "Cumulative_Profit": float(row.get("Cumulative_Profit", 0) or 0)
+                    })
+        except Exception as e:
+            print(f"Error parsing trades JSON: {e}")
+        
+        # Save to Supabase
+        from api.stock_ai import _init_supabase, supabase
+        _init_supabase()
+        if supabase:
+            # Compute total return % on a fixed notional capital.
+            initial_capital = 100000.0
+            profit_pct = None
+            try:
+                profit_pct = (float(net_profit) / float(initial_capital)) * 100.0
+            except Exception:
+                profit_pct = None
+            if post_council_profit_pct is not None:
+                profit_pct = float(post_council_profit_pct)
+
+            bench_pct, bench_win_rate, bench_name = _compute_benchmark_metrics(
+                project_root=project_root,
+                model_name=model_name,
+                start_date=start_date,
+                end_date=end_date,
+                exchange=exchange,
+            )
+            
+            # Note: We are discarding Alpha Pct calculation and replacing it with Index Win Rate
+            # as requested by the user.
+
+            # Save trades into scan_results as backtest rows (batch_id = backtest_id)
+            if backtest_id and trades:
+                def _country_from_exchange(ex: str) -> str:
+                    ex_u = (ex or "").upper()
+                    if ex_u == "EGX":
+                        return "Egypt"
+                    if ex_u in ("US", "USA"):
+                        return "USA"
+                    if ex_u == "UK":
+                        return "United Kingdom"
+                    return ex or "Unknown"
+
+                scan_rows = []
+                for t in trades:
+                    symbol = t.get("symbol") or ""
+                    if not symbol:
+                        continue
+                    entry_price = float(t.get("entry") or 0)
+                    exit_price = float(t.get("exit") or 0)
+                    pnl_pct = float(t.get("pnl_pct") or 0)
+                    last_close = exit_price if exit_price else entry_price
+                    scan_rows.append({
+                        "batch_id": backtest_id,
+                        "symbol": symbol,
+                        "exchange": exchange,
+                        "name": symbol,
+                        "model_name": model_name,
+                        "country": _country_from_exchange(exchange),
+                        "last_close": last_close,
+                        "precision": None,
+                        "signal": "backtest",
+                        "is_public": False,
+                        "from_date": start_date,
+                        "to_date": end_date,
+                        "status": "win" if pnl_pct > 0 else ("loss" if pnl_pct < 0 else "open"),
+                        "entry_price": entry_price,
+                        "exit_price": exit_price,
+                        "profit_loss_pct": pnl_pct * 100.0,
+                        "features": {
+                            "trade_date": t.get("date"),
+                            "backtest_status": t.get("status"),
+                            "votes": t.get("votes"),
+                            "entry_date": t.get("Entry_Date"),
+                            "exit_date": t.get("Exit_Date"),
+                            "entry_day": t.get("Entry_Day"),
+                            "exit_day": t.get("Exit_Day"),
+                            "profit_cash": t.get("Profit_Cash"),
+                            "cumulative_profit": t.get("Cumulative_Profit")
+                        },
+                        "source": "backtest",
+                    })
+
+                try:
+                    # Cleanup existing trades for this backtest id to avoid duplicates
+                    try:
+                        supabase.table("scan_results").delete().eq("batch_id", backtest_id).eq("source", "backtest").execute()
+                    except Exception:
+                        supabase.table("scan_results").delete().eq("batch_id", backtest_id).execute()
+
+                    # Insert in batches
+                    batch_size = 500
+                    for i in range(0, len(scan_rows), batch_size):
+                        chunk = scan_rows[i:i+batch_size]
+                        try:
+                            supabase.table("scan_results").insert(chunk).execute()
+                        except Exception:
+                            # Retry without source if schema not migrated yet
+                            for row in chunk:
+                                row.pop("source", None)
+                            supabase.table("scan_results").insert(chunk).execute()
+                except Exception as e:
+                    print(f"Warning: Failed to save backtest trades to scan_results: {e}")
+
+            # 5. Final Save to Supabase
+            if backtest_id:
+                try:
+                    update_payload = {
+                        "status": "completed",
+                        "status_msg": "Simulation finished successfully.",
+                        "total_trades": total_trades,
+                        "win_rate": win_rate,
+                        "net_profit": net_profit,
+                        "avg_return_per_trade": avg_return,
+                        "trades_log": trades,
+                        "council_model": req.council_model
+                    }
+
+                    # Optional new analytics columns (tolerate missing DB migration).
+                    if profit_pct is not None:
+                        update_payload["profit_pct"] = profit_pct
+                    if bench_pct is not None:
+                        update_payload["benchmark_return_pct"] = bench_pct
+                    if bench_win_rate is not None:
+                         # Store index win rate (replacing alpha_pct or as new field?)
+                         # Reusing alpha_pct field might be confusing, assuming user will handle schema. 
+                         # But user said "replace", so in UI it will replace.
+                         # In DB, let's try to save as "benchmark_win_rate" if column exists
+                         update_payload["benchmark_win_rate"] = bench_win_rate
+                         
+                    if bench_name:
+                        update_payload["benchmark_name"] = bench_name
+
+                    # Council analytics
+                    if pre_council_trades or post_council_trades:
+                        update_payload["pre_council_trades"] = pre_council_trades
+                        update_payload["post_council_trades"] = post_council_trades
+                        update_payload["pre_council_win_rate"] = pre_council_win_rate
+                        update_payload["post_council_win_rate"] = post_council_win_rate
+                        if pre_council_profit_pct is not None:
+                            update_payload["pre_council_profit_pct"] = pre_council_profit_pct
+                        if post_council_profit_pct is not None:
+                            update_payload["post_council_profit_pct"] = post_council_profit_pct
+                        if 'rejected_profitable' in locals():
+                             # Schema doesn't have this column yet
+                             pass
+
+                    try:
+                        # Clear alpha_pct if it existed
+                        update_payload["alpha_pct"] = None 
+                        supabase.table("backtests").update(update_payload).eq("id", backtest_id).execute()
+                    except Exception:
+                        # Retry without optional columns
+                        for k in ("profit_pct", "benchmark_return_pct", "benchmark_win_rate", "benchmark_name", "alpha_pct"):
+                            update_payload.pop(k, None)
+                        supabase.table("backtests").update(update_payload).eq("id", backtest_id).execute()
+
+                    print(f"Background Backtest Updated & Saved: {model_name} (ID: {backtest_id})")
+                except Exception as e:
+                    print(f"Error updating backtest result: {e}")
+            else:
+                # Fallback to old behavior if no ID (shouldn't happen now)
+                try:
+                    # Use today as default end_date if none provided
+                    final_end_date = req.end_date or dt.datetime.utcnow().date().isoformat()
+                    
+                    supabase.table("backtests").insert({
+                        "model_name": model_name,
+                        "exchange": exchange,
+                        "council_model": req.council_model,
+                        "start_date": req.start_date,
+                        "end_date": final_end_date,
+                        "total_trades": total_trades,
+                        "win_rate": win_rate,
+                        "net_profit": net_profit,
+                        "avg_return_per_trade": avg_return,
+                        "trades_log": trades,
+                        "status": "completed",
+                        "profit_pct": profit_pct,
+                        "benchmark_return_pct": bench_pct,
+                        "benchmark_name": bench_name,
+                        "pre_council_trades": pre_council_trades if pre_council_trades > 0 else None,
+                        "post_council_trades": post_council_trades if pre_council_trades > 0 else None,
+                        "pre_council_win_rate": pre_council_win_rate if pre_council_trades > 0 else None,
+                        "post_council_win_rate": post_council_win_rate if pre_council_trades > 0 else None,
+                        "pre_council_profit_pct": pre_council_profit_pct if 'pre_council_profit_pct' in locals() and pre_council_profit_pct is not None else None,
+                        "post_council_profit_pct": post_council_profit_pct if 'post_council_profit_pct' in locals() and post_council_profit_pct is not None else None
+                    }).execute()
+                    print(f"Background Backtest Saved (Fallback): {model_name}")
+                except Exception as e:
+                    print(f"Error saving backtest result: {e}")
+
+    except Exception as e:
+        print(f"Backtest Task Failed: {e}")
+        if backtest_id:
+            try: supabase.table("backtests").update({"status": "failed", "status_msg": str(e)}).eq("id", backtest_id).execute()
+            except: pass
+
+
+@app.get("/backtests")
+async def get_backtests(model: Optional[str] = None):
+    """Fetch all backtest historical records."""
+    from api.stock_ai import supabase
+    if not supabase:
+        raise HTTPException(status_code=500, detail="Supabase not initialized")
+    
+    query = supabase.table("backtests").select("*").order("created_at", desc=True)
+    if model:
+        query = query.eq("model_name", model)
+    
+    res = query.execute()
+    return res.data
+
+
+@app.get("/backtests/{id}/trades")
+async def get_backtest_trades(id: str):
+    """Fetch trades for a given backtest (stored in scan_results)."""
+    from api.stock_ai import supabase
+    if not supabase:
+        raise HTTPException(status_code=500, detail="Supabase not initialized")
+
+    fields = "symbol,exchange,model_name,entry_price,exit_price,profit_loss_pct,status,features,created_at"
+    
+    # Helper to map raw log to scan_results format
+    def _map_trades_log(log):
+        # Handle stringified JSON
+        if isinstance(log, str):
+            try:
+                log = json.loads(log)
+            except Exception:
+                return []
+                
+        mapped = []
+        if not log or not isinstance(log, list):
+            return []
+            
+        for t in log:
+            if not isinstance(t, dict): continue
+            pnl = float(t.get("pnl_pct") or 0)
+            mapped.append({
+                "symbol": t.get("symbol"),
+                "entry_price": float(t.get("entry") or 0),
+                "exit_price": float(t.get("exit") or 0),
+                "profit_loss_pct": pnl * 100.0 if pnl < 1.0 and pnl > -1.0 else pnl, # Handle both 0.05 and 5.0
+                "status": "win" if pnl > 0 else "loss",
+                "features": {
+                    "trade_date": t.get("date"),
+                    "backtest_status": "Accepted", 
+                    "votes": "{}",
+                    "entry_date": t.get("Entry_Date"),
+                    "exit_date": t.get("Exit_Date"),
+                    "entry_day": t.get("Entry_Day"),
+                    "exit_day": t.get("Exit_Day"),
+                    "profit_cash": t.get("Profit_Cash") or t.get("features", {}).get("profit_cash"),
+                    "cumulative_profit": t.get("Cumulative_Profit") or t.get("features", {}).get("cumulative_profit")
+                },
+                "created_at": t.get("date")
+            })
+        return mapped
+
+    # 1. Try fetching from scan_results (preferred)
+    try:
+        res = supabase.table("scan_results").select(fields).eq("batch_id", id).eq("source", "backtest").execute()
+        if res.data:
+            return res.data
+    except Exception:
+        # Fallback if source column isn't available yet
+        try:
+            res = supabase.table("scan_results").select(fields).eq("batch_id", id).execute()
+            if res.data:
+                return res.data
+        except Exception:
+            pass
+            
+    # 2. Fallback to backtests table trades_log
+    # This acts as the final source of truth for backtests that haven't been synced to scan_results
+    try:
+        bt_res = supabase.table("backtests").select("trades_log").eq("id", id).execute()
+        if bt_res.data and bt_res.data[0].get("trades_log"):
+            return _map_trades_log(bt_res.data[0]["trades_log"])
+    except Exception:
+        pass
+
+    return []
+
+
+@app.delete("/backtests/{id}")
+async def delete_backtest(id: str):
+    """Delete a backtest record."""
+    from api.stock_ai import supabase
+    if not supabase:
+        raise HTTPException(status_code=500, detail="Supabase not initialized")
+    
+    res = supabase.table("backtests").delete().eq("id", id).execute()
+    return {"status": "success", "deleted": id}
+
+
+class BacktestUpdate(BaseModel):
+    is_public: bool
+
+@app.patch("/backtests/{id}")
+async def update_backtest(id: str, req: BacktestUpdate):
+    """Update visibility of a backtest record."""
+    from api.stock_ai import supabase
+    if not supabase:
+        raise HTTPException(status_code=500, detail="Supabase not initialized")
+    
+    res = supabase.table("backtests").update({"is_public": req.is_public}).eq("id", id).execute()
+    return res.data[0] if res.data else {"error": "not found"}
+
+

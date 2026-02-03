@@ -367,12 +367,12 @@ def update_batch(req: UpdateRequest, background_tasks: BackgroundTasks):
 
     def _tradingview_market_for_symbol(sym: str) -> str:
         """Get TradingView market name from symbol - wrapper for module function."""
-        from tradingview_integration import get_tradingview_market
+        from api.tradingview_integration import get_tradingview_market
         return get_tradingview_market(sym)
 
     def _bulk_tradingview_fundamentals(tickers: List[str]) -> dict:
         """Bulk fetch fundamentals from TradingView - wrapper for module function."""
-        from tradingview_integration import fetch_tradingview_fundamentals_bulk
+        from api.tradingview_integration import fetch_tradingview_fundamentals_bulk
         return fetch_tradingview_fundamentals_bulk(tickers)
 
     # 1) Prices stage (threaded)
@@ -385,7 +385,7 @@ def update_batch(req: UpdateRequest, background_tasks: BackgroundTasks):
 
         if price_source == "tradingview":
             # Fetch from TradingView using new integration module
-            from tradingview_integration import fetch_tradingview_prices
+            from api.tradingview_integration import fetch_tradingview_prices
             ok, msg = fetch_tradingview_prices(sym, max_days=req.maxPriceDays)
         elif price_source == "eodhd":
             ok, msg = update_stock_data(client, sym, source="eodhd", max_days=req.maxPriceDays)
@@ -1579,6 +1579,25 @@ def list_local_models():
                         info["featurePreset"] = model.get("featurePreset")
                         info["bestIteration"] = model.get("bestIteration")
 
+                    # Council validator artifact (meta-model that approves/rejects BUYs)
+                    if isinstance(model, dict) and (model.get("kind") or "").strip().lower() == "council_validator":
+                        info["model_type"] = "council_validator"
+                        info["has_meta_labeling"] = False
+                        try:
+                            md = model.get("metadata") or {}
+                            if isinstance(md, dict):
+                                ex = md.get("exchange")
+                                if isinstance(ex, str):
+                                    info.setdefault("exchange", ex)
+                                fp = md.get("feature_preset")
+                                if isinstance(fp, str):
+                                    info.setdefault("featurePreset", fp)
+                                metrics = md.get("metrics")
+                                if isinstance(metrics, dict):
+                                    info["training_stats"] = metrics
+                        except Exception:
+                            pass
+
                         # Derived flags (fallback when no model card exists)
                         try:
                             feat_names = model.get("feature_names")
@@ -1828,6 +1847,20 @@ def _delete_local_model(model_name: str):
             raise HTTPException(status_code=404, detail="Model not found")
         
         os.remove(filepath)
+
+        # Best-effort cleanup of backtest trades for this model
+        try:
+            from api.stock_ai import _init_supabase, supabase
+            _init_supabase()
+            if supabase:
+                try:
+                    supabase.table("scan_results").delete().eq("model_name", model_name).eq("source", "backtest").execute()
+                except Exception:
+                    # Fallback if source column isn't present yet
+                    supabase.table("scan_results").delete().eq("model_name", model_name).execute()
+        except Exception:
+            pass
+
         return {"status": "success", "message": f"Model {model_name} deleted"}
     except HTTPException:
         raise

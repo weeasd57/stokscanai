@@ -437,7 +437,7 @@ export const AIScannerProvider = ({ children }: { children: ReactNode }) => {
                     if (f && typeof f.fundamental_score === 'number') fund = f.fundamental_score;
                 } catch (e) { }
             }
-            return { ...row, technical_score: tech || 0, fundamental_score: fund || 0 };
+            return { ...row, technical_score: tech || 0, fundamental_score: fund || 0, council_score: row.council_score || 0, consensus_ratio: row.consensus_ratio || "" };
         });
     }, [supabase]);
 
@@ -463,16 +463,26 @@ export const AIScannerProvider = ({ children }: { children: ReactNode }) => {
         return (data || []).map((row: any) => {
             let tech = row.technical_score;
             let fund = row.fundamental_score;
+            let council = row.council_score;
+            let ratio = row.consensus_ratio;
 
             // Unpack from features JSON if missing from columns
-            if ((tech === undefined || tech === null) && row.features) {
+            if (row.features) {
                 try {
                     const f = typeof row.features === 'string' ? JSON.parse(row.features) : row.features;
                     if (f && typeof f.technical_score === 'number') tech = f.technical_score;
                     if (f && typeof f.fundamental_score === 'number') fund = f.fundamental_score;
+                    if (f && typeof f.council_score === 'number') council = f.council_score;
+                    if (f && typeof f.consensus_ratio === 'string') ratio = f.consensus_ratio;
                 } catch (e) { /* ignore parse error */ }
             }
-            return { ...row, technical_score: tech || 0, fundamental_score: fund || 0 };
+            return {
+                ...row,
+                technical_score: tech || 0,
+                fundamental_score: fund || 0,
+                council_score: council || 0,
+                consensus_ratio: ratio || ""
+            };
         });
     }, [supabase]);
 

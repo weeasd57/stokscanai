@@ -23,7 +23,7 @@ if os.path.exists(web_env_path):
 try:
     from api.stock_ai import sync_df_to_supabase, _init_supabase
 except ImportError:
-    from stock_ai import sync_df_to_supabase, _init_supabase
+    from api.stock_ai import sync_df_to_supabase, _init_supabase
 
 def ingest_local_index(file_path, symbol="EGX30.INDX"):
     print(f"Reading {file_path} for symbol {symbol}...")

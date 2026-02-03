@@ -83,6 +83,13 @@ This project uses a **Split Deployment Strategy** to optimize performance and ov
 - **France** (Euronext)
 - And 50+ other global exchanges.
 
+## 🏛️ Council Validator (Meta-Model)
+
+This repo also supports training a lightweight validator that learns when a base model’s BUY candidates tend to fail, then blocks those trades.
+
+- Train: `py train_council.py --primary-model "api/models/KING 👑.pkl"`
+- Use in backtest: `py api/backtest_radar.py --exchange EGX --model "collector 🎁.pkl" --validator "The_Council_Validator.pkl"`
+
 ## 🤝 Contributing
 Contributions are welcome! Please create a Pull Request for any bug fixes or new features.
 

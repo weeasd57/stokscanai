@@ -4,7 +4,7 @@ import os
 
 from dotenv import load_dotenv
 
-from stock_ai import run_pipeline
+from api.stock_ai import run_pipeline
 
 
 def main() -> int:

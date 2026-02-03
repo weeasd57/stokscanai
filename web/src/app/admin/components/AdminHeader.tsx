@@ -1,10 +1,10 @@
 "use client";
 
-import { Database, Zap, TrendingUp, Beaker, Brain } from "lucide-react";
+import { Database, Zap, TrendingUp, Beaker, Brain, LineChart } from "lucide-react";
 
 interface AdminHeaderProps {
-    activeMainTab: "data" | "ai" | "test" | "scan";
-    setActiveMainTab: (tab: "data" | "ai" | "test" | "scan") => void;
+    activeMainTab: "data" | "ai" | "test" | "scan" | "backtest";
+    setActiveMainTab: (tab: "data" | "ai" | "test" | "scan" | "backtest") => void;
 }
 
 export default function AdminHeader({ activeMainTab, setActiveMainTab }: AdminHeaderProps) {
@@ -53,6 +53,13 @@ export default function AdminHeader({ activeMainTab, setActiveMainTab }: AdminHe
                         >
                             <Brain className="w-4 h-4" />
                             FAST SCAN
+                        </button>
+                        <button
+                            onClick={() => setActiveMainTab("backtest")}
+                            className={`px-6 py-2.5 rounded-xl text-xs font-black transition-all duration-300 flex items-center gap-2 ${activeMainTab === "backtest" ? "bg-white text-black shadow-lg shadow-white/10" : "text-zinc-500 hover:text-white"}`}
+                        >
+                            <LineChart className="w-4 h-4" />
+                            BACKTEST
                         </button>
                     </nav>
                 </div>

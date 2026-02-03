@@ -109,6 +109,7 @@ export default function CompareTableView({ results, loadingSymbols, errors, onRe
                             <th className="px-6 py-4 sticky left-0 bg-zinc-950 z-10 w-48">{t("compare.symbol")}</th>
                             <th className="px-4 py-4 text-center">{t("compare.signal")}</th>
                             <th className="px-4 py-4 text-center">{t("compare.precision")}</th>
+                            <th className="px-4 py-4 text-center text-indigo-400">Council</th>
                             <th className="px-4 py-4">{t("compare.rsi")}</th>
                             <th className="px-4 py-4">{t("compare.macd")}</th>
                             <th className="px-4 py-4">{t("compare.ema")}</th>
@@ -156,6 +157,12 @@ export default function CompareTableView({ results, loadingSymbols, errors, onRe
                                                     </span>
                                                 </div>
                                                 <span className="text-[9px] uppercase tracking-widest font-bold text-zinc-600">AI Score</span>
+                                            </div>
+                                        </td>
+                                        <td className="px-4 py-4 text-center">
+                                            <div className="flex flex-col items-center gap-1">
+                                                <span className="text-sm font-black text-white italic">{(data as any).councilScore ? `${(data as any).councilScore.toFixed(1)}%` : "N/A"}</span>
+                                                <span className="text-[9px] uppercase tracking-widest font-black text-indigo-500/60">Council</span>
                                             </div>
                                         </td>
                                         <td className="px-4 py-4">

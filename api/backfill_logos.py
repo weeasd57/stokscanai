@@ -7,7 +7,7 @@ from typing import List
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from tradingview_integration import fetch_tradingview_fundamentals_bulk
-from stock_ai import get_supabase_symbols
+from api.stock_ai import get_supabase_symbols
 from dotenv import load_dotenv
 
 # Load env variables

@@ -370,6 +370,8 @@ export type ScanResult = {
   features?: number[] | null;
   technical_score?: number;
   fundamental_score?: number;
+  council_score?: number;
+  consensus_ratio?: string;
 };
 
 export type ScanResponse = {
@@ -758,4 +760,38 @@ export async function fetchStockNews(query: string, limit: number = 3): Promise<
   const response = await fetch(url);
   if (!response.ok) throw new Error("Failed to evaluate scan performance");
   return await response.json();
+}
+
+// Backtest API
+export async function getBacktests(model?: string): Promise<any[]> {
+  const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "";
+  const url = model ? `${baseUrl}/backtests?model=${encodeURIComponent(model)}` : `${baseUrl}/backtests`;
+  const response = await fetch(url);
+  if (!response.ok) throw new Error("Failed to fetch backtests");
+  return await response.json();
+}
+
+export async function getBacktestTrades(backtestId: string): Promise<any[]> {
+  const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "";
+  const response = await fetch(`${baseUrl}/backtests/${backtestId}/trades`);
+  if (!response.ok) throw new Error("Failed to fetch backtest trades");
+  return await response.json();
+}
+
+export async function deleteBacktest(id: string): Promise<void> {
+  const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "";
+  const response = await fetch(`${baseUrl}/backtests/${id}`, {
+    method: "DELETE"
+  });
+  if (!response.ok) throw new Error("Failed to delete backtest");
+}
+
+export async function updateBacktestVisibility(id: string, isPublic: boolean): Promise<void> {
+  const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "";
+  const response = await fetch(`${baseUrl}/backtests/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ is_public: isPublic })
+  });
+  if (!response.ok) throw new Error("Failed to update backtest visibility");
 }

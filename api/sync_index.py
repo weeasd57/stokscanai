@@ -25,7 +25,7 @@ try:
     from api.stock_ai import sync_df_to_supabase, _init_supabase
 except ImportError:
     # Fallback if running from within api folder
-    from stock_ai import sync_df_to_supabase, _init_supabase
+    from api.stock_ai import sync_df_to_supabase, _init_supabase
 
 def sync_market_indices():
     """

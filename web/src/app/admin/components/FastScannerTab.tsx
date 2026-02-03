@@ -1054,6 +1054,8 @@ export default function FastScannerTab() {
                                                         {sortConfig?.key === 'fundamental_score' && (sortConfig.direction === 'asc' ? <ChevronDown className="w-3 h-3 rotate-180" /> : <ChevronDown className="w-3 h-3" />)}
                                                     </div>
                                                 </th>
+                                                <th className="px-6 py-4 text-center text-indigo-400">Council</th>
+                                                <th className="px-6 py-4 text-center text-indigo-400">Consensus</th>
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-white/5">
@@ -1129,6 +1131,12 @@ export default function FastScannerTab() {
                                                                 </div>
                                                             );
                                                         })()}
+                                                    </td>
+                                                    <td className="px-6 py-4 text-center cursor-pointer" onClick={() => openDetails(r)}>
+                                                        <span className="font-black text-white italic">{r.council_score ? `${r.council_score.toFixed(1)}%` : "N/A"}</span>
+                                                    </td>
+                                                    <td className="px-6 py-4 text-center cursor-pointer" onClick={() => openDetails(r)}>
+                                                        <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">{r.consensus_ratio || "N/A"}</span>
                                                     </td>
                                                 </tr>
                                             ))}
@@ -1411,6 +1419,8 @@ export default function FastScannerTab() {
                                                         {pubSortConfig?.key === 'technical_score' && (pubSortConfig.direction === 'asc' ? <ChevronDown className="w-3 h-3 rotate-180" /> : <ChevronDown className="w-3 h-3" />)}
                                                     </div>
                                                 </th>
+                                                <th className="px-6 py-4 text-center text-indigo-400">Council</th>
+                                                <th className="px-6 py-4 text-center text-indigo-400">Consensus</th>
                                                 <th className="px-6 py-4 text-center cursor-pointer hover:text-white transition-colors" onClick={() => handlePubSort('created_at')}>
                                                     <div className="flex items-center justify-center gap-1">
                                                         Date
@@ -1504,6 +1514,12 @@ export default function FastScannerTab() {
                                                                     </div>
                                                                 );
                                                             })()}
+                                                        </td>
+                                                        <td className="px-6 py-4 text-center">
+                                                            <span className="font-black text-white italic">{r.council_score ? `${r.council_score.toFixed(1)}%` : "N/A"}</span>
+                                                        </td>
+                                                        <td className="px-6 py-4 text-center">
+                                                            <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">{r.consensus_ratio || "N/A"}</span>
                                                         </td>
                                                         <td className="px-6 py-4 text-center">
                                                             <span className="text-[9px] font-bold text-zinc-500 uppercase">

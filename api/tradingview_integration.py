@@ -152,7 +152,7 @@ def fetch_tradingview_prices(
         return False, "tvDatafeed library not installed. Run: pip install tvDatafeed"
     
     import datetime as dt
-    from stock_ai import _last_trading_day, sync_df_to_supabase, _get_supabase_info
+    from api.stock_ai import _last_trading_day, sync_df_to_supabase, _get_supabase_info
 
     # Parse symbol
     upper = symbol.strip().upper()
@@ -264,7 +264,7 @@ def fetch_tradingview_fundamentals_bulk(
         return {}
     
     # Import helper functions
-    from stock_ai import _finite_float, sync_data_to_supabase
+    from api.stock_ai import _finite_float, sync_data_to_supabase
     
     bulk_chunk_size = int(os.getenv("TRADINGVIEW_BULK_CHUNK_SIZE", "500"))
     bulk_chunk_size = max(50, min(2000, bulk_chunk_size))

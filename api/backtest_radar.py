@@ -15,7 +15,7 @@ load_dotenv(os.path.join(base_dir, ".env"))
 # Also try web/.env.local where Supabase keys overlap often in this project structure
 load_dotenv(os.path.join(base_dir, "web", ".env.local"), override=True)
 
-print(f"DEBUG: NEXT_PUBLIC_SUPABASE_URL found? {'NEXT_PUBLIC_SUPABASE_URL' in os.environ}")
+print(f"DEBUG: NEXT_PUBLIC_SUPABASE_URL found? {'NEXT_PUBLIC_SUPABASE_URL' in os.environ}", flush=True)
 
 
 # Add api parent dir to path to allow imports
@@ -30,6 +30,78 @@ warnings.filterwarnings("ignore")
 if sys.platform == "win32":
     sys.stdout.reconfigure(encoding='utf-8')
 
+# Global cache for index data to avoid repeated file reads
+_INDEX_CACHE = {}
+
+def load_egx30_index(start_date: str = None, end_date: str = None):
+    """
+    Load EGX30 index data from JSON file and filter by date range.
+    Returns DataFrame with date index and close prices.
+    """
+    global _INDEX_CACHE
+    
+    # Check cache first
+    cache_key = f"{start_date}:{end_date}"
+    if cache_key in _INDEX_CACHE:
+        return _INDEX_CACHE[cache_key].copy()
+    
+    try:
+        # Path to EGX30-INDEX.json
+        index_path = os.path.join(base_dir, "symbols_data", "EGX30-INDEX.json")
+        
+        if not os.path.exists(index_path):
+            print(f"WARNING: EGX30 index file not found at {index_path}", flush=True)
+            return None
+        
+        with open(index_path, 'r') as f:
+            index_data = json.load(f)
+        
+        df = pd.DataFrame(index_data)
+        df['date'] = pd.to_datetime(df['date'])
+        df = df.set_index('date').sort_index()
+        
+        # Filter by date range if provided
+        if start_date:
+            df = df[df.index >= pd.to_datetime(start_date)]
+        if end_date:
+            df = df[df.index <= pd.to_datetime(end_date)]
+        
+        # Cache the result
+        _INDEX_CACHE[cache_key] = df.copy()
+        
+        print(f"DEBUG: Loaded EGX30 index data: {len(df)} days from {df.index[0]} to {df.index[-1]}", flush=True)
+        return df
+    
+    except Exception as e:
+        print(f"ERROR loading EGX30 index: {e}", flush=True)
+        import traceback
+        traceback.print_exc()
+        return None
+
+def calculate_benchmark_returns(start_date: str, end_date: str):
+    """
+    Calculate buy-and-hold return for EGX30 index over the date range.
+    Returns percentage return (e.g., 0.15 for 15% gain).
+    """
+    index_df = load_egx30_index(start_date, end_date)
+    
+    if index_df is None or len(index_df) < 2:
+        print("WARNING: Insufficient index data for benchmark calculation", flush=True)
+        return None
+    
+    start_price = index_df['close'].iloc[0]
+    end_price = index_df['close'].iloc[-1]
+    
+    benchmark_return = (end_price - start_price) / start_price
+    
+    print(
+        f"DEBUG: EGX30 Benchmark - Start: {start_price:.2f}, End: {end_price:.2f}, "
+        f"Return: {benchmark_return*100:.2f}%",
+        flush=True
+    )
+    
+    return benchmark_return
+
 def load_model(model_path):
     """Loads a model from a pickle file."""
     try:
@@ -40,26 +112,11 @@ def load_model(model_path):
         if isinstance(obj, dict):
              # Check if it's a meta-labeling system
             if obj.get("kind") == "meta_labeling_system":
-                # Reconstruct MetaLabelingClassifier
-                primary_data = obj["primary_model"]
-                # For this simulation, we really just need the 'predict' and 'predict_proba' behavior.
-                # If the meta-model system is complex to reconstruct class-wise, we might need a wrapper.
-                # But let's check `api/stock_ai.py` -> _MetaLabelingClassifier requires (primary, meta, names, threshold)
-                
-                # We need the actual model objects, not just the dicts if they are boosters.
-                # However, the pickle usually saves the objects themselves if using standard joblib/pickle.
-                # If `train_exchange_model` saved the ARTIFACT dict, the actual booster might be inside 'model_str' or passed alongside.
-                # Let's verify how `stock_ai.py` loads it. 
-                # It seems `stock_ai.py` expects the pickle to BE the model or the dict containing it.
-                
-                # Wait, `api/stock_ai.py` class `_MetaLabelingClassifier` is what we want.
-                # But `save_meta_labeling_system` stores a DICT. We need to re-inflate it.
-                
-                return obj # We will handle dict parsing in the simulation loop or a wrapper
+                return obj 
             return obj
         return obj
     except Exception as e:
-        print(f"Error loading model {model_path}: {e}")
+        print(f"Error loading model {model_path}: {e}", flush=True)
         return None
 
 def reconstruct_meta_model(artifact):
@@ -69,16 +126,6 @@ def reconstruct_meta_model(artifact):
     if not isinstance(artifact, dict) or artifact.get("kind") != "meta_labeling_system":
         return None
         
-    # In `train_exchange_model.py`: 
-    # artifact = { "kind": ..., "primary_model": {...}, "meta_model": meta_model_obj, ... }
-    # So "meta_model" IS the object (XGBClassifier or LGBMClassifier).
-    
-    # "primary_model" is a dict with "model_str" (if booster). 
-    # We might need to inflate the primary booster from string if it was saved as string.
-    # OR, if it was saved as a raw model object, we use it. 
-    # The `train_exchange_model.py` saves `model_str` for the primary.
-    # This implies we need to load LightGBM booster from string.
-    
     import lightgbm as lgb
     
     pm_art = artifact["primary_model"]
@@ -94,7 +141,7 @@ def reconstruct_meta_model(artifact):
             
         primary_model = PrimaryWrapper(primary_booster)
     else:
-        # Fallback if it wasn't a string (unlikely for "lgbm_booster" kind)
+        # Fallback
         primary_model = pm_art
         
     meta_model = artifact["meta_model"]
@@ -102,7 +149,6 @@ def reconstruct_meta_model(artifact):
     threshold = artifact.get("meta_threshold", 0.6)
     
     from api.stock_ai import _MetaLabelingClassifier
-    # Note: _MetaLabelingClassifier expects feature names to slice the DF.
     wrapper = _MetaLabelingClassifier(
         primary_model=primary_model,
         meta_model=meta_model,
@@ -111,116 +157,150 @@ def reconstruct_meta_model(artifact):
     )
     return wrapper
 
-def run_radar_simulation(df, model, threshold=0.6, capital=100000):
+def run_radar_simulation(df, model, council=None, threshold=0.6, capital=100000):
     """
     Simulation of Radar: Base Model Detector -> Meta Model Confirmation.
     """
-    print(f"📡 Starting Radar Simulation on {len(df)} candles...")
+    if df.empty: return {}
+    print(f"DEBUG: run_radar_simulation called for {len(df)} rows", flush=True)
     
     balance = capital
     trade_log = []
     
-    # Settings (from user request)
+    # Settings
     TARGET_PCT = 0.10
     STOP_LOSS_PCT = 0.05
     HOLD_MAX_DAYS = 20
     
-    # We need to simulate day by day.
-    # But first, we need PREDICTIONS for all days to simulate the "Radar".
-    # Since we can't easily loop row-by-row for feature gen (too slow),
-    # we assume 'df' already has ALL massive features generated.
-    
-    # 1. Feature Prep
-    # The model expects specific columns.
-    # If `model` is the dictionary artifact, we need to know which columns.
-    
     classifier = model
-    # If it's the dict artifact, inflate it
     if isinstance(model, dict) and model.get("kind") == "meta_labeling_system":
         classifier = reconstruct_meta_model(model)
         if not classifier:
-            print("Failed to reconstruct Meta Model.")
             return {}
     
-    # Predict on the whole DF (or a test slice)
-    # Note: In real life, we predict day-by-day. Using whole DF for 'predict' is technically look-ahead 
-    # IF the features themselves leak. But `add_massive_features` uses rolling windows on PAST data, 
-    # so predicting row N using row N's features is correct.
-    
-    # However, running `predict_proba` on 10k rows is fast.
-    # Let's ensure we have the features.
-    print("Pre-calculating signals...")
+    def _align_for_king(X_src: pd.DataFrame, king_artifact: dict) -> pd.DataFrame:
+        try:
+            pm = king_artifact.get("primary_model") or {}
+            feats = list(pm.get("feature_names") or [])
+            cats = list(pm.get("categorical_features") or [])
+            if not feats:
+                return X_src.replace([np.inf, -np.inf], np.nan).fillna(0)
+            Xk = X_src.copy()
+            missing = [c for c in feats if c not in Xk.columns]
+            for c in missing:
+                Xk[c] = 0
+            Xk = Xk[feats]
+            for col in cats:
+                if col in Xk.columns:
+                    Xk[col] = Xk[col].astype(str).replace(['nan', 'None', ''], "Unknown").fillna("Unknown").astype('category')
+            return Xk.replace([np.inf, -np.inf], np.nan).fillna(0)
+        except Exception:
+            return X_src.replace([np.inf, -np.inf], np.nan).fillna(0)
+
+    # Pre-calculate signals
     try:
-        # Get expected features from the model artifact or booster
         expected_features = []
-        if isinstance(model, dict) and "primary_model" in model:
-            expected_features = model["primary_model"].get("feature_names", [])
-        
-        # If we have a list of expected features, align the DF
-        X = df.copy()
-        
+        categorical_features = []
+
+        if isinstance(model, dict) and model.get("kind") == "meta_labeling_system":
+            pm = model.get("primary_model") or {}
+            expected_features = list(pm.get("feature_names") or [])
+            categorical_features = list(pm.get("categorical_features") or [])
+
+        X_all = df.copy()
+        X = X_all
         if expected_features:
-            # Check for missing features and fill with 0
+            # Fill missing with 0 and subset
             missing = set(expected_features) - set(X.columns)
-            if missing:
-                # Print once
-                if not hasattr(run_radar_simulation, "_printed_missing"):
-                    print(f"DEBUG: Missing {len(missing)} features: {sorted(list(missing))}")
-                    run_radar_simulation._printed_missing = True
-                for m in missing:
-                    X[m] = 0
-            
-            # Reorder to match model's expected order
+            for m in missing: X[m] = 0
             X = X[expected_features]
             
-            # Handle Categorical features specifically if the model expects them
-            # We check "sector" and "industry" which are standard in this app
-            for col in ["sector", "industry"]:
+            # Handle categorical features as strings -> pandas category (matches training pipeline)
+            for col in categorical_features or ["sector", "industry"]:
                 if col in X.columns:
-                    X[col] = X[col].astype('category')
-        
-        # Predict using the classifier
-        probs = classifier.predict_proba(X) 
+                    X[col] = X[col].astype(str).replace(['nan', 'None', ''], "Unknown").astype('category')
+
+        probs = classifier.predict_proba(X)
         confidences = probs[:, 1]
         
+        # Phase 2: Council Filtering (use full feature frame so each model can align its own features)
+        consensus_scores = None
+        detailed_votes = {}
+        if council:
+            consensus_scores = council.get_consensus(X_all)
+            detailed_votes = council.get_detailed_votes(X_all)
+
+        # Optional: Council Validator (trains on KING BUYs; needs KING confidence feature)
+        validator_probs = None
+        if hasattr(run_radar_simulation, "_validator") and getattr(run_radar_simulation, "_validator", None) is not None:
+            validator = getattr(run_radar_simulation, "_validator", None)
+            # Get KING artifact/model from the council if present; otherwise allow a standalone KING for validator-only mode.
+            king_obj = None
+            try:
+                king_obj = getattr(council, "models", {}).get("king") if council else None
+            except Exception:
+                king_obj = None
+            if king_obj is None:
+                king_obj = getattr(run_radar_simulation, "_king_validator_artifact", None)
+
+            king_clf = king_obj
+            if isinstance(king_clf, dict) and king_clf.get("kind") == "meta_labeling_system":
+                king_clf = reconstruct_meta_model(king_clf)
+
+            if king_clf is not None and hasattr(king_clf, "predict_proba"):
+                Xk = _align_for_king(X_all, king_obj) if isinstance(king_obj, dict) else X_all
+                king_conf = king_clf.predict_proba(Xk)[:, 1]
+                try:
+                    validator_probs = validator.predict_proba(X_all, primary_conf=king_conf)[:, 1]
+                except Exception as e:
+                    print(f"Warning: Council validator failed: {e}", flush=True)
+                    validator_probs = None
+
+        # Deep Debug
+        max_score = np.max(confidences) if len(confidences) > 0 else 0
+        max_consensus = np.max(consensus_scores) if consensus_scores is not None else 0
+        max_validator = np.max(validator_probs) if validator_probs is not None and len(validator_probs) > 0 else 0
+        
+        print(
+            f"DEBUG: Symbol {df['symbol'].iloc[0] if 'symbol' in df.columns else '??'} "
+            f"Max Radar: {max_score:.4f} | Max Council: {max_consensus:.4f} | Max Validator: {max_validator:.4f}",
+            flush=True
+        )
+        
     except Exception as e:
-        print(f"Prediction failed: {e}")
+        print(f"ERROR: run_radar_simulation prediction failed: {e}", flush=True)
         import traceback
         traceback.print_exc()
         return {}
 
-    # Now we iterate to trade
+    # Iterate to trade
     dates = df.index
     closes = df['close'].values
     highs = df['high'].values
     lows = df['low'].values
     symbols = df['symbol'].values if 'symbol' in df.columns else [None]*len(df)
     
-    # Managing positions
-    # Simple mode: 1 trade at a time? Or portfolio?
-    # User said: " لو حطيت 100 ألف جنيه الشهر اللي فات" -> implies a portfolio or compounding.
-    # Let's assume we take EVERY confirmed trade with a fixed position size or usage of available balance.
-    # For simplicity of the "Report": We just log the individual trades and sum them up, 
-    # simulating a compounding portfolio (reinvesting).
-    
-    start_balance = balance
-    current_positions = [] # Not really needed if we just "jump" to outcome, 
-                           # BUT for true PnL we should be careful about overlapping trades?
-                           # The user code snippet simplifies: "For each row... see what happened".
-                           # This implies "Potential Trades". If we have 100 signals, we can't take them all with 100k.
-                           # Let's stick to the User's snippet logic: "update Portfolio" implies sequential processing.
-    
-    skipped_signals = 0
+    # Track pre-council and post-council separately
+    pre_council_trades = []
+    post_council_trades = []
+    balance_pre = capital
+    balance_post = capital
     
     for i in range(len(df) - HOLD_MAX_DAYS):
-        # 1. Check Signal
-        score = confidences[i]
+        radar_score = confidences[i]
+        council_score = consensus_scores[i] if consensus_scores is not None else 1.0
         
-        # Logic: If Meta Score >= Threshold -> CONFIRMED
-        # (The "Base" signal is implicit in the MetaWrapper: it returns 0 if Base says 0)
+        # Check if Radar phase passes (before council)
+        passes_radar = radar_score >= threshold
         
-        if score >= threshold:
-            # ENTRY
+        # Check if Council phase also passes
+        passes_council = council_score >= 0.55
+        if validator_probs is not None:
+            passes_council = passes_council and (validator_probs[i] >= float(getattr(getattr(run_radar_simulation, "_validator", None), "approval_threshold", 0.5)))
+        
+        # Track pre-council if radar passes
+        if passes_radar:
+            score = council_score # Use consensus as the final "score" for the log
             entry_price = closes[i]
             entry_date = dates[i]
             symbol = symbols[i]
@@ -228,29 +308,23 @@ def run_radar_simulation(df, model, threshold=0.6, capital=100000):
             take_profit = entry_price * (1 + TARGET_PCT)
             stop_loss = entry_price * (1 - STOP_LOSS_PCT)
             
-            outcome = "HOLD" # Time exit
+            outcome = "HOLD"
             pnl_pct = 0.0
             exit_date = dates[i+HOLD_MAX_DAYS]
             exit_price = closes[i+HOLD_MAX_DAYS]
             
-            # Look Forward
             for days_fwd in range(1, HOLD_MAX_DAYS + 1):
                 idx = i + days_fwd
                 if idx >= len(df): break
                 
-                high_f = highs[idx]
-                low_f = lows[idx]
-                
-                # Check SL first (Conservative)
-                if low_f <= stop_loss:
+                if lows[idx] <= stop_loss:
                     outcome = "STOP LOSS ❌"
                     pnl_pct = -STOP_LOSS_PCT
                     exit_date = dates[idx]
                     exit_price = stop_loss
                     break
                 
-                # Check TP
-                if high_f >= take_profit:
+                if highs[idx] >= take_profit:
                     outcome = "TARGET HIT 🎯"
                     pnl_pct = TARGET_PCT
                     exit_date = dates[idx]
@@ -258,85 +332,130 @@ def run_radar_simulation(df, model, threshold=0.6, capital=100000):
                     break
             
             if outcome == "HOLD":
-                # Exit at close of last day
                 pnl_pct = (exit_price - entry_price) / entry_price
                 outcome = f"TIME EXIT ({pnl_pct*100:.1f}%)"
 
-            # Update Balance (Compounding)
-            # Assumption: We put 100% of CURRENT portfolio into the trade? 
-            # Risk Management usually says 10% per trade. 
-            # But the user code said: `balance *= (1 + pnl)`. That means All-In per trade.
-            # That's very risky but let's follow the user's "Simple Backtest" logic effectively.
-            # Modification: To be realistic, if we have overlapping trades, we can't go All-In.
-            # But since this is a sequence on a single DF (usually single symbol in user code loop?),
-            # Wait, the user backtest function takes `df`. If `df` is ALL symbols mixed, sorting by date is crucial.
-            # If `df` is one symbol, All-In is valid for that symbol's simulation.
-            
-            # Let's assume Fixed Allocation (e.g., 20% of capital) to allow diversification if we ran multiple symbols.
-            # OR honestly, just follow the user logic: `balance *= (1 + pnl)` -> The "Growth of 1 unit".
-            
-            balance *= (1 + pnl_pct)
-            
-            trade_log.append({
-                "Date": entry_date,
+            # Common trade data
+            trade_data = {
+                "Date": entry_date.strftime("%d/%m/%Y") if hasattr(entry_date, "strftime") else str(entry_date),
+                "Entry_Date": entry_date.strftime("%Y-%m-%d"),
+                "Exit_Date": exit_date.strftime("%Y-%m-%d"),
+                "Entry_Day": entry_date.strftime("%A"),
+                "Exit_Day": exit_date.strftime("%A"),
                 "Symbol": symbol,
                 "Entry": entry_price,
                 "Exit": exit_price,
-                "Score": round(score, 2),
+                "Score": round(float(score), 2),
                 "Result": outcome,
-                "PnL_Pct": pnl_pct,
-                "Balance": int(balance)
-            })
+                "PnL_Pct": float(pnl_pct),
+                "Status": "Accepted" if passes_council else "Rejected",
+                "Votes": {m: round(float(v[i]), 2) for m, v in detailed_votes.items()}
+            }
+            
+            # Track pre-council (all radar signals)
+            balance_pre *= (1 + pnl_pct)
+            pre_council_trades.append({**trade_data, "Balance": int(balance_pre)})
+            
+            # Only track post-council if passes both filters
+            if passes_council:
+                balance_post *= (1 + pnl_pct)
+                post_council_trades.append({**trade_data, "Balance": int(balance_post)})
+                trade_log.append({**trade_data, "Balance": int(balance_post)})
+            else:
+                # Still add it to a "global log" if we want to show rejected trades in dialog
+                # Let's decide if trade_log should contain ALL trades with a status field
+                # High complexity UI: yes, all trades.
+                trade_log.append({**trade_data, "Balance": int(balance_post)})
 
-    # Summary
-    total_return = ((balance - start_balance) / start_balance) * 100
-    wins = [t for t in trade_log if t['PnL_Pct'] > 0]
-    win_rate = len(wins) / len(trade_log) if trade_log else 0
+    # Calculate metrics for both phases
+    def calc_metrics(trades_list, ignore_status=False):
+        if not trades_list:
+            return {"total": 0, "win_rate": 0, "profit_pct": 0, "rejected_profitable": 0}
+        
+        # If ignore_status is True, we treat all trades as Valid candidates (Pre-Council view)
+        # If False, we respect the 'Status' field (Post-Council view)
+        
+        if ignore_status:
+            relevant_trades = trades_list
+        else:
+            relevant_trades = [t for t in trades_list if t.get("Status") != "Rejected"]
+
+        wins = sum(1 for t in relevant_trades if t["PnL_Pct"] > 0)
+        total = len(relevant_trades)
+        
+        rejected_profitable = sum(1 for t in trades_list if t.get("Status") == "Rejected" and t["PnL_Pct"] > 0)
+        
+        win_rate = (wins / total * 100) if total > 0 else 0
+        
+        # For return %:
+        # If ignore_status (Pre-Council), we should simulate what the balance WOULD be if we took everything.
+        # But 'pre_council_trades' list already tracks 'Balance' assuming we took them!
+        # See: balance_pre *= (1 + pnl_pct) in the loop.
+        # So we can just take the last balance.
+        
+        final_bal = trades_list[-1]["Balance"] if trades_list else capital
+        total_return = (final_bal - capital) / capital * 100
+        
+        return {"total": total, "win_rate": win_rate, "profit_pct": total_return, "rejected_profitable": rejected_profitable}
     
+    pre_metrics = calc_metrics(pre_council_trades, ignore_status=True)
+    post_metrics = calc_metrics(post_council_trades, ignore_status=False)
+    
+    # We actually want total "Rejected Profitable" globally
+    # This is now calculated within calc_metrics for each list and aggregated in main()
+    # rejected_profitable = sum(1 for t in trade_log if t.get("Status") == "Rejected" and t["PnL_Pct"] > 0)
+
     return {
-        "Initial Capital": capital,
-        "Final Balance": int(balance),
-        "Total Return": f"{total_return:.2f}%",
-        "Win Rate": f"{win_rate*100:.1f}%",
-        "Total Trades": len(trade_log),
-        "Trades Log": pd.DataFrame(trade_log)
+        "Total Trades": len([t for t in trade_log if t.get("Status") == "Accepted"]),
+        "Trades Log": pd.DataFrame(trade_log),
+        "pre_council_trades": pre_metrics["total"],
+        "pre_council_win_rate": pre_metrics["win_rate"],
+        "pre_council_profit_pct": pre_metrics["profit_pct"],
+        "post_council_trades": post_metrics["total"],
+        "post_council_win_rate": post_metrics["win_rate"],
+        "post_council_profit_pct": post_metrics["profit_pct"],
+        "rejected_profitable": pre_metrics["rejected_profitable"] # Use the one from pre_metrics as it considers all radar signals
     }
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--exchange", required=True, help="Exchange code (e.g. EGX, US)")
-    parser.add_argument("--model", required=True, help="Model filename in api/models/")
-    parser.add_argument("--start", default="2024-01-01", help="Start date YYYY-MM-DD")
+    parser.add_argument("--exchange", required=True)
+    parser.add_argument("--model", required=True)
+    parser.add_argument("--start", default="2024-01-01")
+    parser.add_argument("--end", default=None)
+    parser.add_argument("--out", default=None, help="Optional CSV output path")
+    parser.add_argument("--council", default=None, help="Path to council model (enables Council filtering)")
+    parser.add_argument("--validator", default=None, help="Optional Council Validator model (trained on KING BUYs)")
     args = parser.parse_args()
     
-    # 1. Load Data
-    print(f"📥 Fetching bulk data for {args.exchange} from {args.start}...")
-    data_map = _get_exchange_bulk_data(args.exchange, from_date=args.start)
+    # Load Data
+    try:
+        # Support dd/mm/yyyy input from frontend
+        start_dt = pd.to_datetime(args.start, dayfirst=True).tz_localize(None)
+        args.start = start_dt.strftime("%Y-%m-%d") 
+        
+        # Use a generous buffer (1 year) to ensure all technical indicators have enough history
+        buffer_start_dt = start_dt - timedelta(days=365)
+        buffer_start = buffer_start_dt.strftime("%Y-%m-%d")
+    except Exception as e:
+        print(f"Warning: Date parsing failed ({e}), using defaults.", flush=True)
+        buffer_start = "2023-01-01"
+        start_dt = pd.to_datetime("2024-01-01")
+
+    print(f"📥 Fetching bulk data for {args.exchange} (Buffer Start: {buffer_start}, Sim Start: {args.start})...", flush=True)
+    data_map = _get_exchange_bulk_data(args.exchange, from_date=buffer_start)
     if not data_map:
-        print("❌ No data found.")
+        print("❌ No data found.", flush=True)
         return
 
-    # Flatten for simulation? 
-    # The simulation logic works best on a sorted stream of candles from ONE symbol, 
-    # OR we need a complex portfolio simulator for multiple symbols.
-    # To get the "Global" view, we can:
-    # A) Run backtest per symbol, then aggregate.
-    # B) Sort ALL candles by date and run as one stream (as if trading the market index?).
-    
-    # User's request: "AI Radar detected 12 confirmed opportunities last month".
-    # This implies we scan ALL symbols.
-    # So we should run the simulation on EVERY symbol and collect the trades.
-    
-    # 2. Setup Market Context & Fundamentals if needed
+    # Context & Fundamentals
     from api.train_exchange_model import add_market_context, fetch_fundamentals_for_exchange
     from api.stock_ai import _init_supabase, supabase
-    
     _init_supabase()
+    
     market_df = None
-    # Try to load EGX30 index for context if it's EGX
     if args.exchange == "EGX":
         try:
-            # We can try to load from local json as described in model card
             index_path = os.path.join(base_dir, "symbols_data", "EGX30-INDEX.json")
             if os.path.exists(index_path):
                 with open(index_path, "r") as f:
@@ -344,124 +463,251 @@ def main():
                 market_df = pd.DataFrame(idx_data)
                 market_df['date'] = pd.to_datetime(market_df['date'])
                 market_df.set_index('date', inplace=True)
-                print("✅ Market context (EGX30) loaded from local JSON.")
-        except Exception as e:
-            print(f"Warning: Could not load market context: {e}")
+                print("✅ Market context (EGX30) loaded from local JSON.", flush=True)
+        except Exception: pass
 
-    # Load Fundamentals
     df_funds = pd.DataFrame()
     if supabase:
-        print(f"📥 Fetching fundamentals for {args.exchange}...")
+        print(f"📥 Fetching fundamentals for {args.exchange}...", flush=True)
         df_funds = fetch_fundamentals_for_exchange(supabase, args.exchange)
 
-    # 3. Load Model
+    # Load Model
     models_dir = os.path.join(base_dir, "api", "models")
     model_path = os.path.join(models_dir, args.model)
     if not os.path.exists(model_path):
-        if os.path.exists(args.model):
-            model_path = args.model
+        if os.path.exists(args.model): model_path = args.model
         else:
-            print(f"❌ Model not found: {model_path}")
+            print(f"❌ Model not found: {model_path}", flush=True)
             return
 
-    print(f"🧠 Loading model: {args.model}...")
-    model = load_model(model_path)
-    if not model:
-        return
+    print(f"🧠 Loading model: {args.model}...", flush=True)
+    model_obj = load_model(model_path)
+    if not model_obj: return
 
-    # Use threshold from model card if possible
     sim_threshold = 0.6
-    if isinstance(model, dict):
-        sim_threshold = model.get("meta_threshold", 0.6)
-    print(f"🎯 Using Meta Threshold: {sim_threshold}")
+    if isinstance(model_obj, dict):
+        sim_threshold = model_obj.get("meta_threshold", 0.6)
+    print(f"🎯 Using Meta Threshold: {sim_threshold}", flush=True)
 
-    # 4. Running Simulation
+    # Prepare TheCouncil (Phase 2) ONLY when explicitly requested.
+    # If the user chooses "None (No Filter)" in the UI, the API won't pass --council,
+    # and we must not fall back to any default Council model.
+    # Clear optional attachments (each run should be independent)
+    try:
+        setattr(run_radar_simulation, "_validator", None)
+        setattr(run_radar_simulation, "_king_validator_artifact", None)
+    except Exception:
+        pass
+
+    council = None
+    council_arg = (args.council or "").strip()
+    if council_arg and council_arg.lower() not in {"none", "null", "no", "no_filter", "no filter"}:
+        from api.council import TheCouncil
+
+        council_models = {"collector": model_obj}
+
+        actual_council_path = os.path.join(models_dir, council_arg)
+        if os.path.exists(actual_council_path):
+            print(f"🏛️ Loading Council Model: {council_arg}...", flush=True)
+            loaded = load_model(actual_council_path)
+            # Guard: user may accidentally pick a Council Validator model in the council dropdown.
+            if isinstance(loaded, dict) and (loaded.get("kind") or "").strip().lower() == "council_validator":
+                print("⚠️ Selected model is a Council Validator, not a Council member. Using it as --validator instead.", flush=True)
+                if not args.validator:
+                    args.validator = council_arg
+                loaded = None
+            council_models["king"] = loaded
+        elif os.path.exists(council_arg):
+            print(f"🏛️ Loading Council Model (abs): {council_arg}...", flush=True)
+            loaded = load_model(council_arg)
+            if isinstance(loaded, dict) and (loaded.get("kind") or "").strip().lower() == "council_validator":
+                print("⚠️ Selected model is a Council Validator, not a Council member. Using it as --validator instead.", flush=True)
+                if not args.validator:
+                    args.validator = council_arg
+                loaded = None
+            council_models["king"] = loaded
+        else:
+            print(f"⚠️ Council model not found at {actual_council_path}. Council will be disabled.", flush=True)
+
+        if council_models.get("king") is not None:
+            council = TheCouncil(models_dict=council_models)
+        else:
+            council = None
+    else:
+        print("🏛️ Council disabled (No Filter).", flush=True)
+
+    # Optional validator (gates Council-approved trades based on KING confidence)
+    if args.validator:
+        from api.council_validator import load_council_validator_from_path
+        v_path = os.path.join(models_dir, args.validator)
+        if not os.path.exists(v_path) and os.path.exists(args.validator):
+            v_path = args.validator
+        validator = load_council_validator_from_path(v_path)
+        if validator:
+            # Attach to function for minimal signature changes
+            setattr(run_radar_simulation, "_validator", validator)
+            print(f"🛡️ Loaded Council Validator: {os.path.basename(v_path)}", flush=True)
+
+            # If Council is disabled, still support validator-only filtering by loading KING for confidence.
+            if council is None:
+                king_path = os.path.join(models_dir, "KING 👑.pkl")
+                if os.path.exists(king_path):
+                    king_art = load_model(king_path)
+                    setattr(run_radar_simulation, "_king_validator_artifact", king_art)
+                    print("👑 Loaded KING for validator-only mode.", flush=True)
+        else:
+            print(f"⚠️ Failed to load Council Validator from {v_path}", flush=True)
+
+    # Running Simulation
     from api.train_exchange_model import add_technical_indicators, add_indicator_signals
     
     all_trades = []
+    all_res_metadata = []
     count = 0
+    symbols_list = list(data_map.keys())
     
-    for symbol, df in data_map.items():
-        if df.empty or len(df) < 50: continue
+    print(f"🚀 Processing {len(symbols_list)} symbols sequentially...", flush=True)
+    
+    for symbol in symbols_list:
+        df = data_map[symbol]
+        if df.empty:
+            continue
+        
+        # Save original index
+        original_index = df.index
+        if not isinstance(original_index, pd.DatetimeIndex):
+            original_index = pd.to_datetime(original_index)
+        
+        if len(df) < 60:
+            continue
         
         try:
-            # Full Pipeline as in ModelTrainer.prepare_training_data
-            # 1. Base Indicators
             df_feat = add_technical_indicators(df)
-            if df_feat.empty: continue
+            if df_feat.empty:
+                continue
             
-            # 2. Advanced Signals
+            # Ensure index matches
+            if len(df_feat) == len(df):
+                df_feat.index = original_index
+            
             df_feat = add_indicator_signals(df_feat)
-            
-            # 3. Massive Features (extended preset)
             df_feat = add_massive_features(df_feat)
             
-            # 4. Market Context
             if market_df is not None:
                 df_feat = add_market_context(df_feat, market_df)
             
             df_feat['symbol'] = symbol
-            
-            # 5. Fundamentals
             if not df_funds.empty:
-                df_feat = pd.merge(df_feat, df_funds, on="symbol", how="left")
+                df_feat = df_feat.join(df_funds.set_index("symbol"), on="symbol", how="left")
             
-            # 6. Fill remaining NAs
+            if len(df_feat) == len(df):
+                df_feat.index = original_index
+
             df_feat = df_feat.fillna(0)
             
-            res = run_radar_simulation(df_feat, model, threshold=sim_threshold) 
+            # Slice simulation period
+            sim_start_dt = pd.to_datetime(args.start, dayfirst=True).tz_localize(None)
+            sim_end_dt = pd.to_datetime(args.end, dayfirst=True).tz_localize(None) if args.end else None
+            
+            if not isinstance(df_feat.index, pd.DatetimeIndex):
+                df_feat.index = pd.to_datetime(df_feat.index, errors="coerce")
+            idx_clean = pd.DatetimeIndex(df_feat.index).tz_localize(None)
+
+            fmt = "%d/%m/%Y"
+            
+            mask = (idx_clean >= sim_start_dt)
+            if sim_end_dt:
+                mask = mask & (idx_clean <= sim_end_dt)
+            
+            df_sim = df_feat[mask]
+            
+            if df_sim.empty:
+                continue
+
+            res = run_radar_simulation(df_sim, model_obj, council=council, threshold=sim_threshold) 
             
             if res.get("Trades Log") is not None and not res["Trades Log"].empty:
                 all_trades.append(res["Trades Log"])
+                all_res_metadata.append(res)
                 
         except Exception as e:
-            # print(f"Error processing {symbol}: {e}")
-            pass
+            print(f"CRITICAL Error processing {symbol}: {e}", flush=True)
             
         count += 1
-        if count % 10 == 0:
-            print(f"Processed {count}/{len(data_map)} symbols...")
+        if count % 20 == 0:
+            print(f"Progress: {count}/{len(symbols_list)} symbols processed...", flush=True)
 
-    # 4. Global Report
+    # Global Report
     if not all_trades:
-        print("❌ No trades found matching criteria.")
+        print(f"❌ No trades found matching criteria. (Processed {len(symbols_list)} symbols)", flush=True)
         return
         
     global_log = pd.concat(all_trades).sort_values("Date")
-    
-    # Recalculate Global PnL assuming Fixed Bet size (e.g. 10k per trade)
     capital_per_trade = 10000
-    total_invested = len(global_log) * capital_per_trade
-    
     global_log['Profit_Cash'] = capital_per_trade * global_log['PnL_Pct']
+    global_log['Cumulative_Profit'] = global_log['Profit_Cash'].cumsum()
     net_profit = global_log['Profit_Cash'].sum()
-    total_return_pct = (net_profit / total_invested * 100) if total_invested > 0 else 0
+    win_rate = (len(global_log[global_log['PnL_Pct'] > 0]) / len(global_log)) * 100
+
+    # Aggregate Council Impact
+    total_pre_trades = sum(r.get("pre_council_trades", 0) for r in all_res_metadata)
+    total_post_trades = sum(r.get("post_council_trades", 0) for r in all_res_metadata)
     
-    wins = len(global_log[global_log['PnL_Pct'] > 0])
-    win_rate = (wins / len(global_log)) * 100
+    # Calculate weighted averages or just re-calculate from logs if possible?
+    # Simple aggregation of pre_metrics
+    avg_pre_win_rate = (sum(r.get("pre_council_win_rate", 0) * r.get("pre_council_trades", 0) for r in all_res_metadata) / total_pre_trades) if total_pre_trades > 0 else 0
+    avg_post_win_rate = (sum(r.get("post_council_win_rate", 0) * r.get("post_council_trades", 0) for r in all_res_metadata) / total_post_trades) if total_post_trades > 0 else 0
     
-    print("\n" + "="*40)
-    print(" 🚀 FINAL RADAR BACKTEST REPORT ")
-    print("="*40)
-    print(f"Model: {args.model}")
-    print(f"Exchange: {args.exchange}")
-    print(f"Period: {args.start} to Present")
-    print("-" * 20)
-    print(f"Total Trades Detected: {len(global_log)}")
-    print(f"Win Rate:              {win_rate:.1f}%")
-    print(f"Avg Return per Trade:  {global_log['PnL_Pct'].mean()*100:.2f}%")
-    print("-" * 20)
-    print(f"Simulated Profit (Fixed 10k): {int(net_profit):,} EGP")
-    print("="*40)
+    # For profit %, it's cumulative. Let's just output the totals.
+    total_pre_profit_pct = sum(r.get("pre_council_profit_pct", 0) for r in all_res_metadata) / len(all_res_metadata) # simplified
+    total_post_profit_pct = sum(r.get("post_council_profit_pct", 0) for r in all_res_metadata) / len(all_res_metadata) # simplified
+
+    # Aggregate rejected profitable
+    rejected_profitable = sum(r.get("rejected_profitable", 0) for r in all_res_metadata)
+
+    # Output JSON for API consumption
+    print("\n--- JSON TRADES LOG START ---", flush=True)
+    print(global_log.to_json(orient="records", date_format="iso"), flush=True)
+    print("--- JSON TRADES LOG END ---", flush=True)
+
+    # out_file = args.out or f"backtest_results_{args.exchange}.csv"
+    # try:
+    #     global_log.to_csv(out_file, index=False, encoding="utf-8")
+    # except Exception as e:
+    #     print(f"Warning: Failed to write CSV {out_file}: {e}", flush=True)
     
-    # Show last 10 trades
-    print("\nLATEST TRADES:")
-    print(global_log.tail(10)[['Date', 'Symbol', 'Result', 'PnL_Pct']])
+    print("\n" + "="*40, flush=True)
+    print(" 🚀 FINAL RADAR BACKTEST REPORT ", flush=True)
+    print("="*40, flush=True)
+    print(f"Model: {args.model}", flush=True)
+    print(f"Exchange: {args.exchange}", flush=True)
     
-    # CSV dump
-    out_file = f"backtest_results_{args.exchange}.csv"
-    global_log.to_csv(out_file, index=False)
-    print(f"\nDetailed log saved to {out_file}")
+    try:
+        s_fmt = pd.to_datetime(args.start, dayfirst=True).strftime("%d/%m/%Y")
+        e_fmt = pd.to_datetime(args.end, dayfirst=True).strftime("%d/%m/%Y") if args.end else "Present"
+    except:
+        s_fmt, e_fmt = args.start, (args.end or "Present")
+        
+    print(f"Period: {s_fmt} to {e_fmt}", flush=True)
+    print("-" * 20, flush=True)
+    print(f"Total Trades Detected: {len(global_log)}", flush=True)
+    print(f"Win Rate:              {win_rate:.1f}%", flush=True)
+    print(f"Avg Return per Trade:  {global_log['PnL_Pct'].mean()*100:.2f}%", flush=True)
+    print("-" * 20, flush=True)
+    print(f"Simulated Profit (Fixed 10k): {int(net_profit):,} EGP", flush=True)
+    
+    print("\n--- Council Impact Analysis ---", flush=True)
+    print(f"Pre-Council Trades:    {total_pre_trades}", flush=True)
+    print(f"Post-Council Trades:   {total_post_trades}", flush=True)
+    print(f"Trades Filtered:       {total_pre_trades - total_post_trades} ({((total_pre_trades - total_post_trades)/total_pre_trades)*100:.1f}% reduction)" if total_pre_trades > 0 else "N/A", flush=True)
+    print(f"Pre-Council Win Rate:  {avg_pre_win_rate:.1f}%", flush=True)
+    print(f"Post-Council Win Rate: {avg_post_win_rate:.1f}%", flush=True)
+    print(f"Pre-Council Profit:    {total_pre_profit_pct:.2f}%", flush=True)
+    print(f"Post-Council Profit:   {total_post_profit_pct:.2f}%", flush=True)
+    print(f"Win Rate Boost:        {avg_post_win_rate - avg_pre_win_rate:+.1f} percentage points", flush=True)
+    print(f"Rejected Profitable:   {rejected_profitable}", flush=True)
+    print("="*40, flush=True)
+
 
 if __name__ == "__main__":
     main()

@@ -187,7 +187,7 @@ export default function HomePage() {
       {data && (
         <section className="space-y-10 animate-in fade-in slide-in-from-bottom-6 duration-1000">
           {/* Top Stats Banner */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {[
               { label: t("result.precision"), val: formatPct(data.precision), sub: `${t("result.window")}: ${data.testPredictions.length} days`, color: "text-white" },
               { label: t("result.last_close"), val: data.lastClose.toFixed(2), sub: `${t("result.date")}: ${data.lastDate}`, color: "text-zinc-100" },
@@ -198,6 +198,12 @@ export default function HomePage() {
                 isSignal: true,
                 color: data.tomorrowPrediction === 1 ? "text-emerald-400" : "text-red-400"
               },
+              {
+                label: "Council Score",
+                val: `${data.councilScore?.toFixed(1) || "N/A"}%`,
+                sub: `Consensus: ${data.consensusRatio || "N/A"}`,
+                color: (data.councilScore || 0) > 70 ? "text-green-400" : (data.councilScore || 0) > 50 ? "text-yellow-400" : "text-red-400"
+              }
             ].map((stat, idx) => (
               <div key={idx} className="relative group rounded-[2.5rem] border border-white/5 bg-zinc-950/40 p-8 pt-10 shadow-2xl backdrop-blur-xl overflow-hidden">
                 <span className="absolute top-8 left-8 text-[10px] font-black text-zinc-600 uppercase tracking-[0.3em]">{stat.label}</span>

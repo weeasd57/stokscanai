@@ -308,6 +308,8 @@ export default function AIScannerPage() {
                                                     <th className="px-6 py-4">Symbol</th>
                                                     <th className="px-6 py-4">Signal</th>
                                                     <th className="px-6 py-4 text-center">AI Score</th>
+                                                    <th className="px-6 py-4 text-center">Council</th>
+                                                    <th className="px-6 py-4 text-center text-indigo-400">Consensus</th>
                                                     <th className="px-6 py-4 text-right text-emerald-500">Target</th>
                                                     <th className="px-6 py-4 text-right text-red-500">Stop Loss</th>
                                                     <th className="px-6 py-4 text-center">Status</th>
@@ -351,6 +353,12 @@ export default function AIScannerPage() {
                                                                     );
                                                                 })()}
                                                             </div>
+                                                        </td>
+                                                        <td className="px-6 py-4 text-center">
+                                                            <span className="font-black text-white italic">{r.council_score ? `${r.council_score.toFixed(1)}%` : "N/A"}</span>
+                                                        </td>
+                                                        <td className="px-6 py-4 text-center">
+                                                            <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">{r.consensus_ratio || "N/A"}</span>
                                                         </td>
                                                         <td className="px-6 py-4 text-right">
                                                             <span className="font-mono font-bold text-emerald-400">{r.target_price ? r.target_price.toFixed(2) : "-"}</span>
@@ -413,7 +421,15 @@ export default function AIScannerPage() {
                     {/* Header */}
                     <div className="flex-none px-6 py-4 border-b border-white/10 bg-zinc-950/90 flex items-center justify-between">
                         <div>
-                            <div className="text-xl font-black text-white font-mono">{selected.symbol}</div>
+                            <div className="flex items-center gap-4">
+                                <div className="text-xl font-black text-white font-mono">{selected.symbol}</div>
+                                {selected.council_score && (
+                                    <div className="px-3 py-1 rounded-full bg-indigo-600/20 border border-indigo-500/40 flex items-center gap-2">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
+                                        <span className="text-[10px] font-black text-white uppercase tracking-widest italic">Council: {selected.council_score.toFixed(1)}%</span>
+                                    </div>
+                                )}
+                            </div>
                             <div className="text-[11px] font-black text-zinc-500 uppercase tracking-widest truncate">{selected.name}</div>
                         </div>
                         <div className="flex items-center gap-4">
