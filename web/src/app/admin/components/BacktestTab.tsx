@@ -670,11 +670,6 @@ export default function BacktestTab() {
               >
                 <option value="" className="bg-zinc-900 text-white">None (No Filter)</option>
                 {models
-                  .filter((m) => {
-                    if (typeof m === "string") return true;
-                    const modelType = String((m as any).model_type || (m as any).kind || "").toLowerCase();
-                    return modelType !== "council_validator";
-                  })
                   .map((m) => {
                   const name = typeof m === "string" ? m : m.name;
                   return (

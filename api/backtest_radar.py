@@ -172,6 +172,81 @@ def run_radar_simulation(df, model, council=None, threshold=0.6, capital=100000)
     STOP_LOSS_PCT = 0.05
     HOLD_MAX_DAYS = 20
     
+    def _reset_booster_cats(obj):
+        """Reset categorical features to avoid train/valid mismatch errors."""
+        try:
+            # Try to access the underlying LightGBM Booster in common wrappers.
+            booster = (
+                getattr(obj, "_Booster", None)
+                or getattr(obj, "booster_", None)
+                or getattr(obj, "booster", None)
+                or getattr(obj, "b", None)  # PrimaryWrapper in this file
+            )
+            if booster is not None:
+                # Set pandas_categorical to None to disable categorical feature checking
+                if hasattr(booster, "pandas_categorical"):
+                    booster.pandas_categorical = None
+                # Also try to reset categorical_feature if it exists
+                if hasattr(booster, "categorical_feature"):
+                    booster.categorical_feature = "auto"
+        except Exception as e:
+            print(f"DEBUG: Could not reset booster cats: {e}", flush=True)
+
+    def _reset_nested_boosters(obj):
+        _reset_booster_cats(obj)
+        for attr in ["primary_model", "meta_model", "model"]:
+            child = getattr(obj, attr, None)
+            if child is not None:
+                _reset_booster_cats(child)
+
+    def _get_primary_booster(obj):
+        """Best-effort extraction of the underlying LightGBM Booster used for primary predictions."""
+        try:
+            pm = getattr(obj, "primary_model", None)
+            if pm is None:
+                return None
+            return (
+                getattr(pm, "_Booster", None)
+                or getattr(pm, "booster_", None)
+                or getattr(pm, "booster", None)
+                or getattr(pm, "b", None)
+            )
+        except Exception:
+            return None
+
+    def _align_pandas_categories_to_booster(X_in: pd.DataFrame, cat_cols: list, booster, cat_cols_order: list):
+        """
+        If the booster has training-time pandas categories, coerce prediction categories to match.
+        This avoids LightGBM's: "train and valid dataset categorical_feature do not match."
+        """
+        if X_in is None or X_in.empty or not cat_cols:
+            return X_in
+
+        if booster is None or not hasattr(booster, "pandas_categorical"):
+            return X_in
+
+        train_cats = getattr(booster, "pandas_categorical", None)
+        if not isinstance(train_cats, list) or not train_cats:
+            return X_in
+
+        # We only know how to map categories positionally if we have the training categorical column order.
+        if not cat_cols_order or len(train_cats) != len(cat_cols_order):
+            return X_in
+
+        mapping = {c: train_cats[i] for i, c in enumerate(cat_cols_order)}
+        out = X_in.copy()
+        for c in cat_cols:
+            if c not in out.columns or c not in mapping:
+                continue
+            try:
+                categories = [str(v) for v in list(mapping[c])]
+                # Unknown categories become NaN (-1) which LightGBM treats as missing.
+                out[c] = pd.Categorical(out[c].astype(str), categories=categories)
+            except Exception:
+                # If coercion fails, keep whatever we had.
+                pass
+        return out
+
     classifier = model
     if isinstance(model, dict) and model.get("kind") == "meta_labeling_system":
         classifier = reconstruct_meta_model(model)
@@ -193,7 +268,16 @@ def run_radar_simulation(df, model, council=None, threshold=0.6, capital=100000)
             for col in cats:
                 if col in Xk.columns:
                     Xk[col] = Xk[col].astype(str).replace(['nan', 'None', ''], "Unknown").fillna("Unknown").astype('category')
-            return Xk.replace([np.inf, -np.inf], np.nan).fillna(0)
+
+            non_cat_cols = [c for c in Xk.columns if c not in set(cats)]
+            for col in non_cat_cols:
+                if not pd.api.types.is_numeric_dtype(Xk[col]):
+                    Xk[col] = pd.to_numeric(Xk[col], errors="coerce")
+
+            Xk = Xk.replace([np.inf, -np.inf], np.nan)
+            if non_cat_cols:
+                Xk[non_cat_cols] = Xk[non_cat_cols].fillna(0)
+            return Xk
         except Exception:
             return X_src.replace([np.inf, -np.inf], np.nan).fillna(0)
 
@@ -201,6 +285,7 @@ def run_radar_simulation(df, model, council=None, threshold=0.6, capital=100000)
     try:
         expected_features = []
         categorical_features = []
+        cat_cols = []
 
         if isinstance(model, dict) and model.get("kind") == "meta_labeling_system":
             pm = model.get("primary_model") or {}
@@ -215,13 +300,70 @@ def run_radar_simulation(df, model, council=None, threshold=0.6, capital=100000)
             for m in missing: X[m] = 0
             X = X[expected_features]
             
-            # Handle categorical features as strings -> pandas category (matches training pipeline)
-            for col in categorical_features or ["sector", "industry"]:
-                if col in X.columns:
-                    X[col] = X[col].astype(str).replace(['nan', 'None', ''], "Unknown").astype('category')
+            # Decide categorical columns:
+            # - Prefer the saved artifact list (pm.categorical_features).
+            # - Fallback only when the feature is explicitly part of the model input.
+            fallback_cats = [c for c in ["sector", "industry"] if c in expected_features]
+            cat_cols = list(dict.fromkeys(list(categorical_features or []) + fallback_cats))
 
-        probs = classifier.predict_proba(X)
-        confidences = probs[:, 1]
+            # Normalize categoricals
+            for col in cat_cols:
+                if col in X.columns:
+                    X[col] = (
+                        X[col]
+                        .astype(str)
+                        .replace(["nan", "None", "", "0", "0.0"], "Unknown")
+                        .fillna("Unknown")
+                        .astype("category")
+                    )
+
+            # Force non-categoricals to numeric (prevents accidental "object" columns)
+            non_cat_cols = [c for c in X.columns if c not in set(cat_cols)]
+            for col in non_cat_cols:
+                if not pd.api.types.is_numeric_dtype(X[col]):
+                    X[col] = pd.to_numeric(X[col], errors="coerce")
+
+            X = X.replace([np.inf, -np.inf], np.nan)
+            if non_cat_cols:
+                X[non_cat_cols] = X[non_cat_cols].fillna(0)
+
+        X_pred = X.copy()
+
+        # If we can, align category *levels* to the training booster to keep predictions meaningful.
+        # Otherwise, reset booster categorical state per-call to avoid hard crashes.
+        primary_booster = _get_primary_booster(classifier)
+        X_pred = _align_pandas_categories_to_booster(
+            X_pred,
+            cat_cols=[c for c in cat_cols if c in X_pred.columns],
+            booster=primary_booster,
+            cat_cols_order=list(categorical_features or []),
+        )
+
+        # Guard: LightGBM categorical_feature mismatch (ensure booster doesn't carry stale pandas_categorical)
+        if primary_booster is None or not (categorical_features and hasattr(primary_booster, "pandas_categorical")):
+            _reset_nested_boosters(classifier)
+
+        try:
+            probs = classifier.predict_proba(X_pred)
+            confidences = probs[:, 1]
+        except Exception as e:
+            print(f"[BT-LIVE] ERROR: run_radar_simulation prediction failed: {e}", flush=True)
+            # Try converting all data to float to bypass categorical issues
+            try:
+                X_numeric = X_pred.copy()
+                for col in X_numeric.columns:
+                    if X_numeric[col].dtype == 'category' or X_numeric[col].dtype == 'object':
+                        X_numeric[col] = X_numeric[col].astype('category').cat.codes.astype('float32')
+                    else:
+                        X_numeric[col] = X_numeric[col].astype('float32')
+                
+                _reset_nested_boosters(classifier)
+                probs = classifier.predict_proba(X_numeric)
+                confidences = probs[:, 1]
+                print(f"[BT-LIVE] Recovered from prediction error by converting to numeric", flush=True)
+            except Exception as e2:
+                print(f"[BT-LIVE] ERROR: Failed to recover from prediction error: {e2}", flush=True)
+                return {}
         
         # Phase 2: Council Filtering (use full feature frame so each model can align its own features)
         consensus_scores = None
@@ -248,7 +390,30 @@ def run_radar_simulation(df, model, council=None, threshold=0.6, capital=100000)
                 king_clf = reconstruct_meta_model(king_clf)
 
             if king_clf is not None and hasattr(king_clf, "predict_proba"):
+                # Align KING input to its training feature schema.
                 Xk = _align_for_king(X_all, king_obj) if isinstance(king_obj, dict) else X_all
+
+                # Critical: if KING was trained with pandas categoricals, LightGBM requires
+                # the prediction-time category levels to match training-time levels.
+                try:
+                    if isinstance(king_obj, dict):
+                        king_pm = king_obj.get("primary_model") or {}
+                        king_cat_cols_order = list(king_pm.get("categorical_features") or [])
+                        king_cat_cols = [c for c in king_cat_cols_order if c in Xk.columns]
+                    else:
+                        king_cat_cols_order = []
+                        king_cat_cols = []
+
+                    king_primary_booster = _get_primary_booster(king_clf)
+                    Xk = _align_pandas_categories_to_booster(
+                        Xk,
+                        cat_cols=king_cat_cols,
+                        booster=king_primary_booster,
+                        cat_cols_order=king_cat_cols_order,
+                    )
+                except Exception:
+                    pass
+
                 king_conf = king_clf.predict_proba(Xk)[:, 1]
                 try:
                     validator_probs = validator.predict_proba(X_all, primary_conf=king_conf)[:, 1]
@@ -275,9 +440,19 @@ def run_radar_simulation(df, model, council=None, threshold=0.6, capital=100000)
 
     # Iterate to trade
     dates = df.index
-    closes = df['close'].values
-    highs = df['high'].values
-    lows = df['low'].values
+
+    # Accept either lowercase (close/high/low) or the more common OHLCV casing (Close/High/Low)
+    close_col = "close" if "close" in df.columns else ("Close" if "Close" in df.columns else None)
+    high_col = "high" if "high" in df.columns else ("High" if "High" in df.columns else None)
+    low_col = "low" if "low" in df.columns else ("Low" if "Low" in df.columns else None)
+    if close_col is None or high_col is None or low_col is None:
+        missing_ohlc = [c for c, v in [("close/Close", close_col), ("high/High", high_col), ("low/Low", low_col)] if v is None]
+        print(f"ERROR: Missing OHLC columns for trading loop: {missing_ohlc}", flush=True)
+        return {}
+
+    closes = df[close_col].values
+    highs = df[high_col].values
+    lows = df[low_col].values
     symbols = df['symbol'].values if 'symbol' in df.columns else [None]*len(df)
     
     # Track pre-council and post-council separately
@@ -335,13 +510,17 @@ def run_radar_simulation(df, model, council=None, threshold=0.6, capital=100000)
                 pnl_pct = (exit_price - entry_price) / entry_price
                 outcome = f"TIME EXIT ({pnl_pct*100:.1f}%)"
 
-            # Common trade data
+            try:
+                days_held = int((pd.to_datetime(exit_date) - pd.to_datetime(entry_date)).days)
+            except Exception:
+                days_held = 0
             trade_data = {
                 "Date": entry_date.strftime("%d/%m/%Y") if hasattr(entry_date, "strftime") else str(entry_date),
                 "Entry_Date": entry_date.strftime("%Y-%m-%d"),
                 "Exit_Date": exit_date.strftime("%Y-%m-%d"),
                 "Entry_Day": entry_date.strftime("%A"),
                 "Exit_Day": exit_date.strftime("%A"),
+                "Days_Held": days_held,
                 "Symbol": symbol,
                 "Entry": entry_price,
                 "Exit": exit_price,
@@ -378,25 +557,30 @@ def run_radar_simulation(df, model, council=None, threshold=0.6, capital=100000)
         if ignore_status:
             relevant_trades = trades_list
         else:
-            relevant_trades = [t for t in trades_list if t.get("Status") != "Rejected"]
+            relevant_trades = [t for t in trades_list if t.get("Status") == "Accepted"]
 
-        wins = sum(1 for t in relevant_trades if t["PnL_Pct"] > 0)
-        total = len(relevant_trades)
+        # 1. Correct Win Rate Calculation: (Count Wins / Total Count) * 100
+        # Check if 'PnL_Pct' > 0 for a win
+        wins_count = sum(1 for t in relevant_trades if t["PnL_Pct"] > 0)
+        total_count = len(relevant_trades)
         
-        rejected_profitable = sum(1 for t in trades_list if t.get("Status") == "Rejected" and t["PnL_Pct"] > 0)
+        win_rate = (wins_count / total_count * 100) if total_count > 0 else 0.0
         
-        win_rate = (wins / total * 100) if total > 0 else 0
+        # 2. Correct Rejected Profitable Calculation
+        # Count trades that were Rejected but turned out to have Positive PnL
+        rejected_profitable_count = sum(1 for t in trades_list if t.get("Status") == "Rejected" and t["PnL_Pct"] > 0)
         
-        # For return %:
-        # If ignore_status (Pre-Council), we should simulate what the balance WOULD be if we took everything.
-        # But 'pre_council_trades' list already tracks 'Balance' assuming we took them!
-        # See: balance_pre *= (1 + pnl_pct) in the loop.
-        # So we can just take the last balance.
-        
+        # 3. Profit Calculation
+        # We use the final balance from the simulation loop
         final_bal = trades_list[-1]["Balance"] if trades_list else capital
         total_return = (final_bal - capital) / capital * 100
         
-        return {"total": total, "win_rate": win_rate, "profit_pct": total_return, "rejected_profitable": rejected_profitable}
+        return {
+            "total": total_count, 
+            "win_rate": win_rate, 
+            "profit_pct": total_return, 
+            "rejected_profitable": rejected_profitable_count
+        }
     
     pre_metrics = calc_metrics(pre_council_trades, ignore_status=True)
     post_metrics = calc_metrics(post_council_trades, ignore_status=False)

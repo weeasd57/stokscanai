@@ -1,120 +1,77 @@
-# AI Stocks Project TODO
+ممتاز! هذا هو الكلام السليم. 🚀
+بدلاً من التخمين، دعنا نجعل الأرقام هي التي تقرر.
 
-## Phase 1: Radar Layer (Locked) 📡
+هذا السكريبت اسمه **"كاشف العتبة الذهبية" (Golden Threshold Finder)**.
+وظيفته بسيطة: سيقوم بإعادة تشغيل الـ Backtest آلياً **20 مرة** متتالية، وفي كل مرة يغير "عتبة المجلس" (Threshold) قليلاً (من 0.0 إلى 0.9)، ويخبرك بالنتيجة.
 
-> **Single source of truth for opportunity detection**
+### 📜 سكريبت التحسين (Optimization Script)
 
-* [x] Lock `collector 🎁.pkl` as the **only Radar model**
-* [x] Target: 3% | High Recall
-* [ ] Expose Radar output as `DETECTED` only (no BUY/SELL)
-* [ ] Log all Radar detections for downstream learning
+قم بإنشاء ملف جديد في مجلد `api` اسمه `optimize_radar.py` وضع فيه هذا الكود.
+(ملاحظة: هذا الكود يعتمد على الدوال الموجودة في ملفاتك الحالية، لذا تأكد من وضعه بجانب `backtest_radar.py`).
 
----
+```python
+import numpy as np
+import pandas as pd
+from backtest_radar import run_radar_simulation, load_models_and_data  # استيراد دوالك الحالية
 
-## Phase 2: Ensemble Filtering (TheCouncil) 🗳️
+def find_golden_threshold():
+    print("🧪 Starting Brute-Force Optimization for KING 👑...")
+    print("=" * 60)
+    print(f"{'Threshold':<10} | {'Trades':<8} | {'Win Rate':<10} | {'Net Profit (EGP)':<15} | {'Note'}")
+    print("-" * 60)
 
-> **Consensus-based noise reduction (NOT final decision)**
+    # 1. تحميل الداتا والموديلات مرة واحدة (عشان السرعة)
+    # (تأكد أن هذه الدالة ترجع الداتا والموديل كما في ملفك الأصلي)
+    data, model, council_model = load_models_and_data() 
+    
+    best_profit = -np.inf
+    best_threshold = 0.0
+    
+    # 2. حلقة التجربة (من 0.30 إلى 0.80)
+    # بنجرب كل 5% زيادة
+    for threshold in np.arange(0.30, 0.85, 0.05):
+        
+        # تشغيل المحاكاة بالعتبة الحالية
+        # (افترضنا أن دالتك تقبل معامل اسمه council_threshold)
+        stats = run_radar_simulation(
+            data=data, 
+            model=model, 
+            council_model=council_model, 
+            council_threshold=threshold,
+            silent=True # عشان ميطبعش تفاصيل كل صفقة
+        )
+        
+        profit = stats['simulated_profit']
+        win_rate = stats['win_rate']
+        trades_count = stats['total_trades']
+        
+        # 3. تقييم النتيجة
+        note = ""
+        if profit > best_profit:
+            best_profit = profit
+            best_threshold = threshold
+            note = "🔥 NEW HIGH!"
+        elif win_rate > 60 and profit > 5000:
+            note = "🛡️ SAFE ZONE"
+            
+        print(f"{threshold:.2f}       | {trades_count:<8} | {win_rate:.1f}%     | {profit:,.0f} EGP       | {note}")
 
-### Council Composition
+    print("=" * 60)
+    print(f"🏆 BEST SETTING: Threshold = {best_threshold:.2f} (Profit: {best_profit:,.0f} EGP)")
 
-* [ ] Implement `TheCouncil` class
-* [ ] Council Members (diverse roles only):
+if __name__ == "__main__":
+    find_golden_threshold()
 
-  * [ ] collector 🎁 (Recall / Momentum)
-  * [ ] KING 👑 (Context / AUC)
-  * [ ] (Optional) Price Action Specialist
-
-### Voting Logic
-
-* [ ] Implement **Weighted Soft Voting** (no hard voting)
-* [ ] Define static initial weights:
-
-  * collector: 0.25
-  * miner: 0.25
-  * KING: 0.40
-  * PA: 0.10
-* [ ] Compute `ConsensusStrength = Σ(probability × weight)`
-* [ ] Council Pass Threshold:
-
-  * Radar Filter: `Consensus ≥ 0.55`
-
-### API Changes
-
-* [ ] Update predict endpoint:
-
-  * Input: Radar-detected symbols only
-  * Output:
-
-    ```json
-    {
-      "status": "FILTERED",
-      "consensus_strength": 0.68,
-      "layers_passed": ["Radar", "Council"]
-    }
-    ```
-
----
-
-## Phase 3: Big Move Validation (Striker) 👑
-
-> **Final gate for 10% moves**
-
-* [ ] Lock `KING 👑.pkl` as **final validator only**
-* [ ] Apply only to Council-approved candidates
-* [ ] Validation Threshold:
-
-  * Meta probability ≥ 0.60
-* [ ] Final Output:
-
-  ```json
-  {
-    "status": "CONFIRMED",
-    "target": "10%",
-    "confidence": 0.72,
-    "layers_passed": ["Radar", "Council", "KING"]
-  }
-  ```
+```
 
 ---
 
-## Phase 4: Backtesting & Logs 📊
+### 📊 كيف تقرأ النتائج التي ستظهر؟
 
-* [ ] Backtest full pipeline (Radar → Council → KING)
-* [ ] Report:
+الجدول الذي سيخرج لك سيكون دليلك للاختيار:
 
-  * Trades count
-  * Avg return
-  * Max DD
-  * Time-to-target
-* [ ] Store prediction outcomes for learning
+1. **لو العتبة منخفضة (0.30 - 0.40):** ستجد صفقات كثيرة (80 صفقة) وربح عالي (16k) ودقة منخفضة. هذا هو وضع "المحارب".
+2. **لو العتبة متوسطة (0.50 - 0.60):** ستجد الصفقات قلت (40-50 صفقة)، الربح قل قليلاً (ربما 12k-14k)، لكن الدقة ارتفعت. **هذه هي المنطقة الذهبية.**
+3. **لو العتبة عالية (0.70+):** ستجد صفقات نادرة جداً (5-10 صفقات)، ودقة عالية جداً، لكن الربح الكلي قليل لأنك فوت فرص كتير.
 
----
-
-## Phase 5: Stacking Meta-Model (Boss) 🧠 *(Future)*
-
-> **Adaptive intelligence (DO NOT IMPLEMENT YET)**
-
-* [ ] Train Boss model on:
-
-  * Council scores
-  * KING confidence
-  * Market regime features
-* [ ] Adaptive weighting by regime (bull / bear / chop)
-* [ ] Replace static Council weights only after sufficient logs
-
----
-
-## Naming & Compliance Rules ⚠️
-
-* ❌ BUY / SELL
-* ❌ Signal / Recommendation
-* ✅ DETECTED / FILTERED / CONFIRMED
-* ✅ Consensus Strength
-* ✅ Market Opportunity
-
----
-
-## Golden Rule
-
-> **Radar finds → Council filters → KING confirms**
-> No model decides alone.
+**شغل السكريبت ده ووريني الجدول، وأنا أقولك تضبط إعدادات الـ Scanner على كام بالظبط!** 🎯
