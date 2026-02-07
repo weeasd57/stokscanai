@@ -21,7 +21,7 @@ print(f"DEBUG: NEXT_PUBLIC_SUPABASE_URL found? {'NEXT_PUBLIC_SUPABASE_URL' in os
 # Add api parent dir to path to allow imports
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from api.stock_ai import _get_exchange_bulk_data, _MetaLabelingClassifier
+from api.stock_ai import _get_exchange_bulk_data, _get_exchange_bulk_intraday_data, _MetaLabelingClassifier
 from api.train_exchange_model import add_massive_features
 
 warnings.filterwarnings("ignore")
@@ -79,19 +79,23 @@ def load_egx30_index(start_date: str = None, end_date: str = None):
         return None
 
 def calculate_benchmark_returns(start_date: str, end_date: str):
-    """
-    Calculate buy-and-hold return for EGX30 index over the date range.
-    Returns percentage return (e.g., 0.15 for 15% gain).
-    """
+   
     index_df = load_egx30_index(start_date, end_date)
-    
+
     if index_df is None or len(index_df) < 2:
         print("WARNING: Insufficient index data for benchmark calculation", flush=True)
         return None
-    
-    start_price = index_df['close'].iloc[0]
-    end_price = index_df['close'].iloc[-1]
-    
+
+    try:
+        if 'open' in index_df.columns:
+            start_price = float(index_df['open'].iloc[0])
+        else:
+            start_price = float(index_df['close'].iloc[0])
+    except Exception:
+        start_price = float(index_df['close'].iloc[0])
+
+    end_price = float(index_df['close'].iloc[-1])
+
     benchmark_return = (end_price - start_price) / start_price
     
     print(
@@ -157,20 +161,92 @@ def reconstruct_meta_model(artifact):
     )
     return wrapper
 
-def run_radar_simulation(df, model, council=None, threshold=0.6, capital=100000):
+def run_radar_simulation(
+    df,
+    model,
+    council=None,
+    threshold=0.6,
+    capital=100000,
+    sim_start_dt: datetime | None = None,
+    sim_end_dt: datetime | None = None,
+):
     """
     Simulation of Radar: Base Model Detector -> Meta Model Confirmation.
     """
     if df.empty: return {}
     print(f"DEBUG: run_radar_simulation called for {len(df)} rows", flush=True)
+
+    max_score = 0.0
+    max_consensus = 0.0
+    max_validator = 0.0
     
     balance = capital
     trade_log = []
     
-    # Settings
+    # Default settings (daily equities)
     TARGET_PCT = 0.10
     STOP_LOSS_PCT = 0.05
-    HOLD_MAX_DAYS = 20
+    HOLD_MAX_BARS = 20
+
+    # Trailing Stop Rules (long-only)
+    # - When unrealized profit reaches +5%: raise stop to entry (break-even)
+    # - When unrealized profit reaches +8%: raise stop to +5% (lock profit)
+    USE_TRAILING = True
+    TRAIL_BE_PCT = 0.05
+    TRAIL_LOCK_TRIGGER_PCT = 0.08
+    TRAIL_LOCK_PCT = 0.05
+
+    # Override from model artifact metadata when available so backtests match training assumptions.
+    if isinstance(model, dict):
+        def _meta_get(name: str, default=None):
+            if not isinstance(model, dict):
+                return default
+            v = model.get(name)
+            if v is not None:
+                return v
+            pm = model.get("primary_model") if isinstance(model.get("primary_model"), dict) else {}
+            if isinstance(pm, dict):
+                return pm.get(name, default)
+            return default
+
+        try:
+            m_target = _meta_get("target_pct")
+            m_sl = _meta_get("stop_loss_pct")
+            m_hold = _meta_get("look_forward_days")
+
+            if m_target is not None and float(m_target) > 0:
+                TARGET_PCT = float(m_target)
+            if m_sl is not None and float(m_sl) > 0:
+                STOP_LOSS_PCT = float(m_sl)
+            if m_hold is not None and int(m_hold) > 0:
+                HOLD_MAX_BARS = int(m_hold)
+
+            m_use_intraday = bool(_meta_get("use_intraday", False))
+            m_tf = str(_meta_get("timeframe", "") or "").strip().lower()
+            if m_use_intraday and m_tf in {"1m", "1h"}:
+                USE_TRAILING = False
+        except Exception:
+            pass
+
+    def _position_size_multiplier(score: float | None) -> float:
+        """
+        Map Validator Score -> position sizing multiplier.
+        Score 0.40-0.55 => 0.5x
+        Score 0.55-0.70 => 1.0x
+        Score 0.70+     => 1.5x
+        """
+        try:
+            if score is None or (isinstance(score, float) and np.isnan(score)):
+                return 1.0
+            s = float(score)
+        except Exception:
+            return 1.0
+
+        if s < 0.55:
+            return 0.5
+        if s < 0.70:
+            return 1.0
+        return 1.5
     
     def _reset_booster_cats(obj):
         """Reset categorical features to avoid train/valid mismatch errors."""
@@ -422,9 +498,9 @@ def run_radar_simulation(df, model, council=None, threshold=0.6, capital=100000)
                     validator_probs = None
 
         # Deep Debug
-        max_score = np.max(confidences) if len(confidences) > 0 else 0
-        max_consensus = np.max(consensus_scores) if consensus_scores is not None else 0
-        max_validator = np.max(validator_probs) if validator_probs is not None and len(validator_probs) > 0 else 0
+        max_score = float(np.max(confidences)) if len(confidences) > 0 else 0.0
+        max_consensus = float(np.max(consensus_scores)) if consensus_scores is not None else 0.0
+        max_validator = float(np.max(validator_probs)) if validator_probs is not None and len(validator_probs) > 0 else 0.0
         
         print(
             f"DEBUG: Symbol {df['symbol'].iloc[0] if 'symbol' in df.columns else '??'} "
@@ -461,9 +537,14 @@ def run_radar_simulation(df, model, council=None, threshold=0.6, capital=100000)
     balance_pre = capital
     balance_post = capital
     
-    for i in range(len(df) - HOLD_MAX_DAYS):
+    hold_max = min(HOLD_MAX_BARS, max(1, len(df) - 1))
+    if hold_max != HOLD_MAX_BARS:
+        print(f"[BT-LIVE] Using adaptive hold window: {hold_max} bars (requested {HOLD_MAX_BARS})", flush=True)
+
+    for i in range(len(df) - hold_max):
         radar_score = confidences[i]
         council_score = consensus_scores[i] if consensus_scores is not None else 1.0
+        validator_score = float(validator_probs[i]) if validator_probs is not None else None
         
         # Check if Radar phase passes (before council)
         passes_radar = radar_score >= threshold
@@ -479,32 +560,62 @@ def run_radar_simulation(df, model, council=None, threshold=0.6, capital=100000)
             entry_price = closes[i]
             entry_date = dates[i]
             symbol = symbols[i]
+
+            try:
+                entry_dt = pd.to_datetime(entry_date).tz_localize(None)
+            except Exception:
+                entry_dt = None
+
+            if sim_start_dt is not None and entry_dt is not None and entry_dt < sim_start_dt:
+                continue
+            if sim_end_dt is not None and entry_dt is not None and entry_dt > sim_end_dt:
+                continue
             
             take_profit = entry_price * (1 + TARGET_PCT)
             stop_loss = entry_price * (1 - STOP_LOSS_PCT)
+            current_stop = float(stop_loss)
+            trail_mode = "NONE"
             
             outcome = "HOLD"
             pnl_pct = 0.0
-            exit_date = dates[i+HOLD_MAX_DAYS]
-            exit_price = closes[i+HOLD_MAX_DAYS]
+            exit_date = dates[i+hold_max]
+            exit_price = closes[i+hold_max]
             
-            for days_fwd in range(1, HOLD_MAX_DAYS + 1):
+            for days_fwd in range(1, hold_max + 1):
                 idx = i + days_fwd
                 if idx >= len(df): break
+
+                hi = float(highs[idx])
+                lo = float(lows[idx])
                 
-                if lows[idx] <= stop_loss:
-                    outcome = "STOP LOSS ❌"
-                    pnl_pct = -STOP_LOSS_PCT
+                # Conservative bar evaluation:
+                # - Use the stop that was active coming into this bar.
+                # - If target hits, we exit at target.
+                # - Trailing-stop updates are applied AFTER this bar (effective next bar).
+                if lo <= current_stop:
+                    outcome = "STOP LOSS ❌" if trail_mode == "NONE" else f"TRAIL STOP ({trail_mode}) 🛡️"
+                    pnl_pct = (current_stop - entry_price) / entry_price
                     exit_date = dates[idx]
-                    exit_price = stop_loss
+                    exit_price = current_stop
                     break
-                
-                if highs[idx] >= take_profit:
+
+                if hi >= take_profit:
                     outcome = "TARGET HIT 🎯"
                     pnl_pct = TARGET_PCT
                     exit_date = dates[idx]
                     exit_price = take_profit
                     break
+
+                if USE_TRAILING:
+                    # Update trailing stop based on achieved profit (effective next bar)
+                    be_price = float(entry_price)
+                    lock_price = float(entry_price * (1 + TRAIL_LOCK_PCT))
+                    if hi >= float(entry_price * (1 + TRAIL_LOCK_TRIGGER_PCT)) and current_stop < lock_price:
+                        current_stop = lock_price
+                        trail_mode = "+5%"
+                    elif hi >= float(entry_price * (1 + TRAIL_BE_PCT)) and current_stop < be_price:
+                        current_stop = be_price
+                        trail_mode = "BE"
             
             if outcome == "HOLD":
                 pnl_pct = (exit_price - entry_price) / entry_price
@@ -514,6 +625,17 @@ def run_radar_simulation(df, model, council=None, threshold=0.6, capital=100000)
                 days_held = int((pd.to_datetime(exit_date) - pd.to_datetime(entry_date)).days)
             except Exception:
                 days_held = 0
+
+            sizing_score = validator_score if validator_score is not None else float(score)
+            size_mult = _position_size_multiplier(sizing_score)
+            try:
+                fs = None
+                if "fund_score" in df.columns:
+                    fs = df["fund_score"].iloc[i]
+                if fs is not None and (isinstance(fs, float) and np.isnan(fs)):
+                    fs = None
+            except Exception:
+                fs = None
             trade_data = {
                 "Date": entry_date.strftime("%d/%m/%Y") if hasattr(entry_date, "strftime") else str(entry_date),
                 "Entry_Date": entry_date.strftime("%Y-%m-%d"),
@@ -525,6 +647,11 @@ def run_radar_simulation(df, model, council=None, threshold=0.6, capital=100000)
                 "Entry": entry_price,
                 "Exit": exit_price,
                 "Score": round(float(score), 2),
+                "Radar_Score": round(float(radar_score), 4),
+                "Validator_Score": (round(float(validator_score), 4) if validator_score is not None else None),
+                "Sizing_Score": round(float(sizing_score), 4),
+                "Size_Multiplier": float(size_mult),
+                "Fund_Score": (float(fs) if fs is not None else None),
                 "Result": outcome,
                 "PnL_Pct": float(pnl_pct),
                 "Status": "Accepted" if passes_council else "Rejected",
@@ -598,7 +725,11 @@ def run_radar_simulation(df, model, council=None, threshold=0.6, capital=100000)
         "post_council_trades": post_metrics["total"],
         "post_council_win_rate": post_metrics["win_rate"],
         "post_council_profit_pct": post_metrics["profit_pct"],
-        "rejected_profitable": pre_metrics["rejected_profitable"] # Use the one from pre_metrics as it considers all radar signals
+        "rejected_profitable": pre_metrics["rejected_profitable"], # Use the one from pre_metrics as it considers all radar signals
+        "max_radar": max_score,
+        "max_council": max_consensus,
+        "max_validator": max_validator,
+        "threshold_used": float(threshold),
     }
 
 def main():
@@ -610,7 +741,12 @@ def main():
     parser.add_argument("--out", default=None, help="Optional CSV output path")
     parser.add_argument("--council", default=None, help="Path to council model (enables Council filtering)")
     parser.add_argument("--validator", default=None, help="Optional Council Validator model (trained on KING BUYs)")
+    parser.add_argument("--meta-threshold", type=float, default=None, help="Override meta threshold (0-1)")
     args = parser.parse_args()
+
+    # Always include a buffer window before the selected start date
+    # so indicators have enough history (trades still limited to start/end).
+    SIM_BUFFER_DAYS = 90
     
     # Load Data
     try:
@@ -626,8 +762,74 @@ def main():
         buffer_start = "2023-01-01"
         start_dt = pd.to_datetime("2024-01-01")
 
-    print(f"📥 Fetching bulk data for {args.exchange} (Buffer Start: {buffer_start}, Sim Start: {args.start})...", flush=True)
-    data_map = _get_exchange_bulk_data(args.exchange, from_date=buffer_start)
+    # Load Model (needed early so we can match data source/timeframe)
+    models_dir = os.path.join(base_dir, "api", "models")
+    model_path = os.path.join(models_dir, args.model)
+    if not os.path.exists(model_path):
+        if os.path.exists(args.model):
+            model_path = args.model
+        else:
+            print(f"❌ Model not found: {model_path}", flush=True)
+            return
+
+    print(f"🧠 Loading model: {args.model}...", flush=True)
+    model_obj = load_model(model_path)
+    if not model_obj:
+        return
+
+    def _meta_get(obj, name: str, default=None):
+        if not isinstance(obj, dict):
+            return default
+        v = obj.get(name)
+        if v is not None:
+            return v
+        pm = obj.get("primary_model") if isinstance(obj.get("primary_model"), dict) else {}
+        if isinstance(pm, dict):
+            return pm.get(name, default)
+        return default
+
+    # Meta threshold (UI override > model > default)
+    sim_threshold = 0.40
+    if args.meta_threshold is not None:
+        try:
+            sim_threshold = float(args.meta_threshold)
+            print(f"🎯 Using Meta Threshold: {sim_threshold} (UI override)", flush=True)
+        except Exception:
+            sim_threshold = 0.40
+            print(f"⚠️ Invalid meta-threshold provided. Using default {sim_threshold}.", flush=True)
+    elif isinstance(model_obj, dict):
+        sim_threshold = float(_meta_get(model_obj, "meta_threshold", sim_threshold))
+        print(f"🎯 Using Meta Threshold: {sim_threshold}", flush=True)
+    else:
+        print(f"🎯 Using Meta Threshold: {sim_threshold}", flush=True)
+
+    # Decide data source based on model metadata (fallback: CRYPTO => 1h intraday)
+    use_intraday = False
+    timeframe = "1d"
+    try:
+        use_intraday = bool(_meta_get(model_obj, "use_intraday", False))
+        timeframe = str(_meta_get(model_obj, "timeframe", "1d") or "1d").strip().lower()
+    except Exception:
+        use_intraday = False
+        timeframe = "1d"
+
+    if args.exchange.strip().upper() == "CRYPTO" and not use_intraday:
+        use_intraday = True
+        timeframe = "1h"
+
+    if use_intraday:
+        print(
+            f"📥 Fetching intraday bulk data for {args.exchange} ({timeframe}) (Buffer Start: {buffer_start}, Sim Start: {args.start})...",
+            flush=True,
+        )
+        data_map = _get_exchange_bulk_intraday_data(args.exchange, timeframe=timeframe, from_ts=buffer_start)
+    else:
+        print(
+            f"📥 Fetching bulk data for {args.exchange} (Buffer Start: {buffer_start}, Sim Start: {args.start})...",
+            flush=True,
+        )
+        data_map = _get_exchange_bulk_data(args.exchange, from_date=buffer_start)
+
     if not data_map:
         print("❌ No data found.", flush=True)
         return
@@ -635,8 +837,9 @@ def main():
     # Context & Fundamentals
     from api.train_exchange_model import add_market_context, fetch_fundamentals_for_exchange
     from api.stock_ai import _init_supabase, supabase
+
     _init_supabase()
-    
+
     market_df = None
     if args.exchange == "EGX":
         try:
@@ -648,30 +851,13 @@ def main():
                 market_df['date'] = pd.to_datetime(market_df['date'])
                 market_df.set_index('date', inplace=True)
                 print("✅ Market context (EGX30) loaded from local JSON.", flush=True)
-        except Exception: pass
+        except Exception:
+            pass
 
     df_funds = pd.DataFrame()
-    if supabase:
+    if supabase and args.exchange != "CRYPTO":
         print(f"📥 Fetching fundamentals for {args.exchange}...", flush=True)
         df_funds = fetch_fundamentals_for_exchange(supabase, args.exchange)
-
-    # Load Model
-    models_dir = os.path.join(base_dir, "api", "models")
-    model_path = os.path.join(models_dir, args.model)
-    if not os.path.exists(model_path):
-        if os.path.exists(args.model): model_path = args.model
-        else:
-            print(f"❌ Model not found: {model_path}", flush=True)
-            return
-
-    print(f"🧠 Loading model: {args.model}...", flush=True)
-    model_obj = load_model(model_path)
-    if not model_obj: return
-
-    sim_threshold = 0.6
-    if isinstance(model_obj, dict):
-        sim_threshold = model_obj.get("meta_threshold", 0.6)
-    print(f"🎯 Using Meta Threshold: {sim_threshold}", flush=True)
 
     # Prepare TheCouncil (Phase 2) ONLY when explicitly requested.
     # If the user chooses "None (No Filter)" in the UI, the API won't pass --council,
@@ -787,9 +973,12 @@ def main():
             if len(df_feat) == len(df):
                 df_feat.index = original_index
 
+            fund_score_raw = df_feat["fund_score"] if "fund_score" in df_feat.columns else None
             df_feat = df_feat.fillna(0)
+            if fund_score_raw is not None:
+                df_feat["fund_score"] = fund_score_raw
             
-            # Slice simulation period
+            # Slice simulation period (with optional buffer if too few rows)
             sim_start_dt = pd.to_datetime(args.start, dayfirst=True).tz_localize(None)
             sim_end_dt = pd.to_datetime(args.end, dayfirst=True).tz_localize(None) if args.end else None
             
@@ -803,16 +992,35 @@ def main():
             if sim_end_dt:
                 mask = mask & (idx_clean <= sim_end_dt)
             
-            df_sim = df_feat[mask]
+            buffer_start_dt = sim_start_dt - timedelta(days=SIM_BUFFER_DAYS)
+            buffer_mask = (idx_clean >= buffer_start_dt)
+            if sim_end_dt:
+                buffer_mask = buffer_mask & (idx_clean <= sim_end_dt)
+            df_sim = df_feat[buffer_mask]
+            print(
+                f"[BT-LIVE] Buffer applied for {symbol}: {len(df_sim)} rows "
+                f"(buffer {SIM_BUFFER_DAYS}d) — trades limited to {args.start} → {args.end}",
+                flush=True
+            )
             
             if df_sim.empty:
                 continue
 
-            res = run_radar_simulation(df_sim, model_obj, council=council, threshold=sim_threshold) 
+            res = run_radar_simulation(
+                df_sim,
+                model_obj,
+                council=council,
+                threshold=sim_threshold,
+                sim_start_dt=sim_start_dt,
+                sim_end_dt=sim_end_dt,
+            ) 
             
-            if res.get("Trades Log") is not None and not res["Trades Log"].empty:
-                all_trades.append(res["Trades Log"])
+            if isinstance(res, dict) and res:
+                # Always keep metadata (even when no trades) for diagnostics / aggregate stats.
                 all_res_metadata.append(res)
+
+                if res.get("Trades Log") is not None and not res["Trades Log"].empty:
+                    all_trades.append(res["Trades Log"])
                 
         except Exception as e:
             print(f"CRITICAL Error processing {symbol}: {e}", flush=True)
@@ -823,15 +1031,50 @@ def main():
 
     # Global Report
     if not all_trades:
-        print(f"❌ No trades found matching criteria. (Processed {len(symbols_list)} symbols)", flush=True)
+        max_radar = max((float(r.get("max_radar") or 0.0) for r in all_res_metadata), default=0.0)
+        threshold_used = None
+        try:
+            threshold_used = float(all_res_metadata[0].get("threshold_used")) if all_res_metadata else None
+        except Exception:
+            threshold_used = None
+
+        if threshold_used is not None:
+            print(
+                f"❌ No trades found matching criteria. (Processed {len(symbols_list)} symbols) "
+                f"| Max Radar={max_radar:.4f} | Threshold={threshold_used:.4f}",
+                flush=True,
+            )
+        else:
+            print(
+                f"❌ No trades found matching criteria. (Processed {len(symbols_list)} symbols) "
+                f"| Max Radar={max_radar:.4f}",
+                flush=True,
+            )
+
+        # Still emit the JSON marker block so the API/UI can show an empty log consistently.
+        print("\n--- JSON TRADES LOG START ---", flush=True)
+        print("[]", flush=True)
+        print("--- JSON TRADES LOG END ---", flush=True)
         return
         
     global_log = pd.concat(all_trades).sort_values("Date")
     capital_per_trade = 10000
-    global_log['Profit_Cash'] = capital_per_trade * global_log['PnL_Pct']
+
+    # Dynamic Position Sizing (based on Validator Score when available, otherwise Council Score)
+    # Profit_Cash is computed using a fixed base notional per trade (capital_per_trade) times a size multiplier.
+    accepted_mask = global_log.get("Status", "Accepted").fillna("Accepted").astype(str).str.lower().eq("accepted")
+    if "Size_Multiplier" in global_log.columns:
+        base_notional = capital_per_trade * global_log["Size_Multiplier"].fillna(1.0)
+    else:
+        base_notional = float(capital_per_trade)
+
+    # Rejected trades are not executed => no P/L contribution.
+    global_log["Position_Cash"] = np.where(accepted_mask, base_notional, 0.0)
+    global_log['Profit_Cash'] = global_log['Position_Cash'] * global_log['PnL_Pct']
     global_log['Cumulative_Profit'] = global_log['Profit_Cash'].cumsum()
     net_profit = global_log['Profit_Cash'].sum()
-    win_rate = (len(global_log[global_log['PnL_Pct'] > 0]) / len(global_log)) * 100
+    denom = int(accepted_mask.sum()) if int(accepted_mask.sum()) > 0 else 1
+    win_rate = (len(global_log[accepted_mask & (global_log['PnL_Pct'] > 0)]) / denom) * 100
 
     # Aggregate Council Impact
     total_pre_trades = sum(r.get("pre_council_trades", 0) for r in all_res_metadata)
@@ -874,11 +1117,11 @@ def main():
         
     print(f"Period: {s_fmt} to {e_fmt}", flush=True)
     print("-" * 20, flush=True)
-    print(f"Total Trades Detected: {len(global_log)}", flush=True)
+    print(f"Total Trades Detected: {total_post_trades}", flush=True)
     print(f"Win Rate:              {win_rate:.1f}%", flush=True)
     print(f"Avg Return per Trade:  {global_log['PnL_Pct'].mean()*100:.2f}%", flush=True)
     print("-" * 20, flush=True)
-    print(f"Simulated Profit (Fixed 10k): {int(net_profit):,} EGP", flush=True)
+    print(f"Simulated Profit (Base 10k + Dynamic Sizing): {int(net_profit):,} EGP", flush=True)
     
     print("\n--- Council Impact Analysis ---", flush=True)
     print(f"Pre-Council Trades:    {total_pre_trades}", flush=True)

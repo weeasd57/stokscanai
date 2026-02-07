@@ -14,7 +14,7 @@ import StockLogo from "@/components/StockLogo";
 export default function AIScannerPage() {
     const { t } = useLanguage();
     const { countries } = useAppState();
-    const { state, setAiScanner, fetchLatestScanForModel, fetchPublicScanDates, fetchScanResultsByDate, loading } = useAIScanner();
+    const { state, setAiScanner, fetchLatestScanForModel, fetchPublicScanDates, fetchScanResultsByDate, fetchGlobalModelStats, loading } = useAIScanner();
     const { results, selected, detailData, chartType, showEma50, showEma200, showBB, showRsi, showVolume, showMacd, modelName, country } = state;
 
     const [detailLoading, setDetailLoading] = useState(false);
@@ -27,6 +27,7 @@ export default function AIScannerPage() {
     const [adminConfig, setAdminConfig] = useState<AdminConfig | null>(null);
     const [availableDates, setAvailableDates] = useState<string[]>([]);
     const [selectedDate, setSelectedDate] = useState<string>("");
+    const [globalStats, setGlobalStats] = useState<{ winRate: number; avgPl: number; total: number }>({ winRate: 0, avgPl: 0, total: 0 });
 
     // Initial Load: Models list & Config
     useEffect(() => {
@@ -69,6 +70,9 @@ export default function AIScannerPage() {
         setAiScanner(prev => ({ ...prev, modelName: name, selected: null, detailData: null }));
         setResultsLoading(true);
         try {
+            // Fetch global stats as well
+            fetchGlobalModelStats(name).then(setGlobalStats).catch(console.error);
+
             // First fetch available dates for this model
             const dates = await fetchPublicScanDates(name);
             setAvailableDates(dates);
@@ -246,9 +250,9 @@ export default function AIScannerPage() {
                         {modelName && (
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                                 {[
-                                    { label: "Neural Win Rate", value: `${stats.winRate.toFixed(1)}%`, icon: <Check className="h-5 w-5" />, color: "text-emerald-500", bg: "bg-emerald-500/10" },
-                                    { label: "Avg Potential P/L", value: `${stats.avgPl > 0 ? '+' : ''}${stats.avgPl.toFixed(2)}%`, icon: <Activity className="h-5 w-5" />, color: stats.avgPl > 0 ? "text-emerald-500" : "text-red-500", bg: stats.avgPl > 0 ? "bg-emerald-500/10" : "bg-red-500/10" },
-                                    { label: "Discovery hits", value: stats.total, icon: <Cpu className="h-5 w-5" />, color: "text-indigo-400", bg: "bg-indigo-500/10" },
+                                    { label: "Neural Win Rate", value: `${stats.winRate.toFixed(1)}%`, globalValue: `${globalStats.winRate.toFixed(1)}%`, icon: <Check className="h-5 w-5" />, color: "text-emerald-500", bg: "bg-emerald-500/10" },
+                                    { label: "Avg Potential P/L", value: `${stats.avgPl > 0 ? '+' : ''}${stats.avgPl.toFixed(2)}%`, globalValue: `${globalStats.avgPl > 0 ? '+' : ''}${globalStats.avgPl.toFixed(2)}%`, icon: <Activity className="h-5 w-5" />, color: stats.avgPl > 0 ? "text-emerald-500" : "text-red-500", bg: stats.avgPl > 0 ? "bg-emerald-500/10" : "bg-red-500/10" },
+                                    { label: "Discovery hits", value: stats.total, globalValue: globalStats.total, icon: <Cpu className="h-5 w-5" />, color: "text-indigo-400", bg: "bg-indigo-500/10" },
                                 ].map((s, idx) => (
                                     <div key={idx} className="relative group overflow-hidden rounded-[2.5rem] border border-white/5 bg-zinc-950/40 backdrop-blur-2xl p-8 flex flex-col gap-4 hover:border-white/10 transition-all">
                                         <div className="absolute inset-x-0 bottom-0 top-0 bg-gradient-to-tr from-white/[0.02] to-transparent pointer-events-none" />
@@ -258,8 +262,21 @@ export default function AIScannerPage() {
                                                 {s.icon}
                                             </div>
                                         </div>
-                                        <div className={`text-4xl font-black italic tracking-tighter relative z-10 ${s.color}`}>
-                                            {isLoading || resultsLoading ? "---" : s.value}
+                                        <div className="flex flex-col gap-1 relative z-10">
+                                            <div className={`text-4xl font-black italic tracking-tighter ${s.color}`}>
+                                                {isLoading || resultsLoading ? "---" : s.value}
+                                            </div>
+
+                                            <div className="mt-4 p-4 rounded-3xl bg-white/[0.03] border border-white/5 flex flex-col gap-1.5 relative overflow-hidden group/sub">
+                                                <div className="absolute inset-x-0 bottom-0 h-0.5 bg-indigo-500/20 transform scale-x-0 group-hover/sub:scale-x-100 transition-transform duration-500 origin-left" />
+                                                <div className="flex items-center justify-between">
+                                                    <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest leading-none">Global Network Avg</span>
+                                                    <div className="px-1.5 py-0.5 rounded-md bg-indigo-500/10 border border-indigo-500/20 text-[7px] font-black text-indigo-400 uppercase tracking-tighter">ALL-TIME</div>
+                                                </div>
+                                                <div className="text-xl font-black text-white italic tracking-tighter">
+                                                    {isLoading || resultsLoading ? "--" : s.globalValue}
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 ))}

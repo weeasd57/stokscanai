@@ -79,11 +79,11 @@ def search_symbols(
     else:
         haystack = load_all_symbols()
 
-    from api.stock_ai import is_ticker_synced
+    from api.stock_ai import batch_check_local_cache
     
-    out = []
+    # 1. First pass: filter by query and exchange
+    candidates = []
     ex_low = exchange.lower() if exchange else None
-
     for row in haystack:
         sym = str(row.get("Symbol", row.get("symbol", row.get("Code", ""))))
         name = str(row.get("Name", row.get("name", "")))
@@ -92,14 +92,28 @@ def search_symbols(
         if ex_low and ex.lower() != ex_low: continue
         
         if not query or query in sym.lower() or query in name.lower():
-            out.append({
-                "symbol": sym,
-                "exchange": ex,
-                "name": name,
-                "country": row.get("Country", row.get("country", "")),
-                "hasLocal": is_ticker_synced(sym, ex)
-            })
-            if len(out) >= limit: break
+            candidates.append((sym, ex, name, row.get("Country", row.get("country", ""))))
+            # Since we sort by hasLocal later, we might need more than 'limit' 
+            # to find the ones that ARE local. 
+            # But normally we don't want to process 100k if limit is 50.
+            # However, if limit is 100k, we process all.
+            if len(candidates) >= limit * 2 and limit < 1000:
+                break
+
+    # 2. Batch check local status
+    symbol_ex_list = [(c[0], c[1]) for c in candidates]
+    sync_status = batch_check_local_cache(symbol_ex_list)
+
+    # 3. Build final output
+    out = []
+    for sym, ex, name, country in candidates:
+        out.append({
+            "symbol": sym,
+            "exchange": ex,
+            "name": name,
+            "country": country,
+            "hasLocal": sync_status.get((sym, ex), False)
+        })
 
     out.sort(key=lambda x: x.get("hasLocal", False), reverse=True)
-    return out
+    return out[:limit]

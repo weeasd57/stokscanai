@@ -1,77 +1,16 @@
-ممتاز! هذا هو الكلام السليم. 🚀
-بدلاً من التخمين، دعنا نجعل الأرقام هي التي تقرر.
 
-هذا السكريبت اسمه **"كاشف العتبة الذهبية" (Golden Threshold Finder)**.
-وظيفته بسيطة: سيقوم بإعادة تشغيل الـ Backtest آلياً **20 مرة** متتالية، وفي كل مرة يغير "عتبة المجلس" (Threshold) قليلاً (من 0.0 إلى 0.9)، ويخبرك بالنتيجة.
+Endpoint
+https://paper-api.alpaca.markets/v2
 
-### 📜 سكريبت التحسين (Optimization Script)
 
-قم بإنشاء ملف جديد في مجلد `api` اسمه `optimize_radar.py` وضع فيه هذا الكود.
-(ملاحظة: هذا الكود يعتمد على الدوال الموجودة في ملفاتك الحالية، لذا تأكد من وضعه بجانب `backtest_radar.py`).
+Key
+PKM7NKPJSUUH3MSVSRZ45FLOZ4
 
-```python
-import numpy as np
-import pandas as pd
-from backtest_radar import run_radar_simulation, load_models_and_data  # استيراد دوالك الحالية
+Secret
+J3b7ghB8yXq9utg4PitCbvziyGvuLx7EyKrTg9qYJGHt
 
-def find_golden_threshold():
-    print("🧪 Starting Brute-Force Optimization for KING 👑...")
-    print("=" * 60)
-    print(f"{'Threshold':<10} | {'Trades':<8} | {'Win Rate':<10} | {'Net Profit (EGP)':<15} | {'Note'}")
-    print("-" * 60)
-
-    # 1. تحميل الداتا والموديلات مرة واحدة (عشان السرعة)
-    # (تأكد أن هذه الدالة ترجع الداتا والموديل كما في ملفك الأصلي)
-    data, model, council_model = load_models_and_data() 
-    
-    best_profit = -np.inf
-    best_threshold = 0.0
-    
-    # 2. حلقة التجربة (من 0.30 إلى 0.80)
-    # بنجرب كل 5% زيادة
-    for threshold in np.arange(0.30, 0.85, 0.05):
-        
-        # تشغيل المحاكاة بالعتبة الحالية
-        # (افترضنا أن دالتك تقبل معامل اسمه council_threshold)
-        stats = run_radar_simulation(
-            data=data, 
-            model=model, 
-            council_model=council_model, 
-            council_threshold=threshold,
-            silent=True # عشان ميطبعش تفاصيل كل صفقة
-        )
-        
-        profit = stats['simulated_profit']
-        win_rate = stats['win_rate']
-        trades_count = stats['total_trades']
-        
-        # 3. تقييم النتيجة
-        note = ""
-        if profit > best_profit:
-            best_profit = profit
-            best_threshold = threshold
-            note = "🔥 NEW HIGH!"
-        elif win_rate > 60 and profit > 5000:
-            note = "🛡️ SAFE ZONE"
-            
-        print(f"{threshold:.2f}       | {trades_count:<8} | {win_rate:.1f}%     | {profit:,.0f} EGP       | {note}")
-
-    print("=" * 60)
-    print(f"🏆 BEST SETTING: Threshold = {best_threshold:.2f} (Profit: {best_profit:,.0f} EGP)")
-
-if __name__ == "__main__":
-    find_golden_threshold()
-
-```
-
----
-
-### 📊 كيف تقرأ النتائج التي ستظهر؟
-
-الجدول الذي سيخرج لك سيكون دليلك للاختيار:
-
-1. **لو العتبة منخفضة (0.30 - 0.40):** ستجد صفقات كثيرة (80 صفقة) وربح عالي (16k) ودقة منخفضة. هذا هو وضع "المحارب".
-2. **لو العتبة متوسطة (0.50 - 0.60):** ستجد الصفقات قلت (40-50 صفقة)، الربح قل قليلاً (ربما 12k-14k)، لكن الدقة ارتفعت. **هذه هي المنطقة الذهبية.**
-3. **لو العتبة عالية (0.70+):** ستجد صفقات نادرة جداً (5-10 صفقات)، ودقة عالية جداً، لكن الربح الكلي قليل لأنك فوت فرص كتير.
-
-**شغل السكريبت ده ووريني الجدول، وأنا أقولك تضبط إعدادات الـ Scanner على كام بالظبط!** 🎯
+this my alpaca paper account
+need add tap in Data Manager
+ for alpace be get data for alpace sympols and exchanges and markets  need statics data like this 
+ symbols_data
+ but for alpaca and need can get data like same current section in data manager  

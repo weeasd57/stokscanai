@@ -3,6 +3,7 @@
 import { Zap, ChevronDown, Check, Loader2, Download, Database, Info, History, Trash2, TrendingUp, Clock, Sparkles } from "lucide-react";
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts";
 import { useState, useEffect, useMemo } from "react";
+import { getAlpacaSupabaseStats, type AlpacaSupabaseStats } from "@/lib/api";
 import { toast } from "sonner";
 import ConfirmDialog from "@/components/ConfirmDialog";
 
@@ -198,15 +199,61 @@ export default function AIAutomationTab({
     // Meta-Labeling (default ON)
     const [useMetaLabeling, setUseMetaLabeling] = useState<boolean>(true);
     const [metaThreshold, setMetaThreshold] = useState<number>(0.33);
+    const [useIntraday, setUseIntraday] = useState<boolean>(false);
+    const [trainingTimeframe, setTrainingTimeframe] = useState<"1h" | "1d">("1h");
 
     // Adaptive Learning State
     const [retraining, setRetraining] = useState(false);
     const [updatingActuals, setUpdatingActuals] = useState(false);
+    const [cryptoStats, setCryptoStats] = useState<AlpacaSupabaseStats | null>(null);
+    const [loadingCryptoStats, setLoadingCryptoStats] = useState(false);
+
+    const cryptoDailyCount = cryptoStats?.stock_prices?.rows ?? 0;
+    const cryptoIntraday1hCount = cryptoStats?.stock_bars_intraday?.by_timeframe?.["1h"] ?? 0;
+    const cryptoVisibleCount = Math.max(cryptoDailyCount, cryptoIntraday1hCount);
+    const cryptoDisabled = !loadingCryptoStats && cryptoVisibleCount <= 0;
+    const selectedExchangeCount = trainingExchange === "CRYPTO"
+        ? cryptoVisibleCount
+        : (dbInventory.find(i => i.exchange === trainingExchange)?.priceCount || 0);
+    const exchangeOptions = useMemo(() => {
+        return dbInventory.filter(i => i.priceCount > 0 && i.exchange !== "CRYPTO");
+    }, [dbInventory]);
 
     // Fetch local models once on mount (further updates happen on training completion or manual refresh)
     useEffect(() => {
         fetchLocalModels();
     }, []);
+
+    useEffect(() => {
+        const fetchCryptoStats = async () => {
+            setLoadingCryptoStats(true);
+            try {
+                const res = await getAlpacaSupabaseStats("crypto");
+                setCryptoStats(res);
+            } catch {
+                setCryptoStats(null);
+            } finally {
+                setLoadingCryptoStats(false);
+            }
+        };
+        fetchCryptoStats();
+    }, []);
+
+    useEffect(() => {
+        if (trainingExchange !== "CRYPTO") return;
+
+        // Recommended defaults for crypto training (1h intraday)
+        setUseIntraday(true);
+        setTrainingTimeframe("1h");
+        setFeaturePreset("max");
+        setTargetPct(0.03);
+        setStopLossPct(0.015);
+        setLookForwardDays(12);
+        setLearningRate(0.02);
+        setNEstimators(2000);
+
+        setModelName((prev) => (prev.trim() ? prev : "KING_CRYPTO"));
+    }, [trainingExchange]);
 
     // Keep a small client-side log of training status messages for UI visibility.
     useEffect(() => {
@@ -1001,7 +1048,7 @@ export default function AIAutomationTab({
                                                     <span className="w-2 h-2 rounded-full bg-indigo-500 shadow-[0_0_10px_rgba(99,102,241,0.5)]"></span>
                                                     {trainingExchange}
                                                     <span className="text-zinc-600 text-xs ml-1">
-                                                        ({dbInventory.find(i => i.exchange === trainingExchange)?.priceCount || 0} symbols)
+                                                        ({selectedExchangeCount} symbols)
                                                     </span>
                                                 </span>
                                             ) : (
@@ -1014,10 +1061,38 @@ export default function AIAutomationTab({
                                     {/* Dropdown Menu */}
                                     <div className={`absolute z-20 top-full left-0 right-0 mt-2 bg-zinc-900 border border-zinc-800 rounded-2xl shadow-2xl shadow-black/50 overflow-hidden transition-all duration-200 origin-top transform ${isExchangeDropdownOpen ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-95 -translate-y-2 pointer-events-none'}`}>
                                         <div className="p-2 space-y-1 max-h-[300px] overflow-y-auto custom-scrollbar">
-                                            {dbInventory.filter(i => i.priceCount > 0).length === 0 && (
+                                            {exchangeOptions.length === 0 && !cryptoVisibleCount && !loadingCryptoStats && (
                                                 <div className="p-4 text-center text-xs text-zinc-600 italic">No exchanges with data available.</div>
                                             )}
-                                            {dbInventory.filter(i => i.priceCount > 0).map(i => (
+                                            <>
+                                                <div className="px-3 pt-2 pb-1 text-[10px] text-zinc-500 uppercase font-black tracking-widest">
+                                                    Crypto
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    disabled={cryptoDisabled}
+                                                    onClick={() => {
+                                                        setTrainingExchange("CRYPTO");
+                                                        setIsExchangeDropdownOpen(false);
+                                                    }}
+                                                    className={`w-full p-3 rounded-xl text-left text-sm font-medium transition-all flex items-center justify-between group ${cryptoDisabled ? 'opacity-50 cursor-not-allowed' : ''} ${trainingExchange === "CRYPTO" ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20' : 'hover:bg-zinc-800 text-zinc-400 hover:text-white'}`}
+                                                >
+                                                    <span className="flex items-center gap-3">
+                                                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-[10px] font-black uppercase tracking-wider ${trainingExchange === "CRYPTO" ? 'bg-white/20 text-white' : 'bg-black border border-zinc-800 text-zinc-500 group-hover:border-zinc-700'}`}>
+                                                            CR
+                                                        </div>
+                                                        <div>
+                                                            <div className="">CRYPTO</div>
+                                                            <div className={`text-[10px] ${trainingExchange === "CRYPTO" ? 'text-indigo-200' : 'text-zinc-600 group-hover:text-zinc-500'}`}>
+                                                                {loadingCryptoStats ? "Loading..." : cryptoDisabled ? "No data" : `${cryptoDailyCount} Daily • ${cryptoIntraday1hCount} 1h`}
+                                                            </div>
+                                                        </div>
+                                                    </span>
+                                                    {trainingExchange === "CRYPTO" && <Check className="w-4 h-4" />}
+                                                </button>
+                                            </>
+
+                                            {exchangeOptions.map(i => (
                                                 <button
                                                     key={i.exchange}
                                                     onClick={() => {
@@ -1038,6 +1113,11 @@ export default function AIAutomationTab({
                                                     {trainingExchange === i.exchange && <Check className="w-4 h-4" />}
                                                 </button>
                                             ))}
+                                            {cryptoVisibleCount === 0 && !loadingCryptoStats && (
+                                                <div className="px-4 py-2 text-[10px] text-zinc-600">
+                                                    Crypto data not found. Sync 1h intraday or 1d daily crypto data to enable training.
+                                                </div>
+                                            )}
                                         </div>
                                         <div className="px-4 py-3 bg-zinc-950 border-t border-zinc-900 text-[10px] text-zinc-600 text-center font-medium">
                                             Select an exchange to initialize the AI model.
@@ -1050,6 +1130,35 @@ export default function AIAutomationTab({
                                     <div className="fixed inset-0 z-10 bg-transparent" onClick={() => setIsExchangeDropdownOpen(false)} />
                                 )}
                             </div>
+
+                            {trainingExchange === "CRYPTO" && (
+                                <div className="grid grid-cols-2 gap-3 mt-4">
+                                    <div className="rounded-xl border border-zinc-800 bg-black/40 p-3">
+                                        <div className="text-[10px] text-zinc-500 uppercase font-black">Crypto Source</div>
+                                        <button
+                                            onClick={() => setUseIntraday((v) => !v)}
+                                            className={`mt-2 w-full h-9 rounded-lg border text-xs font-bold transition-all ${useIntraday ? "bg-indigo-600 text-white border-indigo-600" : "bg-zinc-900 text-zinc-500 border-zinc-800 hover:bg-zinc-800"}`}
+                                        >
+                                            {useIntraday ? "Using 1h Intraday" : "Using Daily (1d)"}
+                                        </button>
+                                    </div>
+                                    <div className="rounded-xl border border-zinc-800 bg-black/40 p-3">
+                                        <div className="text-[10px] text-zinc-500 uppercase font-black">Timeframe</div>
+                                        <div className="mt-2 flex gap-2">
+                                            {(["1h", "1d"] as const).map(tf => (
+                                                <button
+                                                    key={tf}
+                                                    onClick={() => setTrainingTimeframe(tf)}
+                                                    disabled={!useIntraday && tf === "1h"}
+                                                    className={`flex-1 h-9 rounded-lg border text-xs font-bold transition-all ${trainingTimeframe === tf ? "bg-indigo-600 text-white border-indigo-600" : "bg-zinc-900 text-zinc-500 border-zinc-800 hover:bg-zinc-800"} ${!useIntraday && tf === "1h" ? "opacity-40 cursor-not-allowed" : ""}`}
+                                                >
+                                                    {tf.toUpperCase()}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
 
                             {lastTrainingSummary && (
                                 <div className="mt-4 rounded-2xl border border-zinc-800 bg-zinc-950 p-4 text-xs text-zinc-400 flex flex-col gap-4">
@@ -1174,6 +1283,8 @@ export default function AIAutomationTab({
                                                 patience,
                                                 useMetaLabeling,
                                                 metaThreshold,
+                                                useIntraday: trainingExchange === "CRYPTO" ? useIntraday : false,
+                                                timeframe: trainingExchange === "CRYPTO" ? trainingTimeframe : "1d",
                                             }),
                                         });
                                         const data = await res.json();

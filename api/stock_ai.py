@@ -1,12 +1,11 @@
 import datetime as dt
 import os
+import ssl
 import urllib.request
 import urllib.error
 import pickle
 import time
 import warnings
-import hashlib
-
 # Suppress specific FutureWarnings from libraries like 'ta'
 warnings.filterwarnings("ignore", category=FutureWarning)
 from dataclasses import dataclass
@@ -19,10 +18,12 @@ import numpy as np
 import pandas as pd
 import yfinance as yf
 import json
+import httpx
 from eodhd import APIClient
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import precision_score
 from supabase import create_client, Client
+from supabase.lib.client_options import ClientOptions
 from api.train_exchange_model import add_massive_features, add_market_context
 
 # Conditional import for LGBM to avoid failure if not installed (though it should be)
@@ -44,12 +45,12 @@ except Exception:
 
 
 class _LgbmBoosterClassifier:
-    def __init__(self, booster, threshold: float = 0.40): # Lowered to 0.4
+    def __init__(self, booster, threshold: float = 0.45): # Tuned strictness (was 0.40)
         self.booster = booster
         try:
             self.threshold = float(threshold)
         except Exception:
-            self.threshold = 0.40
+            self.threshold = 0.45
 
     def predict(self, X):
         raw = self.booster.predict(X)
@@ -333,12 +334,172 @@ def _init_supabase():
         # print(f"DEBUG: Init Supabase. URL={url is not None}, KEY={key is not None}")
         if url and key:
             try:
-                supabase = create_client(url, key)
+                try:
+                    postgrest_timeout_s = float(os.getenv("SUPABASE_POSTGREST_TIMEOUT", "120"))
+                except Exception:
+                    postgrest_timeout_s = 120.0
+
+                try:
+                    storage_timeout_s = float(os.getenv("SUPABASE_STORAGE_TIMEOUT", "20"))
+                except Exception:
+                    storage_timeout_s = 20.0
+
+                try:
+                    connect_timeout_s = float(os.getenv("SUPABASE_CONNECT_TIMEOUT", "10"))
+                except Exception:
+                    connect_timeout_s = 10.0
+
+                options = ClientOptions(
+                    postgrest_client_timeout=httpx.Timeout(postgrest_timeout_s, connect=connect_timeout_s),
+                    storage_client_timeout=httpx.Timeout(storage_timeout_s, connect=connect_timeout_s),
+                )
+                supabase = create_client(url, key, options)
                 print("DEBUG: Supabase client initialized successfully")
             except Exception as e:
                 print(f"Failed to init Supabase: {e}")
         else:
             print(f"DEBUG: Supabase env vars missing. URL={url}, KEY={'HIDDEN' if key else 'None'}")
+
+
+def _is_missing_table_error(err: Exception, table_name: str) -> bool:
+    try:
+        msg = str(err).lower()
+    except Exception:
+        return False
+    t = (table_name or "").lower()
+    if not t or t not in msg:
+        return False
+    return ("does not exist" in msg) or ("could not find the table" in msg) or ("relation" in msg and "does not exist" in msg)
+
+
+def _is_transient_ssl_error(err: Exception) -> bool:
+    try:
+        msg = str(err).lower()
+    except Exception:
+        return False
+    return ("unexpected_eof_while_reading" in msg) or ("eof occurred in violation of protocol" in msg) or ("ssl" in msg and "eof" in msg)
+
+
+def _is_transient_supabase_error(err: Exception) -> bool:
+    if isinstance(err, ssl.SSLError):
+        return True
+
+    if isinstance(err, httpx.HTTPStatusError):
+        try:
+            status = int(getattr(err.response, "status_code", 0) or 0)
+        except Exception:
+            status = 0
+        return status in {408, 425, 429, 500, 502, 503, 504}
+
+    if isinstance(err, httpx.HTTPError):
+        return True
+
+    try:
+        msg = str(err).lower()
+    except Exception:
+        msg = ""
+
+    return _is_transient_ssl_error(err) or ("server disconnected" in msg)
+
+
+def _raise_transient_supabase_unavailable(err: Exception, *, table: str) -> None:
+    if _is_transient_supabase_error(err):
+        from fastapi import HTTPException
+        raise HTTPException(
+            status_code=503,
+            detail={
+                "error": "supabase_unavailable",
+                "table": table,
+                "hint": "Upstream Supabase connection failed; retry the request.",
+                "cause": str(err),
+            },
+            headers={"Retry-After": "2"},
+        )
+
+
+def _supabase_read_with_retry(
+    query_func_or_table: Any,
+    max_attempts: int = 4,
+    sleep_base_s: float = 0.5,
+    table_name: Optional[str] = None
+) -> Any:
+    global supabase
+    last_err: Exception | None = None
+    for attempt in range(1, max_attempts + 1):
+        _init_supabase()
+        if not supabase:
+            from fastapi import HTTPException
+            raise HTTPException(status_code=500, detail="Supabase not initialized")
+        
+        try:
+            if callable(query_func_or_table):
+                res = query_func_or_table(supabase)
+            else:
+                res = supabase.table(query_func_or_table).select("*").limit(1).execute()
+            return res
+        except Exception as e:
+            last_err = e
+            if table_name and _is_missing_table_error(e, table_name):
+                from fastapi import HTTPException
+                raise HTTPException(
+                    status_code=422,
+                    detail={
+                        "error": "missing_table",
+                        "table": table_name,
+                        "hint": f"Run the SQL migration in supabase/schema.sql to create '{table_name}'.",
+                        "cause": str(e),
+                    },
+                )
+            if not _is_transient_supabase_error(e) or attempt >= max_attempts:
+                _raise_transient_supabase_unavailable(e, table=table_name or "unknown")
+                raise
+            
+            supabase = None
+            time.sleep(sleep_base_s * attempt)
+            
+    if last_err is not None:
+        raise last_err
+
+def _supabase_upsert_with_retry(
+    table: str,
+    rows: List[Dict[str, Any]],
+    *,
+    on_conflict: Optional[str] = None,
+    max_attempts: int = 4,
+    sleep_base_s: float = 0.5,
+) -> None:
+    global supabase
+    last_err: Exception | None = None
+    for attempt in range(1, max_attempts + 1):
+        _init_supabase()
+        if not supabase:
+            from fastapi import HTTPException
+            raise HTTPException(status_code=500, detail="Supabase not initialized")
+        try:
+            q = supabase.table(table).upsert(rows)
+            if on_conflict:
+                q = supabase.table(table).upsert(rows, on_conflict=on_conflict)
+            q.execute()
+            return
+        except Exception as e:
+            last_err = e
+            if _is_missing_table_error(e, table):
+                from fastapi import HTTPException
+                raise HTTPException(
+                    status_code=422,
+                    detail={
+                        "error": "missing_table",
+                        "table": table,
+                        "hint": "Run the SQL migration in supabase/schema.sql to create this table.",
+                        "cause": str(e),
+                    },
+                )
+            if not _is_transient_supabase_error(e) or attempt >= max_attempts:
+                raise
+            supabase = None
+            time.sleep(sleep_base_s * attempt)
+    if last_err is not None:
+        raise last_err
 
 
 # Define absolute paths for reliability
@@ -456,6 +617,32 @@ def check_local_cache(symbol: str, exchange: Optional[str] = None) -> bool:
 
     return False
 
+is_ticker_synced = check_local_cache
+
+def get_cached_tickers() -> set[Tuple[str, str]]:
+    """Returns a set of (symbol, exchange) tuples currently in Supabase, cached for TTL."""
+    global _CACHED_TICKERS_SET, _CACHED_TICKERS_TS
+    now = time.time()
+    if _CACHED_TICKERS_SET is not None and (now - _CACHED_TICKERS_TS < _CACHE_TTL_SECONDS):
+        return _CACHED_TICKERS_SET
+
+    _init_supabase()
+    if not supabase: return set()
+    try:
+        # Use the RPC to get active symbols efficiently
+        res = supabase.rpc("get_active_symbols").execute()
+        if res.data:
+            s_set = {(str(r['symbol']), str(r['exchange'])) for r in res.data}
+            _CACHED_TICKERS_SET = s_set
+            _CACHED_TICKERS_TS = now
+            return s_set
+    except Exception as e:
+        print(f"DEBUG: get_cached_tickers error: {e}")
+        # Return stale cache if error occurs but cache exists
+        if _CACHED_TICKERS_SET is not None:
+            return _CACHED_TICKERS_SET
+    return set()
+
 
 _CACHED_TICKERS_SET = None
 _CACHED_TICKERS_TS = 0
@@ -564,7 +751,21 @@ def _get_data_with_indicators_cached(symbol: str, exchange: str, df: pd.DataFram
     return cache.get_with_indicators(symbol, exchange, df, indicator_func)
 
 
-def _get_exchange_bulk_data(exchange: str, from_date: Optional[str] = None, to_date: Optional[str] = None) -> Dict[str, pd.DataFrame]:
+def _get_massive_features_cached(symbol: str, exchange: str, df: pd.DataFrame) -> pd.DataFrame:
+    cache = _get_indicator_cache()
+    return cache.get_with_massive_features(symbol, exchange, df)
+
+
+
+
+
+
+def _get_exchange_bulk_data(
+    exchange: str, 
+    from_date: Optional[str] = None, 
+    to_date: Optional[str] = None,
+    bypass_min_limit: bool = False
+) -> Dict[str, pd.DataFrame]:
     """
     Load all price data for an exchange in a single Supabase query (paginated) and cache it.
     Returns mapping symbol -> DataFrame indexed by date.
@@ -572,8 +773,9 @@ def _get_exchange_bulk_data(exchange: str, from_date: Optional[str] = None, to_d
     if not exchange:
         return {}
 
+    MIN_BULK_ROWS = 100000
     now = time.time()
-    cache_key = f"{exchange.upper()}_{from_date or 'ALL'}_{to_date or 'NOW'}"
+    cache_key = f"{exchange.upper()}_{from_date or 'ALL'}_{to_date or 'NOW'}_{bypass_min_limit}"
 
     # 1. Simple cache check
     cached = _EXCHANGE_BULK_CACHE.get(cache_key)
@@ -594,155 +796,285 @@ def _get_exchange_bulk_data(exchange: str, from_date: Optional[str] = None, to_d
             print(f"DEBUG: Bulk Cache Hit (locked) for {cache_key}")
             return cached.get("data", {})
 
-        _init_supabase()
-        if not supabase:
-            return {}
+        max_attempts = 3
+        page_size = 1000
+        max_workers = 3
+        last_err = None
 
-        print(f"DEBUG: Starting bulk load for {cache_key} (from_date={from_date})")
-        start_time = time.time()
+        for attempt in range(1, max_attempts + 1):
+            _init_supabase()
+            if not supabase:
+                return {}
 
-        try:
-            # 1. Build base query with exact count request in select
-            page_size = 1000 # Supabase/PostgREST default limit
-            query = supabase.table("stock_prices") \
-                .select("symbol,exchange,date,open,high,low,close,volume", count="exact") \
-                .eq("exchange", exchange.upper())
-            
-            if from_date: query = query.gte("date", from_date)
-            if to_date: query = query.lte("date", to_date)
-            query = query.order("symbol", desc=False).order("date", desc=False)
+            print(f"DEBUG: Starting bulk load for {cache_key} (from_date={from_date})")
+            start_time = time.time()
 
-            # 2. Fetch first page + total count
-            fetch_start = time.time()
-            res0 = query.range(0, page_size - 1).execute()
-            all_rows = res0.data or []
-            total_count = res0.count or len(all_rows)
-            
-            print(f"DEBUG: Starting Parallel Bulk Load for {exchange.upper()} ({total_count} total rows)")
+            try:
+                # 1. Build base query with exact count request in select
+                effective_from_date = from_date
 
-            if total_count > page_size:
-                offsets = range(page_size, total_count, page_size)
+                def _build_query(fd: Optional[str]):
+                    q = supabase.table("stock_prices") \
+                        .select("symbol,exchange,date,open,high,low,close,volume", count="exact") \
+                        .eq("exchange", exchange.upper())
+                    if fd:
+                        q = q.gte("date", fd)
+                    if to_date:
+                        q = q.lte("date", to_date)
+                    return q.order("symbol", desc=False).order("date", desc=False)
+
+                # 2. Fetch first page + total count
+                fetch_start = time.time()
+                res0 = _build_query(effective_from_date).range(0, page_size - 1).execute()
+                all_rows = res0.data or []
+                total_count = res0.count or len(all_rows)
+
+                # If the window is too small, expand to full history (unless bypassed)
+                if not bypass_min_limit and from_date and total_count < MIN_BULK_ROWS:
+                    print(
+                        f"DEBUG: Bulk rows {total_count} < {MIN_BULK_ROWS} for {cache_key}. "
+                        f"Expanding to full history.",
+                        flush=True
+                    )
+                    effective_from_date = None
+                    res0 = _build_query(effective_from_date).range(0, page_size - 1).execute()
+                    all_rows = res0.data or []
+                    total_count = res0.count or len(all_rows)
                 
-                def _fetch_page(off, retries=5): # Increased retries
-                    for attempt in range(retries):
-                        try:
-                            # Re-build query to avoid any shared state issues
-                            r = supabase.table("stock_prices") \
-                                .select("symbol,exchange,date,open,high,low,close,volume") \
-                                .eq("exchange", exchange.upper())
-                            if from_date: r = r.gte("date", from_date)
-                            if to_date: r = r.lte("date", to_date)
-                            r = r.order("symbol", desc=False).order("date", desc=False)
-                            
-                            res = r.range(off, off + page_size - 1).execute()
-                            return res.data or []
-                        except Exception as e:
-                            wait = (attempt + 1) * 3
-                            if attempt > 1: # Only log after first failure to reduce noise
-                                print(f"DEBUG: Retry {attempt+1}/{retries} for offset {off} due to: {e}. Waiting {wait}s...")
-                            time.sleep(wait)
-                    print(f"ERROR: Failed to fetch page at offset {off} after {retries} attempts.")
-                    return []
+                print(f"DEBUG: Starting Parallel Bulk Load for {exchange.upper()} ({total_count} total rows)")
 
-                # Fetch remaining pages in parallel (Conservative 3 workers)
-                with ThreadPoolExecutor(max_workers=3) as executor:
-                    futures = [executor.submit(_fetch_page, o) for o in offsets]
-                    for f in as_completed(futures):
-                        all_rows.extend(f.result())
+                if total_count > page_size:
+                    offsets = range(page_size, total_count, page_size)
+                    
+                    def _fetch_page(off, retries=5): # Increased retries
+                        for r_attempt in range(retries):
+                            try:
+                                # Re-build query to avoid any shared state issues
+                                r = supabase.table("stock_prices") \
+                                    .select("symbol,exchange,date,open,high,low,close,volume") \
+                                    .eq("exchange", exchange.upper())
+                                if effective_from_date: r = r.gte("date", effective_from_date)
+                                if to_date: r = r.lte("date", to_date)
+                                r = r.order("symbol", desc=False).order("date", desc=False)
+                                
+                                res = r.range(off, off + page_size - 1).execute()
+                                return res.data or []
+                            except Exception as e:
+                                wait = (r_attempt + 1) * 3
+                                if r_attempt > 1: # Only log after first failure to reduce noise
+                                    print(f"DEBUG: Retry {r_attempt+1}/{retries} for offset {off} due to: {e}. Waiting {wait}s...")
+                                time.sleep(wait)
+                        print(f"ERROR: Failed to fetch page at offset {off} after {retries} attempts.")
+                        return []
 
-            fetch_duration = time.time() - fetch_start
-            print(f"DEBUG: Supabase Parallel Fetch complete. Took {fetch_duration:.2f}s for {len(all_rows)} rows across {len(set(r['symbol'] for r in all_rows))} symbols")
+                    # Fetch remaining pages in parallel
+                    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+                        futures = [executor.submit(_fetch_page, o) for o in offsets]
+                        for f in as_completed(futures):
+                            all_rows.extend(f.result())
 
-            if not all_rows:
+                fetch_duration = time.time() - fetch_start
+                print(f"DEBUG: Supabase Parallel Fetch complete. Took {fetch_duration:.2f}s for {len(all_rows)} rows across {len(set(r['symbol'] for r in all_rows))} symbols")
+
+                if not all_rows:
+                    return {}
+
+                process_start = time.time()
+                df_all = pd.DataFrame(all_rows)
+                if df_all.empty:
+                    return {}
+
+                df_all["date"] = pd.to_datetime(df_all["date"], errors="coerce")
+                df_all = df_all.dropna(subset=["date"]).sort_values(["symbol", "date"])
+
+                data_by_symbol: Dict[str, pd.DataFrame] = {}
+                for sym, grp in df_all.groupby("symbol"):
+                    g = grp.set_index("date")["open high low close volume".split()]
+                    g = g.rename(columns={"close": "Close", "open": "Open", "high": "High", "low": "Low", "volume": "Volume"})
+                    data_by_symbol[str(sym).upper()] = g
+
+                _EXCHANGE_BULK_CACHE[cache_key] = {"ts": now, "data": data_by_symbol, "rows": len(df_all)}
+                total_duration = time.time() - start_time
+                print(f"DEBUG: Bulk cached {len(df_all)} rows for {cache_key} ({len(data_by_symbol)} symbols) in {total_duration:.2f}s (Processing: {time.time()-process_start:.2f}s)")
+                return data_by_symbol
+            except Exception as e:
+                last_err = e
+                print(f"DEBUG: Bulk load failed for exchange {cache_key} (attempt {attempt}/{max_attempts}): {e}", flush=True)
+                # Backoff + reduce concurrency on retry
+                time.sleep(3 * attempt)
+                page_size = 500
+                max_workers = 1
+
+        print(f"DEBUG: Bulk load failed for exchange {cache_key}: {last_err}")
+        return {}
+
+
+def _normalize_ts_filter(value: Optional[str]) -> Optional[str]:
+    if value is None:
+        return None
+    try:
+        v = str(value).strip()
+    except Exception:
+        return None
+    if not v:
+        return None
+
+    # Date-only => assume start of day UTC for PostgREST comparisons.
+    if len(v) == 10 and v[4] == "-" and v[7] == "-":
+        return f"{v}T00:00:00Z"
+
+    return v
+
+
+def _get_exchange_bulk_intraday_data(
+    exchange: str,
+    *,
+    timeframe: str = "1h",
+    from_ts: Optional[str] = None,
+    to_ts: Optional[str] = None,
+) -> Dict[str, pd.DataFrame]:
+    """
+    Load intraday bars for an exchange/timeframe from Supabase (paginated) and cache them.
+    Returns mapping symbol -> DataFrame indexed by ts.
+    """
+    if not exchange:
+        return {}
+
+    tf = (timeframe or "1h").strip().lower()
+    fd = _normalize_ts_filter(from_ts)
+    td = _normalize_ts_filter(to_ts)
+
+    now = time.time()
+    cache_key = f"INTRA_{exchange.upper()}_{tf}_{fd or 'ALL'}_{td or 'NOW'}"
+
+    cached = _EXCHANGE_BULK_CACHE.get(cache_key)
+    if cached and (now - cached.get("ts", 0) < _EXCHANGE_BULK_TTL_SECONDS):
+        print(f"DEBUG: Bulk Cache Hit for {cache_key}")
+        return cached.get("data", {})
+
+    with _GLOBAL_LOAD_LOCK:
+        if cache_key not in _BULK_LOAD_LOCKS:
+            _BULK_LOAD_LOCKS[cache_key] = Lock()
+        lock = _BULK_LOAD_LOCKS[cache_key]
+
+    with lock:
+        cached = _EXCHANGE_BULK_CACHE.get(cache_key)
+        if cached and (time.time() - cached.get("ts", 0) < _EXCHANGE_BULK_TTL_SECONDS):
+            print(f"DEBUG: Bulk Cache Hit (locked) for {cache_key}")
+            return cached.get("data", {})
+
+        max_attempts = 3
+        page_size = 1000
+        max_workers = 3
+        last_err = None
+
+        for attempt in range(1, max_attempts + 1):
+            _init_supabase()
+            if not supabase:
                 return {}
 
-            process_start = time.time()
-            df_all = pd.DataFrame(all_rows)
-            if df_all.empty:
-                return {}
+            print(f"DEBUG: Starting intraday bulk load for {cache_key} (from_ts={fd})")
+            start_time = time.time()
 
-            df_all["date"] = pd.to_datetime(df_all["date"], errors="coerce")
-            df_all = df_all.dropna(subset=["date"]).sort_values(["symbol", "date"])
+            try:
+                def _build_query():
+                    q = (
+                        supabase.table("stock_bars_intraday")
+                        .select("symbol,exchange,ts,open,high,low,close,volume", count="exact")
+                        .eq("exchange", exchange.upper())
+                        .eq("timeframe", tf)
+                    )
+                    if fd:
+                        q = q.gte("ts", fd)
+                    if td:
+                        q = q.lte("ts", td)
+                    return q.order("symbol", desc=False).order("ts", desc=False)
 
-            data_by_symbol: Dict[str, pd.DataFrame] = {}
-            for sym, grp in df_all.groupby("symbol"):
-                g = grp.set_index("date")["open high low close volume".split()]
-                g = g.rename(columns={"close": "Close", "open": "Open", "high": "High", "low": "Low", "volume": "Volume"})
-                data_by_symbol[str(sym).upper()] = g
+                res0 = _build_query().range(0, page_size - 1).execute()
+                all_rows = res0.data or []
+                total_count = res0.count or len(all_rows)
 
-            _EXCHANGE_BULK_CACHE[cache_key] = {"ts": now, "data": data_by_symbol, "rows": len(df_all)}
-            total_duration = time.time() - start_time
-            print(f"DEBUG: Bulk cached {len(df_all)} rows for {cache_key} ({len(data_by_symbol)} symbols) in {total_duration:.2f}s (Processing: {time.time()-process_start:.2f}s)")
-            return data_by_symbol
-        except Exception as e:
-            print(f"DEBUG: Bulk load failed for exchange {cache_key}: {e}")
-            return {}
+                if not all_rows:
+                    return {}
 
+                if total_count > page_size:
+                    offsets = range(page_size, total_count, page_size)
 
-def _get_model_cached(model_path: str):
-    now = time.time()
-    entry = _MODEL_CACHE.get(model_path)
-    if entry and (now - entry.get("ts", 0) < _MODEL_CACHE_TTL_SECONDS):
-        return entry.get("model"), entry.get("predictors"), entry.get("is_lgbm_artifact", False)
-    return None
+                    def _fetch_page(off, retries=5):
+                        for r_attempt in range(retries):
+                            try:
+                                r = (
+                                    supabase.table("stock_bars_intraday")
+                                    .select("symbol,exchange,ts,open,high,low,close,volume")
+                                    .eq("exchange", exchange.upper())
+                                    .eq("timeframe", tf)
+                                )
+                                if fd:
+                                    r = r.gte("ts", fd)
+                                if td:
+                                    r = r.lte("ts", td)
+                                r = r.order("symbol", desc=False).order("ts", desc=False)
+                                res = r.range(off, off + page_size - 1).execute()
+                                return res.data or []
+                            except Exception as e:
+                                wait = (r_attempt + 1) * 3
+                                if r_attempt > 1:
+                                    print(
+                                        f"DEBUG: Retry {r_attempt+1}/{retries} for intraday offset {off} due to: {e}. Waiting {wait}s..."
+                                    )
+                                time.sleep(wait)
+                        print(f"ERROR: Failed to fetch intraday page at offset {off} after {retries} attempts.")
+                        return []
 
+                    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+                        futures = [executor.submit(_fetch_page, o) for o in offsets]
+                        for f in as_completed(futures):
+                            all_rows.extend(f.result())
 
-def _set_model_cache(model_path: str, model: Any, predictors: Optional[List[str]] = None, is_lgbm_artifact: bool = False) -> None:
-    _MODEL_CACHE[model_path] = {
-        "model": model,
-        "predictors": predictors,
-        "is_lgbm_artifact": is_lgbm_artifact,
-        "ts": time.time(),
-    }
+                if not all_rows:
+                    return {}
 
-def get_cached_tickers() -> set:
-    """Returns a set of all ticker names. Prioritizes Supabase. Cached for 30s."""
-    global _CACHED_TICKERS_SET, _CACHED_TICKERS_TS
-    
-    import time
-    now = time.time()
-    
-    if _CACHED_TICKERS_SET is not None and (now - _CACHED_TICKERS_TS) < _CACHE_TTL_SECONDS:
-        return _CACHED_TICKERS_SET
+                df_all = pd.DataFrame(all_rows)
+                if df_all.empty:
+                    return {}
 
-    found = set()
+                df_all["ts"] = pd.to_datetime(df_all["ts"], errors="coerce")
+                df_all = df_all.dropna(subset=["ts"]).sort_values(["symbol", "ts"])
 
-    # 1. Try Supabase
-    _init_supabase()
-    if supabase:
-        try:
-            # Use high-performance RPC to get all active symbols (with prices, no funds)
-            res = supabase.rpc("get_active_symbols").execute()
-            if res.data:
-                for row in res.data:
-                    found.add(f"{row['symbol']}.{row['exchange']}")
-        except Exception as e:
-            print(f"Error fetching cached tickers RPC: {e}")
-        
-    _CACHED_TICKERS_SET = found
-    _CACHED_TICKERS_TS = now
-    return found
+                data_by_symbol: Dict[str, pd.DataFrame] = {}
+                for sym, grp in df_all.groupby("symbol"):
+                    g = grp.set_index("ts")["open high low close volume".split()]
+                    g = g.rename(
+                        columns={
+                            "close": "Close",
+                            "open": "Open",
+                            "high": "High",
+                            "low": "Low",
+                            "volume": "Volume",
+                        }
+                    )
+                    data_by_symbol[str(sym).upper()] = g
 
-def is_ticker_synced(symbol: str, exchange: Optional[str] = None) -> bool:
-    """Checks if a symbol.exchange combination exists in our cloud database."""
-    cached_set = get_cached_tickers()
-    s_upper = _safe_cache_key(symbol)
-    
-    # Try exact match first
-    if s_upper in cached_set: return True
-    
-    # Try with inferred/standardized suffix if exchange is provided
-    if exchange:
-        e_upper = exchange.upper()
-        if e_upper in ["CC", "CA"]: e_upper = "EGX"
-        mapping = {"EGX": "EGX", "US": "US", "NYSE": "US", "NASDAQ": "US"}
-        suffix = mapping.get(e_upper, e_upper)
-        
-        # Strip existing suffix if any to avoid DOUBLE suffixes
-        base = s_upper.split('.')[0]
-        if f"{base}.{suffix}" in cached_set: return True
-        
-    return False
+                _EXCHANGE_BULK_CACHE[cache_key] = {"ts": now, "data": data_by_symbol, "rows": len(df_all)}
+                total_duration = time.time() - start_time
+                print(
+                    f"DEBUG: Intraday bulk cached {len(df_all)} rows for {cache_key} "
+                    f"({len(data_by_symbol)} symbols) in {total_duration:.2f}s"
+                )
+                return data_by_symbol
+            except Exception as e:
+                last_err = e
+                print(
+                    f"DEBUG: Intraday bulk load failed for exchange {cache_key} (attempt {attempt}/{max_attempts}): {e}",
+                    flush=True,
+                )
+                time.sleep(3 * attempt)
+                page_size = 500
+                max_workers = 1
+
+        print(f"DEBUG: Intraday bulk load failed for exchange {cache_key}: {last_err}")
+        return {}
+
 
 def get_supabase_inventory() -> List[Dict[str, Any]]:
     """Call get_inventory_stats RPC and group by country for frontend use."""
@@ -762,7 +1094,9 @@ def get_supabase_inventory() -> List[Dict[str, Any]]:
 
     # 1. Try stats from RPC (Primary)
     try:
-        res = supabase.rpc("get_inventory_stats").execute()
+        def _fetch_rpc(sb):
+            return sb.rpc("get_inventory_stats").execute()
+        res = _supabase_read_with_retry(_fetch_rpc, table_name="inventory_rpc")
         if res.data:
             stats = res.data
             first_attempt_success = True
@@ -771,14 +1105,13 @@ def get_supabase_inventory() -> List[Dict[str, Any]]:
 
     # 2. Get exchange-to-country mapping from fundamentals if possible (Shared)
     mapping = {}
+    meta_res = None
     try:
-        # Optimization: Only count symbols per country to find the 'primary' country for an exchange
-        # Actually, the expected_map from local summary is the most reliable.
-        # We only use fundamentals as secondary.
-        # Optimization: Filter by country in SQL if needed, but here we want all for inventory
-        # get_supabase_inventory is usually called without specific country.
-        meta_res = supabase.table("stock_fundamentals").select("exchange, data").execute()
-        if meta_res.data:
+        def _fetch_meta(sb):
+            return sb.table("stock_fundamentals").select("exchange, data").execute()
+        
+        meta_res = _supabase_read_with_retry(_fetch_meta, table_name="stock_fundamentals")
+        if meta_res and meta_res.data:
             # Simple voting logic: count symbols per (exchange, country)
             votes = {} 
             for row in meta_res.data:
@@ -802,18 +1135,14 @@ def get_supabase_inventory() -> List[Dict[str, Any]]:
 
     # 3. If primary RPC failed, build stats from fundamentals aggregation (Fallback)
     if not stats:
-        # We can't easily get price_count without the heavy query, so we set it to 0 or -1 (unknown)
-        # But we can get accurate fund_count from stock_fundamentals
         try:
-            # Group by exchange manually from the meta_res we just got, or fetch if needed
             fund_counts = {}
-            if meta_res.data:
+            if meta_res and meta_res.data:
                 for row in meta_res.data:
                     ex = row.get('exchange')
                     if ex:
                         fund_counts[ex] = fund_counts.get(ex, 0) + 1
             
-            # Construct a partial stats list
             for ex, count in fund_counts.items():
                 stats.append({
                     "exchange": ex,
@@ -823,7 +1152,6 @@ def get_supabase_inventory() -> List[Dict[str, Any]]:
                 })
         except Exception as e:
             print(f"Warning: Fallback stats generation failed: {e}")
-
 
     try:
         # 4. Join and group (Shared Logic)
@@ -856,10 +1184,6 @@ def get_supabase_inventory() -> List[Dict[str, Any]]:
             row['expectedCount'] = row['expected_count']
             row['lastUpdate'] = row.get('last_update')
             
-            # If we are in fallback mode (price_count is 0 but we know we have some data potentially),
-            # we might want to flag it or leave it as 0. 
-            # For now 0 is fine, UI shows "0 / N".
-            
             out.append(row)
             mapped_exchanges.add(ex)
 
@@ -883,6 +1207,23 @@ def get_supabase_inventory() -> List[Dict[str, Any]]:
     except Exception as e:
         print(f"Error processing inventory stats: {e}")
     return []
+
+
+def _get_model_cached(model_path: str):
+    now = time.time()
+    entry = _MODEL_CACHE.get(model_path)
+    if entry and (now - entry.get("ts", 0) < _MODEL_CACHE_TTL_SECONDS):
+        return entry.get("model"), entry.get("predictors"), entry.get("is_lgbm_artifact", False)
+    return None
+
+
+def _set_model_cache(model_path: str, model: Any, predictors: Optional[List[str]] = None, is_lgbm_artifact: bool = False) -> None:
+    _MODEL_CACHE[model_path] = {
+        "model": model,
+        "predictors": predictors,
+        "is_lgbm_artifact": is_lgbm_artifact,
+        "ts": time.time(),
+    }
 
 
 def get_supabase_countries() -> List[str]:
@@ -2332,7 +2673,7 @@ def train_and_predict(
     target_pct: float = 0.15,
     stop_loss_pct: float = 0.05,
     look_forward_days: int = 20,
-    buy_threshold: float = 0.40,
+    buy_threshold: float = 0.45,
 ) -> Tuple[Any, List[str], pd.DataFrame, pd.Series, float, float]:
     """
     Core prediction logic. 
@@ -2752,7 +3093,7 @@ def run_pipeline(
     target_pct: float = 0.15,
     stop_loss_pct: float = 0.05,
     look_forward_days: int = 20,
-    buy_threshold: float = 0.40,
+    buy_threshold: float = 0.45,
     use_volatility_label: bool = False,
 ) -> Dict[str, Any]:
     api = APIClient(api_key)
@@ -3164,7 +3505,13 @@ def batch_check_local_cache(symbol_exchange_list: List[Tuple[str, Optional[str]]
     cached_set = get_cached_tickers()
     results = {}
     for s, e in symbol_exchange_list:
-        results[(s, e)] = is_ticker_synced(s, e)
+        # Normalize for lookup
+        sym, ex = _infer_symbol_exchange(s, e)
+        # Check against cached set OR fall back to direct check if set is empty
+        if not cached_set:
+            results[(s, e)] = is_ticker_synced(s, e)
+        else:
+            results[(s, e)] = (sym, ex) in cached_set
     return results
 
 def batch_get_stock_data(

@@ -10,8 +10,10 @@ yfinance==0.2.36
 requests==2.32.3
 beautifulsoup4==4.12.3
 tradingview-screener==3.0.0
+tvdatafeed==2.1.0
 lightgbm==4.3.0
 supabase==2.5.3
 ta
 
 xgboost==2.1.3
+alpaca-py

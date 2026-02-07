@@ -1,0 +1,789 @@
+2026-02-07 13:20:51,319 - ERROR - COUNCIL: File logging initialized.
+2026-02-07 13:20:53,746 - INFO - Started server process [9228]
+2026-02-07 13:20:53,779 - INFO - Waiting for application startup.
+2026-02-07 13:20:53,781 - INFO - Application startup complete.
+2026-02-07 13:20:53,781 - INFO - Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+2026-02-07 14:03:38,240 - INFO - Shutting down
+2026-02-07 14:03:38,371 - INFO - Waiting for application shutdown.
+2026-02-07 14:03:38,372 - INFO - Application shutdown complete.
+2026-02-07 14:03:38,372 - INFO - Finished server process [9228]
+2026-02-07 14:03:41,227 - ERROR - COUNCIL: File logging initialized.
+2026-02-07 14:03:44,430 - INFO - Started server process [416]
+2026-02-07 14:03:44,433 - INFO - Waiting for application startup.
+2026-02-07 14:03:44,433 - INFO - Application startup complete.
+2026-02-07 14:03:44,433 - INFO - Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+2026-02-07 14:42:53,116 - INFO - Shutting down
+2026-02-07 14:42:53,229 - INFO - Waiting for application shutdown.
+2026-02-07 14:42:53,230 - INFO - Application shutdown complete.
+2026-02-07 14:42:53,233 - INFO - Finished server process [416]
+2026-02-07 14:43:21,890 - ERROR - COUNCIL: File logging initialized.
+2026-02-07 14:43:27,456 - INFO - Started server process [4268]
+2026-02-07 14:43:27,497 - INFO - Waiting for application startup.
+2026-02-07 14:43:27,502 - INFO - Application startup complete.
+2026-02-07 14:44:35,707 - ERROR - COUNCIL: File logging initialized.
+2026-02-07 14:44:38,464 - INFO - Started server process [10004]
+2026-02-07 14:44:38,468 - INFO - Waiting for application startup.
+2026-02-07 14:44:38,469 - INFO - Application startup complete.
+2026-02-07 14:45:41,400 - ERROR - Exception in ASGI application
+Traceback (most recent call last):
+  File "C:\Users\MR_CODER\AppData\Local\Programs\Python\Python311\Lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 409, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'SyncRequestBuilder' object has no attribute 'eq'
+2026-02-07 14:45:42,108 - ERROR - Exception in ASGI application
+Traceback (most recent call last):
+  File "C:\Users\MR_CODER\AppData\Local\Programs\Python\Python311\Lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 409, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'SyncRequestBuilder' object has no attribute 'eq'
+2026-02-07 14:45:42,613 - ERROR - Exception in ASGI application
+Traceback (most recent call last):
+  File "C:\Users\MR_CODER\AppData\Local\Programs\Python\Python311\Lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 409, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'SyncRequestBuilder' object has no attribute 'eq'
+2026-02-07 14:45:43,415 - ERROR - Exception in ASGI application
+Traceback (most recent call last):
+  File "C:\Users\MR_CODER\AppData\Local\Programs\Python\Python311\Lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 409, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'SyncRequestBuilder' object has no attribute 'eq'
+2026-02-07 14:47:16,473 - ERROR - Exception in ASGI application
+Traceback (most recent call last):
+  File "C:\Users\MR_CODER\AppData\Local\Programs\Python\Python311\Lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 409, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'SyncRequestBuilder' object has no attribute 'eq'
+2026-02-07 14:47:16,893 - ERROR - Exception in ASGI application
+Traceback (most recent call last):
+  File "C:\Users\MR_CODER\AppData\Local\Programs\Python\Python311\Lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 409, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'SyncRequestBuilder' object has no attribute 'eq'
+2026-02-07 14:50:49,370 - INFO - Shutting down
+2026-02-07 14:50:49,473 - INFO - Waiting for application shutdown.
+2026-02-07 14:50:49,483 - INFO - Application shutdown complete.
+2026-02-07 14:50:49,483 - INFO - Finished server process [10004]
+2026-02-07 14:51:16,512 - ERROR - COUNCIL: File logging initialized.
+2026-02-07 14:51:19,492 - INFO - Started server process [9988]
+2026-02-07 14:51:19,495 - INFO - Waiting for application startup.
+2026-02-07 14:51:19,495 - INFO - Application startup complete.
+2026-02-07 14:52:30,612 - INFO - Shutting down
+2026-02-07 14:52:30,726 - INFO - Waiting for application shutdown.
+2026-02-07 14:52:30,726 - INFO - Application shutdown complete.
+2026-02-07 14:52:30,726 - INFO - Finished server process [9988]
+2026-02-07 14:52:59,412 - ERROR - COUNCIL: File logging initialized.
+2026-02-07 14:53:03,525 - INFO - Started server process [9476]
+2026-02-07 14:53:03,526 - INFO - Waiting for application startup.
+2026-02-07 14:53:03,528 - INFO - Application startup complete.
+2026-02-07 15:01:53,705 - ERROR - Exception in ASGI application
+Traceback (most recent call last):
+  File "C:\Users\MR_CODER\AppData\Local\Programs\Python\Python311\Lib\site-packages\httpx\_transports\default.py", line 101, in map_httpcore_exceptions
+    yield
+httpcore.RemoteProtocolError: Server disconnected
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\MR_CODER\AppData\Local\Programs\Python\Python311\Lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 409, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+httpx.RemoteProtocolError: Server disconnected
+2026-02-07 15:01:59,269 - ERROR - Exception in ASGI application
+Traceback (most recent call last):
+  File "C:\Users\MR_CODER\AppData\Local\Programs\Python\Python311\Lib\site-packages\httpx\_transports\default.py", line 101, in map_httpcore_exceptions
+    yield
+httpcore.RemoteProtocolError: Server disconnected
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\MR_CODER\AppData\Local\Programs\Python\Python311\Lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 409, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+httpx.RemoteProtocolError: Server disconnected
+2026-02-07 15:10:45,393 - INFO - Shutting down
+2026-02-07 15:10:45,523 - INFO - Waiting for application shutdown.
+2026-02-07 15:10:45,526 - INFO - Application shutdown complete.
+2026-02-07 15:10:45,526 - INFO - Finished server process [9476]
+2026-02-07 15:11:14,826 - ERROR - COUNCIL: File logging initialized.
+2026-02-07 15:11:22,459 - INFO - Started server process [7836]
+2026-02-07 15:11:22,462 - INFO - Waiting for application startup.
+2026-02-07 15:11:22,463 - INFO - Application startup complete.
+2026-02-07 15:11:22,477 - ERROR - Traceback (most recent call last):
+  File "C:\Users\MR_CODER\AppData\Local\Programs\Python\Python311\Lib\asyncio\runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+asyncio.exceptions.CancelledError
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\MR_CODER\AppData\Local\Programs\Python\Python311\Lib\asyncio\runners.py", line 190, in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+KeyboardInterrupt
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\MR_CODER\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\routing.py", line 700, in lifespan
+    await receive()
+asyncio.exceptions.CancelledError
+
+2026-02-07 15:11:39,788 - ERROR - COUNCIL: File logging initialized.
+2026-02-07 15:11:43,948 - INFO - Started server process [9752]
+2026-02-07 15:11:43,955 - INFO - Waiting for application startup.
+2026-02-07 15:11:43,956 - INFO - Application startup complete.
+2026-02-07 15:12:26,353 - INFO - Shutting down
+2026-02-07 15:12:29,856 - INFO - Waiting for connections to close. (CTRL+C to force quit)
+2026-02-07 15:12:30,440 - INFO - Waiting for application shutdown.
+2026-02-07 15:12:30,668 - INFO - Application shutdown complete.
+2026-02-07 15:12:33,223 - INFO - Finished server process [9752]
+2026-02-07 15:12:59,397 - ERROR - COUNCIL: File logging initialized.
+2026-02-07 15:13:12,631 - INFO - Started server process [7368]
+2026-02-07 15:13:12,674 - INFO - Waiting for application startup.
+2026-02-07 15:13:12,866 - INFO - Application startup complete.
+2026-02-07 15:57:11,346 - ERROR - COUNCIL: File logging initialized.
+2026-02-07 15:57:14,474 - INFO - Started server process [6576]
+2026-02-07 15:57:14,476 - INFO - Waiting for application startup.
+2026-02-07 15:57:14,476 - INFO - Application startup complete.
+2026-02-07 15:57:59,009 - ERROR - Exception in ASGI application
+Traceback (most recent call last):
+  File "C:\Users\MR_CODER\AppData\Local\Programs\Python\Python311\Lib\site-packages\httpx\_transports\default.py", line 72, in map_httpcore_exceptions
+    yield
+httpcore.RemoteProtocolError: Server disconnected
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\MR_CODER\AppData\Local\Programs\Python\Python311\Lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 409, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+httpx.RemoteProtocolError: Server disconnected
+2026-02-07 15:58:08,364 - ERROR - Exception in ASGI application
+Traceback (most recent call last):
+  File "C:\Users\MR_CODER\AppData\Local\Programs\Python\Python311\Lib\site-packages\httpx\_transports\default.py", line 72, in map_httpcore_exceptions
+    yield
+httpcore.RemoteProtocolError: Server disconnected
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\MR_CODER\AppData\Local\Programs\Python\Python311\Lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 409, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+httpx.RemoteProtocolError: Server disconnected
+2026-02-07 16:18:01,079 - INFO - Shutting down
+2026-02-07 16:18:01,197 - INFO - Waiting for application shutdown.
+2026-02-07 16:18:01,199 - INFO - Application shutdown complete.
+2026-02-07 16:18:01,199 - INFO - Finished server process [6576]
+2026-02-07 16:18:12,030 - ERROR - COUNCIL: File logging initialized.
+2026-02-07 16:18:13,719 - INFO - Started server process [5640]
+2026-02-07 16:18:13,719 - INFO - Waiting for application startup.
+2026-02-07 16:18:13,730 - INFO - Application startup complete.
+2026-02-07 16:29:50,514 - INFO - Shutting down
+2026-02-07 16:29:50,634 - INFO - Waiting for connections to close. (CTRL+C to force quit)
+2026-02-07 16:29:55,617 - INFO - Waiting for application shutdown.
+2026-02-07 16:29:55,662 - INFO - Application shutdown complete.
+2026-02-07 16:29:55,667 - INFO - Finished server process [5640]
+2026-02-07 16:30:08,466 - ERROR - COUNCIL: File logging initialized.
+2026-02-07 16:30:09,851 - INFO - Started server process [7096]
+2026-02-07 16:30:09,857 - INFO - Waiting for application startup.
+2026-02-07 16:30:09,950 - INFO - Application startup complete.
+2026-02-07 16:31:07,649 - ERROR - Exception in ASGI application
+Traceback (most recent call last):
+  File "C:\Users\MR_CODER\AppData\Local\Programs\Python\Python311\Lib\site-packages\httpx\_transports\default.py", line 72, in map_httpcore_exceptions
+    yield
+httpcore.RemoteProtocolError: Server disconnected
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\MR_CODER\AppData\Local\Programs\Python\Python311\Lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 409, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+httpx.RemoteProtocolError: Server disconnected
+2026-02-07 16:39:57,698 - INFO - Shutting down
+2026-02-07 16:39:57,816 - INFO - Waiting for application shutdown.
+2026-02-07 16:39:57,822 - INFO - Application shutdown complete.
+2026-02-07 16:39:57,822 - INFO - Finished server process [7096]
+2026-02-07 16:40:13,971 - ERROR - COUNCIL: File logging initialized.
+2026-02-07 16:40:16,409 - INFO - Started server process [1872]
+2026-02-07 16:40:16,415 - INFO - Waiting for application startup.
+2026-02-07 16:40:16,439 - INFO - Application startup complete.
+2026-02-07 16:40:17,857 - INFO - Shutting down
+2026-02-07 16:40:17,968 - INFO - Waiting for application shutdown.
+2026-02-07 16:40:18,010 - INFO - Application shutdown complete.
+2026-02-07 16:40:18,013 - INFO - Finished server process [1872]
+2026-02-07 16:41:08,752 - ERROR - COUNCIL: File logging initialized.
+2026-02-07 16:41:24,878 - INFO - Started server process [5760]
+2026-02-07 16:41:24,904 - INFO - Waiting for application startup.
+2026-02-07 16:41:24,987 - INFO - Application startup complete.
+2026-02-07 16:44:33,187 - INFO - Shutting down
+2026-02-07 16:44:33,297 - INFO - Waiting for connections to close. (CTRL+C to force quit)
+2026-02-07 16:44:35,960 - INFO - Waiting for application shutdown.
+2026-02-07 16:44:36,027 - INFO - Application shutdown complete.
+2026-02-07 16:44:36,027 - INFO - Finished server process [5760]
+2026-02-07 16:44:47,969 - ERROR - COUNCIL: File logging initialized.
+2026-02-07 16:44:50,259 - INFO - Started server process [2296]
+2026-02-07 16:44:50,259 - INFO - Waiting for application startup.
+2026-02-07 16:44:50,270 - INFO - Application startup complete.
+2026-02-07 16:49:30,401 - ERROR - COUNCIL: File logging initialized.
+2026-02-07 16:49:33,198 - INFO - Started server process [2684]
+2026-02-07 16:49:33,265 - INFO - Waiting for application startup.
+2026-02-07 16:49:33,317 - INFO - Application startup complete.
+2026-02-07 16:50:44,177 - ERROR - Exception in ASGI application
+Traceback (most recent call last):
+  File "C:\Users\MR_CODER\AppData\Local\Programs\Python\Python311\Lib\site-packages\httpx\_transports\default.py", line 72, in map_httpcore_exceptions
+    yield
+httpcore.RemoteProtocolError: Server disconnected
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\MR_CODER\AppData\Local\Programs\Python\Python311\Lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 409, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+httpx.RemoteProtocolError: Server disconnected
+2026-02-07 16:50:45,768 - ERROR - Exception in ASGI application
+Traceback (most recent call last):
+  File "C:\Users\MR_CODER\AppData\Local\Programs\Python\Python311\Lib\site-packages\httpx\_transports\default.py", line 72, in map_httpcore_exceptions
+    yield
+httpcore.RemoteProtocolError: Server disconnected
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\MR_CODER\AppData\Local\Programs\Python\Python311\Lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 409, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+httpx.RemoteProtocolError: Server disconnected
+2026-02-07 17:03:01,069 - INFO - Shutting down
+2026-02-07 17:03:01,233 - INFO - Waiting for application shutdown.
+2026-02-07 17:03:01,240 - INFO - Application shutdown complete.
+2026-02-07 17:03:01,240 - INFO - Finished server process [2684]
+2026-02-07 17:03:22,969 - ERROR - COUNCIL: File logging initialized.
+2026-02-07 17:03:24,691 - INFO - Started server process [2948]
+2026-02-07 17:03:24,691 - INFO - Waiting for application startup.
+2026-02-07 17:03:24,691 - INFO - Application startup complete.
+2026-02-07 17:03:24,699 - ERROR - Traceback (most recent call last):
+  File "C:\Users\MR_CODER\AppData\Local\Programs\Python\Python311\Lib\asyncio\runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+asyncio.exceptions.CancelledError
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\MR_CODER\AppData\Local\Programs\Python\Python311\Lib\asyncio\runners.py", line 190, in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+KeyboardInterrupt
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\MR_CODER\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\routing.py", line 700, in lifespan
+    await receive()
+asyncio.exceptions.CancelledError
+
+2026-02-07 17:03:35,033 - ERROR - COUNCIL: File logging initialized.
+2026-02-07 17:03:37,022 - INFO - Started server process [8468]
+2026-02-07 17:03:37,027 - INFO - Waiting for application startup.
+2026-02-07 17:03:37,029 - INFO - Application startup complete.
+2026-02-07 17:09:48,257 - INFO - Shutting down
+2026-02-07 17:09:48,380 - INFO - Waiting for application shutdown.
+2026-02-07 17:09:48,402 - INFO - Application shutdown complete.
+2026-02-07 17:09:48,404 - INFO - Finished server process [8468]
+2026-02-07 17:10:12,309 - ERROR - COUNCIL: File logging initialized.
+2026-02-07 17:10:14,857 - INFO - Started server process [9700]
+2026-02-07 17:10:14,857 - INFO - Waiting for application startup.
+2026-02-07 17:10:14,857 - INFO - Application startup complete.
+2026-02-07 17:10:55,568 - ERROR - Exception in ASGI application
+Traceback (most recent call last):
+  File "C:\Users\MR_CODER\AppData\Local\Programs\Python\Python311\Lib\site-packages\httpx\_transports\default.py", line 72, in map_httpcore_exceptions
+    yield
+httpcore.ConnectError: [SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1006)
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\MR_CODER\AppData\Local\Programs\Python\Python311\Lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 409, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+httpx.ConnectError: [SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1006)
+2026-02-07 17:18:36,883 - ERROR - Exception in ASGI application
+Traceback (most recent call last):
+  File "C:\Users\MR_CODER\AppData\Local\Programs\Python\Python311\Lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 409, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+RuntimeError: deque mutated during iteration
+2026-02-07 17:28:35,327 - INFO - Shutting down
+2026-02-07 17:28:35,461 - INFO - Waiting for background tasks to complete. (CTRL+C to force quit)
+2026-02-07 17:29:09,212 - INFO - Waiting for application shutdown.
+2026-02-07 17:29:09,215 - INFO - Application shutdown complete.
+2026-02-07 17:29:09,215 - INFO - Finished server process [9700]
+2026-02-07 17:29:34,217 - ERROR - COUNCIL: File logging initialized.
+2026-02-07 17:29:36,352 - INFO - Started server process [7320]
+2026-02-07 17:29:36,364 - INFO - Waiting for application startup.
+2026-02-07 17:29:36,365 - INFO - Application startup complete.
+2026-02-07 17:39:17,246 - INFO - Shutting down
+2026-02-07 17:39:17,397 - INFO - Waiting for application shutdown.
+2026-02-07 17:39:17,419 - INFO - Application shutdown complete.
+2026-02-07 17:39:17,419 - INFO - Finished server process [7320]
+2026-02-07 17:39:33,421 - ERROR - COUNCIL: File logging initialized.
+2026-02-07 17:39:37,414 - INFO - Started server process [4664]
+2026-02-07 17:39:37,467 - INFO - Waiting for application startup.
+2026-02-07 17:39:37,488 - INFO - Application startup complete.
+2026-02-07 17:41:05,770 - INFO - Shutting down
+2026-02-07 17:41:05,966 - INFO - Waiting for application shutdown.
+2026-02-07 17:41:06,018 - INFO - Application shutdown complete.
+2026-02-07 17:41:06,018 - INFO - Finished server process [4664]
+2026-02-07 17:41:20,239 - ERROR - COUNCIL: File logging initialized.
+2026-02-07 17:41:21,941 - INFO - Started server process [2384]
+2026-02-07 17:41:21,975 - INFO - Waiting for application startup.
+2026-02-07 17:41:21,993 - INFO - Application startup complete.
+2026-02-07 17:41:22,034 - ERROR - Traceback (most recent call last):
+  File "C:\Users\MR_CODER\AppData\Local\Programs\Python\Python311\Lib\asyncio\runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+asyncio.exceptions.CancelledError
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\MR_CODER\AppData\Local\Programs\Python\Python311\Lib\asyncio\runners.py", line 190, in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+KeyboardInterrupt
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\MR_CODER\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\routing.py", line 700, in lifespan
+    await receive()
+asyncio.exceptions.CancelledError
+
+2026-02-07 17:41:32,916 - ERROR - COUNCIL: File logging initialized.
+2026-02-07 17:41:36,068 - INFO - Started server process [2916]
+2026-02-07 17:41:36,135 - INFO - Waiting for application startup.
+2026-02-07 17:41:36,279 - INFO - Application startup complete.
+2026-02-07 17:41:51,624 - ERROR - Exception in ASGI application
+Traceback (most recent call last):
+  File "C:\Users\MR_CODER\AppData\Local\Programs\Python\Python311\Lib\site-packages\httpx\_transports\default.py", line 72, in map_httpcore_exceptions
+    yield
+httpcore.RemoteProtocolError: Server disconnected
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\MR_CODER\AppData\Local\Programs\Python\Python311\Lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 409, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+httpx.RemoteProtocolError: Server disconnected
+2026-02-07 18:21:50,760 - ERROR - COUNCIL: File logging initialized.
+2026-02-07 18:21:53,550 - INFO - Started server process [800]
+2026-02-07 18:21:53,583 - INFO - Waiting for application startup.
+2026-02-07 18:21:53,584 - INFO - Application startup complete.
+2026-02-07 18:22:34,096 - ERROR - Exception in ASGI application
+Traceback (most recent call last):
+  File "C:\Users\MR_CODER\AppData\Local\Programs\Python\Python311\Lib\site-packages\httpx\_transports\default.py", line 72, in map_httpcore_exceptions
+    yield
+httpcore.RemoteProtocolError: Server disconnected
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\MR_CODER\AppData\Local\Programs\Python\Python311\Lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 409, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+httpx.RemoteProtocolError: Server disconnected
+2026-02-07 18:22:34,113 - ERROR - Exception in ASGI application
+Traceback (most recent call last):
+  File "C:\Users\MR_CODER\AppData\Local\Programs\Python\Python311\Lib\site-packages\httpx\_transports\default.py", line 72, in map_httpcore_exceptions
+    yield
+httpcore.RemoteProtocolError: Server disconnected
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\MR_CODER\AppData\Local\Programs\Python\Python311\Lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 409, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+httpx.RemoteProtocolError: Server disconnected
+2026-02-07 18:30:40,249 - ERROR - COUNCIL: File logging initialized.
+2026-02-07 18:32:08,111 - INFO - Shutting down
+2026-02-07 18:32:08,221 - INFO - Waiting for background tasks to complete. (CTRL+C to force quit)
+2026-02-07 18:32:32,537 - INFO - Waiting for application shutdown.
+2026-02-07 18:32:33,630 - INFO - Application shutdown complete.
+2026-02-07 18:32:33,647 - INFO - Finished server process [800]
+2026-02-07 18:33:20,940 - ERROR - COUNCIL: File logging initialized.
+2026-02-07 18:33:28,025 - INFO - Started server process [3624]
+2026-02-07 18:33:28,040 - INFO - Waiting for application startup.
+2026-02-07 18:33:28,040 - INFO - Application startup complete.
+2026-02-07 18:33:28,110 - ERROR - Traceback (most recent call last):
+  File "C:\Users\MR_CODER\AppData\Local\Programs\Python\Python311\Lib\asyncio\runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+asyncio.exceptions.CancelledError
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\MR_CODER\AppData\Local\Programs\Python\Python311\Lib\asyncio\runners.py", line 190, in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+KeyboardInterrupt
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\MR_CODER\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\routing.py", line 700, in lifespan
+    await receive()
+asyncio.exceptions.CancelledError
+
+2026-02-07 18:34:24,668 - ERROR - COUNCIL: File logging initialized.
+2026-02-07 18:34:35,418 - INFO - Started server process [7100]
+2026-02-07 18:34:35,423 - INFO - Waiting for application startup.
+2026-02-07 18:34:35,424 - INFO - Application startup complete.
+2026-02-07 18:34:35,592 - ERROR - Traceback (most recent call last):
+  File "C:\Users\MR_CODER\AppData\Local\Programs\Python\Python311\Lib\asyncio\runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+asyncio.exceptions.CancelledError
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\MR_CODER\AppData\Local\Programs\Python\Python311\Lib\asyncio\runners.py", line 190, in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+KeyboardInterrupt
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\MR_CODER\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\routing.py", line 700, in lifespan
+    await receive()
+asyncio.exceptions.CancelledError
+
+2026-02-07 18:35:22,181 - ERROR - COUNCIL: File logging initialized.
+2026-02-07 18:35:24,790 - INFO - Started server process [5676]
+2026-02-07 18:35:24,798 - INFO - Waiting for application startup.
+2026-02-07 18:35:24,799 - INFO - Application startup complete.
+2026-02-07 18:35:24,804 - ERROR - Traceback (most recent call last):
+  File "C:\Users\MR_CODER\AppData\Local\Programs\Python\Python311\Lib\asyncio\runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+asyncio.exceptions.CancelledError
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\MR_CODER\AppData\Local\Programs\Python\Python311\Lib\asyncio\runners.py", line 190, in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+KeyboardInterrupt
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\MR_CODER\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\routing.py", line 700, in lifespan
+    await receive()
+asyncio.exceptions.CancelledError
+
+2026-02-07 18:35:37,792 - ERROR - COUNCIL: File logging initialized.
+2026-02-07 18:35:40,621 - INFO - Started server process [5848]
+2026-02-07 18:35:40,939 - INFO - Waiting for application startup.
+2026-02-07 18:35:40,981 - INFO - Application startup complete.
+2026-02-07 18:35:49,567 - ERROR - COUNCIL: File logging initialized.
+2026-02-07 18:36:13,692 - ERROR - COUNCIL: File logging initialized.
+2026-02-07 18:53:19,653 - ERROR - COUNCIL: File logging initialized.
+2026-02-07 18:53:21,263 - INFO - Started server process [4676]
+2026-02-07 18:53:21,263 - INFO - Waiting for application startup.
+2026-02-07 18:53:21,269 - INFO - Application startup complete.
+2026-02-07 19:10:45,268 - INFO - Shutting down
+2026-02-07 19:10:45,510 - INFO - Waiting for connections to close. (CTRL+C to force quit)
+2026-02-07 19:14:19,731 - ERROR - COUNCIL: File logging initialized.
+2026-02-07 19:15:29,958 - ERROR - COUNCIL: File logging initialized.
+2026-02-07 19:16:08,649 - ERROR - COUNCIL: File logging initialized.
+2026-02-07 19:16:48,179 - ERROR - COUNCIL: File logging initialized.
+2026-02-07 19:17:21,413 - ERROR - COUNCIL: File logging initialized.
+2026-02-07 19:17:59,458 - ERROR - COUNCIL: File logging initialized.
+2026-02-07 19:18:37,280 - ERROR - COUNCIL: File logging initialized.
+2026-02-07 19:19:27,338 - ERROR - COUNCIL: File logging initialized.
+2026-02-07 19:19:58,931 - INFO - Waiting for background tasks to complete. (CTRL+C to force quit)
+2026-02-07 19:19:59,628 - INFO - Waiting for application shutdown.
+2026-02-07 19:19:59,763 - INFO - Application shutdown complete.
+2026-02-07 19:19:59,779 - INFO - Finished server process [4676]
+2026-02-07 19:20:34,455 - ERROR - COUNCIL: File logging initialized.
+2026-02-07 19:20:36,033 - ERROR - COUNCIL: File logging initialized.
+2026-02-07 19:20:46,283 - INFO - Started server process [9284]
+2026-02-07 19:20:46,371 - INFO - Waiting for application startup.
+2026-02-07 19:20:46,490 - INFO - Application startup complete.
+2026-02-07 19:21:29,374 - ERROR - COUNCIL: File logging initialized.
+2026-02-07 19:21:40,358 - INFO - Shutting down
+2026-02-07 19:21:40,462 - INFO - Waiting for connections to close. (CTRL+C to force quit)
+2026-02-07 19:22:14,048 - ERROR - COUNCIL: File logging initialized.
+2026-02-07 19:23:03,035 - ERROR - COUNCIL: File logging initialized.
+2026-02-07 19:23:57,294 - ERROR - COUNCIL: File logging initialized.
+2026-02-07 19:52:58,943 - INFO - Waiting for background tasks to complete. (CTRL+C to force quit)
+2026-02-07 19:52:59,301 - INFO - Waiting for application shutdown.
+2026-02-07 19:52:59,368 - INFO - Application shutdown complete.
+2026-02-07 19:52:59,369 - INFO - Finished server process [9284]
+2026-02-07 19:53:30,394 - ERROR - COUNCIL: File logging initialized.
+2026-02-07 19:53:34,286 - INFO - Started server process [3808]
+2026-02-07 19:53:34,302 - INFO - Waiting for application startup.
+2026-02-07 19:53:34,303 - INFO - Application startup complete.
+2026-02-07 20:03:01,015 - INFO - Shutting down
+2026-02-07 20:03:01,117 - INFO - Waiting for application shutdown.
+2026-02-07 20:03:01,118 - INFO - Application shutdown complete.
+2026-02-07 20:03:01,119 - INFO - Finished server process [3808]
+2026-02-07 20:14:27,265 - ERROR - COUNCIL: File logging initialized.
+2026-02-07 20:15:22,891 - ERROR - COUNCIL: File logging initialized.
+2026-02-07 20:15:40,479 - ERROR - COUNCIL: File logging initialized.
+2026-02-07 20:16:11,374 - ERROR - COUNCIL: File logging initialized.
+2026-02-07 20:20:52,048 - ERROR - COUNCIL: File logging initialized.
+2026-02-07 20:21:07,450 - ERROR - COUNCIL: File logging initialized.
+2026-02-07 20:21:48,092 - ERROR - COUNCIL: File logging initialized.
+2026-02-07 20:21:56,912 - INFO - Started server process [6404]
+2026-02-07 20:21:56,929 - INFO - Waiting for application startup.
+2026-02-07 20:21:57,550 - INFO - Application startup complete.
+2026-02-07 20:22:12,870 - ERROR - COUNCIL: File logging initialized.
+2026-02-07 20:26:55,165 - INFO - Shutting down
+2026-02-07 20:26:55,268 - INFO - Waiting for application shutdown.
+2026-02-07 20:26:55,268 - INFO - Application shutdown complete.
+2026-02-07 20:26:55,269 - INFO - Finished server process [6404]
+2026-02-07 20:28:54,478 - ERROR - COUNCIL: File logging initialized.
+2026-02-07 20:28:57,676 - INFO - Started server process [3156]
+2026-02-07 20:28:57,688 - INFO - Waiting for application startup.
+2026-02-07 20:28:57,690 - INFO - Application startup complete.
+2026-02-07 20:28:57,702 - ERROR - Traceback (most recent call last):
+  File "C:\Users\MR_CODER\AppData\Local\Programs\Python\Python311\Lib\asyncio\runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+asyncio.exceptions.CancelledError
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\MR_CODER\AppData\Local\Programs\Python\Python311\Lib\asyncio\runners.py", line 190, in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+KeyboardInterrupt
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\MR_CODER\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\routing.py", line 700, in lifespan
+    await receive()
+asyncio.exceptions.CancelledError
+
+2026-02-07 20:29:14,074 - ERROR - COUNCIL: File logging initialized.
+2026-02-07 20:29:15,534 - INFO - Started server process [3032]
+2026-02-07 20:29:15,535 - INFO - Waiting for application startup.
+2026-02-07 20:29:15,537 - INFO - Application startup complete.
+2026-02-07 20:29:52,800 - INFO - Shutting down
+2026-02-07 20:29:52,903 - INFO - Waiting for connections to close. (CTRL+C to force quit)
+2026-02-07 20:31:27,546 - INFO - Waiting for background tasks to complete. (CTRL+C to force quit)
+2026-02-07 20:31:28,005 - INFO - Waiting for application shutdown.
+2026-02-07 20:31:28,532 - INFO - Application shutdown complete.
+2026-02-07 20:31:28,533 - INFO - Finished server process [3032]
+2026-02-07 20:31:58,158 - ERROR - COUNCIL: File logging initialized.
+2026-02-07 20:31:59,795 - INFO - Started server process [3348]
+2026-02-07 20:31:59,796 - INFO - Waiting for application startup.
+2026-02-07 20:31:59,797 - INFO - Application startup complete.
+2026-02-07 20:36:10,720 - INFO - Shutting down
+2026-02-07 20:36:11,635 - INFO - Waiting for connections to close. (CTRL+C to force quit)
+2026-02-07 20:38:53,966 - INFO - Waiting for background tasks to complete. (CTRL+C to force quit)
+2026-02-07 20:41:14,456 - ERROR - Exception in ASGI application
+concurrent.futures.process._RemoteTraceback: 
+"""
+Traceback (most recent call last):
+  File "C:\Users\MR_CODER\AppData\Local\Programs\Python\Python311\Lib\concurrent\futures\process.py", line 261, in _process_worker
+    r = call_item.fn(*call_item.args, **call_item.kwargs)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\MR_CODER\AppData\Local\Programs\Python\Python311\Lib\concurrent\futures\process.py", line 210, in _process_chunk
+    return [fn(*args) for args in chunk]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\MR_CODER\AppData\Local\Programs\Python\Python311\Lib\concurrent\futures\process.py", line 210, in <listcomp>
+    return [fn(*args) for args in chunk]
+            ^^^^^^^^^
+  File "C:\Users\MR_CODER\Desktop\AI stocks\api\train_exchange_model.py", line 1092, in _process_single_symbol
+    start_time = time.time()
+             ^^^^^^^^^^^^^^^^
+  File "C:\Users\MR_CODER\AppData\Local\Programs\Python\Python311\Lib\site-packages\joblib\memory.py", line 607, in __call__
+    return self._cached_call(args, kwargs, shelving=False)[0]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\MR_CODER\AppData\Local\Programs\Python\Python311\Lib\site-packages\joblib\memory.py", line 562, in _cached_call
+    return self._call(call_id, args, kwargs, shelving)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\MR_CODER\AppData\Local\Programs\Python\Python311\Lib\site-packages\joblib\memory.py", line 832, in _call
+    output = self.func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\MR_CODER\Desktop\AI stocks\api\train_exchange_model.py", line 333, in add_massive_features
+    df = add_all_ta_features(
+         ^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\MR_CODER\AppData\Local\Programs\Python\Python311\Lib\site-packages\ta\wrapper.py", line 570, in add_all_ta_features
+    df = add_volume_ta(
+         ^^^^^^^^^^^^^^
+  File "C:\Users\MR_CODER\AppData\Local\Programs\Python\Python311\Lib\site-packages\ta\wrapper.py", line 144, in add_volume_ta
+    df[f"{colprefix}volume_nvi"] = NegativeVolumeIndexIndicator(
+                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\MR_CODER\AppData\Local\Programs\Python\Python311\Lib\site-packages\ta\volume.py", line 324, in __init__
+    self._run()
+  File "C:\Users\MR_CODER\AppData\Local\Programs\Python\Python311\Lib\site-packages\ta\volume.py", line 337, in _run
+    self._nvi.iloc[i] = self._nvi.iloc[i - 1]
+    ~~~~~~~~~~~~~~^^^
+  File "C:\Users\MR_CODER\AppData\Local\Programs\Python\Python311\Lib\site-packages\pandas\core\indexing.py", line 911, in __setitem__
+    iloc._setitem_with_indexer(indexer, value, self.name)
+  File "C:\Users\MR_CODER\AppData\Local\Programs\Python\Python311\Lib\site-packages\pandas\core\indexing.py", line 1944, in _setitem_with_indexer
+    self._setitem_single_block(indexer, value, name)
+  File "C:\Users\MR_CODER\AppData\Local\Programs\Python\Python311\Lib\site-packages\pandas\core\indexing.py", line 2219, in _setitem_single_block
+    self.obj._maybe_update_cacher(clear=True, inplace=True)
+  File "C:\Users\MR_CODER\AppData\Local\Programs\Python\Python311\Lib\site-packages\pandas\core\series.py", line 1505, in _maybe_update_cacher
+    cacher = getattr(self, "_cacher", None)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+KeyboardInterrupt
+"""
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\MR_CODER\AppData\Local\Programs\Python\Python311\Lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 409, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+KeyboardInterrupt
+2026-02-07 20:41:14,912 - INFO - Waiting for application shutdown.
+2026-02-07 20:41:15,773 - INFO - Application shutdown complete.
+2026-02-07 20:41:16,660 - INFO - Finished server process [3348]
+2026-02-07 20:42:01,424 - ERROR - COUNCIL: File logging initialized.
+2026-02-07 20:42:03,243 - INFO - Started server process [10368]
+2026-02-07 20:42:03,252 - INFO - Waiting for application startup.
+2026-02-07 20:42:03,256 - INFO - Application startup complete.
+2026-02-07 20:42:03,271 - ERROR - Traceback (most recent call last):
+  File "C:\Users\MR_CODER\AppData\Local\Programs\Python\Python311\Lib\asyncio\runners.py", line 190, in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+KeyboardInterrupt
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\MR_CODER\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\routing.py", line 700, in lifespan
+    await receive()
+asyncio.exceptions.CancelledError
+
+2026-02-07 20:42:51,202 - ERROR - COUNCIL: File logging initialized.
+2026-02-07 20:42:52,781 - INFO - Started server process [3980]
+2026-02-07 20:42:52,785 - INFO - Waiting for application startup.
+2026-02-07 20:42:52,787 - INFO - Application startup complete.
+2026-02-07 21:18:01,130 - INFO - Shutting down
+2026-02-07 21:18:01,255 - INFO - Waiting for application shutdown.
+2026-02-07 21:18:01,256 - INFO - Application shutdown complete.
+2026-02-07 21:18:01,256 - INFO - Finished server process [3980]
+2026-02-07 21:18:10,672 - ERROR - COUNCIL: File logging initialized.
+2026-02-07 21:18:11,981 - INFO - Started server process [1476]
+2026-02-07 21:18:11,981 - INFO - Waiting for application startup.
+2026-02-07 21:18:11,981 - INFO - Application startup complete.
+2026-02-07 21:18:59,441 - INFO - Shutting down
+2026-02-07 21:18:59,609 - INFO - Waiting for application shutdown.
+2026-02-07 21:18:59,642 - INFO - Application shutdown complete.
+2026-02-07 21:18:59,642 - INFO - Finished server process [1476]
+2026-02-07 21:19:13,770 - ERROR - COUNCIL: File logging initialized.
+2026-02-07 21:19:16,792 - INFO - Started server process [11092]
+2026-02-07 21:19:16,797 - INFO - Waiting for application startup.
+2026-02-07 21:19:16,800 - INFO - Application startup complete.
+2026-02-07 21:19:53,554 - INFO - Shutting down
+2026-02-07 21:19:53,738 - INFO - Waiting for application shutdown.
+2026-02-07 21:19:53,801 - INFO - Application shutdown complete.
+2026-02-07 21:19:53,801 - INFO - Finished server process [11092]
+2026-02-07 21:20:09,757 - ERROR - COUNCIL: File logging initialized.
+2026-02-07 21:20:12,621 - INFO - Started server process [8400]
+2026-02-07 21:20:12,621 - INFO - Waiting for application startup.
+2026-02-07 21:20:12,627 - INFO - Application startup complete.
+2026-02-07 21:24:34,590 - INFO - Shutting down
+2026-02-07 21:24:34,707 - INFO - Waiting for application shutdown.
+2026-02-07 21:24:34,715 - INFO - Application shutdown complete.
+2026-02-07 21:24:34,715 - INFO - Finished server process [8400]
+2026-02-07 21:24:49,584 - ERROR - COUNCIL: File logging initialized.
+2026-02-07 21:24:53,850 - INFO - Started server process [9492]
+2026-02-07 21:24:53,854 - INFO - Waiting for application startup.
+2026-02-07 21:24:53,855 - INFO - Application startup complete.
+2026-02-07 21:34:35,953 - INFO - Shutting down
+2026-02-07 21:34:36,098 - INFO - Waiting for application shutdown.
+2026-02-07 21:34:36,118 - INFO - Application shutdown complete.
+2026-02-07 21:34:36,138 - INFO - Finished server process [9492]
+2026-02-07 21:34:52,025 - ERROR - COUNCIL: File logging initialized.
+2026-02-07 21:34:54,231 - INFO - Started server process [11168]
+2026-02-07 21:34:54,231 - INFO - Waiting for application startup.
+2026-02-07 21:34:54,231 - INFO - Application startup complete.
+2026-02-07 21:40:52,948 - INFO - Shutting down
+2026-02-07 21:40:53,051 - INFO - Waiting for application shutdown.
+2026-02-07 21:40:53,052 - INFO - Application shutdown complete.
+2026-02-07 21:40:53,052 - INFO - Finished server process [11168]
+2026-02-07 21:41:05,892 - ERROR - COUNCIL: File logging initialized.
+2026-02-07 21:41:10,014 - INFO - Started server process [8468]
+2026-02-07 21:41:10,015 - INFO - Waiting for application startup.
+2026-02-07 21:41:10,022 - INFO - Application startup complete.
+2026-02-07 21:45:00,587 - INFO - Shutting down
+2026-02-07 21:45:00,697 - INFO - Waiting for application shutdown.
+2026-02-07 21:45:00,697 - INFO - Application shutdown complete.
+2026-02-07 21:45:00,697 - INFO - Finished server process [8468]
+2026-02-07 21:45:13,782 - ERROR - COUNCIL: File logging initialized.
+2026-02-07 21:45:15,544 - INFO - Started server process [3312]
+2026-02-07 21:45:15,545 - INFO - Waiting for application startup.
+2026-02-07 21:45:15,546 - INFO - Application startup complete.
+2026-02-07 21:54:09,454 - ERROR - COUNCIL: File logging initialized.
+2026-02-07 22:02:27,401 - INFO - Shutting down
+2026-02-07 22:02:27,521 - INFO - Waiting for application shutdown.
+2026-02-07 22:02:27,536 - INFO - Application shutdown complete.
+2026-02-07 22:02:27,536 - INFO - Finished server process [3312]
+2026-02-07 22:02:38,842 - ERROR - COUNCIL: File logging initialized.
+2026-02-07 22:02:41,314 - INFO - Started server process [4468]
+2026-02-07 22:02:41,314 - INFO - Waiting for application startup.
+2026-02-07 22:02:41,316 - INFO - Application startup complete.
+2026-02-07 22:02:41,321 - ERROR - Traceback (most recent call last):
+  File "C:\Users\MR_CODER\AppData\Local\Programs\Python\Python311\Lib\asyncio\runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+asyncio.exceptions.CancelledError
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\MR_CODER\AppData\Local\Programs\Python\Python311\Lib\asyncio\runners.py", line 190, in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+KeyboardInterrupt
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\MR_CODER\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\routing.py", line 700, in lifespan
+    await receive()
+asyncio.exceptions.CancelledError
+
+2026-02-07 22:02:55,380 - ERROR - COUNCIL: File logging initialized.
+2026-02-07 22:03:02,255 - INFO - Started server process [8268]
+2026-02-07 22:03:02,278 - INFO - Waiting for application startup.
+2026-02-07 22:03:02,296 - INFO - Application startup complete.
+2026-02-07 22:03:45,919 - INFO - Shutting down
+2026-02-07 22:03:46,140 - INFO - Waiting for application shutdown.
+2026-02-07 22:03:46,199 - INFO - Application shutdown complete.
+2026-02-07 22:03:46,228 - INFO - Finished server process [8268]
+2026-02-07 22:04:17,626 - ERROR - COUNCIL: File logging initialized.
+2026-02-07 22:04:21,820 - INFO - Started server process [1512]
+2026-02-07 22:04:21,825 - INFO - Waiting for application startup.
+2026-02-07 22:04:21,825 - INFO - Application startup complete.
+2026-02-07 22:17:01,255 - ERROR - Exception in ASGI application
+Traceback (most recent call last):
+  File "C:\Users\MR_CODER\AppData\Local\Programs\Python\Python311\Lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 409, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ModuleNotFoundError: No module named 'tradingview_integration'
+2026-02-07 22:25:35,587 - ERROR - COUNCIL: File logging initialized.
+2026-02-07 22:25:37,706 - INFO - Started server process [4840]
+2026-02-07 22:25:37,753 - INFO - Waiting for application startup.
+2026-02-07 22:25:37,782 - INFO - Application startup complete.

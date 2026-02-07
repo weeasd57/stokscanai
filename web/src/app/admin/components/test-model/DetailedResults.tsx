@@ -1,3 +1,4 @@
+
 import { TrendingUp, TrendingDown, LineChart, BarChart3, CircleDot, Gauge, LayoutDashboard } from "lucide-react";
 import { ResponsiveContainer, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, Legend, Bar } from "recharts";
 import { Button } from "@/components/ui/button";
@@ -75,8 +76,8 @@ export default function DetailedResults({
                     </div>
                     <div
                         className={`flex items-center gap-2 px-4 py-2 rounded-full font-bold text-sm tracking-wide ${signal === 1
-                                ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
-                                : "bg-rose-500/20 text-rose-400 border border-rose-500/30"
+                            ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                            : "bg-rose-500/20 text-rose-400 border border-rose-500/30"
                             }`}
                     >
                         {signal === 1 ? <TrendingUp className="h-5 w-5" /> : <TrendingDown className="h-5 w-5" />}
@@ -105,28 +106,28 @@ export default function DetailedResults({
                 </div>
                 <div
                     className={`rounded-lg p-3 border ${testResult.earnPercentage != null
-                            ? testResult.earnPercentage >= 0
-                                ? "bg-emerald-500/10 border-emerald-500/20"
-                                : "bg-rose-500/10 border-rose-500/20"
-                            : "bg-zinc-900/50 border-white/5"
+                        ? testResult.earnPercentage >= 0
+                            ? "bg-emerald-500/10 border-emerald-500/20"
+                            : "bg-rose-500/10 border-rose-500/20"
+                        : "bg-zinc-900/50 border-white/5"
                         }`}
                 >
                     <div
                         className={`text-[9px] uppercase tracking-wider ${testResult.earnPercentage != null
-                                ? testResult.earnPercentage >= 0
-                                    ? "text-emerald-400"
-                                    : "text-rose-400"
-                                : "text-zinc-500"
+                            ? testResult.earnPercentage >= 0
+                                ? "text-emerald-400"
+                                : "text-rose-400"
+                            : "text-zinc-500"
                             }`}
                     >
                         Earn Rate
                     </div>
                     <div
                         className={`text-lg font-bold mt-1 ${testResult.earnPercentage != null
-                                ? testResult.earnPercentage >= 0
-                                    ? "text-emerald-400"
-                                    : "text-rose-400"
-                                : "text-white"
+                            ? testResult.earnPercentage >= 0
+                                ? "text-emerald-400"
+                                : "text-rose-400"
+                            : "text-white"
                             }`}
                     >
                         {testResult.earnPercentage != null

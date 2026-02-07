@@ -1,7 +1,7 @@
 import os
 import json
 import requests
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, Literal, Tuple
 from collections import defaultdict
 from fastapi import APIRouter, BackgroundTasks, HTTPException
 from fastapi.responses import JSONResponse, StreamingResponse
@@ -12,25 +12,21 @@ import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
-from supabase import create_client, Client
-
+import pandas as pd
+import numpy as np
 
 from api.stock_ai import (
     get_stock_data, get_stock_data_eodhd, get_company_fundamentals,
     _init_supabase, supabase, update_stock_data,
     _finite_float, add_technical_indicators, upsert_technical_indicators, get_supabase_inventory,
+    _supabase_read_with_retry, _supabase_upsert_with_retry
 )
 import joblib 
-# Import adaptive learning modules (lazy import inside functions if needed, but top level is cleaner if no circular dep)
-# adaptive_learning imports stock_ai, stock_ai imports main? No, usually main imports stock_ai. 
-# admin imports stock_ai. 
-# adaptive_learning -> stock_ai
-# admin -> adaptive_learning
-# No cycle: admin -> adaptive -> stock_ai. admin -> stock_ai. Safe.
+
 try:
     from api.adaptive_learning import ManualRetrainer, update_actuals as update_actuals_logic, ActiveLearner
 except ImportError:
-    pass # Handle gracefully if file missing during partial updates
+    pass 
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -47,8 +43,8 @@ class UpdateRequest(BaseModel):
     maxPriceDays: int = 365
 
 class SyncRequest(BaseModel):
-    exchange: Optional[str] = None # If None, sync all
-    force: bool = False # If True, re-upload even if no change (not used yet)
+    exchange: Optional[str] = None 
+    force: bool = False 
 
 class SmartSyncRequest(BaseModel):
     exchange: str
@@ -58,8 +54,8 @@ class SmartSyncRequest(BaseModel):
     unified: bool = False
 
 class ScheduleDispatchRequest(BaseModel):
-    workflow: str  # 'ai-training' or 'data-sync'
-    when: str      # ISO datetime string (UTC or local; if naive, treated as UTC)
+    workflow: str  
+    when: str      
     exchange: Optional[str] = None
     days: Optional[int] = None
     updatePrices: Optional[bool] = None
@@ -71,7 +67,7 @@ class LogoDownloadRequest(BaseModel):
     country: Optional[str] = None
 
 class CronTriggerRequest(BaseModel):
-    action: str # update_prices, update_funds, recalculate_technicals
+    action: str 
     secret: str
     exchange: Optional[str] = None
 
@@ -80,29 +76,15 @@ class ScheduleRequest(BaseModel):
     startTime: str = "22:30"
     endTime: str = "04:00"
 
-
-
 # Valid sources
 PRICE_SOURCES = ["eodhd", "tradingview", "cache"]
 FUND_SOURCES = ["auto", "mubasher", "tradingview", "eodhd"]
 
-# Simple in-memory or file-based config
-# The app runs from the project root.
 CONFIG_FILE = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "admin_config.json"))
-
 ENV_ROOT_FILE = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", ".env"))
 
-supabase: Optional[Client] = None
-def _init_supabase():
-    global supabase
-    if supabase is None:
-        url = os.getenv("NEXT_PUBLIC_SUPABASE_URL")
-        key = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
-        if url and key:
-            supabase = create_client(url, key)
+# Uses centralized stock_ai._init_supabase()
 
-
-# Simple in-memory state to track local training status
 LOCAL_TRAINING_STATE = {
     "running": False,
     "exchange": None,
@@ -117,7 +99,6 @@ LOCAL_TRAINING_STATE = {
 }
 _local_training_lock = threading.RLock()
 
-
 def list_local_models() -> List[str]:
     base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
     models_dir = os.path.join(base_dir, "models")
@@ -128,49 +109,22 @@ def list_local_models() -> List[str]:
     return models
 
 @router.get("/db-inventory")
-def get_db_inventory():
+def get_db_inventory_endpoint():
     return get_supabase_inventory()
-
 
 @router.get("/plans")
 def get_plans():
-    _init_supabase()
-    if not supabase:
-        raise HTTPException(status_code=500, detail="Supabase not initialized")
     try:
-        res = supabase.table("plans").select("*").order("price").execute()
+        def _fetch_plans(sb):
+            return sb.table("plans").select("*").order("price").execute()
+        res = _supabase_read_with_retry(_fetch_plans, table_name="plans")
         return res.data
     except Exception as e:
         print(f"Error fetching plans: {e}")
-        # Return fallback plans if table doesn't exist yet to avoid breaking frontend
         return [
-            {
-                "name": "Free",
-                "price": 0,
-                "period": "forever",
-                "desc": "For beginners exploring AI insights",
-                "features": ["Daily AI Predictions (limited)", "Basic Technical Indicators", "Public Market Data", "Community Support"],
-                "featured": False,
-                "button_text": "Current Plan"
-            },
-            {
-                "name": "Pro",
-                "price": 29,
-                "period": "month",
-                "desc": "For serious traders and analysts",
-                "features": ["Unlimited AI Predictions", "Advanced RandomForest Analysis", "Real-time Data Access", "Custom Watchlist Alerts", "Priority Support", "Early access to new features"],
-                "featured": True,
-                "button_text": "Go Pro"
-            },
-            {
-                "name": "Enterprise",
-                "price": 99,
-                "period": "month",
-                "desc": "For professional teams and hedge funds",
-                "features": ["API Access (Rest & Websocket)", "Custom Model Training", "Bulk Data Exports", "White-label Reports", "Dedicated Account Manager", "SLA Guarantee"],
-                "featured": False,
-                "button_text": "Contact Sales"
-            }
+            {"name": "Free", "price": 0, "period": "forever", "desc": "For beginners", "features": ["Limited Predictions"], "featured": False, "button_text": "Current Plan"},
+            {"name": "Pro", "price": 29, "period": "month", "desc": "For serious traders", "features": ["Unlimited Predictions"], "featured": True, "button_text": "Go Pro"},
+            {"name": "Enterprise", "price": 99, "period": "month", "desc": "For professional teams", "features": ["API Access"], "featured": False, "button_text": "Contact Sales"}
         ]
 
 def _reload_env() -> None:
@@ -181,48 +135,19 @@ def _load_config():
         try:
             with open(CONFIG_FILE, "r") as f:
                 cfg = json.load(f)
-                if not isinstance(cfg, dict):
-                    cfg = {}
-
-                legacy = cfg.get("source")
-                if legacy and "priceSource" not in cfg:
-                    cfg["priceSource"] = legacy
-
-                price_source = cfg.get("priceSource") or "eodhd"
+                if not isinstance(cfg, dict): cfg = {}
+                price_source = cfg.get("priceSource") or cfg.get("source") or "eodhd"
                 fund_source = cfg.get("fundSource") or "auto"
                 max_workers = cfg.get("maxWorkers")
-
-                if price_source == "cache":
-                    price_source = "tradingview"
-
-                if price_source not in PRICE_SOURCES:
-                    price_source = "eodhd"
-                if fund_source not in FUND_SOURCES:
-                    fund_source = "auto"
                 if not isinstance(max_workers, int) or max_workers <= 0:
-                    max_workers = int(os.getenv("ADMIN_MAX_WORKERS", "8"))
-
+                    max_workers = 8
                 return {
-                    "source": price_source,
-                    "priceSource": price_source,
-                    "fundSource": fund_source,
-                    "maxWorkers": max_workers,
-                    "enabledModels": cfg.get("enabledModels") or [],
-                    "modelAliases": cfg.get("modelAliases") or {},
-                    "scanDays": cfg.get("scanDays") or 450,
+                    "source": price_source, "priceSource": price_source, "fundSource": fund_source,
+                    "maxWorkers": max_workers, "enabledModels": cfg.get("enabledModels") or [],
+                    "modelAliases": cfg.get("modelAliases") or {}, "scanDays": cfg.get("scanDays") or 450,
                 }
-        except Exception:
-            pass
-    max_workers = int(os.getenv("ADMIN_MAX_WORKERS", "8"))
-    return {
-        "source": "eodhd", 
-        "priceSource": "eodhd", 
-        "fundSource": "auto", 
-        "maxWorkers": max_workers, 
-        "enabledModels": [],
-        "modelAliases": {},
-        "scanDays": 450
-    }
+        except Exception: pass
+    return {"source": "eodhd", "priceSource": "eodhd", "fundSource": "auto", "maxWorkers": 8, "enabledModels": [], "modelAliases": {}, "scanDays": 450}
 
 def _save_config(cfg):
     with open(CONFIG_FILE, "w") as f:
@@ -243,63 +168,20 @@ class ConfigUpdate(BaseModel):
 @router.post("/config")
 def set_config(cfg: ConfigUpdate):
     current = _load_config()
-
-    if cfg.priceSource is not None:
-        incoming = cfg.priceSource
-        if incoming == "cache":
-            incoming = "tradingview"
-        if incoming not in PRICE_SOURCES:
-            raise HTTPException(status_code=400, detail="Invalid priceSource")
-        current["priceSource"] = incoming
-        current["source"] = incoming
-
-    if cfg.fundSource is not None:
-        if cfg.fundSource not in FUND_SOURCES:
-            raise HTTPException(status_code=400, detail="Invalid fundSource")
-        current["fundSource"] = cfg.fundSource
-
-    if cfg.maxWorkers is not None:
-        if not isinstance(cfg.maxWorkers, int) or cfg.maxWorkers <= 0:
-            raise HTTPException(status_code=400, detail="Invalid maxWorkers")
-        current["maxWorkers"] = cfg.maxWorkers
-
-    if cfg.enabledModels is not None:
-        current["enabledModels"] = cfg.enabledModels
-
-    if cfg.modelAliases is not None:
-        current["modelAliases"] = cfg.modelAliases
-
-    if cfg.scanDays is not None:
-        current["scanDays"] = cfg.scanDays
-
+    if cfg.priceSource is not None: current["priceSource"] = cfg.priceSource; current["source"] = cfg.priceSource
+    if cfg.fundSource is not None: current["fundSource"] = cfg.fundSource
+    if cfg.maxWorkers is not None: current["maxWorkers"] = cfg.maxWorkers
+    if cfg.enabledModels is not None: current["enabledModels"] = cfg.enabledModels
+    if cfg.modelAliases is not None: current["modelAliases"] = cfg.modelAliases
+    if cfg.scanDays is not None: current["scanDays"] = cfg.scanDays
     _save_config(current)
-
-    # Sync to Supabase for normal users to see display names
-    # Note: Expects public.public_models_config table to exist
     try:
-        _init_supabase()
-        if supabase:
-            # We sync both enabled state and aliases
-            sync_data = []
-            # We list all models locally to ensure we have the full set
-            from api.routers.admin import _list_local_model_names
-            all_local = _list_local_model_names()
-            
-            for m in all_local:
-                sync_data.append({
-                    "filename": m,
-                    "display_name": current.get("modelAliases", {}).get(m, m.replace(".pkl", "")),
-                    "is_enabled": m in current.get("enabledModels", []),
-                    "updated_at": datetime.now().isoformat()
-                })
-            
-            if sync_data:
-                supabase.table("public_models_config").upsert(sync_data).execute()
-    except Exception as e:
-        print(f"Supabase scan_config sync failed: {e}")
-
+        from api.routers.admin import list_local_models as _list_local
+        all_models = _list_local()
+        sync_data = [{"filename": m, "display_name": current.get("modelAliases", {}).get(m, m.replace(".pkl", "")), "is_enabled": m in current.get("enabledModels", []), "updated_at": datetime.now().isoformat()} for m in all_models if isinstance(m, str)]
+        if sync_data: _supabase_upsert_with_retry("public_models_config", sync_data)
+    except Exception as e: print(f"Supabase scan_config sync failed: {e}")
     return current
-
 
 @router.get("/fundamentals/{ticker}")
 def get_fundamentals(ticker: str, source: Optional[str] = None):
@@ -568,8 +450,9 @@ def evaluate_open_signals():
     if not supabase: return
 
     try:
-        # Get unique batch_ids that have 'open' signals
-        res = supabase.table("scan_results").select("batch_id").eq("status", "open").execute()
+        def _fetch_batches(sb):
+            return sb.table("scan_results").select("batch_id").eq("status", "open").execute()
+        res = _supabase_read_with_retry(_fetch_batches, table_name="scan_results")
         if not res.data: return
         
         batch_ids = list(set([r["batch_id"] for r in res.data]))
@@ -636,27 +519,36 @@ def sync_index(req: IndexSyncRequest, background_tasks: BackgroundTasks):
                     print("Error: tvDatafeed not installed.")
                     return
 
-                if not req.exchange:
-                    print("Error: 'exchange' is required for TradingView source (e.g., EGX).")
-                    return
-
                 tv = TvDatafeed()
                 
                 # Normalize symbol/exchange
-                tv_symbol = req.symbol
-                tv_exchange = req.exchange
+                sym_raw = (req.symbol or "").strip()
+                sym_up = sym_raw.upper()
+                tv_symbol = sym_raw
+                tv_exchange = (req.exchange or "").strip().upper()
                 
                 # Handle EODHD-style input (e.g. EGX30.INDX)
-                if ".INDX" in tv_symbol:
-                    tv_symbol = tv_symbol.replace(".INDX", "")
+                if sym_up.endswith(".INDX"):
+                    tv_symbol = sym_raw[:-5]  # drop ".INDX"
+                elif ".INDX" in sym_up:
+                    tv_symbol = sym_up.replace(".INDX", "")
                 
                 # Robust defaults for known indices if exchange is missing or identical to symbol
-                if not tv_exchange or tv_exchange == req.symbol:
-                     if tv_symbol == "EGX30":
-                         tv_exchange = "EGX"
-                     elif tv_symbol == "GSPC" or tv_symbol == "SPX":
-                         tv_exchange = "TVC" # S&P 500 is often on TVC or SPI
-                         tv_symbol = "SPX"
+                tv_symbol_up = (tv_symbol or "").strip().upper()
+                if (not tv_exchange) or (tv_exchange == (req.symbol or "").strip().upper()):
+                    if tv_symbol_up == "EGX30" or tv_symbol_up.startswith("EGX"):
+                        tv_exchange = "EGX"
+                    elif tv_symbol_up in {"GSPC", "SPX"}:
+                        tv_exchange = "TVC"  # S&P 500 is often on TVC
+                        tv_symbol = "SPX"
+
+                # Final fallback: infer exchange from original raw symbol for EGX indices
+                if not tv_exchange and sym_up.startswith("EGX"):
+                    tv_exchange = "EGX"
+
+                if not tv_exchange:
+                    print("Error: 'exchange' is required for TradingView source (e.g., EGX).")
+                    return
                 
                 print(f"Fetching {tv_symbol} from TradingView ({tv_exchange})...")
                 
@@ -765,7 +657,9 @@ def get_db_symbols(exchange: str, mode: str = "prices"):
     try:
         symbols_info = {}
         if mode == "fundamentals":
-            res = supabase.table("stock_fundamentals").select("symbol,updated_at,data").eq("exchange", exchange).execute()
+            def _fetch_fund(sb):
+                return sb.table("stock_fundamentals").select("symbol,updated_at,data").eq("exchange", exchange).execute()
+            res = _supabase_read_with_retry(_fetch_fund, table_name="stock_fundamentals")
             if res.data:
                 for row in res.data:
                     s = row.get("symbol")
@@ -778,7 +672,9 @@ def get_db_symbols(exchange: str, mode: str = "prices"):
         else:
             # Better logic: Fetch every unique symbol and its latest date for this exchange
             # We use an RPC for speed OR a more targeted query
-            res = supabase.rpc("get_exchange_symbols_prices", {"p_exchange": exchange}).execute()
+            def _fetch_rpc(sb):
+                return sb.rpc("get_exchange_symbols_prices", {"p_exchange": exchange}).execute()
+            res = _supabase_read_with_retry(_fetch_rpc, table_name="exchange_symbols_rpc")
             if res.data:
                 for row in res.data:
                     s = row.get("symbol")
@@ -796,7 +692,9 @@ def get_db_symbols(exchange: str, mode: str = "prices"):
         if missing_meta:
             # Chunking to avoid Supabase 500-symbol .in_ limit
             for chunk in _chunks(missing_meta, 500):
-                res_meta = supabase.table("stock_fundamentals").select("symbol,data").eq("exchange", exchange).in_("symbol", chunk).execute()
+                def _fetch_meta(sb):
+                    return sb.table("stock_fundamentals").select("symbol,data").eq("exchange", exchange).in_("symbol", chunk).execute()
+                res_meta = _supabase_read_with_retry(_fetch_meta, table_name="stock_fundamentals")
                 if res_meta.data:
                     for row in res_meta.data:
                         s = row.get("symbol")
@@ -808,7 +706,9 @@ def get_db_symbols(exchange: str, mode: str = "prices"):
         if mode == "prices":
             all_syms = list(symbols_info.keys())
             for chunk in _chunks(all_syms, 500):
-                res_meta = supabase.table("stock_fundamentals").select("symbol,updated_at").eq("exchange", exchange).in_("symbol", chunk).execute()
+                def _fetch_updated(sb):
+                    return sb.table("stock_fundamentals").select("symbol,updated_at").eq("exchange", exchange).in_("symbol", chunk).execute()
+                res_meta = _supabase_read_with_retry(_fetch_updated, table_name="stock_fundamentals")
                 if res_meta.data:
                     for row in res_meta.data:
                         s = row.get("symbol")
@@ -828,12 +728,13 @@ def export_prices_csv(exchange: str, symbol: Optional[str] = None):
         raise HTTPException(status_code=500, detail="Supabase not initialized")
     
     try:
-        query = supabase.table("stock_prices").select("*").eq("exchange", exchange)
-        if symbol:
-            query = query.eq("symbol", symbol)
+        def _fetch_export(sb):
+            q = sb.table("stock_prices").select("*").eq("exchange", exchange)
+            if symbol:
+                q = q.eq("symbol", symbol)
+            return q.order("date", desc=True).limit(50000).execute()
         
-        # Limit to avoid huge memory usage, though for one exchange it's usually fine
-        res = query.order("date", desc=True).limit(50000).execute()
+        res = _supabase_read_with_retry(_fetch_export, table_name="stock_prices")
         
         if not res.data:
             raise HTTPException(status_code=404, detail="No price data found")
@@ -865,7 +766,9 @@ def export_fundamentals_csv(exchange: str):
         raise HTTPException(status_code=500, detail="Supabase not initialized")
     
     try:
-        res = supabase.table("stock_fundamentals").select("symbol, data, updated_at").eq("exchange", exchange).execute()
+        def _fetch_export_fund(sb):
+            return sb.table("stock_fundamentals").select("symbol, data, updated_at").eq("exchange", exchange).execute()
+        res = _supabase_read_with_retry(_fetch_export_fund, table_name="stock_fundamentals")
         
         if not res.data:
             raise HTTPException(status_code=404, detail="No fundamental data found")
@@ -901,7 +804,9 @@ def get_sync_history(limit: int = 50):
     if not supabase:
         return []
     try:
-        res = supabase.table("data_sync_logs").select("*").order("started_at", desc=True).limit(limit).execute()
+        def _fetch_history(sb):
+            return sb.table("data_sync_logs").select("*").order("started_at", desc=True).limit(limit).execute()
+        res = _supabase_read_with_retry(_fetch_history, table_name="data_sync_logs")
         return res.data
     except Exception as e:
         print(f"Error fetching sync history: {e}")
@@ -914,7 +819,9 @@ def get_recent_fundamentals(limit: int = 15):
     if not supabase:
         return []
     try:
-        res = supabase.table("stock_fundamentals").select("*").order("updated_at", desc=True).limit(limit).execute()
+        def _fetch_recent(sb):
+            return sb.table("stock_fundamentals").select("*").order("updated_at", desc=True).limit(limit).execute()
+        res = _supabase_read_with_retry(_fetch_recent, table_name="stock_fundamentals")
         return res.data
     except Exception as e:
         print(f"Error fetching recent fundamentals: {e}")
@@ -946,7 +853,9 @@ def recalculate_indicators(req: RecalculateTechRequest, background_tasks: Backgr
     if not symbols and req.exchange:
         # Fetch all symbols from stock_prices for this exchange using reliable RPC
         try:
-            res = supabase.rpc("get_exchange_symbols_prices", {"p_exchange": req.exchange}).execute()
+            def _fetch_exchange_symbols(sb):
+                return sb.rpc("get_exchange_symbols_prices", {"p_exchange": req.exchange}).execute()
+            res = _supabase_read_with_retry(_fetch_exchange_symbols, table_name="exchange_symbols_rpc")
             if res.data:
                 # RPC returns list of dicts with 'symbol' key
                 symbols = [r["symbol"] for r in res.data]
@@ -1039,6 +948,8 @@ class TrainTriggerRequest(BaseModel):
     patience: int = 50
     useMetaLabeling: bool = True
     metaThreshold: float = 0.7
+    useIntraday: bool = False
+    timeframe: Literal["1m", "1h", "1d"] = "1h"
 
 @router.post("/train/trigger")
 async def trigger_training(req: TrainTriggerRequest):
@@ -1165,6 +1076,8 @@ async def trigger_local_training(req: TrainTriggerRequest, background_tasks: Bac
                 patience=patience,
                 use_meta_labeling=use_meta_labeling,
                 meta_threshold=meta_threshold,
+                use_intraday=bool(req.useIntraday),
+                timeframe=(req.timeframe or "1h"),
                 optimize=optimize,
                 n_trials=n_trials,
             )
@@ -1265,8 +1178,9 @@ async def get_model_download_url(filename: str):
         raise HTTPException(status_code=500, detail="Supabase not initialized")
     
     try:
-        # Create a signed URL for download (valid for 1 hour)
-        res = supabase.storage.from_("ai-models").create_signed_url(filename, 3600)
+        def _fetch_signed_url(sb):
+            return sb.storage.from_("ai-models").create_signed_url(filename, 3600)
+        res = _supabase_read_with_retry(_fetch_signed_url, table_name="storage_signed_url")
         if 'signedURL' in res:
             return {"url": res['signedURL']}
         elif 'signedUrl' in res:
@@ -1854,10 +1768,14 @@ def _delete_local_model(model_name: str):
             _init_supabase()
             if supabase:
                 try:
-                    supabase.table("scan_results").delete().eq("model_name", model_name).eq("source", "backtest").execute()
+                    def _delete_backtest(sb):
+                        return sb.table("scan_results").delete().eq("model_name", model_name).eq("source", "backtest").execute()
+                    _supabase_read_with_retry(_delete_backtest, table_name="scan_results")
                 except Exception:
                     # Fallback if source column isn't present yet
-                    supabase.table("scan_results").delete().eq("model_name", model_name).execute()
+                    def _delete_scan(sb):
+                        return sb.table("scan_results").delete().eq("model_name", model_name).execute()
+                    _supabase_read_with_retry(_delete_scan, table_name="scan_results")
         except Exception:
             pass
 
@@ -1926,7 +1844,9 @@ def get_ai_brain_symbol_data(symbol: str):
             raise HTTPException(status_code=500, detail="Supabase not initialized")
 
         # Fetch enough data for indicators (at least 201 days for SMA_200)
-        res = supabase.table("stock_prices").select("*").eq("symbol", symbol).order("date", desc=True).limit(250).execute()
+        def _fetch_prices(sb):
+            return sb.table("stock_prices").select("*").eq("symbol", symbol).order("date", desc=True).limit(250).execute()
+        res = _supabase_read_with_retry(_fetch_prices, table_name="stock_prices")
         
         if not res.data:
             raise HTTPException(status_code=404, detail=f"No data found for symbol: {symbol}")
@@ -2232,17 +2152,21 @@ def get_adaptive_stats(exchange: str = "EGX", model_name: Optional[str] = None):
         
     try:
         # Pending verification
-        q_p = supabase.table("scan_results").select("id", count="exact").eq("exchange", exchange).eq("status", "open")
-        if model_name:
-            q_p = q_p.eq("model_name", model_name)
-        p = q_p.execute()
+        def _fetch_pending(sb):
+            q_p = sb.table("scan_results").select("id", count="exact").eq("exchange", exchange).eq("status", "open")
+            if model_name:
+                q_p = q_p.eq("model_name", model_name)
+            return q_p.execute()
+        p = _supabase_read_with_retry(_fetch_pending, table_name="scan_results")
         pending_count = p.count or 0
         
         # Total
-        q_t = supabase.table("scan_results").select("id", count="exact").eq("exchange", exchange)
-        if model_name:
-            q_t = q_t.eq("model_name", model_name)
-        t = q_t.execute()
+        def _fetch_total(sb):
+            q_t = sb.table("scan_results").select("id", count="exact").eq("exchange", exchange)
+            if model_name:
+                q_t = q_t.eq("model_name", model_name)
+            return q_t.execute()
+        t = _supabase_read_with_retry(_fetch_total, table_name="scan_results")
         total_count = t.count or 0
         
         return {
@@ -2259,17 +2183,19 @@ def get_adaptive_results(exchange: str = "EGX", model_name: Optional[str] = None
     if not supabase:
         return []
     try:
-        query = supabase.table("scan_results")\
-            .select("symbol, precision, status, entry_price, created_at")\
-            .eq("exchange", exchange)\
-            .not_.eq("status", "open")\
-            .order("created_at", desc=True)\
-            .limit(limit)
+        def _fetch_results(sb):
+            query = sb.table("scan_results")\
+                .select("symbol, precision, status, entry_price, created_at")\
+                .eq("exchange", exchange)\
+                .not_.eq("status", "open")\
+                .order("created_at", desc=True)\
+                .limit(limit)
+                
+            if model_name:
+                query = query.eq("model_name", model_name)
+            return query.execute()
             
-        if model_name:
-            query = query.eq("model_name", model_name)
-            
-        res = query.execute()
+        res = _supabase_read_with_retry(_fetch_results, table_name="scan_results")
         return res.data
     except Exception as e:
         print(f"Error fetching results: {e}")

@@ -161,6 +161,8 @@ export default function FastScannerTab() {
     const [refreshingAll, setRefreshingAll] = useState(false);
     const [publishedResults, setPublishedResults] = useState<ScanResult[]>([]);
     const [publishedLoading, setPublishedLoading] = useState(false);
+    const [globalStats, setGlobalStats] = useState<{ winRate: number; avgPl: number; total: number }>({ winRate: 0, avgPl: 0, total: 0 });
+    const [globalStatsLoading, setGlobalStatsLoading] = useState(false);
 
     // Sorting States
     const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>(null);
@@ -301,8 +303,22 @@ export default function FastScannerTab() {
         fetchScanHistory,
         fetchScanResults,
         refreshScanPerformance,
-        updateResultStatus
+        updateResultStatus,
+        fetchGlobalModelStats
     } = useAIScanner();
+
+    useEffect(() => {
+        if (modelName) {
+            setGlobalStatsLoading(true);
+            fetchGlobalModelStats(modelName).then(stats => {
+                setGlobalStats(stats);
+                setGlobalStatsLoading(false);
+            }).catch(err => {
+                console.error("Failed to fetch global stats:", err);
+                setGlobalStatsLoading(false);
+            });
+        }
+    }, [modelName, fetchGlobalModelStats]);
 
     useEffect(() => {
         getAdminConfig().then(cfg => {
@@ -574,7 +590,9 @@ export default function FastScannerTab() {
             buy_threshold: state.buyThreshold,
             target_pct: state.targetPct,
             stop_loss_pct: state.stopLossPct,
-            look_forward_days: state.lookForwardDays
+            look_forward_days: state.lookForwardDays,
+            councilModel: state.councilModel,
+            validatorModel: state.validatorModel
         });
     }
 
@@ -607,6 +625,34 @@ export default function FastScannerTab() {
                     </button>
                 </div>
             </header>
+
+            {viewMode === "scan" && modelName && (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {[
+                        { label: "Neural Win Rate", value: `${globalStats.winRate.toFixed(1)}%`, icon: <Check className="h-5 w-5" />, color: "text-emerald-500", bg: "bg-emerald-500/10" },
+                        { label: "Avg Potential P/L", value: `${globalStats.avgPl > 0 ? '+' : ''}${globalStats.avgPl.toFixed(2)}%`, icon: <Activity className="h-5 w-5" />, color: globalStats.avgPl > 0 ? "text-emerald-500" : "text-red-500", bg: globalStats.avgPl > 0 ? "bg-emerald-500/10" : "bg-red-500/10" },
+                        { label: "Discovery hits", value: globalStats.total, icon: <Cpu className="h-5 w-5" />, color: "text-indigo-400", bg: "bg-indigo-500/10" },
+                    ].map((s, idx) => (
+                        <div key={idx} className="relative group overflow-hidden rounded-[2.5rem] border border-white/5 bg-zinc-950/40 backdrop-blur-2xl p-6 flex flex-col gap-3 hover:border-white/10 transition-all">
+                            <div className="absolute inset-x-0 bottom-0 top-0 bg-gradient-to-tr from-white/[0.01] to-transparent pointer-events-none" />
+                            <div className="flex items-center justify-between relative z-10">
+                                <span className="text-[10px] font-black text-zinc-600 uppercase tracking-widest">{s.label}</span>
+                                <div className={`p-2 rounded-xl ${s.bg} ${s.color}`}>
+                                    {s.icon}
+                                </div>
+                            </div>
+                            <div className="flex flex-col gap-0.5 relative z-10">
+                                <div className={`text-2xl font-black italic tracking-tighter ${s.color}`}>
+                                    {globalStatsLoading ? "---" : s.value}
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <span className="text-[8px] font-black text-zinc-500 uppercase tracking-[0.2em]">All-Time Performance</span>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
 
             {viewMode === "scan" ? (
                 <>
@@ -799,6 +845,40 @@ export default function FastScannerTab() {
                                                 )}
                                             </div>
                                         </div>
+
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="space-y-2">
+                                                <span className="text-[8px] font-black text-zinc-500 uppercase tracking-widest ml-1">The Council</span>
+                                                <select
+                                                    value={state.councilModel}
+                                                    onChange={(e) => setAiScanner(prev => ({ ...prev, councilModel: e.target.value }))}
+                                                    disabled={loading}
+                                                    className="w-full h-14 rounded-xl bg-zinc-950/50 border border-white/5 px-4 text-[10px] font-black uppercase tracking-widest text-indigo-400 outline-none focus:border-indigo-500 transition-all shadow-inner appearance-none"
+                                                >
+                                                    <option value="" className="bg-zinc-900 italic opacity-50">-- DISABLED --</option>
+                                                    {localModels.map(m => {
+                                                        const name = typeof m === "string" ? m : m.name;
+                                                        return <option key={name} value={name} className="bg-zinc-900">{name}</option>;
+                                                    })}
+                                                </select>
+                                            </div>
+                                            <div className="space-y-2">
+                                                <span className="text-[8px] font-black text-zinc-500 uppercase tracking-widest ml-1">Validator</span>
+                                                <select
+                                                    value={state.validatorModel}
+                                                    onChange={(e) => setAiScanner(prev => ({ ...prev, validatorModel: e.target.value }))}
+                                                    disabled={loading}
+                                                    className="w-full h-14 rounded-xl bg-zinc-950/50 border border-white/5 px-4 text-[10px] font-black uppercase tracking-widest text-zinc-400 outline-none focus:border-indigo-500 transition-all shadow-inner appearance-none"
+                                                >
+                                                    <option value="" className="bg-zinc-900 italic opacity-50">-- DISABLED --</option>
+                                                    {localModels.map(m => {
+                                                        const name = typeof m === "string" ? m : m.name;
+                                                        return <option key={name} value={name} className="bg-zinc-900">{name}</option>;
+                                                    })}
+                                                </select>
+                                            </div>
+                                        </div>
+
                                     </div>
                                 </div>
 
@@ -1008,7 +1088,7 @@ export default function FastScannerTab() {
                                     <table className="w-full text-left text-xs whitespace-nowrap">
                                         <thead className="bg-zinc-950/80 text-[9px] font-black uppercase tracking-widest text-zinc-500 border-b border-white/5">
                                             <tr>
-                                                <th className="px-6 py-4 w-10">
+                                                <th className="px-6 py-4 w-10 sticky left-0 z-20 bg-zinc-950/90 backdrop-blur border-r border-white/5">
                                                     {/* Spacer for checkbox */}
                                                 </th>
                                                 <th className="px-6 py-4 cursor-pointer hover:text-white transition-colors" onClick={() => handleSort('symbol')}>
@@ -1064,7 +1144,7 @@ export default function FastScannerTab() {
                                                     key={r.symbol}
                                                     className={`group transition-all ${selected?.symbol === r.symbol ? "bg-indigo-600/10" : "hover:bg-white/[0.02]"}`}
                                                 >
-                                                    <td className="px-6 py-4">
+                                                    <td className={`px-6 py-4 sticky left-0 z-10 border-r border-white/5 backdrop-blur ${selected?.symbol === r.symbol ? "bg-indigo-600/10" : "bg-zinc-950/90 group-hover:bg-white/[0.02]"}`}>
                                                         <input
                                                             type="checkbox"
                                                             checked={selectedIds.includes(r.symbol)}
@@ -1133,10 +1213,10 @@ export default function FastScannerTab() {
                                                         })()}
                                                     </td>
                                                     <td className="px-6 py-4 text-center cursor-pointer" onClick={() => openDetails(r)}>
-                                                        <span className="font-black text-white italic">{r.council_score ? `${r.council_score.toFixed(1)}%` : "N/A"}</span>
+                                                        <span className="font-black text-white italic">{`${(r.council_score ?? 0).toFixed(1)}%`}</span>
                                                     </td>
                                                     <td className="px-6 py-4 text-center cursor-pointer" onClick={() => openDetails(r)}>
-                                                        <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">{r.consensus_ratio || "N/A"}</span>
+                                                        <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">{r.consensus_ratio || "0/0"}</span>
                                                     </td>
                                                 </tr>
                                             ))}
@@ -1382,7 +1462,7 @@ export default function FastScannerTab() {
                                     <table className="w-full text-left text-xs whitespace-nowrap">
                                         <thead className="bg-zinc-950/80 text-[9px] font-black uppercase tracking-widest text-zinc-500 border-b border-white/5">
                                             <tr>
-                                                <th className="px-6 py-4 w-10">
+                                                <th className="px-6 py-4 w-10 sticky left-0 z-20 bg-zinc-950/90 backdrop-blur border-r border-white/5">
                                                     <button
                                                         onClick={() => handleSelectAll(publishedResults)}
                                                         className="text-zinc-600 hover:text-white transition-colors flex items-center justify-center"
@@ -1448,7 +1528,7 @@ export default function FastScannerTab() {
                                                         key={`${r.symbol}-${idx}`}
                                                         className={`group transition-colors ${selectedIds.includes(r.id || '') ? 'bg-indigo-600/5' : 'hover:bg-white/[0.02]'}`}
                                                     >
-                                                        <td className="px-6 py-4">
+                                                        <td className={`px-6 py-4 sticky left-0 z-10 border-r border-white/5 backdrop-blur ${selectedIds.includes(r.id || '') ? "bg-indigo-600/5" : "bg-zinc-950/90 group-hover:bg-white/[0.02]"}`}>
                                                             <button
                                                                 onClick={() => r.id && handleToggleSelect(r.id)}
                                                                 className="text-zinc-600 group-hover:text-white transition-colors"
@@ -1516,10 +1596,10 @@ export default function FastScannerTab() {
                                                             })()}
                                                         </td>
                                                         <td className="px-6 py-4 text-center">
-                                                            <span className="font-black text-white italic">{r.council_score ? `${r.council_score.toFixed(1)}%` : "N/A"}</span>
+                                                            <span className="font-black text-white italic">{`${(r.council_score ?? 0).toFixed(1)}%`}</span>
                                                         </td>
                                                         <td className="px-6 py-4 text-center">
-                                                            <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">{r.consensus_ratio || "N/A"}</span>
+                                                            <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">{r.consensus_ratio || "0/0"}</span>
                                                         </td>
                                                         <td className="px-6 py-4 text-center">
                                                             <span className="text-[9px] font-bold text-zinc-500 uppercase">

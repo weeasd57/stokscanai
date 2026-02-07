@@ -1,0 +1,17 @@
+{
+  "name": "COUNCIL_CRYPTO",
+  "type": "Council Validator",
+  "exchange": "CRYPTO",
+  "created": "2026-02-07T21:39:45.133967",
+  "metrics": {
+    "test_precision": 0.3621949708906231,
+    "test_recall": 0.4119180108473621,
+    "test_f1": 0.3854595788155423,
+    "test_auc": 0.7024768421106516
+  },
+  "parameters": {
+    "target_pct": 0.03,
+    "stop_pct": 0.015,
+    "approval_threshold": 0.5
+  }
+}

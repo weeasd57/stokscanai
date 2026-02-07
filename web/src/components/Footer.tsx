@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { Github, Twitter, Linkedin, Mail, ExternalLink } from "lucide-react";
 
 export default function Footer() {
     const { t } = useLanguage();

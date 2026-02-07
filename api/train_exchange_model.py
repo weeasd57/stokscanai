@@ -4,6 +4,10 @@ import time
 
 # Suppress specific FutureWarnings from libraries like 'ta'
 warnings.filterwarnings("ignore", category=FutureWarning)
+
+import pandas as pd
+# Suppress PerformanceWarning from Pandas (fragmentation warnings)
+warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
 import sys
 import argparse
 import pickle
@@ -117,7 +121,12 @@ class StreamCallback:
 def fetch_fundamentals_for_exchange(supabase: Client, exchange: str) -> pd.DataFrame:
     """Fetch all fundamental data for a given exchange from stock_fundamentals table."""
     try:
-        res = supabase.table("stock_fundamentals").select("symbol, data").eq("exchange", exchange).execute()
+        res = (
+            supabase.table("stock_fundamentals")
+            .select("symbol, data, fund_score")
+            .eq("exchange", exchange)
+            .execute()
+        )
         if not res.data:
             return pd.DataFrame()
         
@@ -134,12 +143,16 @@ def fetch_fundamentals_for_exchange(supabase: Client, exchange: str) -> pd.DataF
                 except:
                     pass
             
+            col_fund_score = row.get("fund_score")
             flat = {
                 "symbol": row["symbol"],
                 "marketCap": _finite_float(data.get("marketCap")),
                 "peRatio": _finite_float(data.get("peRatio")),
                 "eps": _finite_float(data.get("eps")),
                 "dividendYield": _finite_float(data.get("dividendYield")),
+                "fund_score": _finite_float(
+                    col_fund_score if col_fund_score is not None else data.get("fund_score") or data.get("fundamental_score")
+                ),
                 "sector": data.get("sector"),
                 "industry": data.get("industry")
             }
@@ -147,9 +160,15 @@ def fetch_fundamentals_for_exchange(supabase: Client, exchange: str) -> pd.DataF
             
         df_funds = pd.DataFrame(funds)
         # Force common fundamental columns to numeric if they exist to prevent LightGBM dtype errors
-        for c in ["marketCap", "peRatio", "eps", "dividendYield"]:
+        for c in ["marketCap", "peRatio", "eps", "dividendYield", "fund_score"]:
             if c in df_funds.columns:
                 df_funds[c] = pd.to_numeric(df_funds[c], errors='coerce')
+        if "fund_score" in df_funds.columns:
+            try:
+                available = int(df_funds["fund_score"].notna().sum())
+                print(f"✅ Fundamentals loaded: {len(df_funds)} rows, fund_score available for {available}.", flush=True)
+            except Exception:
+                pass
         return df_funds
     except Exception as e:
         print(f"Warning: Failed to fetch fundamentals: {e}")
@@ -249,10 +268,17 @@ def add_market_context(stock_df, market_df):
     Add Advanced Market Context features (Beta, Correlation, Market Regime).
     """
     if market_df is None or market_df.empty:
-        # Fill with zeros and defaults
-        for feat in ['feat_mkt_trend', 'feat_mkt_volatility', 'feat_rel_strength', 
-                     'beta', 'correlation_20']:
-            stock_df[feat] = 0
+        # Fill with zeros and defaults (optimized: add all columns at once to avoid fragmentation)
+        market_features = ['feat_mkt_trend', 'feat_mkt_volatility', 'feat_rel_strength', 'beta', 'correlation_20']
+        missing_cols = [f for f in market_features if f not in stock_df.columns]
+        
+        if missing_cols:
+            # Create DataFrame with zeros and concat once (faster than loop)
+            zeros_df = pd.DataFrame(0, index=stock_df.index, columns=missing_cols)
+            stock_df = pd.concat([stock_df, zeros_df], axis=1)
+            # De-fragment memory
+            stock_df = stock_df.copy()
+        
         return stock_df
 
     # Ensure indexes are DatetimeIndex
@@ -599,94 +625,77 @@ def prepare_for_ai(df, target_pct: float = 0.12, stop_loss_pct: float = 0.04, lo
     - Target = 1: Take Profit hit BEFORE Stop Loss
     - Target = 0: Stop Loss hit first OR neither hit (time barrier)
     """
-    if df.empty: return df
+    if df.empty:
+        return df
+
     out = df.copy()
-    
-    # Entry Point: Assume entry at CURRENT Close (no look-ahead)
-    # Ideally we enter at T+1 Open, but T Close is the best proxy without Future data.
-    out['entry_price'] = out['Close']
-    
-    # [DEBUG] Verify No Leakage
-    # print(f"[DEBUG] Entry Price Leakage Check: {(out['entry_price'] == out['Close']).mean():.1%} match Close")
-    
-    out['tp_barrier'] = out['entry_price'] * (1 + target_pct)
-    out['sl_barrier'] = out['entry_price'] * (1 - stop_loss_pct)
-    
-    # Initialize Target column
-    out['Target'] = 0
-    
-    # For each row, we need to check which barrier is hit first
-    # This requires iterating through future prices
-    close_values = out['Close'].values
-    tp_values = out['tp_barrier'].values
-    sl_values = out['sl_barrier'].values
+
+    if "Close" not in out.columns:
+        return pd.DataFrame()
+
+    look_forward_bars = int(look_forward_days or 0)
+    if look_forward_bars <= 0:
+        out["Target"] = 0
+        return out
+
+    close_values = pd.to_numeric(out["Close"], errors="coerce").astype(float).values
+    high_values = (
+        pd.to_numeric(out["High"], errors="coerce").astype(float).values
+        if "High" in out.columns
+        else close_values
+    )
+    low_values = (
+        pd.to_numeric(out["Low"], errors="coerce").astype(float).values
+        if "Low" in out.columns
+        else close_values
+    )
+
     targets = np.zeros(len(out), dtype=int)
-    
-    for i in range(len(out) - look_forward_days - 1):
-        entry = close_values[i + 1]  # Entry at next day's close
-        tp = tp_values[i]
-        sl = sl_values[i]
-        
-        if np.isnan(entry) or np.isnan(tp) or np.isnan(sl):
+
+    for i in range(len(out) - look_forward_bars - 1):
+        entry = float(close_values[i])
+        if not np.isfinite(entry) or entry <= 0:
             continue
-            
-        # Look at future prices (day i+1 to i+1+look_forward_days)
-        first_tp_day = None
-        first_sl_day = None
-        
-        for j in range(1, look_forward_days + 1):
-            future_idx = i + 1 + j
-            if future_idx >= len(close_values):
+
+        tp = entry * (1 + float(target_pct))
+        sl = entry * (1 - float(stop_loss_pct))
+
+        first_tp = None
+        first_sl = None
+
+        for j in range(1, look_forward_bars + 1):
+            idx = i + j
+            if idx >= len(close_values):
                 break
-                
-            future_price = close_values[future_idx]
-            if np.isnan(future_price):
+
+            hi = float(high_values[idx])
+            lo = float(low_values[idx])
+
+            if not np.isfinite(hi) or not np.isfinite(lo):
                 continue
-            
-            # Check if TP is hit (use future high if available, else close)
-            if 'High' in out.columns:
-                future_high = out['High'].values[future_idx]
-            else:
-                future_high = future_price
-                
-            if 'Low' in out.columns:
-                future_low = out['Low'].values[future_idx]
-            else:
-                future_low = future_price
-            
-            # Record first day each barrier is hit
-            if first_tp_day is None and future_high >= tp:
-                first_tp_day = j
-            if first_sl_day is None and future_low <= sl:
-                first_sl_day = j
-                
-            # Early exit if both barriers are hit
-            if first_tp_day is not None and first_sl_day is not None:
+
+            if first_tp is None and hi >= tp:
+                first_tp = j
+            if first_sl is None and lo <= sl:
+                first_sl = j
+
+            if first_tp is not None and first_sl is not None:
                 break
-        
-        # Labeling Logic: TP hit FIRST = Win, otherwise = Loss
-        if first_tp_day is not None:
-            if first_sl_day is None or first_tp_day <= first_sl_day:
-                targets[i] = 1  # TP hit first or SL never hit
-            # else: SL hit first, target stays 0
-        # else: Neither hit or only SL hit, target stays 0
-    
-    out['Target'] = targets
-    
-    # Stats for console monitoring
-    counts = out['Target'].value_counts()
-    pos = counts.get(1, 0)
-    neg = counts.get(0, 0)
+
+        if first_tp is not None and (first_sl is None or first_tp <= first_sl):
+            targets[i] = 1
+
+    out["Target"] = targets
+
+    counts = out["Target"].value_counts()
+    pos = int(counts.get(1, 0))
+    neg = int(counts.get(0, 0))
     total = pos + neg
-    ratio = pos / total if total > 0 else 0
+    ratio = (pos / total) if total > 0 else 0.0
     print(f"[{datetime.now().strftime('%H:%M:%S')}] Triple Barrier Labeling: {len(out)} rows")
     print(f"    Wins={pos} ({ratio:.2%}), Losses={neg} ({1-ratio:.2%})")
-    
-    # Clean up and drop rows we can't label
-    drop_cols = ['entry_price', 'tp_barrier', 'sl_barrier']
-    out.drop(columns=drop_cols, inplace=True, errors='ignore')
-    out = out.iloc[:-look_forward_days].copy()
-    
+
+    out = out.iloc[:-look_forward_bars].copy()
     return out
 
 # =============================================================================
@@ -923,7 +932,8 @@ class ModelTrainer:
         candidates = []
         if self.exchange == "EGX": candidates = ["EGX30.INDX", "COMI.CA"]
         elif self.exchange == "US": candidates = ["GSPC.INDX", "SPY.US", "AAPL.US"]
-        else: candidates = ["GSPC.INDX"]
+        elif self.exchange == "CRYPTO": candidates = ["BTC-USD"]  # Bitcoin is the best market indicator for crypto
+        else: candidates = ["BTC-USD"]  # Default to Bitcoin for crypto-related exchanges
             
         self.market_index_symbol = None
         self.market_index_loaded = False
@@ -990,15 +1000,22 @@ class ModelTrainer:
         if self.market_df is None:
             self._progress("Warning: No market index data found. Market Context features will be 0.")
 
-    def fetch_stock_prices(self, page_size: int = 1000) -> pd.DataFrame:
+    def fetch_stock_prices(self, page_size: int = 1000, *, use_intraday: bool = False, timeframe: str = "1d") -> pd.DataFrame:
         """Fetch all stock prices for the exchange using parallel paging."""
-        self._progress(f"Loading price data for exchange {self.exchange}...")
+        if use_intraday:
+            self._progress(f"Loading intraday data for exchange {self.exchange} ({timeframe})...")
+        else:
+            self._progress(f"Loading price data for exchange {self.exchange}...")
         
         # 1. Get total count
         rows_total = None
         try:
-            count_res = self.supabase.table("stock_prices").select("symbol", count="exact")\
-                .eq("exchange", self.exchange).limit(1).execute()
+            if use_intraday:
+                count_res = self.supabase.table("stock_bars_intraday").select("symbol", count="exact")\
+                    .eq("exchange", self.exchange).eq("timeframe", timeframe).limit(1).execute()
+            else:
+                count_res = self.supabase.table("stock_prices").select("symbol", count="exact")\
+                    .eq("exchange", self.exchange).limit(1).execute()
             rows_total = count_res.count
         except Exception as e:
             print(f"Warning: Failed to fetch total row count: {e}")
@@ -1007,11 +1024,19 @@ class ModelTrainer:
         def _fetch_page(off, retries=3):
             for attempt in range(retries):
                 try:
-                    res = self.supabase.table("stock_prices")\
-                        .select("symbol, date, open, high, low, close, volume")\
-                        .eq("exchange", self.exchange)\
-                        .order("symbol", desc=False).order("date", desc=False)\
-                        .range(off, off + page_size - 1).execute()
+                    if use_intraday:
+                        res = self.supabase.table("stock_bars_intraday")\
+                            .select("symbol, ts, open, high, low, close, volume")\
+                            .eq("exchange", self.exchange)\
+                            .eq("timeframe", timeframe)\
+                            .order("symbol", desc=False).order("ts", desc=False)\
+                            .range(off, off + page_size - 1).execute()
+                    else:
+                        res = self.supabase.table("stock_prices")\
+                            .select("symbol, date, open, high, low, close, volume")\
+                            .eq("exchange", self.exchange)\
+                            .order("symbol", desc=False).order("date", desc=False)\
+                            .range(off, off + page_size - 1).execute()
                     return res.data or []
                 except Exception as e:
                     time.sleep((attempt + 1) * 2)
@@ -1034,6 +1059,20 @@ class ModelTrainer:
                         self._progress_stats("loading_rows", f"Loaded {len(all_rows):,} rows", {"rows_loaded": len(all_rows), "rows_total": rows_total})
 
         df = pd.DataFrame(all_rows)
+        if use_intraday and not df.empty:
+            if "ts" in df.columns:
+                df = df.rename(columns={"ts": "date"})
+
+        if use_intraday and self.exchange == "CRYPTO" and not df.empty and "volume" in df.columns:
+            try:
+                vol = pd.to_numeric(df["volume"], errors="coerce").fillna(0)
+                before = len(df)
+                df = df[vol > 0].copy()
+                removed = before - len(df)
+                if removed > 0:
+                    self._progress(f"Filtered {removed:,} rows with volume<=0 for CRYPTO intraday.")
+            except Exception:
+                pass
         self._progress(f"Loaded {len(df):,} rows for {len(df['symbol'].unique()):,} symbols.")
         return df
 
@@ -1320,6 +1359,9 @@ class ModelTrainer:
         n_estimators: int = 500, 
         learning_rate: float = 0.01, 
         patience: int = 100,
+        look_forward_bars: int = 0,
+        eval_metric: str = "logloss",
+        extra_params: Optional[Dict[str, Any]] = None,
         optimized_params: Optional[Dict[str, Any]] = None,
         auto_prune: bool = False,
         target_pct: float = 0.12,
@@ -1345,16 +1387,14 @@ class ModelTrainer:
 
         self._progress(f"Training LightGBM model (samples={len(X)}, target_pos={y.sum()})...")
         
-        # Financial ML: Purged Time-Series Validation
-        # Instead of random split or single split, we implement a simple embargo/purge logic
-        # by ensuring a gap between training and validation data.
+        # Time series split (no shuffle) with embargo to avoid label leakage across the boundary.
         test_size = 0.2
         split_idx = int(len(df_train) * (1 - test_size))
-        
-        # Embargo: remove look_forward_days from the end of training to avoid leakage
-        # (Though we already dropped them in prepare_for_ai, this is extra safety)
-        train_end_idx = max(0, split_idx - (patience + 20))
-        
+        embargo = max(0, int(look_forward_bars or 0))
+        train_end_idx = max(0, split_idx - embargo)
+        if train_end_idx < 50:
+            train_end_idx = split_idx
+
         X_train = X.iloc[:train_end_idx]
         y_train = y.iloc[:train_end_idx]
         X_val = X.iloc[split_idx:]
@@ -1385,6 +1425,7 @@ class ModelTrainer:
             "n_jobs": -1,
             "verbose": -1,
             "class_weight": class_weight,  # Use calculated weights instead of is_unbalance
+            **(extra_params or {}),
             **(optimized_params or {})
         }
         
@@ -1402,7 +1443,7 @@ class ModelTrainer:
         model.fit(
             X_train, y_train,
             eval_set=[(X_val, y_val)],
-            eval_metric="logloss",
+            eval_metric=eval_metric,
             # Use 'auto' - LightGBM will detect category dtype columns automatically
             # This avoids errors when column names are passed but dtype isn't category
             categorical_feature='auto',
@@ -1417,9 +1458,17 @@ class ModelTrainer:
                 self.predictors = important_features
                 # Recursively call with auto_prune=False to avoid infinite loop
                 return self.train_model(
-                    df_train, n_estimators, learning_rate, patience, 
-                    optimized_params, auto_prune=False,
-                    target_pct=target_pct, stop_loss_pct=stop_loss_pct
+                    df_train,
+                    n_estimators=n_estimators,
+                    learning_rate=learning_rate,
+                    patience=patience,
+                    look_forward_bars=look_forward_bars,
+                    eval_metric=eval_metric,
+                    extra_params=extra_params,
+                    optimized_params=optimized_params,
+                    auto_prune=False,
+                    target_pct=target_pct,
+                    stop_loss_pct=stop_loss_pct,
                 )
 
         # Evaluate
@@ -1777,15 +1826,42 @@ def train_model(exchange=None, supabase_url=None, supabase_key=None, *args, **kw
         progress_cb=kwargs.get("progress_cb")
     )
     
+    use_intraday = bool(kwargs.get("use_intraday", False))
+    timeframe = str(kwargs.get("timeframe", "1d") or "1d").strip().lower()
+    training_strategy = str(kwargs.get("training_strategy") or "golden").strip().lower()
+
+    extra_params: Dict[str, Any] = {}
+    eval_metric = "logloss"
+
+    # Crypto-specific default params (anti-noise, higher regularization) for 1h intraday.
+    if trainer.exchange == "CRYPTO" and use_intraday and timeframe == "1h" and training_strategy in {"golden", "crypto", "golden_crypto"}:
+        extra_params = {
+            "boosting_type": "gbdt",
+            "objective": "binary",
+            "metric": "auc",
+            "is_unbalance": True,
+            "num_leaves": 45,
+            "max_depth": 8,
+            "feature_fraction": 0.7,
+            "bagging_fraction": 0.7,
+            "bagging_freq": 5,
+            "lambda_l1": 1.5,
+            "lambda_l2": 3.0,
+            "verbose": -1,
+        }
+        eval_metric = "auc"
+
     trainer.load_market_data()
-    df_raw = trainer.fetch_stock_prices()
+    df_raw = trainer.fetch_stock_prices(
+        use_intraday=use_intraday,
+        timeframe=timeframe
+    )
     if df_raw.empty: return
     
     use_volatility_label = bool(kwargs.get("use_volatility_label", False))
-    # Use kwargs for labeling parameters (important for realistic training)
-    target_pct = kwargs.get("target_pct", 0.03)
-    stop_loss_pct = kwargs.get("stop_loss_pct", 0.06)
-    look_forward_days = kwargs.get("look_forward_days", 20)
+    target_pct = float(kwargs.get("target_pct", 0.03) or 0.03)
+    stop_loss_pct = float(kwargs.get("stop_loss_pct", 0.06) or 0.06)
+    look_forward_days = int(kwargs.get("look_forward_days", 20) or 20)
     
     df_train = trainer.prepare_training_data(
         df_raw, 
@@ -1807,15 +1883,15 @@ def train_model(exchange=None, supabase_url=None, supabase_key=None, *args, **kw
 
     # Get use_early_stopping from kwargs (defaults to True for backward compat)
     use_early_stopping = kwargs.get("use_early_stopping", True)
-    
-    target_pct = kwargs.get("target_pct", 0.1)
-    stop_loss_pct = kwargs.get("stop_loss_pct", 0.05)
 
     model, val_metrics, avg_purged_f1 = trainer.train_model(
         df_train, 
         n_estimators=kwargs.get("n_estimators") or 500,
         learning_rate=kwargs.get("learning_rate", 0.01),
         patience=kwargs.get("patience", 100) if use_early_stopping else 0,
+        look_forward_bars=look_forward_days,
+        eval_metric=eval_metric,
+        extra_params=extra_params,
         optimized_params=optimized_params,
         auto_prune=kwargs.get("auto_prune", False),
         target_pct=target_pct,
@@ -1831,9 +1907,9 @@ def train_model(exchange=None, supabase_url=None, supabase_key=None, *args, **kw
     meta_threshold = float(kwargs.get("meta_threshold", 0.3))
 
     metadata = {
-        "target_pct": kwargs.get("target_pct"),
-        "stop_loss_pct": kwargs.get("stop_loss_pct"),
-        "look_forward_days": kwargs.get("look_forward_days"),
+        "target_pct": target_pct,
+        "stop_loss_pct": stop_loss_pct,
+        "look_forward_days": look_forward_days,
         "use_volatility_label": use_volatility_label,
         "feature_preset": kwargs.get("feature_preset"),
         "featurePreset": kwargs.get("feature_preset"),
@@ -1841,7 +1917,12 @@ def train_model(exchange=None, supabase_url=None, supabase_key=None, *args, **kw
         "learning_rate": kwargs.get("learning_rate"),
         "training_samples": len(df_train),
         "trainingSamples": len(df_train),
-        "optimized": optimized_params is not None,
+        "use_intraday": use_intraday,
+        "timeframe": timeframe,
+        "training_strategy": training_strategy,
+        "eval_metric": eval_metric,
+        "base_params": extra_params,
+        "optimized": bool(kwargs.get("optimize") and optimized_params is not None),
         "purged_cv_f1": avg_purged_f1,
         "has_meta_labeling": bool(use_meta_labeling),
         "meta_threshold": float(meta_threshold),
@@ -1935,15 +2016,41 @@ def train_model(exchange=None, supabase_url=None, supabase_key=None, *args, **kw
         trainer.save_model(model, filename, metadata)
     
     # Update global summary for the dashboard
+    best_iteration = getattr(model, "best_iteration_", None)
+    symbols_used = None
+    try:
+        if isinstance(df_raw, pd.DataFrame) and "symbol" in df_raw.columns:
+            symbols_used = int(df_raw["symbol"].nunique())
+    except Exception:
+        symbols_used = None
+
     summary = {
         "exchange": trainer.exchange,
+        "modelName": filename,
         "model_name": filename,
         "timestamp": datetime.now().isoformat(),
+        "targetPct": float(target_pct),
+        "stopLossPct": float(stop_loss_pct),
+        "lookForwardDays": int(look_forward_days),
+        "learningRate": float(kwargs.get("learning_rate") or 0.0),
+        "useEarlyStopping": bool(use_early_stopping),
+        "nEstimators": int(kwargs.get("n_estimators") or 500),
+        "bestIteration": (int(best_iteration) if best_iteration is not None else None),
+        "featurePreset": kwargs.get("feature_preset"),
+        "numFeatures": len(trainer.predictors),
+        "trainingSamples": len(df_train),
+        "rawRows": int(len(df_raw)),
+        "symbolsUsed": symbols_used,
+        "useIntraday": bool(use_intraday),
+        "timeframe": timeframe,
+        "trainingStrategy": training_strategy,
         "metrics": val_metrics,
         "features_count": len(trainer.predictors),
         "samples": len(df_train),
         "has_meta_labeling": bool(use_meta_labeling),
         "meta_threshold": float(meta_threshold),
+        "hasMetaLabeling": bool(use_meta_labeling),
+        "metaThreshold": float(meta_threshold),
     }
     _write_training_summary(summary)
 

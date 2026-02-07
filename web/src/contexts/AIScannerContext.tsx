@@ -45,6 +45,8 @@ type AiScannerState = {
     stopLossPct: number;
     lookForwardDays: number;
     buyThreshold: number;
+    councilModel: string;
+    validatorModel: string;
 };
 
 interface AIScannerContextType {
@@ -61,6 +63,8 @@ interface AIScannerContextType {
         target_pct?: number;
         stop_loss_pct?: number;
         look_forward_days?: number;
+        councilModel?: string;
+        validatorModel?: string;
     }) => Promise<void>;
     stopAiScan: () => void;
     clearAiScannerView: () => void;
@@ -77,6 +81,8 @@ interface AIScannerContextType {
     bulkUpdatePublicStatus: (ids: string[], isPublic: boolean) => Promise<boolean>;
     fetchPublicScanDates: (modelName: string) => Promise<string[]>;
     fetchScanResultsByDate: (modelName: string, date: string) => Promise<any[]>;
+    fetchGlobalModelStats: (modelName: string) => Promise<{ winRate: number; avgPl: number; total: number }>;
+
     updateResultStatus: (id: string, status: "win" | "loss") => Promise<boolean>;
 }
 
@@ -111,7 +117,9 @@ const DEFAULT_STATE: AiScannerState = {
     targetPct: 0.10,
     stopLossPct: 0.05,
     lookForwardDays: 20,
-    buyThreshold: 0.40,
+    buyThreshold: 0.45,
+    councilModel: "",
+    validatorModel: ""
 };
 
 const AIScannerContext = createContext<AIScannerContextType | undefined>(undefined);
@@ -169,12 +177,18 @@ export const AIScannerProvider = ({ children }: { children: ReactNode }) => {
                     ...((Array.isArray(r.features) ? {} : r.features) as any), // Handle array vs object legacy
                     raw_features: Array.isArray(r.features) ? r.features : [],
                     technical_score: r.technical_score || 0,
-                    fundamental_score: r.fundamental_score || 0
+                    fundamental_score: r.fundamental_score || 0,
+                    council_score: r.council_score || 0,
+                    consensus_ratio: r.consensus_ratio || ""
                 }) : JSON.stringify({
                     technical_score: r.technical_score || 0,
-                    fundamental_score: r.fundamental_score || 0
+                    fundamental_score: r.fundamental_score || 0,
+                    council_score: r.council_score || 0,
+                    consensus_ratio: r.consensus_ratio || ""
                 }),
-                created_at: scanDate
+                created_at: scanDate,
+                council_model: scanParams.councilModel || null,
+                validator_model: scanParams.validatorModel || null
             }));
 
             if (rows.length > 0) {
@@ -213,7 +227,9 @@ export const AIScannerProvider = ({ children }: { children: ReactNode }) => {
             target_pct: state.targetPct,
             stop_loss_pct: state.stopLossPct,
             look_forward_days: state.lookForwardDays,
-            buy_threshold: state.buyThreshold
+            buy_threshold: state.buyThreshold,
+            councilModel: state.councilModel,
+            validatorModel: state.validatorModel
         };
 
         try {
@@ -223,7 +239,7 @@ export const AIScannerProvider = ({ children }: { children: ReactNode }) => {
             console.error("Save Current Scan failed:", err);
             return false;
         }
-    }, [state.results, state.progress.total, state.lastDurationMs, state.country, state.limit, state.modelName, state.endDate, state.scanAllMarket, state.rfPreset, state.rfParamsJson, saveScanToSupabase, user]);
+    }, [state.results, state.progress.total, state.lastDurationMs, state.country, state.limit, state.modelName, state.endDate, state.scanAllMarket, state.rfPreset, state.rfParamsJson, saveScanToSupabase, user, state.councilModel, state.validatorModel]);
 
     const saveSelectedResults = useCallback(async (selectedResults: ScanResult[], isPublic: boolean = true): Promise<boolean> => {
         if (!selectedResults.length || !user) return false;
@@ -248,7 +264,9 @@ export const AIScannerProvider = ({ children }: { children: ReactNode }) => {
             target_pct: state.targetPct,
             stop_loss_pct: state.stopLossPct,
             look_forward_days: state.lookForwardDays,
-            buy_threshold: state.buyThreshold
+            buy_threshold: state.buyThreshold,
+            councilModel: state.councilModel,
+            validatorModel: state.validatorModel
         };
 
         try {
@@ -259,7 +277,7 @@ export const AIScannerProvider = ({ children }: { children: ReactNode }) => {
             console.error("Save Selected Results failed:", err);
             return false;
         }
-    }, [state.results, state.progress.total, state.lastDurationMs, state.country, state.limit, state.modelName, state.endDate, state.scanAllMarket, state.rfPreset, state.rfParamsJson, saveScanToSupabase, user]);
+    }, [state.results, state.progress.total, state.lastDurationMs, state.country, state.limit, state.modelName, state.endDate, state.scanAllMarket, state.rfPreset, state.rfParamsJson, saveScanToSupabase, user, state.councilModel, state.validatorModel]);
     const fetchScanHistory = useCallback(async (filters?: { country?: string; model?: string; isPublic?: boolean }) => {
         if (!user) return [];
 
@@ -441,6 +459,27 @@ export const AIScannerProvider = ({ children }: { children: ReactNode }) => {
         });
     }, [supabase]);
 
+    const fetchGlobalModelStats = useCallback(async (modelName: string) => {
+        if (!supabase) return { winRate: 0, avgPl: 0, total: 0 };
+        const { data, error } = await supabase
+            .from("scan_results")
+            .select("status, profit_loss_pct")
+            .eq("model_name", modelName)
+            .eq("is_public", true);
+
+        if (error || !data) {
+            console.error("Error fetching global model stats:", error);
+            return { winRate: 0, avgPl: 0, total: 0 };
+        }
+
+        const wins = data.filter(r => r.status === 'win').length;
+        const total = data.length;
+        const winRate = total > 0 ? (wins / total) * 100 : 0;
+        const avgPl = total > 0 ? (data.reduce((acc, r) => acc + (r.profit_loss_pct || 0), 0) / total) : 0;
+
+        return { winRate, avgPl, total };
+    }, [supabase]);
+
     const fetchPublishedResults = useCallback(async (filters?: { country?: string; model?: string; startDate?: string; endDate?: string }) => {
         if (!supabase) return [];
         let query = supabase
@@ -565,6 +604,8 @@ export const AIScannerProvider = ({ children }: { children: ReactNode }) => {
         target_pct?: number;
         stop_loss_pct?: number;
         look_forward_days?: number;
+        councilModel?: string;
+        validatorModel?: string;
     }) => {
         if (loading) return;
 
@@ -626,7 +667,9 @@ export const AIScannerProvider = ({ children }: { children: ReactNode }) => {
             target_pct: opts.target_pct ?? state.targetPct,
             stop_loss_pct: opts.stop_loss_pct ?? state.stopLossPct,
             look_forward_days: opts.look_forward_days ?? state.lookForwardDays,
-            buy_threshold: opts.buy_threshold ?? state.buyThreshold
+            buy_threshold: opts.buy_threshold ?? state.buyThreshold,
+            councilModel: opts.councilModel ?? state.councilModel,
+            validatorModel: opts.validatorModel ?? state.validatorModel
         };
 
         const startedAt = Date.now();
@@ -720,10 +763,11 @@ export const AIScannerProvider = ({ children }: { children: ReactNode }) => {
         toggleResultPublicStatus,
         bulkUpdatePublicStatus,
         fetchPublicScanDates,
-        fetchScanResultsByDate: fetchScanResultsByDate, // explicit mapping if needed but usually it's just shorthand
+        fetchScanResultsByDate,
+        fetchGlobalModelStats,
         updateResultStatus,
         fetchPublishedResults,
-    }), [state, loading, error, runAiScan, stopAiScan, clearAiScannerView, restoreLastAiScan, resetAiScanner, fetchScanHistory, fetchScanResults, fetchLatestScanForModel, refreshScanPerformance, saveCurrentScan, saveSelectedResults, toggleResultPublicStatus, bulkUpdatePublicStatus, fetchPublicScanDates, fetchScanResultsByDate, updateResultStatus, fetchPublishedResults]);
+    }), [state, loading, error, runAiScan, stopAiScan, clearAiScannerView, restoreLastAiScan, resetAiScanner, fetchScanHistory, fetchScanResults, fetchLatestScanForModel, refreshScanPerformance, saveCurrentScan, saveSelectedResults, toggleResultPublicStatus, bulkUpdatePublicStatus, fetchPublicScanDates, fetchScanResultsByDate, fetchGlobalModelStats, updateResultStatus, fetchPublishedResults]);
 
     return <AIScannerContext.Provider value={value}>{children}</AIScannerContext.Provider>;
 };

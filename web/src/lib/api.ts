@@ -30,13 +30,7 @@ export async function predictStock(params: PredictParams, signal?: AbortSignal):
     }
   }
 
-  // Auto-detect EGX if exchange is missing and ticker is known OR looks like an EGX ticker
-  // User reported RTVC failing; it should be RTVC.EGX
   if (!exchange || exchange === "") {
-    // If it's 4-5 chars and all alpha, it's likely an EGX ticker in this app context
-    // Or we can just check if it doesn't already have one.
-    // For safety, we only append if it doesn't have a dot and is common.
-    // However, the user specifically mentioned RTVC.
     if (!ticker.includes(".")) {
       exchange = "EGX";
     }
@@ -51,11 +45,11 @@ export async function predictStock(params: PredictParams, signal?: AbortSignal):
     rf_preset: params.rfPreset ?? null,
     rf_params: params.rfParams ?? null,
     model_name: params.modelName ?? null,
-    force_local: params.forceLocal ?? true, // Default to true to prevent slow external API calls
+    force_local: params.forceLocal ?? true,
     target_pct: params.targetPct ?? 0.15,
     stop_loss_pct: params.stopLossPct ?? 0.05,
     look_forward_days: params.lookForwardDays ?? 20,
-    buy_threshold: params.buyThreshold ?? 0.40,
+    buy_threshold: params.buyThreshold ?? 0.45,
   };
 
   async function doFetch(url: string) {
@@ -72,7 +66,6 @@ export async function predictStock(params: PredictParams, signal?: AbortSignal):
   try {
     res = baseUrl ? await doFetch(`${baseUrl}/predict`) : await doFetch("/api/predict");
   } catch (e) {
-    // If external API is configured but unreachable, fallback to internal route.
     if (baseUrl) {
       res = await doFetch("/api/predict");
     } else {
@@ -94,7 +87,6 @@ export async function predictStock(params: PredictParams, signal?: AbortSignal):
   return (await res.json()) as PredictResponse;
 }
 
-// Types for symbol search
 export type SymbolResult = {
   symbol: string;
   exchange: string;
@@ -202,7 +194,6 @@ export async function getSymbolsByDate(params: {
   return data.results;
 }
 
-// Get symbols for an exchange (fallback from db-inventory)
 export async function getSymbolsForExchange(exchange: string): Promise<DateSymbolResult[]> {
   try {
     const res = await fetch(`/api/admin/db-symbols/${exchange}?mode=prices`, { cache: "no-store" });
@@ -222,7 +213,6 @@ export async function getSymbolsForExchange(exchange: string): Promise<DateSymbo
   }
 }
 
-// Get list of available countries
 export async function getInventory(): Promise<any[]> {
   const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
   const endpoint = "/symbols/inventory";
@@ -280,7 +270,6 @@ export async function getCountries(source?: "supabase" | "local"): Promise<strin
   return data.countries;
 }
 
-// Search symbols with optional country filter
 export async function searchSymbols(
   query: string,
   country?: string,
@@ -318,7 +307,6 @@ export async function searchSymbols(
   return data.results;
 }
 
-// Fetch all synced symbols for a country
 export async function getSyncedSymbols(country?: string, source?: "supabase" | "local"): Promise<SymbolResult[]> {
   const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
   const params = new URLSearchParams();
@@ -394,6 +382,8 @@ export type ScanAiParams = {
   stop_loss_pct?: number;
   look_forward_days?: number;
   buy_threshold?: number;
+  councilModel?: string;
+  validatorModel?: string;
 };
 
 export async function scanAiFastWithParams(params: ScanAiParams, signal?: AbortSignal): Promise<ScanResponse> {
@@ -408,7 +398,9 @@ export async function scanAiFastWithParams(params: ScanAiParams, signal?: AbortS
     target_pct: String(params.target_pct ?? 0.10),
     stop_loss_pct: String(params.stop_loss_pct ?? 0.05),
     look_forward_days: String(params.look_forward_days ?? 20),
-    buy_threshold: String(params.buy_threshold ?? 0.40),
+    buy_threshold: String(params.buy_threshold ?? 0.45),
+    council_model: params.councilModel ?? "",
+    validator_model: params.validatorModel ?? "",
   });
   if (params.to_date) {
     query.set("to_date", params.to_date);
@@ -547,7 +539,7 @@ export async function scanAi(country: string = "Egypt", signal?: AbortSignal): P
   return (await res.json()) as ScanResponse;
 }
 
-// Scan Technical
+// Technical Scan Types
 export type TechFilter = {
   country?: string;
   limit?: number;
@@ -650,10 +642,10 @@ export async function scanTech(filter: TechFilter, signal?: AbortSignal): Promis
 
   let res: Response;
   try {
-    res = baseUrl ? await doFetch(`${baseUrl}/scan/technical`) : await doFetch(`/api/scan/technical`);
+    res = baseUrl ? await doFetch(`${baseUrl}/scan/technical`) : await doFetch("/api/scan/technical");
   } catch (e) {
     if (baseUrl) {
-      res = await doFetch(`/api/scan/technical`);
+      res = await doFetch("/api/scan/technical");
     } else {
       throw e;
     }
@@ -714,8 +706,6 @@ export async function updateAdminConfig(config: Partial<AdminConfig>): Promise<A
   return res.json();
 }
 
-
-// News API
 export type NewsArticle = {
   title: string;
   description: string;
@@ -737,8 +727,6 @@ export type NewsResponse = {
 export async function fetchStockNews(query: string, limit: number = 3): Promise<NewsArticle[]> {
   const apiKey = process.env.NEXT_PUBLIC_GNEWS_API_KEY;
   if (!apiKey) {
-    // Return mock news or empty if no key
-    // For now, let's just return empty to fail gracefully
     return [];
   }
 
@@ -754,7 +742,9 @@ export async function fetchStockNews(query: string, limit: number = 3): Promise<
     console.error("Failed to fetch news:", e);
     return [];
   }
-} export async function evaluateScan(scanId: string): Promise<{ count: number; message: string }> {
+}
+
+export async function evaluateScan(scanId: string): Promise<{ count: number; message: string }> {
   const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
   const url = baseUrl ? `${baseUrl}/scan/fast/evaluate/${scanId}` : `/api/scan/fast/evaluate/${scanId}`;
   const response = await fetch(url);
@@ -762,7 +752,6 @@ export async function fetchStockNews(query: string, limit: number = 3): Promise<
   return await response.json();
 }
 
-// Backtest API
 export async function getBacktests(model?: string): Promise<any[]> {
   const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "";
   const url = model ? `${baseUrl}/backtests?model=${encodeURIComponent(model)}` : `${baseUrl}/backtests`;
@@ -794,4 +783,231 @@ export async function updateBacktestVisibility(id: string, isPublic: boolean): P
     body: JSON.stringify({ is_public: isPublic })
   });
   if (!response.ok) throw new Error("Failed to update backtest visibility");
+}
+
+export type AlpacaAsset = {
+  symbol: string;
+  name: string;
+  exchange: string;
+  class_name: string;
+  status: string;
+  tradable: boolean;
+  marginable: boolean;
+  shortable: boolean;
+  easy_to_borrow: boolean;
+  fractionable: boolean;
+};
+
+export type AlpacaAccountInfo = {
+  account_number: string;
+  status: string;
+  crypto_status: string;
+  currency: string;
+  buying_power: string;
+  cash: string;
+  portfolio_value: string;
+  pattern_day_trader: boolean;
+  trading_blocked: boolean;
+  transfers_blocked: boolean;
+  account_blocked: boolean;
+  created_at: string;
+};
+
+export async function getAlpacaAccount(): Promise<AlpacaAccountInfo> {
+  const res = await fetch("/api/alpaca/account", { cache: "no-store" });
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({ detail: "Failed to fetch Alpaca account" }));
+    throw new Error(error.detail || "Failed to fetch Alpaca account");
+  }
+  return res.json();
+}
+
+export async function getAlpacaAssets(
+  exchange?: string,
+  assetClass: "us_equity" | "crypto" = "us_equity"
+): Promise<AlpacaAsset[]> {
+  const params = new URLSearchParams();
+  if (exchange) params.set("exchange", exchange);
+  params.set("asset_class", assetClass);
+  params.set("source", "local");
+  const url = `/api/alpaca/assets?${params.toString()}`;
+  const res = await fetch(url, { cache: "no-store" });
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({ detail: "Failed to fetch Alpaca assets" }));
+    throw new Error(error.detail || "Failed to fetch Alpaca assets");
+  }
+  return res.json();
+}
+
+export async function syncAlpacaSymbols(
+  symbols: string[],
+  opts?: { assetClass?: "us_equity" | "crypto"; exchange?: string | null; source?: "local" | "live" }
+): Promise<{ success: boolean; synced_count: number; saved_count?: number }> {
+  const res = await fetch("/api/alpaca/sync", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      symbols,
+      asset_class: opts?.assetClass ?? "us_equity",
+      exchange: opts?.exchange ?? undefined,
+      source: opts?.source ?? "local",
+    }),
+  });
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({ detail: "Failed to sync Alpaca symbols" }));
+    throw new Error(error.detail || "Failed to sync Alpaca symbols");
+  }
+  return res.json();
+}
+
+export async function updateAlpacaLocalCache(
+  markets?: Array<"us_equity" | "crypto">
+): Promise<{ success: boolean; count: number; filename: string }> {
+  const res = await fetch("/api/alpaca/update-local-cache", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(markets ? { markets } : {}),
+  });
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({ detail: "Failed to update Alpaca local cache" }));
+    throw new Error(error.detail || "Failed to update Alpaca local cache");
+  }
+  return res.json();
+}
+
+export type AlpacaExchange = {
+  name: string;
+  asset_count: number;
+};
+
+export async function getAlpacaExchanges(assetClass: "us_equity" | "crypto" = "us_equity"): Promise<AlpacaExchange[]> {
+  const params = new URLSearchParams();
+  params.set("asset_class", assetClass);
+  params.set("source", "local");
+  const res = await fetch(`/api/alpaca/exchanges?${params.toString()}`, { cache: "no-store" });
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({ detail: "Failed to fetch Alpaca exchanges" }));
+    throw new Error(error.detail || "Failed to fetch Alpaca exchanges");
+  }
+  const data = await res.json();
+  return data;
+}
+
+export type AlpacaCacheMeta = {
+  exists: boolean;
+  asset_class: "us_equity" | "crypto";
+  updated_at?: string;
+  total_assets?: number;
+};
+
+export async function getAlpacaCacheMeta(assetClass: "us_equity" | "crypto" = "us_equity"): Promise<AlpacaCacheMeta> {
+  const params = new URLSearchParams();
+  params.set("asset_class", assetClass);
+  const res = await fetch(`/api/alpaca/cache-meta?${params.toString()}`, { cache: "no-store" });
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({ detail: "Failed to fetch Alpaca cache meta" }));
+    throw new Error(error.detail || "Failed to fetch Alpaca cache meta");
+  }
+  return res.json();
+}
+
+export type AlpacaSupabaseStats = {
+  asset_class: "us_equity" | "crypto";
+  exchange_filter?: string | null;
+  alpaca_exchanges?: string[];
+  alpaca_assets_cache?: { rows: number; last_updated_at?: string | null };
+  stock_prices?: { rows: number; last_date?: string | null };
+  stock_bars_intraday?: {
+    rows: number;
+    last_ts?: string | null;
+    by_timeframe?: Record<"1m" | "1h" | "1d", number>;
+  };
+};
+
+export type CryptoSymbolStat = {
+  symbol: string;
+  rows_count: number;
+  first_ts: string | null;
+  last_ts: string | null;
+};
+
+export async function getAlpacaSupabaseStats(
+  assetClass: "us_equity" | "crypto" = "us_equity",
+  exchange?: string
+): Promise<AlpacaSupabaseStats> {
+  const params = new URLSearchParams();
+  params.set("asset_class", assetClass);
+  if (exchange) params.set("exchange", exchange);
+  const res = await fetch(`/api/alpaca/supabase-stats?${params.toString()}`, { cache: "no-store" });
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({ detail: "Failed to fetch Alpaca Supabase stats" }));
+    throw new Error(error.detail || "Failed to fetch Alpaca Supabase stats");
+  }
+  return res.json();
+}
+
+export async function syncAlpacaPrices(
+  symbols: string[],
+  opts: {
+    assetClass: "us_equity" | "crypto";
+    exchange?: string | null;
+    days: number;
+    source?: "local" | "live" | "tradingview" | "binance";
+    timeframe?: "1m" | "1h" | "1d";
+  }
+): Promise<{
+  success: boolean;
+  symbols: number;
+  rows_upserted: number;
+  days: number;
+  timeframe?: "1m" | "1h" | "1d";
+  volume_total?: number;
+  volume_missing?: number;
+}> {
+  const res = await fetch("/api/alpaca/sync-prices", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      symbols,
+      asset_class: opts.assetClass,
+      exchange: opts.exchange ?? undefined,
+      days: opts.days,
+      source: opts.source ?? "local",
+      timeframe: opts.timeframe ?? "1d",
+    }),
+  });
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({ detail: "Failed to sync Alpaca prices" }));
+    throw new Error(error.detail || "Failed to sync Alpaca prices");
+  }
+  return res.json();
+}
+
+export async function getCryptoSymbolStats(
+  timeframe: "1m" | "1h" | "1d" = "1h"
+): Promise<CryptoSymbolStat[]> {
+  const params = new URLSearchParams();
+  params.set("timeframe", timeframe);
+  const res = await fetch(`/api/alpaca/crypto-symbols-stats?${params.toString()}`, { cache: "no-store" });
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({ detail: "Failed to fetch crypto symbol stats" }));
+    throw new Error(error.detail || "Failed to fetch crypto symbol stats");
+  }
+  return res.json();
+}
+
+export async function deleteCryptoBars(
+  symbols: string[],
+  timeframe: "1m" | "1h" | "1d" = "1h"
+): Promise<{ success: boolean; deleted: number; symbols: number; timeframe: string }> {
+  const res = await fetch("/api/alpaca/crypto-delete-bars", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ symbols, timeframe }),
+  });
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({ detail: "Failed to delete crypto bars" }));
+    throw new Error(error.detail || "Failed to delete crypto bars");
+  }
+  return res.json();
 }

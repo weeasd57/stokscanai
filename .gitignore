@@ -20,6 +20,7 @@ build/
 api/data_cache/
 api/.pytest_cache/
 api/.mplconfig/
+alpaca_exchanges/
 
 # IDEs
 .vscode/

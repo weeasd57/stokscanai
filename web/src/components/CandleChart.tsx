@@ -93,9 +93,9 @@ export default function CandleChart({
                 pressedMouseMove: true,
             },
             handleScale: {
-                axisPressedMouseMove: true,
-                mouseWheel: true,
-                pinch: true,
+                axisPressedMouseMove: false,
+                mouseWheel: false,
+                pinch: false,
             },
         };
 

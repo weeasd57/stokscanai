@@ -11,6 +11,50 @@ body {
 }
 
 @layer utilities {
+  /* ApexCharts dark dropdown + toolbar icons (admin charts) */
+  .apexcharts-menu,
+  .apexcharts-menu.apexcharts-menu-open,
+  .apexcharts-menu-open {
+    background-color: rgba(24, 24, 27, 0.96) !important;
+    background: rgba(24, 24, 27, 0.96) !important;
+    border: 1px solid rgba(255, 255, 255, 0.10) !important;
+    border-radius: 14px !important;
+    box-shadow: 0 25px 70px rgba(0, 0, 0, 0.55) !important;
+    padding: 6px !important;
+    color: rgb(228, 228, 231) !important;
+  }
+
+  .apexcharts-menu .apexcharts-menu-item,
+  .apexcharts-menu .apexcharts-menu-item a {
+    color: rgb(228, 228, 231) !important;
+    border-radius: 10px !important;
+    margin: 2px !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.08em !important;
+    text-transform: uppercase !important;
+    font-size: 10px !important;
+    opacity: 1 !important;
+  }
+
+  .apexcharts-menu .apexcharts-menu-item:hover,
+  .apexcharts-menu .apexcharts-menu-item:hover a {
+    background: rgba(99, 102, 241, 0.16) !important;
+  }
+
+  .apexcharts-toolbar svg,
+  .apexcharts-toolbar svg path,
+  .apexcharts-toolbar svg circle,
+  .apexcharts-toolbar svg rect {
+    fill: rgb(161, 161, 170) !important;
+  }
+
+  .apexcharts-toolbar .apexcharts-selected svg,
+  .apexcharts-toolbar .apexcharts-selected svg path,
+  .apexcharts-toolbar .apexcharts-selected svg circle,
+  .apexcharts-toolbar .apexcharts-selected svg rect {
+    fill: rgb(99, 102, 241) !important;
+  }
+
   @keyframes shimmer {
     0% { transform: translateX(-100%); }
     100% { transform: translateX(100%); }

@@ -134,7 +134,7 @@ const initialState: TestModelState = {
   targetPct: 0.15,
   stopLossPct: 0.05,
   lookForwardDays: 20,
-  buyThreshold: 0.40,
+  buyThreshold: 0.45,
   asOfDate: defaultEnd,
   isAutoDetected: false,
   uiSettings: {

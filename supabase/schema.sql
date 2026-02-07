@@ -423,11 +423,41 @@ alter table public.stock_prices enable row level security;
 create policy "allow_read_all_prices" on public.stock_prices for select using (true);
 grant select on public.stock_prices to anon, authenticated;
 
+-- Intraday Bars (Minute/Hour)
+-- Used for Alpaca 1m/1h history, and (optionally) crypto 1d bars to keep all crypto timeframes in one table.
+create table if not exists public.stock_bars_intraday (
+    symbol text not null,
+    exchange text not null,
+    timeframe text not null check (timeframe in ('1m','1h','1d')),
+    ts timestamptz not null,
+    open numeric(18,6),
+    high numeric(18,6),
+    low numeric(18,6),
+    close numeric(18,6),
+    volume bigint,
+    created_at timestamptz not null default now(),
+    primary key (symbol, exchange, timeframe, ts)
+);
+
+create index if not exists idx_stock_bars_intraday_ts on public.stock_bars_intraday(ts desc);
+create index if not exists idx_stock_bars_intraday_exchange on public.stock_bars_intraday(exchange, timeframe);
+
+alter table public.stock_bars_intraday enable row level security;
+create policy "allow_read_all_intraday_bars" on public.stock_bars_intraday for select using (true);
+grant select on public.stock_bars_intraday to anon, authenticated;
+
+-- If table already exists from a previous version, ensure 1d is allowed.
+alter table public.stock_bars_intraday
+  drop constraint if exists stock_bars_intraday_timeframe_check;
+alter table public.stock_bars_intraday
+  add constraint stock_bars_intraday_timeframe_check check (timeframe in ('1m','1h','1d'));
+
 -- Stock Fundamentals (Company Info)
 create table if not exists public.stock_fundamentals (
     symbol text not null,
     exchange text not null,
     data jsonb not null default '{}'::jsonb,
+    fund_score numeric(10,4),
     updated_at timestamptz not null default now(),
     primary key (symbol, exchange)
 );
@@ -435,6 +465,34 @@ create table if not exists public.stock_fundamentals (
 alter table public.stock_fundamentals enable row level security;
 create policy "allow_read_all_fundamentals" on public.stock_fundamentals for select using (true);
 grant select on public.stock_fundamentals to anon, authenticated;
+
+-- Alpaca Assets Cache (Downloaded Symbols)
+-- Populated by `POST /alpaca/update-local-cache` to keep a searchable DB copy of downloaded assets.
+create table if not exists public.alpaca_assets_cache (
+    symbol text not null,
+    exchange text not null,
+    asset_class text not null check (asset_class in ('us_equity','crypto')),
+
+    name text,
+    status text,
+    tradable boolean,
+    marginable boolean,
+    shortable boolean,
+    easy_to_borrow boolean,
+    fractionable boolean,
+
+    raw jsonb not null default '{}'::jsonb,
+    updated_at timestamptz not null default now(),
+
+    primary key (symbol, exchange, asset_class)
+);
+
+create index if not exists idx_alpaca_assets_cache_asset_class on public.alpaca_assets_cache(asset_class);
+create index if not exists idx_alpaca_assets_cache_exchange on public.alpaca_assets_cache(exchange);
+
+alter table public.alpaca_assets_cache enable row level security;
+create policy "allow_read_all_alpaca_assets_cache" on public.alpaca_assets_cache for select using (true);
+grant select on public.alpaca_assets_cache to anon, authenticated;
 
 -- Data Sync Logs (Auditing)
 create table if not exists public.data_sync_logs (
@@ -515,6 +573,31 @@ $$;
 grant execute on function public.get_inventory_stats() to anon, authenticated;
 grant execute on function public.get_active_symbols(text) to anon, authenticated;
 grant execute on function public.get_active_countries() to anon, authenticated;
+
+-- Crypto Symbol Stats RPC (for Data Center dialog)
+create or replace function public.get_crypto_symbol_stats(p_timeframe text default '1h')
+returns table (
+    symbol text,
+    rows_count bigint,
+    first_ts timestamptz,
+    last_ts timestamptz
+)
+language sql
+security definer
+as $$
+  select
+    symbol,
+    count(*) as rows_count,
+    min(ts) as first_ts,
+    max(ts) as last_ts
+  from public.stock_bars_intraday
+  where exchange = 'CRYPTO'
+    and timeframe = p_timeframe
+  group by symbol
+  order by rows_count desc;
+$$;
+
+grant execute on function public.get_crypto_symbol_stats(text) to anon, authenticated;
 -- Pre-calculated Technical Indicators Table
 -- This table stores daily pre-calculated technical indicators for all stocks
 -- Updated by a background job running nightly

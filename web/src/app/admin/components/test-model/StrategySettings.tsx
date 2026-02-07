@@ -89,7 +89,7 @@ export default function StrategySettings({
                 </div>
                 <div className="space-y-1">
                     <Label className="text-[9px] uppercase text-zinc-500">Sensitivity</Label>
-                    <Select value={String(buyThreshold ?? 0.40)} onValueChange={(v: string) => { setBuyThreshold(Number(v)); setIsAutoDetected(false); }}>
+                    <Select value={String(buyThreshold ?? 0.45)} onValueChange={(v: string) => { setBuyThreshold(Number(v)); setIsAutoDetected(false); }}>
                         <SelectTrigger className="h-9 sm:h-10 text-[10px] sm:text-xs bg-zinc-950/50 border-white/5">
                             <SelectValue />
                         </SelectTrigger>

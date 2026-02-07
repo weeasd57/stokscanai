@@ -36,7 +36,7 @@ from api.stock_ai import run_pipeline
 print("Main: Importing symbols_local...")
 from api.symbols_local import list_countries, search_symbols
 print("Main: Importing routers...")
-from api.routers import scan_ai, scan_ai_fast, scan_tech, admin
+from api.routers import scan_ai, scan_ai_fast, scan_tech, admin, alpaca
 print("Main: Imports done.")
 
 load_dotenv()
@@ -65,6 +65,7 @@ app.include_router(scan_ai.router)
 app.include_router(scan_ai_fast.router)
 app.include_router(scan_tech.router)
 app.include_router(admin.router)
+app.include_router(alpaca.router)
 
 CONFIG_FILE = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "admin_config.json"))
 
@@ -156,7 +157,7 @@ class PredictRequest(BaseModel):
     target_pct: float = Field(default=0.15)
     stop_loss_pct: float = Field(default=0.05)
     look_forward_days: int = Field(default=20)
-    buy_threshold: float = Field(default=0.40)
+    buy_threshold: float = Field(default=0.45)
     use_volatility_label: bool = Field(default=False)
 
 
@@ -499,10 +500,20 @@ def symbols_synced(
             _init_supabase()
             raw = load_symbols_for_country(country)
 
-            # Map to consistent format, handling potential case differences in JSON keys
+            # Batch check for Supabase presence to avoid O(N) queries
+            from api.stock_ai import batch_check_local_cache
+            symbol_ex_list = []
+            for r in raw:
+                s = r.get("Symbol") or r.get("symbol") or r.get("Code") or r.get("code")
+                ex = r.get("Exchange") or r.get("exchange")
+                if s and ex:
+                    symbol_ex_list.append((s, ex))
+            
+            sync_status = batch_check_local_cache(symbol_ex_list)
+
+            # Map to consistent format
             results = []
             for r in raw:
-                # Try capitalized first (standard for these files), then lowercase, also check "Code"
                 s = r.get("Symbol") or r.get("symbol") or r.get("Code") or r.get("code")
                 ex = r.get("Exchange") or r.get("exchange")
                 n = r.get("Name") or r.get("name") or ""
@@ -512,7 +523,7 @@ def symbols_synced(
                         "exchange": ex,
                         "name": n,
                         "country": country,
-                        "hasLocal": is_ticker_synced(s, ex)
+                        "hasLocal": sync_status.get((s, ex), False)
                     })
             return {"results": results}
 
@@ -687,6 +698,7 @@ class BacktestRequest(PBM):
     end_date: str | None = None
     council_model: str | None = None
     validator_model: str | None = None
+    meta_threshold: float | None = None
 
 
 def _safe_basename(name: str) -> str:
@@ -734,10 +746,11 @@ def _compute_benchmark_metrics(project_root: str, model_name: str, start_date: s
             index_rel = os.path.join("symbols_data", "EGX30-INDEX.json")
 
         if not index_rel:
+            print(f"[BT-LIVE] DEBUG: No exchange index json path for model={model_name}, exchange={exchange}", flush=True)
             return None, None, None
 
-        index_rel = str(index_rel).replace("\\", "/").lstrip("/")
         index_path = os.path.join(project_root, index_rel)
+        print(f"[BT-LIVE] DEBUG: Loading exchange index json for model={model_name}, exchange={exchange}, path={index_path}", flush=True)
         if not os.path.exists(index_path):
             return None, None, None
 
@@ -794,6 +807,7 @@ def _compute_benchmark_metrics(project_root: str, model_name: str, start_date: s
                 benchmark_win_rate = (positive_days / total_days) * 100.0
 
         benchmark_name = os.path.splitext(os.path.basename(index_path))[0]
+        print(f"[BT-LIVE] DEBUG: Benchmark stats model={model_name}, exchange={exchange}, return_pct={benchmark_return_pct}, win_rate={benchmark_win_rate}, name={benchmark_name}", flush=True)
         return benchmark_return_pct, benchmark_win_rate, str(benchmark_name)
     except Exception:
         return None, None, None
@@ -876,6 +890,7 @@ async def backtest_endpoint(req: BacktestRequest, background_tasks: BackgroundTa
         end_date=req.end_date,
         council_model=req.council_model,
         validator_model=requested_validator,
+        meta_threshold=req.meta_threshold,
     )
 
     background_tasks.add_task(run_backtest_task, req_sanitized, backtest_id)
@@ -918,6 +933,9 @@ def run_backtest_task(req: BacktestRequest, backtest_id: str = None):
 
     if req.validator_model:
         cmd.extend(["--validator", req.validator_model])
+
+    if req.meta_threshold is not None:
+        cmd.extend(["--meta-threshold", str(req.meta_threshold)])
     
     if not os.path.exists(script_path):
         print(f"Error: Backtest script not found at {script_path}")
@@ -1059,7 +1077,14 @@ def run_backtest_task(req: BacktestRequest, backtest_id: str = None):
                         "Entry_Day": row.get("Entry_Day", ""),
                         "Exit_Day": row.get("Exit_Day", ""),
                         "Profit_Cash": float(row.get("Profit_Cash", 0) or 0),
-                        "Cumulative_Profit": float(row.get("Cumulative_Profit", 0) or 0)
+                        "Cumulative_Profit": float(row.get("Cumulative_Profit", 0) or 0),
+                        "Position_Cash": float(row.get("Position_Cash", 0) or 0),
+                        "Size_Multiplier": float(row.get("Size_Multiplier", 0) or 0),
+                        "Score": (float(row.get("Score")) if row.get("Score") is not None else None),
+                        "Radar_Score": (float(row.get("Radar_Score")) if row.get("Radar_Score") is not None else None),
+                        "Validator_Score": (float(row.get("Validator_Score")) if row.get("Validator_Score") is not None else None),
+                        "Sizing_Score": (float(row.get("Sizing_Score")) if row.get("Sizing_Score") is not None else None),
+                        "Fund_Score": (float(row.get("Fund_Score")) if row.get("Fund_Score") is not None else None),
                     })
         except Exception as e:
             print(f"Error parsing trades JSON: {e}")
@@ -1089,78 +1114,8 @@ def run_backtest_task(req: BacktestRequest, backtest_id: str = None):
             # Note: We are discarding Alpha Pct calculation and replacing it with Index Win Rate
             # as requested by the user.
 
-            # Save trades into scan_results as backtest rows (batch_id = backtest_id)
-            if backtest_id and trades:
-                def _country_from_exchange(ex: str) -> str:
-                    ex_u = (ex or "").upper()
-                    if ex_u == "EGX":
-                        return "Egypt"
-                    if ex_u in ("US", "USA"):
-                        return "USA"
-                    if ex_u == "UK":
-                        return "United Kingdom"
-                    return ex or "Unknown"
-
-                scan_rows = []
-                for t in trades:
-                    symbol = t.get("symbol") or ""
-                    if not symbol:
-                        continue
-                    entry_price = float(t.get("entry") or 0)
-                    exit_price = float(t.get("exit") or 0)
-                    pnl_pct = float(t.get("pnl_pct") or 0)
-                    last_close = exit_price if exit_price else entry_price
-                    scan_rows.append({
-                        "batch_id": backtest_id,
-                        "symbol": symbol,
-                        "exchange": exchange,
-                        "name": symbol,
-                        "model_name": model_name,
-                        "country": _country_from_exchange(exchange),
-                        "last_close": last_close,
-                        "precision": None,
-                        "signal": "backtest",
-                        "is_public": False,
-                        "from_date": start_date,
-                        "to_date": end_date,
-                        "status": "win" if pnl_pct > 0 else ("loss" if pnl_pct < 0 else "open"),
-                        "entry_price": entry_price,
-                        "exit_price": exit_price,
-                        "profit_loss_pct": pnl_pct * 100.0,
-                        "features": {
-                            "trade_date": t.get("date"),
-                            "backtest_status": t.get("status"),
-                            "votes": t.get("votes"),
-                            "entry_date": t.get("Entry_Date"),
-                            "exit_date": t.get("Exit_Date"),
-                            "entry_day": t.get("Entry_Day"),
-                            "exit_day": t.get("Exit_Day"),
-                            "profit_cash": t.get("Profit_Cash"),
-                            "cumulative_profit": t.get("Cumulative_Profit")
-                        },
-                        "source": "backtest",
-                    })
-
-                try:
-                    # Cleanup existing trades for this backtest id to avoid duplicates
-                    try:
-                        supabase.table("scan_results").delete().eq("batch_id", backtest_id).eq("source", "backtest").execute()
-                    except Exception:
-                        supabase.table("scan_results").delete().eq("batch_id", backtest_id).execute()
-
-                    # Insert in batches
-                    batch_size = 500
-                    for i in range(0, len(scan_rows), batch_size):
-                        chunk = scan_rows[i:i+batch_size]
-                        try:
-                            supabase.table("scan_results").insert(chunk).execute()
-                        except Exception:
-                            # Retry without source if schema not migrated yet
-                            for row in chunk:
-                                row.pop("source", None)
-                            supabase.table("scan_results").insert(chunk).execute()
-                except Exception as e:
-                    print(f"Warning: Failed to save backtest trades to scan_results: {e}")
+            # Backtest results are stored only in the backtests table (trades_log).
+            # We do not write backtest trades into scan_results.
 
             # 5. Final Save to Supabase
             if backtest_id:
@@ -1260,16 +1215,46 @@ def run_backtest_task(req: BacktestRequest, backtest_id: str = None):
 @app.get("/backtests")
 async def get_backtests(model: Optional[str] = None):
     """Fetch all backtest historical records."""
-    from api.stock_ai import supabase
-    if not supabase:
-        raise HTTPException(status_code=500, detail="Supabase not initialized")
-    
-    query = supabase.table("backtests").select("*").order("created_at", desc=True)
-    if model:
-        query = query.eq("model_name", model)
-    
-    res = query.execute()
-    return res.data
+    import time as _time
+    import api.stock_ai as stock_ai
+
+    # Soft cache to keep UI stable if Supabase intermittently fails (e.g., SSL EOF during polling)
+    global _BACKTESTS_SOFT_CACHE  # type: ignore[name-defined]
+    try:
+        _BACKTESTS_SOFT_CACHE
+    except Exception:
+        _BACKTESTS_SOFT_CACHE = {"ts": 0.0, "data": []}
+
+    stock_ai._init_supabase()
+    if not stock_ai.supabase:
+        # Return cache instead of hard-failing when the UI polls aggressively
+        return _BACKTESTS_SOFT_CACHE.get("data", [])
+
+    def _build_query():
+        q = stock_ai.supabase.table("backtests").select("*").order("created_at", desc=True)
+        if model:
+            q = q.eq("model_name", model)
+        return q
+
+    last_err = None
+    for attempt in range(1, 4):
+        try:
+            res = _build_query().execute()
+            data = res.data or []
+            _BACKTESTS_SOFT_CACHE = {"ts": _time.time(), "data": data}
+            return data
+        except Exception as e:
+            last_err = e
+            # Re-init and retry (helps when client/connection gets into a bad state)
+            try:
+                stock_ai.supabase = None
+            except Exception:
+                pass
+            stock_ai._init_supabase()
+            _time.sleep(0.35 * attempt)
+
+    print(f"Unhandled exception for GET /backtests: {last_err}")
+    return _BACKTESTS_SOFT_CACHE.get("data", [])
 
 
 @app.get("/backtests/{id}/trades")
@@ -1305,14 +1290,17 @@ async def get_backtest_trades(id: str):
                 "status": "win" if pnl > 0 else "loss",
                 "features": {
                     "trade_date": t.get("date"),
-                    "backtest_status": "Accepted", 
+                    "backtest_status": t.get("status") or t.get("Status") or "Accepted", 
                     "votes": "{}",
                     "entry_date": t.get("Entry_Date"),
                     "exit_date": t.get("Exit_Date"),
                     "entry_day": t.get("Entry_Day"),
                     "exit_day": t.get("Exit_Day"),
                     "profit_cash": t.get("Profit_Cash") or t.get("features", {}).get("profit_cash"),
-                    "cumulative_profit": t.get("Cumulative_Profit") or t.get("features", {}).get("cumulative_profit")
+                    "cumulative_profit": t.get("Cumulative_Profit") or t.get("features", {}).get("cumulative_profit"),
+                    "ai_score": t.get("Score") or t.get("score") or t.get("features", {}).get("ai_score"),
+                    "radar_score": t.get("Radar_Score") or t.get("radar_score") or t.get("features", {}).get("radar_score"),
+                    "fund_score": t.get("Fund_Score") or t.get("fund_score") or t.get("features", {}).get("fund_score")
                 },
                 "created_at": t.get("date")
             })
