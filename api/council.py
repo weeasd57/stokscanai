@@ -15,7 +15,7 @@ DEBUG_LOG = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file_
 fh = logging.FileHandler(DEBUG_LOG, encoding='utf-8')
 fh.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
 logger.addHandler(fh)
-logger.error("COUNCIL: File logging initialized.")
+logger.info("COUNCIL: File logging initialized.")
 
 class TheCouncil:
     """

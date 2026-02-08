@@ -822,6 +822,24 @@ export async function getAlpacaAccount(): Promise<AlpacaAccountInfo> {
   return res.json();
 }
 
+export type AlpacaPositionInfo = {
+  symbol: string;
+  qty: string;
+  side?: string | null;
+  market_value?: string | null;
+  unrealized_intraday_pl?: string | null;
+  unrealized_pl?: string | null;
+};
+
+export async function getAlpacaPositions(): Promise<AlpacaPositionInfo[]> {
+  const res = await fetch("/api/alpaca/positions", { cache: "no-store" });
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({ detail: "Failed to fetch Alpaca positions" }));
+    throw new Error(error.detail || "Failed to fetch Alpaca positions");
+  }
+  return res.json();
+}
+
 export async function getAlpacaAssets(
   exchange?: string,
   assetClass: "us_equity" | "crypto" = "us_equity"

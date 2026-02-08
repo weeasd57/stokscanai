@@ -57,6 +57,10 @@ const nextConfig = {
         source: '/positions/:path*',
         destination: `${BACKEND_URL}/positions/:path*`,
       },
+      {
+        source: '/bot/:path*',
+        destination: `${BACKEND_URL}/bot/:path*`,
+      },
     ];
   },
 };

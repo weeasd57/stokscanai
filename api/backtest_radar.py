@@ -3,6 +3,7 @@ import sys
 import os
 import pickle
 import warnings
+import re
 import pandas as pd
 import numpy as np
 import json
@@ -15,7 +16,11 @@ load_dotenv(os.path.join(base_dir, ".env"))
 # Also try web/.env.local where Supabase keys overlap often in this project structure
 load_dotenv(os.path.join(base_dir, "web", ".env.local"), override=True)
 
-print(f"DEBUG: NEXT_PUBLIC_SUPABASE_URL found? {'NEXT_PUBLIC_SUPABASE_URL' in os.environ}", flush=True)
+if os.getenv("BT_DEBUG_ENV") == "1":
+    print(
+        f"DEBUG: NEXT_PUBLIC_SUPABASE_URL found? {'NEXT_PUBLIC_SUPABASE_URL' in os.environ}",
+        flush=True,
+    )
 
 
 # Add api parent dir to path to allow imports
@@ -32,6 +37,40 @@ if sys.platform == "win32":
 
 # Global cache for index data to avoid repeated file reads
 _INDEX_CACHE = {}
+
+_DATE_ISO_RE = re.compile(r"^\\d{4}-\\d{2}-\\d{2}$")
+_DATE_ISO_DATETIME_RE = re.compile(r"^\\d{4}-\\d{2}-\\d{2}T")
+_DATE_DMY_SLASH_RE = re.compile(r"^\\d{1,2}/\\d{1,2}/\\d{4}$")
+
+
+def _parse_cli_date(value: str) -> pd.Timestamp:
+    """
+    Parse CLI dates reliably.
+
+    Notes:
+    - The UI sends ISO dates like YYYY-MM-DD. Pandas with dayfirst=True will mis-parse
+      these as YYYY-DD-MM (e.g. 2025-07-01 -> 2025-01-07), so we must detect ISO.
+    - We still support dd/mm/yyyy from older UI inputs.
+    """
+    v = (value or "").strip()
+    if not v:
+        raise ValueError("Empty date")
+
+    if _DATE_ISO_RE.match(v):
+        return pd.to_datetime(v, format="%Y-%m-%d", errors="raise")
+
+    if _DATE_ISO_DATETIME_RE.match(v):
+        return pd.to_datetime(v, errors="raise")
+
+    if _DATE_DMY_SLASH_RE.match(v):
+        return pd.to_datetime(v, dayfirst=True, errors="raise")
+
+    # Fallback: prefer month-first parsing, then day-first.
+    try:
+        return pd.to_datetime(v, dayfirst=False, errors="raise")
+    except Exception:
+        return pd.to_datetime(v, dayfirst=True, errors="raise")
+
 
 def load_egx30_index(start_date: str = None, end_date: str = None):
     """
@@ -169,12 +208,15 @@ def run_radar_simulation(
     capital=100000,
     sim_start_dt: datetime | None = None,
     sim_end_dt: datetime | None = None,
+    quiet: bool = False,
+    validator_threshold: float | None = None,
 ):
     """
     Simulation of Radar: Base Model Detector -> Meta Model Confirmation.
     """
     if df.empty: return {}
-    print(f"DEBUG: run_radar_simulation called for {len(df)} rows", flush=True)
+    if not quiet:
+        print(f"DEBUG: run_radar_simulation called for {len(df)} rows", flush=True)
 
     max_score = 0.0
     max_consensus = 0.0
@@ -497,16 +539,17 @@ def run_radar_simulation(
                     print(f"Warning: Council validator failed: {e}", flush=True)
                     validator_probs = None
 
-        # Deep Debug
-        max_score = float(np.max(confidences)) if len(confidences) > 0 else 0.0
-        max_consensus = float(np.max(consensus_scores)) if consensus_scores is not None else 0.0
-        max_validator = float(np.max(validator_probs)) if validator_probs is not None and len(validator_probs) > 0 else 0.0
+        # Deep Debug (Disabled for clean terminal)
+        # max_score = float(np.max(confidences)) if len(confidences) > 0 else 0.0
+        # max_consensus = float(np.max(consensus_scores)) if consensus_scores is not None else 0.0
+        # max_validator = float(np.max(validator_probs)) if validator_probs is not None and len(validator_probs) > 0 else 0.0
         
-        print(
-            f"DEBUG: Symbol {df['symbol'].iloc[0] if 'symbol' in df.columns else '??'} "
-            f"Max Radar: {max_score:.4f} | Max Council: {max_consensus:.4f} | Max Validator: {max_validator:.4f}",
-            flush=True
-        )
+        # print(
+        #     f"DEBUG: Symbol {df['symbol'].iloc[0] if 'symbol' in df.columns else '??'} "
+        #     f"Max Radar: {max_score:.4f} | Max Council: {max_consensus:.4f} | Max Validator: {max_validator:.4f}",
+        #     flush=True
+        # )
+        pass
         
     except Exception as e:
         print(f"ERROR: run_radar_simulation prediction failed: {e}", flush=True)
@@ -541,7 +584,16 @@ def run_radar_simulation(
     if hold_max != HOLD_MAX_BARS:
         print(f"[BT-LIVE] Using adaptive hold window: {hold_max} bars (requested {HOLD_MAX_BARS})", flush=True)
 
+    in_trade = False
+    exit_idx = -1
+
     for i in range(len(df) - hold_max):
+        # Skip if we are currently in a trade
+        if in_trade:
+            if i <= exit_idx:
+                continue
+            else:
+                in_trade = False
         radar_score = confidences[i]
         council_score = consensus_scores[i] if consensus_scores is not None else 1.0
         validator_score = float(validator_probs[i]) if validator_probs is not None else None
@@ -552,7 +604,11 @@ def run_radar_simulation(
         # Check if Council phase also passes
         passes_council = council_score >= 0.55
         if validator_probs is not None:
-            passes_council = passes_council and (validator_probs[i] >= float(getattr(getattr(run_radar_simulation, "_validator", None), "approval_threshold", 0.5)))
+            v_thresh = validator_threshold
+            if v_thresh is None:
+                v_thresh = float(getattr(getattr(run_radar_simulation, "_validator", None), "approval_threshold", 0.5))
+            
+            passes_council = passes_council and (validator_probs[i] >= v_thresh)
         
         # Track pre-council if radar passes
         if passes_radar:
@@ -580,6 +636,7 @@ def run_radar_simulation(
             pnl_pct = 0.0
             exit_date = dates[i+hold_max]
             exit_price = closes[i+hold_max]
+            exit_idx = i + hold_max
             
             for days_fwd in range(1, hold_max + 1):
                 idx = i + days_fwd
@@ -597,6 +654,7 @@ def run_radar_simulation(
                     pnl_pct = (current_stop - entry_price) / entry_price
                     exit_date = dates[idx]
                     exit_price = current_stop
+                    exit_idx = idx
                     break
 
                 if hi >= take_profit:
@@ -604,6 +662,7 @@ def run_radar_simulation(
                     pnl_pct = TARGET_PCT
                     exit_date = dates[idx]
                     exit_price = take_profit
+                    exit_idx = idx
                     break
 
                 if USE_TRAILING:
@@ -658,6 +717,9 @@ def run_radar_simulation(
                 "Votes": {m: round(float(v[i]), 2) for m, v in detailed_votes.items()}
             }
             
+            # Set in_trade flag
+            in_trade = True
+
             # Track pre-council (all radar signals)
             balance_pre *= (1 + pnl_pct)
             pre_council_trades.append({**trade_data, "Balance": int(balance_pre)})
@@ -742,6 +804,9 @@ def main():
     parser.add_argument("--council", default=None, help="Path to council model (enables Council filtering)")
     parser.add_argument("--validator", default=None, help="Optional Council Validator model (trained on KING BUYs)")
     parser.add_argument("--meta-threshold", type=float, default=None, help="Override meta threshold (0-1)")
+    parser.add_argument("--validator-threshold", type=float, default=None, help="Override validator threshold (0-1)")
+    parser.add_argument("--quiet", "-q", action="store_true", help="Suppress verbose debug output")
+    parser.add_argument("--no-trades-json", action="store_true", help="Do not print trades JSON to stdout")
     args = parser.parse_args()
 
     # Always include a buffer window before the selected start date
@@ -750,8 +815,7 @@ def main():
     
     # Load Data
     try:
-        # Support dd/mm/yyyy input from frontend
-        start_dt = pd.to_datetime(args.start, dayfirst=True).tz_localize(None)
+        start_dt = _parse_cli_date(args.start).tz_localize(None)
         args.start = start_dt.strftime("%Y-%m-%d") 
         
         # Use a generous buffer (1 year) to ensure all technical indicators have enough history
@@ -979,8 +1043,8 @@ def main():
                 df_feat["fund_score"] = fund_score_raw
             
             # Slice simulation period (with optional buffer if too few rows)
-            sim_start_dt = pd.to_datetime(args.start, dayfirst=True).tz_localize(None)
-            sim_end_dt = pd.to_datetime(args.end, dayfirst=True).tz_localize(None) if args.end else None
+            sim_start_dt = _parse_cli_date(args.start).tz_localize(None)
+            sim_end_dt = _parse_cli_date(args.end).tz_localize(None) if args.end else None
             
             if not isinstance(df_feat.index, pd.DatetimeIndex):
                 df_feat.index = pd.to_datetime(df_feat.index, errors="coerce")
@@ -997,11 +1061,11 @@ def main():
             if sim_end_dt:
                 buffer_mask = buffer_mask & (idx_clean <= sim_end_dt)
             df_sim = df_feat[buffer_mask]
-            print(
-                f"[BT-LIVE] Buffer applied for {symbol}: {len(df_sim)} rows "
-                f"(buffer {SIM_BUFFER_DAYS}d) — trades limited to {args.start} → {args.end}",
-                flush=True
-            )
+            # print(
+            #     f"[BT-LIVE] Buffer applied for {symbol}: {len(df_sim)} rows "
+            #     f"(buffer {SIM_BUFFER_DAYS}d) — trades limited to {args.start} → {args.end}",
+            #     flush=True
+            # )
             
             if df_sim.empty:
                 continue
@@ -1013,6 +1077,8 @@ def main():
                 threshold=sim_threshold,
                 sim_start_dt=sim_start_dt,
                 sim_end_dt=sim_end_dt,
+                quiet=args.quiet,
+                validator_threshold=args.validator_threshold,
             ) 
             
             if isinstance(res, dict) and res:
@@ -1052,9 +1118,10 @@ def main():
             )
 
         # Still emit the JSON marker block so the API/UI can show an empty log consistently.
-        print("\n--- JSON TRADES LOG START ---", flush=True)
-        print("[]", flush=True)
-        print("--- JSON TRADES LOG END ---", flush=True)
+        if not args.no_trades_json:
+            print("\n--- JSON TRADES LOG START ---", flush=True)
+            print("[]", flush=True)
+            print("--- JSON TRADES LOG END ---", flush=True)
         return
         
     global_log = pd.concat(all_trades).sort_values("Date")
@@ -1093,9 +1160,10 @@ def main():
     rejected_profitable = sum(r.get("rejected_profitable", 0) for r in all_res_metadata)
 
     # Output JSON for API consumption
-    print("\n--- JSON TRADES LOG START ---", flush=True)
-    print(global_log.to_json(orient="records", date_format="iso"), flush=True)
-    print("--- JSON TRADES LOG END ---", flush=True)
+    if not args.no_trades_json:
+        print("\n--- JSON TRADES LOG START ---", flush=True)
+        print(global_log.to_json(orient="records", date_format="iso"), flush=True)
+        print("--- JSON TRADES LOG END ---", flush=True)
 
     # out_file = args.out or f"backtest_results_{args.exchange}.csv"
     # try:
@@ -1110,8 +1178,8 @@ def main():
     print(f"Exchange: {args.exchange}", flush=True)
     
     try:
-        s_fmt = pd.to_datetime(args.start, dayfirst=True).strftime("%d/%m/%Y")
-        e_fmt = pd.to_datetime(args.end, dayfirst=True).strftime("%d/%m/%Y") if args.end else "Present"
+        s_fmt = _parse_cli_date(args.start).strftime("%d/%m/%Y")
+        e_fmt = _parse_cli_date(args.end).strftime("%d/%m/%Y") if args.end else "Present"
     except:
         s_fmt, e_fmt = args.start, (args.end or "Present")
         

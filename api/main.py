@@ -66,6 +66,8 @@ app.include_router(scan_ai_fast.router)
 app.include_router(scan_tech.router)
 app.include_router(admin.router)
 app.include_router(alpaca.router)
+from api.routers import bot
+app.include_router(bot.router)
 
 CONFIG_FILE = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "admin_config.json"))
 
@@ -699,6 +701,7 @@ class BacktestRequest(PBM):
     council_model: str | None = None
     validator_model: str | None = None
     meta_threshold: float | None = None
+    council_threshold: float | None = None
 
 
 def _safe_basename(name: str) -> str:
@@ -746,11 +749,11 @@ def _compute_benchmark_metrics(project_root: str, model_name: str, start_date: s
             index_rel = os.path.join("symbols_data", "EGX30-INDEX.json")
 
         if not index_rel:
-            print(f"[BT-LIVE] DEBUG: No exchange index json path for model={model_name}, exchange={exchange}", flush=True)
+            # print(f"[BT-LIVE] DEBUG: No exchange index json path for model={model_name}, exchange={exchange}", flush=True)
             return None, None, None
 
         index_path = os.path.join(project_root, index_rel)
-        print(f"[BT-LIVE] DEBUG: Loading exchange index json for model={model_name}, exchange={exchange}, path={index_path}", flush=True)
+        # print(f"[BT-LIVE] DEBUG: Loading exchange index json for model={model_name}, exchange={exchange}, path={index_path}", flush=True)
         if not os.path.exists(index_path):
             return None, None, None
 
@@ -807,7 +810,7 @@ def _compute_benchmark_metrics(project_root: str, model_name: str, start_date: s
                 benchmark_win_rate = (positive_days / total_days) * 100.0
 
         benchmark_name = os.path.splitext(os.path.basename(index_path))[0]
-        print(f"[BT-LIVE] DEBUG: Benchmark stats model={model_name}, exchange={exchange}, return_pct={benchmark_return_pct}, win_rate={benchmark_win_rate}, name={benchmark_name}", flush=True)
+        # print(f"[BT-LIVE] DEBUG: Benchmark stats model={model_name}, exchange={exchange}, return_pct={benchmark_return_pct}, win_rate={benchmark_win_rate}, name={benchmark_name}", flush=True)
         return benchmark_return_pct, benchmark_win_rate, str(benchmark_name)
     except Exception:
         return None, None, None
@@ -891,6 +894,7 @@ async def backtest_endpoint(req: BacktestRequest, background_tasks: BackgroundTa
         council_model=req.council_model,
         validator_model=requested_validator,
         meta_threshold=req.meta_threshold,
+        council_threshold=req.council_threshold,
     )
 
     background_tasks.add_task(run_backtest_task, req_sanitized, backtest_id)
@@ -937,6 +941,12 @@ def run_backtest_task(req: BacktestRequest, backtest_id: str = None):
     if req.meta_threshold is not None:
         cmd.extend(["--meta-threshold", str(req.meta_threshold)])
     
+    if req.council_threshold is not None:
+        cmd.extend(["--validator-threshold", str(req.council_threshold)])
+    
+    # Always use quiet mode in background tasks to keep terminal clean
+    cmd.append("--quiet")
+    
     if not os.path.exists(script_path):
         print(f"Error: Backtest script not found at {script_path}")
         return
@@ -968,6 +978,7 @@ def run_backtest_task(req: BacktestRequest, backtest_id: str = None):
         stderr_lines = []
 
         # Read stdout in real-time
+        is_json_block = False
         while True:
             line = process.stdout.readline()
             if not line and process.poll() is not None:
@@ -975,7 +986,16 @@ def run_backtest_task(req: BacktestRequest, backtest_id: str = None):
             if line:
                 clean_line = line.strip()
                 stdout_lines.append(line)
-                print(f"[BT-LIVE] {clean_line}")
+                
+                # Filter out the huge JSON trades log from the terminal output
+                if "--- JSON TRADES LOG START ---" in clean_line:
+                    is_json_block = True
+                    print(f"[BT-LIVE] {clean_line} (Suppressed in terminal)")
+                elif "--- JSON TRADES LOG END ---" in clean_line:
+                    is_json_block = False
+                    print(f"[BT-LIVE] {clean_line}")
+                elif not is_json_block:
+                    print(f"[BT-LIVE] {clean_line}")
                 
                 # Update status if interesting progress found
                 if backtest_id and any(x in clean_line for x in ["Fetching", "Progress:", "Loading", "Processing"]):

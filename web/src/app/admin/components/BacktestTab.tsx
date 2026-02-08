@@ -330,20 +330,17 @@ const BacktestAnalysisModal = ({ isOpen, onClose, bt, trades, loading }: { isOpe
                         <th className="px-6 py-4 text-[10px] font-black text-zinc-500 uppercase tracking-widest text-left">Asset</th>
                         <th className="px-6 py-4 text-[10px] font-black text-zinc-500 uppercase tracking-widest text-left">Entry Date</th>
                         <th className="px-6 py-4 text-[10px] font-black text-zinc-500 uppercase tracking-widest text-left">Exit Date</th>
-                        <th className="px-6 py-4 text-[10px] font-black text-zinc-500 uppercase tracking-widest text-center">Days</th>
+                        <th className="px-6 py-4 text-[10px] font-black text-zinc-500 uppercase tracking-widest text-center">Timing</th>
                         <th className="px-6 py-4 text-[10px] font-black text-zinc-500 uppercase tracking-widest text-left">Pricing</th>
-                        <th className="px-6 py-4 text-[10px] font-black text-zinc-500 uppercase tracking-widest text-center">Result</th>
-                        <th className="px-6 py-4 text-[10px] font-black text-zinc-500 uppercase tracking-widest text-center">AI Score</th>
-                        <th className="px-6 py-4 text-[10px] font-black text-zinc-500 uppercase tracking-widest text-center">Fund Score</th>
-                        <th className="px-6 py-4 text-[10px] font-black text-zinc-500 uppercase tracking-widest text-right whitespace-nowrap">Cash</th>
-                        <th className="px-6 py-4 text-[10px] font-black text-zinc-500 uppercase tracking-widest text-right whitespace-nowrap">Profit</th>
-                        <th className="px-6 py-4 text-[10px] font-black text-zinc-500 uppercase tracking-widest text-right whitespace-nowrap">PnL %</th>
+                        <th className="px-6 py-4 text-[10px] font-black text-zinc-500 uppercase tracking-widest text-center">Radar</th>
+                        <th className="px-6 py-4 text-[10px] font-black text-zinc-500 uppercase tracking-widest text-center">Fund</th>
+                        <th className="px-6 py-4 text-[10px] font-black text-zinc-500 uppercase tracking-widest text-right whitespace-nowrap">P/L %</th>
+                        <th className="px-6 py-4 text-[10px] font-black text-zinc-500 uppercase tracking-widest text-center">Status</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-white/5">
                       {filteredTrades.map((t: any, i: number) => {
                         const status = t.features?.backtest_status || 'Accepted';
-                        const votes = typeof t.features?.votes === 'string' ? JSON.parse(t.features.votes.replace(/\\'/g, '"').replace(/'/g, '"')) : (t.features?.votes || {});
                         const isWin = t.profit_loss_pct > 0;
                         const isRejected = status === 'Rejected';
 
@@ -359,70 +356,35 @@ const BacktestAnalysisModal = ({ isOpen, onClose, bt, trades, loading }: { isOpe
                               <span className="text-xs font-mono text-zinc-400">{t.features?.exit_date || t.features?.trade_date || t.created_at?.slice(0, 10) || 'N/A'}</span>
                             </td>
                             <td className="px-6 py-4 text-center">
-                              <span className="text-xs font-mono text-zinc-300">
-                                {(() => {
-                                  const entryDate = t.features?.entry_date || t.features?.trade_date;
-                                  const exitDate = t.features?.exit_date || t.features?.trade_date;
-                                  if (!entryDate || !exitDate) return 'N/A';
-                                  try {
-                                    const entry = new Date(entryDate).getTime();
-                                    const exit = new Date(exitDate).getTime();
-                                    if (!Number.isFinite(entry) || !Number.isFinite(exit)) return 'N/A';
-                                    const days = Math.ceil((exit - entry) / (1000 * 60 * 60 * 24));
-                                    return days >= 0 ? days : 'N/A';
-                                  } catch {
-                                    return 'N/A';
-                                  }
-                                })()}
-                              </span>
+                              <div className="flex flex-col items-center">
+                                <span className="text-xs font-mono text-zinc-300">
+                                  {(() => {
+                                    const entryDate = t.features?.entry_date || t.features?.trade_date;
+                                    const exitDate = t.features?.exit_date || t.features?.trade_date;
+                                    if (!entryDate || !exitDate) return 'N/A';
+                                    try {
+                                      const entry = new Date(entryDate).getTime();
+                                      const exit = new Date(exitDate).getTime();
+                                      if (!Number.isFinite(entry) || !Number.isFinite(exit)) return 'N/A';
+                                      const days = Math.ceil((exit - entry) / (1000 * 60 * 60 * 24));
+                                      return days >= 0 ? `${days}d` : 'N/A';
+                                    } catch { return 'N/A'; }
+                                  })()}
+                                </span>
+                              </div>
                             </td>
                             <td className="px-6 py-4 text-left">
                               <div className="flex flex-col font-mono text-[11px]">
-                                <span className="text-zinc-500">In: {t.entry_price?.toFixed(2)}</span>
-                                <span className="text-zinc-300 font-bold">Out: {t.exit_price?.toFixed(2)}</span>
+                                <span className="text-zinc-500">In: {(t.entry_price || 0) < 0.1 ? (t.entry_price || 0).toFixed(6) : (t.entry_price || 0).toFixed(2)}</span>
+                                <span className="text-zinc-300 font-bold">Out: {(t.exit_price || 0) < 0.1 ? (t.exit_price || 0).toFixed(6) : (t.exit_price || 0).toFixed(2)}</span>
                               </div>
                             </td>
                             <td className="px-6 py-4 text-center">
-                              <div className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-black uppercase ${isRejected ? 'bg-zinc-800 text-zinc-500' : (isWin ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400')}`}>
-                                {isRejected ? <EyeOff className="h-3 w-3" /> : (isWin ? <TrendingUp className="h-3 w-3" /> : <Target className="h-3 w-3" />)}
-                                {isRejected ? 'Filtered Out' : t.status || 'Closed'}
-                              </div>
-                            </td>
-                            <td className="px-6 py-4 text-center">
-                              <div className="flex flex-wrap gap-2">
-                                {Object.entries(votes).map(([model, score]: [any, any]) => {
-                                  const numericScore = Number(score);
-                                  const isValidScore = Number.isFinite(numericScore);
-                                  const isPositive = isValidScore && numericScore >= 0.55;
-                                  const pct = isValidScore ? `${(numericScore * 100).toFixed(1)}%` : 'N/A';
-                                  return (
-                                    <div key={model} className={`flex items-center gap-1.5 px-2 py-1 rounded-md border ${isPositive ? 'bg-emerald-500/5 border-emerald-500/10' : 'bg-red-500/5 border-red-500/10'}`}>
-                                      <span className="text-[8px] font-black text-zinc-500 uppercase">{model}</span>
-                                      <span className={`text-[10px] font-mono font-bold ${isPositive ? 'text-emerald-500' : 'text-red-500'}`}>
-                                        {isPositive ? 'YES' : 'NO'}
-                                      </span>
-                                      <span className="text-[10px] font-mono text-zinc-400">{pct}</span>
-                                    </div>
-                                  );
-                                })}
-                              </div>
                               <span className="text-xs font-mono font-bold text-zinc-200">
                                 {(() => {
-                                  const votesObj = votes || {};
-                                  const voteNums = Object.values(votesObj || {})
-                                    .map((v: any) => Number(v))
-                                    .filter((v: any) => Number.isFinite(v));
-                                  const maxVote = voteNums.length ? Math.max(...voteNums) : null;
-                                  const aiScore =
-                                    (t.features as any)?.ai_score ??
-                                    (t.features as any)?.radar_score ??
-                                    (t.features as any)?.score ??
-                                    (t as any)?.score ??
-                                    (t as any)?.Score ??
-                                    maxVote ??
-                                    null;
-                                  if (aiScore === null || aiScore === undefined || Number.isNaN(Number(aiScore))) return 'N/A';
-                                  const n = Number(aiScore);
+                                  let radarScore = (t.features as any)?.radar_score ?? (t.features as any)?.ai_score ?? (t.features as any)?.score ?? (t as any)?.score ?? (t as any)?.Score;
+                                  if (radarScore === null || radarScore === undefined || Number.isNaN(Number(radarScore))) return '—';
+                                  const n = Number(radarScore);
                                   return n <= 1 ? `${(n * 100).toFixed(1)}%` : `${n.toFixed(1)}%`;
                                 })()}
                               </span>
@@ -430,33 +392,22 @@ const BacktestAnalysisModal = ({ isOpen, onClose, bt, trades, loading }: { isOpe
                             <td className="px-6 py-4 text-center">
                               <span className="text-xs font-mono font-bold text-zinc-200">
                                 {(() => {
-                                  const fundScore =
-                                    (t.features as any)?.fund_score ??
-                                    (t.features as any)?.fundamental_score ??
-                                    (t.features as any)?.validator_score ??
-                                    (t.features as any)?.sizing_score ??
-                                    (t as any)?.fund_score ??
-                                    (t as any)?.Validator_Score ??
-                                    (t as any)?.Sizing_Score;
-                                  if (fundScore === null || fundScore === undefined || Number.isNaN(Number(fundScore))) return 'N/A';
-                                  return `${Number(fundScore).toFixed(1)}%`;
+                                  const fundScore = (t.features as any)?.fund_score ?? (t.features as any)?.fundamental_score ?? (t.features as any)?.validator_score ?? (t as any)?.fund_score ?? (t as any)?.Validator_Score;
+                                  if (fundScore === null || fundScore === undefined || Number.isNaN(Number(fundScore))) return '—';
+                                  const n = Number(fundScore);
+                                  return n <= 1 ? `${(n * 100).toFixed(1)}%` : `${n.toFixed(1)}%`;
                                 })()}
-                              </span>
-                            </td>
-                            <td className="px-6 py-4 text-right">
-                              <span className={`text-xs font-mono font-bold ${t.features?.profit_cash >= 0 ? "text-emerald-500" : "text-red-500"}`}>
-                                {Number(t.features?.profit_cash || 0).toLocaleString()}
-                              </span>
-                            </td>
-                            <td className="px-6 py-4 text-right">
-                              <span className={`text-xs font-mono font-bold ${t.features?.cumulative_profit >= 0 ? "text-emerald-400" : "text-red-400"}`}>
-                                {Number(t.features?.cumulative_profit || 0).toLocaleString()}
                               </span>
                             </td>
                             <td className="px-6 py-4 text-right">
                               <span className={`text-sm font-mono font-black ${isWin ? 'text-emerald-400' : (t.profit_loss_pct === 0 ? 'text-zinc-500' : 'text-red-400')}`}>
                                 {t.profit_loss_pct > 0 ? '+' : ''}{t.profit_loss_pct.toFixed(1)}%
                               </span>
+                            </td>
+                            <td className="px-6 py-4 text-center">
+                              <div className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-black uppercase ${isRejected ? 'bg-zinc-800 text-zinc-500' : (isWin ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400')}`}>
+                                {isRejected ? 'Filter' : (t.status || 'Closed')}
+                              </div>
                             </td>
                           </tr>
                         );
@@ -482,6 +433,13 @@ const BacktestAnalysisModal = ({ isOpen, onClose, bt, trades, loading }: { isOpe
 export default function BacktestTab() {
   const { inventory } = useAppState();
 
+  const normalizeThreshold01 = (value: number): number => {
+    if (!Number.isFinite(value)) return 0;
+    const raw = Number(value);
+    const v = raw > 1 ? raw / 100 : raw;
+    return Math.min(1, Math.max(0, v));
+  };
+
   // State
   const [models, setModels] = useState<(string | LocalModelMeta)[]>([]);
   const [modelsLoading, setModelsLoading] = useState(false);
@@ -490,8 +448,8 @@ export default function BacktestTab() {
   const [selectedCouncilModel, setSelectedCouncilModel] = useState<string | null>(null);
   const [startDate, setStartDate] = useState(new Date().toISOString().slice(0, 10));
   const [endDate, setEndDate] = useState(new Date().toISOString().slice(0, 10));
-  const [metaThreshold, setMetaThreshold] = useState<number>(0.4);
-  const [councilThreshold, setCouncilThreshold] = useState<number>(30);
+  const [metaThreshold, setMetaThreshold] = useState<number>(0.6);
+  const [councilThreshold, setCouncilThreshold] = useState<number>(0.1);
 
   const [running, setRunning] = useState(false);
   const [currentBacktestId, setCurrentBacktestId] = useState<string | null>(null);
@@ -505,37 +463,6 @@ export default function BacktestTab() {
   // Trades dialog state
   const [tradesOpen, setTradesOpen] = useState(false);
 
-  // Sync Council Threshold with selected model metadata
-  useEffect(() => {
-    if (!selectedCouncilModel || models.length === 0) return;
-
-    const modelMeta = models.find(m => (typeof m === 'string' ? m : m.name) === selectedCouncilModel);
-    console.debug("[BacktestDebug] Selected Council:", selectedCouncilModel);
-    console.debug("[BacktestDebug] Model Meta found:", modelMeta);
-
-    if (modelMeta && typeof modelMeta !== 'string') {
-      const rawThreshold = (modelMeta as any).approval_threshold ?? (modelMeta as any).buyThreshold;
-      if (rawThreshold !== undefined) {
-        // Convert 0-1 to 0-100 if necessary
-        const val = rawThreshold <= 1 ? Math.round(rawThreshold * 100) : rawThreshold;
-        setCouncilThreshold(val);
-        console.log(`[BacktestSync] Updated Council Threshold to ${val}% (from ${selectedCouncilModel})`);
-      }
-    }
-  }, [selectedCouncilModel, models]);
-
-  // Sync Meta Threshold with primary model metadata
-  useEffect(() => {
-    if (!selectedModel || models.length === 0) return;
-    const modelMeta = models.find(m => (typeof m === 'string' ? m : m.name) === selectedModel);
-    if (modelMeta && typeof modelMeta !== 'string') {
-      const rawThreshold = (modelMeta as any).buyThreshold;
-      if (rawThreshold !== undefined) {
-        setMetaThreshold(rawThreshold);
-        console.log(`[BacktestSync] Updated Meta Threshold to ${rawThreshold} (from ${selectedModel})`);
-      }
-    }
-  }, [selectedModel, models]);
   const [tradesLoading, setTradesLoading] = useState(false);
   const [tradesRows, setTradesRows] = useState<any[]>([]);
   const [tradesTitle, setTradesTitle] = useState<string>("");
@@ -699,10 +626,10 @@ export default function BacktestTab() {
         start_date: startDate,
         end_date: endDate,
         council_model: selectedCouncilModel,
-        council_threshold: councilThreshold,
-        meta_threshold: metaThreshold,
+        council_threshold: normalizeThreshold01(councilThreshold),
+        meta_threshold: normalizeThreshold01(metaThreshold),
       };
-      console.log("[BacktestDebug] Running with payload:", payload);
+      // Intentionally silent (avoid noisy debug logs in the browser console)
 
       const res = await fetch(`${baseUrl}/backtest`, {
         method: "POST",
@@ -1002,7 +929,7 @@ export default function BacktestTab() {
                       onChange={(e) => setMetaThreshold(Number(e.target.value))}
                       className="w-full h-14 pl-5 pr-12 rounded-2xl border border-white/5 bg-zinc-900/80 text-white font-mono text-lg focus:ring-2 focus:ring-emerald-500/40 outline-none transition-all"
                     />
-                    <div className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-500 font-mono text-xs">%</div>
+                    <div className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-500 font-mono text-xs">0-1</div>
                   </div>
                 </div>
 
@@ -1011,23 +938,19 @@ export default function BacktestTab() {
                   <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-500">
                     <label className="text-[9px] font-bold text-indigo-400 uppercase tracking-widest flex items-center justify-between">
                       <span className="flex items-center gap-2"><ShieldCheck className="h-3 w-3" /> Council consensus</span>
-                      <div className="flex items-center gap-2">
-                        <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-[7px] text-indigo-300 font-bold tracking-tighter shadow-sm">
-                          <Zap className="h-2 w-2 fill-indigo-400" /> SYNCED
-                        </span>
-                      </div>
+                      <span className="text-[8px] text-zinc-500 normal-case font-medium lowercase">Scale: 0.0 — 1.0</span>
                     </label>
                     <div className="relative">
                       <input
                         type="number"
                         min={0}
-                        max={100}
-                        step={1}
+                        max={1}
+                        step={0.01}
                         value={councilThreshold}
                         onChange={(e) => setCouncilThreshold(Number(e.target.value))}
                         className="w-full h-14 pl-5 pr-12 rounded-2xl border border-indigo-500/20 bg-indigo-500/5 text-white font-mono text-lg focus:ring-2 focus:ring-indigo-500/40 outline-none transition-all"
                       />
-                      <div className="absolute right-4 top-1/2 -translate-y-1/2 text-indigo-400/60 font-mono text-xs">VOTES</div>
+                      <div className="absolute right-4 top-1/2 -translate-y-1/2 text-indigo-400/60 font-mono text-xs">0-1</div>
                     </div>
                   </div>
                 )}
@@ -1297,7 +1220,7 @@ export default function BacktestTab() {
                           {bt.council_model ? (
                             <span className="px-2 py-1 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 font-mono text-[9px] uppercase tracking-tighter">
                               {bt.council_model.replace(".pkl", "")}
-                              <span className="ml-1 opacity-60">@{bt.council_threshold ?? 30}</span>
+                              <span className="ml-1 opacity-60">@{bt.council_threshold ?? 0.1}</span>
                             </span>
                           ) : (
                             <span className="text-zinc-600 uppercase text-[8px] font-black tracking-widest">NONE</span>

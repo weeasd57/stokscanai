@@ -50,6 +50,14 @@ class AlpacaAsset(BaseModel):
     easy_to_borrow: bool
     fractionable: bool
 
+class AlpacaPositionInfo(BaseModel):
+    symbol: str
+    qty: str
+    side: Optional[str] = None
+    market_value: Optional[str] = None
+    unrealized_intraday_pl: Optional[str] = None
+    unrealized_pl: Optional[str] = None
+
 class SyncRequest(BaseModel):
     symbols: List[str]
     asset_class: Optional[Literal["us_equity", "crypto"]] = "us_equity"
@@ -374,6 +382,29 @@ def get_account_status():
             "account_blocked": acc.account_blocked,
             "created_at": str(acc.created_at)
         }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/positions", response_model=List[AlpacaPositionInfo])
+def get_positions():
+    try:
+        client = get_alpaca_client()
+        positions = client.get_all_positions()
+        out: List[Dict[str, Any]] = []
+        for p in positions:
+            out.append(
+                {
+                    "symbol": str(getattr(p, "symbol", "")),
+                    "qty": str(getattr(p, "qty", "0")),
+                    "side": str(getattr(p, "side", "")) if getattr(p, "side", None) is not None else None,
+                    "market_value": str(getattr(p, "market_value", "")) if getattr(p, "market_value", None) is not None else None,
+                    "unrealized_intraday_pl": str(getattr(p, "unrealized_intraday_pl", ""))
+                    if getattr(p, "unrealized_intraday_pl", None) is not None
+                    else None,
+                    "unrealized_pl": str(getattr(p, "unrealized_pl", "")) if getattr(p, "unrealized_pl", None) is not None else None,
+                }
+            )
+        return out
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
