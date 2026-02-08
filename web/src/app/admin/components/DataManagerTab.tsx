@@ -283,7 +283,7 @@ export default function DataManagerTab({
         }
     };
     return (
-        <div className="p-8 max-w-7xl mx-auto w-full space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <div className="p-8 max-w-[1800px] mx-auto w-full space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <header className="flex flex-col gap-2">
                 <h1 className="text-3xl font-black tracking-tight text-white flex items-center gap-3">
                     <Database className="h-8 w-8 text-indigo-500" />
@@ -437,184 +437,184 @@ export default function DataManagerTab({
                                 </div>
 
 
-                        {dataSourcesTab === "prices" ? (
-                            <div className="space-y-2">
-                                <div className="text-xs text-zinc-500">Prices</div>
-                                <div className="flex gap-2">
-                                    <button
-                                        onClick={() => setPriceSource("eodhd")}
-                                        className={`flex-1 py-2 text-xs font-bold rounded-lg border transition-all ${config.priceSource === "eodhd"
-                                            ? "bg-indigo-600 text-white border-indigo-600"
-                                            : "bg-zinc-900 text-zinc-400 border-zinc-800 hover:bg-zinc-800"
-                                            }`}
-                                    >
-                                        EODHD
-                                    </button>
-                                    <button
-                                        onClick={() => setPriceSource("tradingview")}
-                                        className={`flex-1 py-2 text-xs font-bold rounded-lg border transition-all ${config.priceSource === "tradingview"
-                                            ? "bg-indigo-600 text-white border-indigo-600"
-                                            : "bg-zinc-900 text-zinc-400 border-zinc-800 hover:bg-zinc-800"
-                                            }`}
-                                    >
-                                        TradingView
-                                    </button>
-                                </div>
-                                <div className="space-y-2 pt-2">
-                                    <div className="flex flex-col gap-0.5">
-                                        <div className="flex justify-between text-[10px] text-zinc-500 font-bold uppercase tracking-wider">
-                                            <span>Target History (Days)</span>
-                                            <span className="text-indigo-400">{maxPriceDays} days</span>
+                                {dataSourcesTab === "prices" ? (
+                                    <div className="space-y-2">
+                                        <div className="text-xs text-zinc-500">Prices</div>
+                                        <div className="flex gap-2">
+                                            <button
+                                                onClick={() => setPriceSource("eodhd")}
+                                                className={`flex-1 py-2 text-xs font-bold rounded-lg border transition-all ${config.priceSource === "eodhd"
+                                                    ? "bg-indigo-600 text-white border-indigo-600"
+                                                    : "bg-zinc-900 text-zinc-400 border-zinc-800 hover:bg-zinc-800"
+                                                    }`}
+                                            >
+                                                EODHD
+                                            </button>
+                                            <button
+                                                onClick={() => setPriceSource("tradingview")}
+                                                className={`flex-1 py-2 text-xs font-bold rounded-lg border transition-all ${config.priceSource === "tradingview"
+                                                    ? "bg-indigo-600 text-white border-indigo-600"
+                                                    : "bg-zinc-900 text-zinc-400 border-zinc-800 hover:bg-zinc-800"
+                                                    }`}
+                                            >
+                                                TradingView
+                                            </button>
                                         </div>
-                                        <div className="text-[9px] text-zinc-600 leading-tight">
-                                            Always updates to today + ensures total history length.
+                                        <div className="space-y-2 pt-2">
+                                            <div className="flex flex-col gap-0.5">
+                                                <div className="flex justify-between text-[10px] text-zinc-500 font-bold uppercase tracking-wider">
+                                                    <span>Target History (Days)</span>
+                                                    <span className="text-indigo-400">{maxPriceDays} days</span>
+                                                </div>
+                                                <div className="text-[9px] text-zinc-600 leading-tight">
+                                                    Always updates to today + ensures total history length.
+                                                </div>
+                                            </div>
+                                            <input
+                                                type="number"
+                                                min={30}
+                                                max={5000}
+                                                value={maxPriceDays}
+                                                onChange={(e) => setMaxPriceDays(Number(e.target.value))}
+                                                className="w-full h-10 rounded-lg border border-zinc-700 bg-zinc-900 px-3 text-sm text-zinc-300 outline-none focus:border-indigo-500"
+                                            />
+                                            <div className="p-2 rounded-lg bg-indigo-500/5 border border-indigo-500/10 flex items-center justify-between">
+                                                <span className="text-[10px] text-zinc-500 uppercase font-bold">Estimated Rows</span>
+                                                <span className="text-[10px] text-indigo-400 font-mono font-bold">~{maxPriceDays * (selectedSymbols.size || 1)} bars</span>
+                                            </div>
                                         </div>
                                     </div>
+                                ) : (
+                                    <div className="space-y-2">
+                                        <div className="text-xs text-zinc-500">Funds</div>
+                                        <div className="flex gap-2">
+                                            <button
+                                                onClick={() => setFundSource("tradingview")}
+                                                className={`flex-1 py-2 text-xs font-bold rounded-lg border transition-all ${config.fundSource === "tradingview"
+                                                    ? "bg-indigo-600 text-white border-indigo-600"
+                                                    : "bg-zinc-900 text-zinc-400 border-zinc-800 hover:bg-zinc-800"
+                                                    }`}
+                                            >
+                                                TradingView
+                                            </button>
+                                            <button
+                                                onClick={() => setFundSource("mubasher")}
+                                                className={`flex-1 py-2 text-xs font-bold rounded-lg border transition-all ${config.fundSource === "mubasher"
+                                                    ? "bg-indigo-600 text-white border-indigo-600"
+                                                    : "bg-zinc-900 text-zinc-400 border-zinc-800 hover:bg-zinc-800"
+                                                    }`}
+                                            >
+                                                Mubasher
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+
+
+                                <div className="space-y-4 pt-4 border-t border-zinc-900">
+                                    <h3 className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Index Management</h3>
+                                    <div className="space-y-2">
+                                        <input
+                                            placeholder="Symbol (e.g. EGX30.INDX)"
+                                            className="w-full h-8 rounded-lg border border-zinc-800 bg-zinc-900 px-3 text-xs text-zinc-300 outline-none focus:border-indigo-500"
+                                            id="index-symbol"
+                                            defaultValue="EGX30.INDX"
+                                        />
+                                        <div className="flex gap-2">
+                                            <select
+                                                className="flex-1 h-8 rounded-lg border border-zinc-800 bg-zinc-900 px-2 text-xs text-zinc-300 outline-none"
+                                                id="index-source"
+                                                defaultValue="eodhd"
+                                                onChange={(e) => {
+                                                    const exInput = document.getElementById('index-exchange') as HTMLInputElement;
+                                                    if (exInput) exInput.style.display = e.target.value === 'tradingview' ? 'block' : 'none';
+                                                }}
+                                            >
+                                                <option value="eodhd">EODHD</option>
+                                                <option value="tradingview">TradingView</option>
+                                            </select>
+                                            <input
+                                                id="index-exchange"
+                                                placeholder="Exchange (e.g. EGX)"
+                                                className="flex-1 h-8 rounded-lg border border-zinc-800 bg-zinc-900 px-3 text-xs text-zinc-300 outline-none focus:border-indigo-500 hidden"
+                                            />
+                                        </div>
+                                        <button
+                                            onClick={async () => {
+                                                const sym = (document.getElementById('index-symbol') as HTMLInputElement).value;
+                                                const src = (document.getElementById('index-source') as HTMLSelectElement).value;
+                                                const ex = (document.getElementById('index-exchange') as HTMLInputElement).value;
+
+                                                if (!sym) return;
+
+                                                try {
+                                                    setLogs(prev => [`[${new Date().toLocaleTimeString()}] Starting Index Sync for ${sym}...`, ...prev]);
+                                                    const res = await fetch('http://localhost:8000/admin/sync-index', {
+                                                        method: 'POST',
+                                                        headers: { 'Content-Type': 'application/json' },
+                                                        body: JSON.stringify({
+                                                            symbol: sym,
+                                                            source: src,
+                                                            exchange: src === 'tradingview' ? ex : undefined
+                                                        })
+                                                    });
+                                                    const data = await res.json();
+                                                    setLogs(prev => [`[${new Date().toLocaleTimeString()}] ${data.message}`, ...prev]);
+                                                } catch (e) {
+                                                    setLogs(prev => [`[${new Date().toLocaleTimeString()}] ERR: Index Sync Failed`, ...prev]);
+                                                }
+                                            }}
+                                            className="w-full h-8 rounded-lg bg-zinc-800 border border-zinc-700 text-xs font-bold text-zinc-300 hover:bg-zinc-700 transition-all"
+                                        >
+                                            Sync Index
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <div className="text-xs text-zinc-500">Workers</div>
                                     <input
                                         type="number"
-                                        min={30}
-                                        max={5000}
-                                        value={maxPriceDays}
-                                        onChange={(e) => setMaxPriceDays(Number(e.target.value))}
-                                        className="w-full h-10 rounded-lg border border-zinc-700 bg-zinc-900 px-3 text-sm text-zinc-300 outline-none focus:border-indigo-500"
+                                        min={1}
+                                        max={64}
+                                        value={config.maxWorkers}
+                                        onChange={(e) => setConfig((prev) => ({ ...prev, maxWorkers: Number(e.target.value) }))}
+                                        onBlur={() => setMaxWorkers(config.maxWorkers)}
+                                        disabled={processing}
+                                        className="w-full h-10 rounded-lg border border-zinc-700 bg-zinc-900 px-3 text-sm text-zinc-300"
                                     />
-                                    <div className="p-2 rounded-lg bg-indigo-500/5 border border-indigo-500/10 flex items-center justify-between">
-                                        <span className="text-[10px] text-zinc-500 uppercase font-bold">Estimated Rows</span>
-                                        <span className="text-[10px] text-indigo-400 font-mono font-bold">~{maxPriceDays * (selectedSymbols.size || 1)} bars</span>
+                                </div>
+
+                                <div className="space-y-4 pt-4">
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-sm text-zinc-400">Selected Symbols</span>
+                                        <span className="font-mono text-indigo-400">{selectedSymbols.size}</span>
                                     </div>
-                                </div>
-                            </div>
-                        ) : (
-                            <div className="space-y-2">
-                                <div className="text-xs text-zinc-500">Funds</div>
-                                <div className="flex gap-2">
+
                                     <button
-                                        onClick={() => setFundSource("tradingview")}
-                                        className={`flex-1 py-2 text-xs font-bold rounded-lg border transition-all ${config.fundSource === "tradingview"
-                                            ? "bg-indigo-600 text-white border-indigo-600"
-                                            : "bg-zinc-900 text-zinc-400 border-zinc-800 hover:bg-zinc-800"
-                                            }`}
+                                        onClick={runUpdate}
+                                        disabled={processing || selectedSymbols.size === 0}
+                                        className="w-full flex items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 py-3 text-sm font-bold text-white hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                                     >
-                                        TradingView
+                                        {processing ? <Loader2 className="h-5 w-5 animate-spin" /> : <Download className="h-5 w-5" />}
+                                        {processing ? "Updating..." : "Update Cloud"}
                                     </button>
-                                    <button
-                                        onClick={() => setFundSource("mubasher")}
-                                        className={`flex-1 py-2 text-xs font-bold rounded-lg border transition-all ${config.fundSource === "mubasher"
-                                            ? "bg-indigo-600 text-white border-indigo-600"
-                                            : "bg-zinc-900 text-zinc-400 border-zinc-800 hover:bg-zinc-800"
-                                            }`}
-                                    >
-                                        Mubasher
-                                    </button>
+
                                 </div>
-                            </div>
-                        )}
-
-
-                        <div className="space-y-4 pt-4 border-t border-zinc-900">
-                            <h3 className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Index Management</h3>
-                            <div className="space-y-2">
-                                <input
-                                    placeholder="Symbol (e.g. EGX30.INDX)"
-                                    className="w-full h-8 rounded-lg border border-zinc-800 bg-zinc-900 px-3 text-xs text-zinc-300 outline-none focus:border-indigo-500"
-                                    id="index-symbol"
-                                    defaultValue="EGX30.INDX"
-                                />
-                                <div className="flex gap-2">
-                                    <select
-                                        className="flex-1 h-8 rounded-lg border border-zinc-800 bg-zinc-900 px-2 text-xs text-zinc-300 outline-none"
-                                        id="index-source"
-                                        defaultValue="eodhd"
-                                        onChange={(e) => {
-                                            const exInput = document.getElementById('index-exchange') as HTMLInputElement;
-                                            if (exInput) exInput.style.display = e.target.value === 'tradingview' ? 'block' : 'none';
-                                        }}
-                                    >
-                                        <option value="eodhd">EODHD</option>
-                                        <option value="tradingview">TradingView</option>
-                                    </select>
-                                    <input
-                                        id="index-exchange"
-                                        placeholder="Exchange (e.g. EGX)"
-                                        className="flex-1 h-8 rounded-lg border border-zinc-800 bg-zinc-900 px-3 text-xs text-zinc-300 outline-none focus:border-indigo-500 hidden"
-                                    />
-                                </div>
-                                <button
-                                    onClick={async () => {
-                                        const sym = (document.getElementById('index-symbol') as HTMLInputElement).value;
-                                        const src = (document.getElementById('index-source') as HTMLSelectElement).value;
-                                        const ex = (document.getElementById('index-exchange') as HTMLInputElement).value;
-
-                                        if (!sym) return;
-
-                                        try {
-                                            setLogs(prev => [`[${new Date().toLocaleTimeString()}] Starting Index Sync for ${sym}...`, ...prev]);
-                                            const res = await fetch('http://localhost:8000/admin/sync-index', {
-                                                method: 'POST',
-                                                headers: { 'Content-Type': 'application/json' },
-                                                body: JSON.stringify({
-                                                    symbol: sym,
-                                                    source: src,
-                                                    exchange: src === 'tradingview' ? ex : undefined
-                                                })
-                                            });
-                                            const data = await res.json();
-                                            setLogs(prev => [`[${new Date().toLocaleTimeString()}] ${data.message}`, ...prev]);
-                                        } catch (e) {
-                                            setLogs(prev => [`[${new Date().toLocaleTimeString()}] ERR: Index Sync Failed`, ...prev]);
-                                        }
-                                    }}
-                                    className="w-full h-8 rounded-lg bg-zinc-800 border border-zinc-700 text-xs font-bold text-zinc-300 hover:bg-zinc-700 transition-all"
-                                >
-                                    Sync Index
-                                </button>
-                            </div>
-                        </div>
-
-                        <div className="space-y-2">
-                            <div className="text-xs text-zinc-500">Workers</div>
-                            <input
-                                type="number"
-                                min={1}
-                                max={64}
-                                value={config.maxWorkers}
-                                onChange={(e) => setConfig((prev) => ({ ...prev, maxWorkers: Number(e.target.value) }))}
-                                onBlur={() => setMaxWorkers(config.maxWorkers)}
-                                disabled={processing}
-                                className="w-full h-10 rounded-lg border border-zinc-700 bg-zinc-900 px-3 text-sm text-zinc-300"
-                            />
-                        </div>
-
-                        <div className="space-y-4 pt-4">
-                            <div className="flex items-center justify-between">
-                                <span className="text-sm text-zinc-400">Selected Symbols</span>
-                                <span className="font-mono text-indigo-400">{selectedSymbols.size}</span>
-                            </div>
-
-                            <button
-                                onClick={runUpdate}
-                                disabled={processing || selectedSymbols.size === 0}
-                                className="w-full flex items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 py-3 text-sm font-bold text-white hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                            >
-                                {processing ? <Loader2 className="h-5 w-5 animate-spin" /> : <Download className="h-5 w-5" />}
-                                {processing ? "Updating..." : "Update Cloud"}
-                            </button>
-
-                        </div>
 
 
                                 {progress && processing && (
                                     <div className="space-y-2 pt-2">
                                         <div className="flex justify-between text-xs text-zinc-500">
                                             <span>Progress</span>
-                                    <span>{Math.round((progress.current / progress.total) * 100)}%</span>
-                                </div>
-                                <div className="h-2 w-full rounded-full bg-zinc-900 overflow-hidden">
-                                    <div
-                                        className="h-full bg-indigo-500 transition-all duration-300"
-                                        style={{ width: `${(progress.current / progress.total) * 100}%` }}
-                                    />
-                                </div>
+                                            <span>{Math.round((progress.current / progress.total) * 100)}%</span>
+                                        </div>
+                                        <div className="h-2 w-full rounded-full bg-zinc-900 overflow-hidden">
+                                            <div
+                                                className="h-full bg-indigo-500 transition-all duration-300"
+                                                style={{ width: `${(progress.current / progress.total) * 100}%` }}
+                                            />
+                                        </div>
                                         <div className="text-xs text-zinc-600 truncate font-mono">
                                             {progress.lastMsg}
                                         </div>

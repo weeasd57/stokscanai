@@ -428,7 +428,8 @@ grant select on public.stock_prices to anon, authenticated;
 create table if not exists public.stock_bars_intraday (
     symbol text not null,
     exchange text not null,
-    timeframe text not null check (timeframe in ('1m','1h','1d')),
+    -- Keep in sync with UI timeframes + supported data sources (Alpaca/Binance).
+    timeframe text not null check (timeframe in ('1m','5m','15m','30m','1h','2h','4h','6h','12h','1d','1w')),
     ts timestamptz not null,
     open numeric(18,6),
     high numeric(18,6),
@@ -450,7 +451,7 @@ grant select on public.stock_bars_intraday to anon, authenticated;
 alter table public.stock_bars_intraday
   drop constraint if exists stock_bars_intraday_timeframe_check;
 alter table public.stock_bars_intraday
-  add constraint stock_bars_intraday_timeframe_check check (timeframe in ('1m','1h','1d'));
+  add constraint stock_bars_intraday_timeframe_check check (timeframe in ('1m','5m','15m','30m','1h','2h','4h','6h','12h','1d','1w'));
 
 -- Stock Fundamentals (Company Info)
 create table if not exists public.stock_fundamentals (
@@ -949,3 +950,126 @@ create table if not exists public.backtests (
 ) TABLESPACE pg_default;
 
 -- Redundant migrations consolidated above
+-- جداول Supabase لحفظ بيانات البوت
+
+-- جدول الصفقات
+CREATE TABLE IF NOT EXISTS bot_trades (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    symbol VARCHAR(20) NOT NULL,
+    action VARCHAR(10) NOT NULL, -- BUY, SELL
+    entry_price DECIMAL(20, 8),
+    exit_price DECIMAL(20, 8),
+    quantity DECIMAL(20, 8),
+    notional_usd DECIMAL(20, 2),
+    order_id VARCHAR(100),
+    alpaca_order_id VARCHAR(100),
+    exit_reason VARCHAR(50), -- target, stop_loss, trailing_stop, max_bars, manual
+    pnl DECIMAL(20, 2),
+    pnl_pct DECIMAL(10, 4),
+    bars_held INTEGER,
+    king_score DECIMAL(5, 2),
+    council_score DECIMAL(5, 2),
+    entry_time TIMESTAMPTZ,
+    exit_time TIMESTAMPTZ,
+    status VARCHAR(20) DEFAULT 'open', -- open, closed
+    metadata JSONB, -- أي بيانات إضافية
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- فهرس لتسريع البحث
+CREATE INDEX IF NOT EXISTS idx_bot_trades_symbol ON bot_trades(symbol);
+CREATE INDEX IF NOT EXISTS idx_bot_trades_timestamp ON bot_trades(timestamp DESC);
+CREATE INDEX IF NOT EXISTS idx_bot_trades_status ON bot_trades(status);
+CREATE INDEX IF NOT EXISTS idx_bot_trades_action ON bot_trades(action);
+
+-- جدول حالة البوت
+CREATE TABLE IF NOT EXISTS bot_state (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    bot_id VARCHAR(50) NOT NULL DEFAULT 'main_bot',
+    status VARCHAR(20) NOT NULL, -- running, stopped, error
+    started_at TIMESTAMPTZ,
+    stopped_at TIMESTAMPTZ,
+    last_scan TIMESTAMPTZ,
+    config JSONB, -- إعدادات البوت
+    positions JSONB, -- المراكز المفتوحة
+    daily_stats JSONB, -- إحصائيات اليوم
+    total_trades INTEGER DEFAULT 0,
+    total_pnl DECIMAL(20, 2) DEFAULT 0,
+    error_message TEXT,
+    metadata JSONB,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(bot_id)
+);
+
+-- جدول الأداء اليومي
+CREATE TABLE IF NOT EXISTS bot_daily_performance (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    date DATE NOT NULL,
+    bot_id VARCHAR(50) NOT NULL DEFAULT 'main_bot',
+    trades_count INTEGER DEFAULT 0,
+    wins INTEGER DEFAULT 0,
+    losses INTEGER DEFAULT 0,
+    total_pnl DECIMAL(20, 2) DEFAULT 0,
+    starting_balance DECIMAL(20, 2),
+    ending_balance DECIMAL(20, 2),
+    daily_return_pct DECIMAL(10, 4),
+    max_drawdown_pct DECIMAL(10, 4),
+    best_trade_pnl DECIMAL(20, 2),
+    worst_trade_pnl DECIMAL(20, 2),
+    metadata JSONB,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(date, bot_id)
+);
+
+-- فهرس للأداء اليومي
+CREATE INDEX IF NOT EXISTS idx_bot_daily_performance_date ON bot_daily_performance(date DESC);
+
+-- جدول التنبيهات
+CREATE TABLE IF NOT EXISTS bot_alerts (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    bot_id VARCHAR(50) NOT NULL DEFAULT 'main_bot',
+    alert_type VARCHAR(50) NOT NULL, -- circuit_breaker, max_positions, daily_loss, error
+    severity VARCHAR(20) NOT NULL, -- info, warning, error, critical
+    message TEXT NOT NULL,
+    metadata JSONB,
+    acknowledged BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- فهرس للتنبيهات
+CREATE INDEX IF NOT EXISTS idx_bot_alerts_timestamp ON bot_alerts(timestamp DESC);
+CREATE INDEX IF NOT EXISTS idx_bot_alerts_type ON bot_alerts(alert_type);
+CREATE INDEX IF NOT EXISTS idx_bot_alerts_severity ON bot_alerts(severity);
+
+-- دالة لتحديث updated_at تلقائياً
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ language 'plpgsql';
+
+-- Triggers لتحديث updated_at
+CREATE TRIGGER update_bot_trades_updated_at BEFORE UPDATE ON bot_trades
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_bot_state_updated_at BEFORE UPDATE ON bot_state
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_bot_daily_performance_updated_at BEFORE UPDATE ON bot_daily_performance
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- Row Level Security (RLS) - اختياري
+-- ALTER TABLE bot_trades ENABLE ROW LEVEL SECURITY;
+-- ALTER TABLE bot_state ENABLE ROW LEVEL SECURITY;
+-- ALTER TABLE bot_daily_performance ENABLE ROW LEVEL SECURITY;
+-- ALTER TABLE bot_alerts ENABLE ROW LEVEL SECURITY;
+
+-- يمكنك إضافة policies حسب احتياجاتك
+

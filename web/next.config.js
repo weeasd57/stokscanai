@@ -13,6 +13,15 @@ const nextConfig = {
         source: '/api/:path*',
         destination: `${BACKEND_URL}/:path*`,
       },
+      // Backtest endpoints are top-level on the Python backend. Some UI code calls them directly.
+      {
+        source: '/backtest',
+        destination: `${BACKEND_URL}/backtest`,
+      },
+      {
+        source: '/backtests/:path*',
+        destination: `${BACKEND_URL}/backtests/:path*`,
+      },
       {
         source: '/docs',
         destination: `${BACKEND_URL}/docs`,

@@ -597,7 +597,7 @@ export default function FastScannerTab() {
     }
 
     return (
-        <div className="flex flex-col gap-8 p-6 lg:p-10 max-w-[1600px] mx-auto">
+        <div className="flex flex-col gap-8 p-6 lg:p-10 max-w-[1800px] mx-auto">
             <header className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div className="flex flex-col gap-2">
                     <h1 className="text-2xl font-black tracking-tighter text-white flex items-center gap-4 uppercase italic">
@@ -610,16 +610,16 @@ export default function FastScannerTab() {
                         {viewMode === "scan" ? "Run high-probability predictive analysis across entire markets." : "Analyze the performance of your previous AI predictions."}
                     </p>
                 </div>
-                <div className="flex items-center gap-4 bg-zinc-950/50 p-1.5 rounded-2xl border border-white/5">
+                <div className="flex items-center gap-4 bg-zinc-950/50 p-1.5 rounded-2xl border border-white/5 md:w-80">
                     <button
                         onClick={() => setViewMode("scan")}
-                        className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${viewMode === "scan" ? "bg-white text-black shadow-xl" : "text-zinc-500 hover:text-white"}`}
+                        className={`flex-1 px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${viewMode === "scan" ? "bg-white text-black shadow-xl" : "text-zinc-500 hover:text-white"}`}
                     >
                         RUN SCAN
                     </button>
                     <button
                         onClick={() => setViewMode("history")}
-                        className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${viewMode === "history" ? "bg-white text-black shadow-xl" : "text-zinc-500 hover:text-white"}`}
+                        className={`flex-1 px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${viewMode === "history" ? "bg-white text-black shadow-xl" : "text-zinc-500 hover:text-white"}`}
                     >
                         PUBLISHED
                     </button>

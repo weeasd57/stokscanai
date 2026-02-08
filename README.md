@@ -90,6 +90,28 @@ This repo also supports training a lightweight validator that learns when a base
 - Train: `py train_council.py --primary-model "api/models/KING 👑.pkl"`
 - Use in backtest: `py api/backtest_radar.py --exchange EGX --model "collector 🎁.pkl" --validator "The_Council_Validator.pkl"`
 
+
+
+
+
+
+## 🔁 Sync `api/` → `AI_BOT/api` (Local)
+
+Use these PowerShell commands to mirror your root `api/` folder into `AI_BOT/api` and then validate Python syntax.
+
+```powershell
+# Option A (recommended): run directly in your current PowerShell
+cd "C:\Users\MR_CODER\Desktop\AI stocks"
+robocopy api AI_BOT\api /MIR /XD __pycache__ .pytest_cache .mypy_cache .ruff_cache /XF *.pyc /R:1 /W:1
+
+cd "C:\Users\MR_CODER\Desktop\AI stocks\AI_BOT"
+py -m py_compile (Get-ChildItem -Recurse -Filter *.py | % FullName)
+
+# Option B: run as one-liners via PowerShell 7 (pwsh.exe)
+& "C:\Program Files\PowerShell\7\pwsh.exe" -NoProfile -Command "cd 'c:\Users\MR_CODER\Desktop\AI stocks'; robocopy api AI_BOT\api /MIR /XD __pycache__ .pytest_cache .mypy_cache .ruff_cache /XF *.pyc /R:1 /W:1"
+& "C:\Program Files\PowerShell\7\pwsh.exe" -NoProfile -Command "cd 'c:\Users\MR_CODER\Desktop\AI stocks\AI_BOT'; py -m py_compile (Get-ChildItem -Recurse -Filter *.py | % FullName)"
+```
+
 ## 🤝 Contributing
 Contributions are welcome! Please create a Pull Request for any bug fixes or new features.
 

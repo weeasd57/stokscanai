@@ -540,7 +540,7 @@ export default function AIAutomationTab({
     };
 
     return (
-        <div className="p-8 max-w-7xl mx-auto w-full space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <div className="p-8 max-w-[1800px] mx-auto w-full space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <header className="flex flex-col gap-2">
                 <h1 className="text-3xl font-black tracking-tight text-white flex items-center gap-3">
                     <Zap className="h-8 w-8 text-indigo-500" />

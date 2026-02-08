@@ -522,7 +522,7 @@ export default function BacktestTab() {
     if (running && currentBacktestId) {
       interval = setInterval(async () => {
         try {
-          const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "";
+          const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "/api";
           const res = await fetch(`${baseUrl}/backtests`); // Refresh full history
           if (!res.ok) return;
           const data = await res.json();
@@ -616,10 +616,10 @@ export default function BacktestTab() {
 
     setRunning(true);
     setError(null); // Clear previous errors
-    setResult(null);
+      setResult(null);
 
     try {
-      const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "";
+      const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "/api";
       const payload = {
         exchange: selectedExchange,
         model: selectedModel,

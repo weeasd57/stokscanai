@@ -47,9 +47,11 @@ print(f"DEBUG: SUPABASE_SERVICE_ROLE_KEY loaded: {'Yes' if os.getenv('SUPABASE_S
 
 app = FastAPI(title="AI Stocks API", version="1.0.0")
 
-# Initialize Supabase at startup
-from api.stock_ai import _init_supabase
-_init_supabase()
+@app.on_event("startup")
+async def startup_event():
+    # Initialize Supabase at startup
+    from api.stock_ai import _init_supabase
+    _init_supabase()
 
 
 @app.exception_handler(Exception)
@@ -346,6 +348,25 @@ def evaluate_open_positions_history(req: EvaluatePositionsRequest):
             out.append(hit)
 
     return out
+
+
+@app.get("/")
+def root():
+    """صفحة رئيسية بسيطة لحل مشكلة 404 من UptimeRobot"""
+    return {
+        "app": "AI Stocks API",
+        "version": "1.0.0",
+        "status": "running",
+        "endpoints": {
+            "health": "/health",
+            "predict": "/predict",
+            "bot_status": "/bot/status",
+            "bot_performance": "/bot/performance",
+            "admin": "/admin",
+            "docs": "/docs"
+        },
+        "message": "Welcome to AI Stocks API! Visit /docs for API documentation."
+    }
 
 
 @app.get("/health")

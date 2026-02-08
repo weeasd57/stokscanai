@@ -43,6 +43,9 @@ class BotConfig:
     trail_be_pct: float = 0.05
     trail_lock_trigger_pct: float = 0.08
     trail_lock_pct: float = 0.05
+    
+    # Supabase integration
+    save_to_supabase: bool = True  # Save polling data to Supabase
 
 def _read_env(name: str, default: Optional[str] = None, required: bool = False) -> Optional[str]:
     v = os.getenv(name, default)
@@ -115,19 +118,54 @@ def _safe_int(value: Any, default: int = 0) -> int:
 
 def _to_intraday_timeframe(value: str) -> str:
     """
-    Map UI/bot timeframe strings to the DB's limited set: '1m' | '1h' | '1d'.
-    The bot may request 5Min/15Min/etc; we store those as '1m' granularity in DB.
+    Map UI/bot timeframe strings to the DB timeframe string (e.g. '5m', '1h', '1d').
+    Accepts UI values like '5Min', '1Hour', '4Hour', as well as already-normalized values like '5m'.
     """
+    import re
+
     s = (value or "").strip().lower()
     if not s:
         return "1h"
-    if "day" in s:
-        return "1d"
-    if "hour" in s or s.endswith("h"):
+
+    # Already-normalized values
+    allowed = {"1m", "5m", "15m", "30m", "1h", "2h", "4h", "6h", "12h", "1d", "1w"}
+    if s in allowed:
+        return s
+
+    m = re.match(r"^\s*(\d+)\s*([a-z]+)\s*$", s)
+    if not m:
+        # Back-compat: treat legacy labels without a number as 1h/min/day.
+        if "day" in s:
+            return "1d"
+        if "week" in s:
+            return "1w"
+        if "min" in s:
+            return "1m"
+        if "hour" in s:
+            return "1h"
         return "1h"
-    if "min" in s or s.endswith("m"):
-        return "1m"
-    return "1h"
+
+    amount = int(m.group(1))
+    unit_raw = m.group(2)
+
+    if unit_raw in {"min", "mins", "minute", "minutes", "m"}:
+        out = f"{amount}m"
+    elif unit_raw in {"hour", "hours", "h"}:
+        out = f"{amount}h"
+    elif unit_raw in {"day", "days", "d"}:
+        out = f"{amount}d" if amount != 1 else "1d"
+    elif unit_raw in {"week", "weeks", "w"}:
+        out = f"{amount}w" if amount != 1 else "1w"
+    else:
+        out = "1h"
+
+    # Normalize common equivalents
+    if out == "60m":
+        out = "1h"
+    if out == "24h":
+        out = "1d"
+
+    return out if out in allowed else ("1m" if out.endswith("m") else ("1h" if out.endswith("h") else "1d"))
 
 class LiveBot:
     def __init__(self):
@@ -141,6 +179,7 @@ class LiveBot:
         self._status = "stopped"  # stopped, running, error
         self._last_scan_time = None
         self._error_msg = None
+        self._started_at = None  # Track when bot started
         
         # Default config from env or defaults
         self.config = self._build_default_config()
@@ -189,6 +228,7 @@ class LiveBot:
             trail_be_pct=_parse_float(_read_env("LIVE_TRAIL_BE_PCT", "0.05"), 0.05),
             trail_lock_trigger_pct=_parse_float(_read_env("LIVE_TRAIL_LOCK_TRIGGER_PCT", "0.08"), 0.08),
             trail_lock_pct=_parse_float(_read_env("LIVE_TRAIL_LOCK_PCT", "0.05"), 0.05),
+            save_to_supabase=_parse_bool(_read_env("LIVE_SAVE_TO_SUPABASE", "1"), True),
         )
 
     def update_config(self, updates: Dict[str, Any]):
@@ -227,6 +267,7 @@ class LiveBot:
             self._stop_event.clear()
             self._error_msg = None
             self._status = "starting"
+            self._started_at = datetime.now(timezone.utc).isoformat()
             
             self._thread = threading.Thread(target=self._run_loop, daemon=True)
             self._thread.start()
@@ -249,41 +290,14 @@ class LiveBot:
                 "last_scan": self._last_scan_time,
                 "error": self._error_msg,
                 "logs": list(self._logs)[-50:], # Return last 50 logs
-                "trades": list(self._trades)[-20:] 
+                "trades": list(self._trades)[-20:],
+                "started_at": self._started_at
             }
 
     def _load_models(self):
         from api.backtest_radar import load_model, reconstruct_meta_model
         from api.council_validator import load_council_validator_from_path
 
-        king_path = os.path.join(os.path.dirname(__file__), "models", "KING_CRYPTO 👑.pkl")
-        council_path = os.path.join(os.path.dirname(__file__), "models", "COUNCIL_CRYPTO.pkl")
-
-        if not os.path.exists(king_path):
-             raise RuntimeError(f"KING model not found at {king_path}")
-
-        king_obj = load_model(king_path)
-        if king_obj is None:
-            raise RuntimeError(f"Failed to load KING model at {king_path}")
-
-        king_clf = king_obj
-        if isinstance(king_obj, dict) and king_obj.get("kind") == "meta_labeling_system":
-            king_clf = reconstruct_meta_model(king_obj)
-        if king_clf is None or not hasattr(king_clf, "predict_proba"):
-            raise RuntimeError("KING model does not support predict_proba()")
-
-        validator = load_council_validator_from_path(council_path)
-        if validator is None:
-            # Fallback or strict? Original script raises.
-            # raise RuntimeError(f"Failed to load Council Validator at {council_path}")
-            self._log(f"Warning: Council validator not found at {council_path}, continuing without it?")
-            # Original script raised error, so we should probably respect that or fail
-            # For now, let's try to load, if fails, fail start.
-            if not os.path.exists(council_path):
-                 raise RuntimeError(f"Council Validator model not found at {council_path}")
-            raise RuntimeError(f"Failed to load Council Validator at {council_path}")
-
-        return king_obj, king_clf, validator
 
     def _include_open_positions_in_coins(self):
         """
@@ -391,6 +405,10 @@ class LiveBot:
             return pd.DataFrame()
 
     def _save_to_supabase(self, bars: pd.DataFrame, symbol: str):
+        # Check if saving to Supabase is enabled
+        if not getattr(self.config, "save_to_supabase", True):
+            return
+            
         if bars.empty:
             return
 

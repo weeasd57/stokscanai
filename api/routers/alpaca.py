@@ -24,6 +24,8 @@ from api.alpaca_cache import load_cached_assets, load_cached_exchanges, write_ma
 
 router = APIRouter(prefix="/alpaca", tags=["alpaca"])
 
+IntradayTimeframe = Literal["1m", "5m", "15m", "30m", "1h", "2h", "4h", "6h", "12h", "1d", "1w"]
+
 class AlpacaAccountInfo(BaseModel):
     account_number: str
     status: str
@@ -74,11 +76,11 @@ class PriceSyncRequest(BaseModel):
     exchange: Optional[str] = None
     days: int = 365
     source: Optional[Literal["local", "live", "tradingview", "binance"]] = "local"
-    timeframe: Literal["1m", "1h", "1d"] = "1d"
+    timeframe: IntradayTimeframe = "1d"
 
 class CryptoDeleteRequest(BaseModel):
     symbols: List[str]
-    timeframe: Literal["1m", "1h", "1d"] = "1h"
+    timeframe: IntradayTimeframe = "1h"
 
 def get_alpaca_client():
     api_key = os.getenv("ALPACA_API_KEY")
@@ -315,22 +317,41 @@ def _normalize_tv_symbol(sym: str, default_quote: str = "USDT") -> str:
 
 def _tv_interval_for_timeframe(timeframe: str):
     from tvDatafeed import Interval
-    if timeframe == "1h":
-        return Interval.in_1_hour
-    if timeframe == "1d":
-        return Interval.in_daily
-    if timeframe == "1m":
-        return Interval.in_1_minute
-    raise ValueError("Unsupported timeframe for TradingView")
+    mapping = {
+        "1m": getattr(Interval, "in_1_minute", None),
+        "5m": getattr(Interval, "in_5_minute", None),
+        "15m": getattr(Interval, "in_15_minute", None),
+        "30m": getattr(Interval, "in_30_minute", None),
+        "1h": getattr(Interval, "in_1_hour", None),
+        "2h": getattr(Interval, "in_2_hour", None),
+        "4h": getattr(Interval, "in_4_hour", None),
+        "1d": getattr(Interval, "in_daily", None),
+        "1w": getattr(Interval, "in_weekly", None),
+    }
+    interval = mapping.get(timeframe)
+    if interval is None:
+        raise ValueError("Unsupported timeframe for TradingView")
+    return interval
 
 def _binance_interval_for_timeframe(timeframe: str) -> str:
-    if timeframe == "1h":
-        return "1h"
-    if timeframe == "1d":
-        return "1d"
-    if timeframe == "1m":
-        return "1m"
+    allowed = {"1m", "5m", "15m", "30m", "1h", "2h", "4h", "6h", "12h", "1d", "1w"}
+    if timeframe in allowed:
+        return timeframe
     raise ValueError("Unsupported timeframe for Binance")
+
+def _timeframe_seconds(timeframe: str) -> int:
+    tf = (timeframe or "").strip().lower()
+    if not tf:
+        return 3600
+    if tf.endswith("m"):
+        return max(1, int(tf[:-1])) * 60
+    if tf.endswith("h"):
+        return max(1, int(tf[:-1])) * 3600
+    if tf.endswith("d"):
+        return max(1, int(tf[:-1] or "1")) * 86400
+    if tf.endswith("w"):
+        return max(1, int(tf[:-1] or "1")) * 7 * 86400
+    return 3600
 
 def _binance_fetch_klines(symbol: str, interval: str, limit: int = 1000, end_time_ms: Optional[int] = None) -> List[List[Any]]:
     params: Dict[str, Any] = {
@@ -548,7 +569,7 @@ def get_alpaca_supabase_stats(
         raise
 
     by_tf: Dict[str, int] = {}
-    for tf in ["1m", "1h", "1d"]:
+    for tf in ["1m", "5m", "15m", "30m", "1h", "2h", "4h", "6h", "12h", "1d", "1w"]:
         by_tf[tf] = 0
         try:
             def _fetch_tf(sb, timeframe=tf):
@@ -587,7 +608,7 @@ def get_alpaca_supabase_stats(
 
 @router.get("/crypto-symbols-stats")
 def get_crypto_symbols_stats(
-    timeframe: Literal["1m", "1h", "1d"] = Query("1h", description="Timeframe for crypto stats"),
+    timeframe: IntradayTimeframe = Query("1h", description="Timeframe for crypto stats"),
 ):
     stock_ai._init_supabase()
     sb = stock_ai.supabase
@@ -622,8 +643,11 @@ def delete_crypto_bars(req: CryptoDeleteRequest):
         raise HTTPException(status_code=422, detail="symbols required")
 
     timeframe = (req.timeframe or "1h").strip().lower()
-    if timeframe not in {"1m", "1h", "1d"}:
-        raise HTTPException(status_code=422, detail="timeframe must be one of: 1m, 1h, 1d")
+    if timeframe not in {"1m", "5m", "15m", "30m", "1h", "2h", "4h", "6h", "12h", "1d", "1w"}:
+        raise HTTPException(
+            status_code=422,
+            detail="timeframe must be one of: 1m, 5m, 15m, 30m, 1h, 2h, 4h, 6h, 12h, 1d, 1w",
+        )
 
     deleted_total = 0
     try:
@@ -994,12 +1018,18 @@ def sync_alpaca_prices(req: PriceSyncRequest):
             raise HTTPException(status_code=422, detail="days must be between 5 and 5000")
 
         timeframe = (req.timeframe or "1d").strip().lower()
-        if timeframe not in {"1m", "1h", "1d"}:
-            raise HTTPException(status_code=422, detail="timeframe must be one of: 1m, 1h, 1d")
+        if timeframe not in {"1m", "5m", "15m", "30m", "1h", "2h", "4h", "6h", "12h", "1d", "1w"}:
+            raise HTTPException(
+                status_code=422,
+                detail="timeframe must be one of: 1m, 5m, 15m, 30m, 1h, 2h, 4h, 6h, 12h, 1d, 1w",
+            )
 
         # Guardrails: minute/hour bars can explode row counts quickly.
+        tf_seconds = _timeframe_seconds(timeframe)
         if timeframe == "1m" and days > 30:
             raise HTTPException(status_code=422, detail="For timeframe=1m, days must be <= 30")
+        if tf_seconds < 3600 and days > 365:
+            raise HTTPException(status_code=422, detail="For minute timeframes, days must be <= 365")
         if timeframe == "1h" and days > 3650:
             raise HTTPException(status_code=422, detail="For timeframe=1h, days must be <= 3650")
 
@@ -1047,7 +1077,7 @@ def sync_alpaca_prices(req: PriceSyncRequest):
         intraday_rows: List[Dict[str, Any]] = []
         volume_missing = 0
         volume_total = 0
-        store_intraday = (timeframe in {"1m", "1h"}) or (asset_class == "crypto" and timeframe == "1d")
+        store_intraday = (timeframe != "1d") or (asset_class == "crypto")
 
         if source == "tradingview":
             if asset_class != "crypto":
@@ -1071,8 +1101,7 @@ def sync_alpaca_prices(req: PriceSyncRequest):
                 tv_symbol = _normalize_tv_symbol(sym, default_quote="USDT")
                 if not tv_symbol:
                     continue
-                per_day = 24 if timeframe == "1h" else (1 if timeframe == "1d" else 24 * 60)
-                desired_total = days * per_day
+                desired_total = max(1, int(math.ceil((days * 86400) / max(1, tf_seconds))))
 
                 stats = _get_symbol_bar_stats("stock_bars_intraday", sym.upper(), "CRYPTO", timeframe)
                 existing_count = int(stats.get("count") or 0)
@@ -1080,12 +1109,7 @@ def sync_alpaca_prices(req: PriceSyncRequest):
                 now_utc = datetime.now(timezone.utc)
                 if max_ts:
                     delta = now_utc - max_ts
-                    if timeframe == "1h":
-                        missing_forward = max(0, int(delta.total_seconds() // 3600))
-                    elif timeframe == "1d":
-                        missing_forward = max(0, int(delta.total_seconds() // (3600 * 24)))
-                    else:
-                        missing_forward = max(0, int(delta.total_seconds() // 60))
+                    missing_forward = max(0, int(delta.total_seconds() // max(1, tf_seconds)))
                 else:
                     missing_forward = desired_total
 
@@ -1161,8 +1185,7 @@ def sync_alpaca_prices(req: PriceSyncRequest):
             except Exception as e:
                 raise HTTPException(status_code=422, detail=str(e))
 
-            per_day = 24 if timeframe == "1h" else (1 if timeframe == "1d" else 24 * 60)
-            desired_total = days * per_day
+            desired_total = max(1, int(math.ceil((days * 86400) / max(1, tf_seconds))))
 
             for sym in symbols:
                 bn_symbol = _normalize_tv_symbol(sym, default_quote="USDT")
@@ -1174,12 +1197,7 @@ def sync_alpaca_prices(req: PriceSyncRequest):
                 now_utc = datetime.now(timezone.utc)
                 if max_ts:
                     delta = now_utc - max_ts
-                    if timeframe == "1h":
-                        missing_forward = max(0, int(delta.total_seconds() // 3600))
-                    elif timeframe == "1d":
-                        missing_forward = max(0, int(delta.total_seconds() // (3600 * 24)))
-                    else:
-                        missing_forward = max(0, int(delta.total_seconds() // 60))
+                    missing_forward = max(0, int(delta.total_seconds() // max(1, tf_seconds)))
                 else:
                     missing_forward = desired_total
 
@@ -1411,7 +1429,7 @@ def sync_alpaca_prices(req: PriceSyncRequest):
                 return {"success": True, "symbols": len(symbols), "rows_upserted": 0, "timeframe": timeframe}
 
         # Upsert in chunks
-        chunk_size = 500 if timeframe in {"1m", "1h"} else 1000
+        chunk_size = 500 if _timeframe_seconds(timeframe) <= 3600 else 1000
         upserted = 0
         tables: List[str] = []
         try:

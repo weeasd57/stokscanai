@@ -753,7 +753,8 @@ export async function evaluateScan(scanId: string): Promise<{ count: number; mes
 }
 
 export async function getBacktests(model?: string): Promise<any[]> {
-  const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "";
+  // Prefer same-origin `/api` proxy on Vercel. If NEXT_PUBLIC_API_BASE_URL is set, use it as-is.
+  const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "/api";
   const url = model ? `${baseUrl}/backtests?model=${encodeURIComponent(model)}` : `${baseUrl}/backtests`;
   const response = await fetch(url);
   if (!response.ok) throw new Error("Failed to fetch backtests");
@@ -761,14 +762,14 @@ export async function getBacktests(model?: string): Promise<any[]> {
 }
 
 export async function getBacktestTrades(backtestId: string): Promise<any[]> {
-  const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "";
+  const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "/api";
   const response = await fetch(`${baseUrl}/backtests/${backtestId}/trades`);
   if (!response.ok) throw new Error("Failed to fetch backtest trades");
   return await response.json();
 }
 
 export async function deleteBacktest(id: string): Promise<void> {
-  const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "";
+  const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "/api";
   const response = await fetch(`${baseUrl}/backtests/${id}`, {
     method: "DELETE"
   });
@@ -776,7 +777,7 @@ export async function deleteBacktest(id: string): Promise<void> {
 }
 
 export async function updateBacktestVisibility(id: string, isPublic: boolean): Promise<void> {
-  const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "";
+  const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "/api";
   const response = await fetch(`${baseUrl}/backtests/${id}`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
@@ -938,9 +939,22 @@ export type AlpacaSupabaseStats = {
   stock_bars_intraday?: {
     rows: number;
     last_ts?: string | null;
-    by_timeframe?: Record<"1m" | "1h" | "1d", number>;
+    by_timeframe?: Partial<Record<IntradayTimeframe, number>>;
   };
 };
+
+export type IntradayTimeframe =
+  | "1m"
+  | "5m"
+  | "15m"
+  | "30m"
+  | "1h"
+  | "2h"
+  | "4h"
+  | "6h"
+  | "12h"
+  | "1d"
+  | "1w";
 
 export type CryptoSymbolStat = {
   symbol: string;
@@ -971,14 +985,14 @@ export async function syncAlpacaPrices(
     exchange?: string | null;
     days: number;
     source?: "local" | "live" | "tradingview" | "binance";
-    timeframe?: "1m" | "1h" | "1d";
+    timeframe?: IntradayTimeframe;
   }
 ): Promise<{
   success: boolean;
   symbols: number;
   rows_upserted: number;
   days: number;
-  timeframe?: "1m" | "1h" | "1d";
+  timeframe?: IntradayTimeframe;
   volume_total?: number;
   volume_missing?: number;
 }> {
@@ -1002,7 +1016,7 @@ export async function syncAlpacaPrices(
 }
 
 export async function getCryptoSymbolStats(
-  timeframe: "1m" | "1h" | "1d" = "1h"
+  timeframe: IntradayTimeframe = "1h"
 ): Promise<CryptoSymbolStat[]> {
   const params = new URLSearchParams();
   params.set("timeframe", timeframe);
@@ -1016,7 +1030,7 @@ export async function getCryptoSymbolStats(
 
 export async function deleteCryptoBars(
   symbols: string[],
-  timeframe: "1m" | "1h" | "1d" = "1h"
+  timeframe: IntradayTimeframe = "1h"
 ): Promise<{ success: boolean; deleted: number; symbols: number; timeframe: string }> {
   const res = await fetch("/api/alpaca/crypto-delete-bars", {
     method: "POST",

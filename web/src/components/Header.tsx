@@ -34,7 +34,7 @@ export default function Header() {
 
     return (
         <header className="fixed top-0 left-0 right-0 z-[100] px-6 py-6 md:px-8">
-            <div className="mx-auto max-w-7xl">
+            <div className="mx-auto max-w-[1800px]">
                 <div className="flex items-center justify-between rounded-[2rem] border border-white/10 bg-zinc-950/40 backdrop-blur-3xl px-6 py-3.5 shadow-[0_20px_50px_rgba(0,0,0,0.5)] ring-1 ring-white/5 transition-all duration-500 hover:border-white/20">
                     {/* Brand / Logo */}
                     <div className="flex items-center gap-6">
@@ -61,14 +61,14 @@ export default function Header() {
                         </Link>
 
                         {/* Desktop Navigation */}
-                        <nav className="hidden lg:flex items-center gap-1 ml-4 py-1 px-1 rounded-xl bg-white/5 border border-white/5">
+                        <nav className="hidden lg:flex items-center gap-1 ml-4 py-1 px-1 rounded-xl bg-white/5 border border-white/5 min-w-[550px]">
                             {navItems.map((item) => {
                                 const isActive = pathname === item.href;
                                 return (
                                     <Link
                                         key={item.href}
                                         href={item.href}
-                                        className={`relative flex items-center gap-2 rounded-lg px-4 py-1.5 text-xs font-bold uppercase tracking-wider transition-all duration-300 ${isActive
+                                        className={`relative flex items-center justify-center gap-2 rounded-lg px-4 py-1.5 text-xs font-bold uppercase tracking-wider transition-all duration-300 flex-1 ${isActive
                                             ? "bg-zinc-100 text-zinc-950 shadow-lg shadow-white/5"
                                             : "text-zinc-500 hover:text-zinc-50 hover:bg-white/5"
                                             }`}
