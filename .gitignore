@@ -40,3 +40,6 @@ council_debug.log
 
 # TypeScript build info
 web/tsconfig.tsbuildinfo
+
+# Hugging Face Space repo clone (keep separate)
+AI_BOT/
