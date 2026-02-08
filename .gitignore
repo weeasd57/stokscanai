@@ -18,6 +18,7 @@ build/
 
 # Application Data & Cache (Local only)
 api/data_cache/
+api/cache/
 api/.pytest_cache/
 api/.mplconfig/
 alpaca_exchanges/
@@ -35,3 +36,7 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 api/*.log
+council_debug.log
+
+# TypeScript build info
+web/tsconfig.tsbuildinfo
