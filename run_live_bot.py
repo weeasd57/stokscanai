@@ -2,6 +2,7 @@ import os
 import sys
 import time
 import warnings
+import json
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Optional
@@ -24,6 +25,20 @@ class BotConfig:
     pct_cash_per_trade: float
     bars_limit: int
     poll_seconds: int
+    timeframe: str
+
+    # Exit / risk management (optional, enabled by default)
+    enable_sells: bool
+    target_pct: float
+    stop_loss_pct: float
+    hold_max_bars: int
+    use_trailing: bool
+    trail_be_pct: float
+    trail_lock_trigger_pct: float
+    trail_lock_pct: float
+
+    # Safety / behavior
+    state_path: str
 
 
 def _read_env(name: str, default: Optional[str] = None, required: bool = False) -> Optional[str]:
@@ -31,6 +46,17 @@ def _read_env(name: str, default: Optional[str] = None, required: bool = False) 
     if required and not v:
         raise RuntimeError(f"Missing required env var: {name}")
     return v
+
+
+def _parse_bool(value: Optional[str], default: bool = False) -> bool:
+    if value is None:
+        return bool(default)
+    s = str(value).strip().lower()
+    if s in {"1", "true", "yes", "y", "on"}:
+        return True
+    if s in {"0", "false", "no", "n", "off"}:
+        return False
+    return bool(default)
 
 
 def _parse_float(value: str, default: float) -> float:
@@ -54,6 +80,22 @@ def _normalize_symbol(symbol: str) -> str:
     return (symbol or "").strip().upper().replace("/", "")
 
 
+def _format_symbol_for_bot(symbol: str) -> str:
+    """
+    Alpaca positions may return crypto like 'BTCUSD'. The bot/data calls generally use 'BTC/USD'.
+    """
+    s = (symbol or "").strip().upper()
+    if not s:
+        return s
+    if "/" in s:
+        return s
+    if len(s) > 3 and (s.endswith("USD") or s.endswith("USDT")):
+        base = s[:-3] if s.endswith("USD") else s[:-4]
+        quote = "USD" if s.endswith("USD") else "USDT"
+        return f"{base}/{quote}"
+    return s
+
+
 def _build_config() -> BotConfig:
     coins = _parse_coins(
         _read_env(
@@ -74,12 +116,22 @@ def _build_config() -> BotConfig:
         alpaca_secret_key=str(secret),
         alpaca_base_url=str(_read_env("ALPACA_BASE_URL", "https://paper-api.alpaca.markets")),
         coins=coins,
-        king_threshold=_parse_float(_read_env("KING_THRESHOLD", "0.06"), 0.60),
+        king_threshold=_parse_float(_read_env("KING_THRESHOLD", "0.60"), 0.60),
         council_threshold=_parse_float(_read_env("COUNCIL_THRESHOLD", "0.35"), 0.35),
         max_notional_usd=_parse_float(_read_env("MAX_NOTIONAL_USD", "500"), 500.0),
         pct_cash_per_trade=_parse_float(_read_env("PCT_CASH_PER_TRADE", "0.10"), 0.10),
         bars_limit=int(float(_read_env("BARS_LIMIT", "200") or 200)),
         poll_seconds=int(float(_read_env("POLL_SECONDS", "300") or 300)),
+        timeframe=str(_read_env("TIMEFRAME", "1Hour") or "1Hour"),
+        enable_sells=_parse_bool(_read_env("LIVE_ENABLE_SELLS", "1"), True),
+        target_pct=_parse_float(_read_env("LIVE_TARGET_PCT", "0.10") or "0.10", 0.10),
+        stop_loss_pct=_parse_float(_read_env("LIVE_STOP_LOSS_PCT", "0.05") or "0.05", 0.05),
+        hold_max_bars=int(float(_read_env("LIVE_HOLD_MAX_BARS", "20") or 20)),
+        use_trailing=_parse_bool(_read_env("LIVE_USE_TRAILING", "1"), True),
+        trail_be_pct=_parse_float(_read_env("LIVE_TRAIL_BE_PCT", "0.05") or "0.05", 0.05),
+        trail_lock_trigger_pct=_parse_float(_read_env("LIVE_TRAIL_LOCK_TRIGGER_PCT", "0.08") or "0.08", 0.08),
+        trail_lock_pct=_parse_float(_read_env("LIVE_TRAIL_LOCK_PCT", "0.05") or "0.05", 0.05),
+        state_path=str(_read_env("LIVE_STATE_PATH", "run_live_bot_state.json") or "run_live_bot_state.json"),
     )
 
 
@@ -156,11 +208,11 @@ def _prepare_features(bars: pd.DataFrame) -> pd.DataFrame:
     return feat
 
 
-def _get_crypto_bars(api, symbol: str, limit: int) -> pd.DataFrame:
+def _get_crypto_bars(api, symbol: str, timeframe: str, limit: int) -> pd.DataFrame:
     try:
         # alpaca_trade_api returns a multi-index DataFrame; reset_index gives columns:
         # symbol, timestamp, open, high, low, close, volume, trade_count, vwap
-        bars = api.get_crypto_bars(symbol, timeframe="1Hour", limit=int(limit)).df
+        bars = api.get_crypto_bars(symbol, timeframe=str(timeframe or "1Hour"), limit=int(limit)).df
         if bars is None or getattr(bars, "empty", True):
             return pd.DataFrame()
         out = bars.reset_index()
@@ -180,28 +232,213 @@ def _has_open_position(api, symbol: str) -> bool:
         return False
 
 
-def _buy_market(api, symbol: str, notional_usd: float) -> bool:
+def _get_open_position(api, symbol: str):
+    try:
+        norm = _normalize_symbol(symbol)
+        for p in api.list_positions():
+            if _normalize_symbol(getattr(p, "symbol", "")) == norm:
+                return p
+        return None
+    except Exception:
+        return None
+
+
+def _buy_market(api, symbol: str, notional_usd: float):
     try:
         # notional is supported for crypto on Alpaca; if not, this will raise and we fall back to qty.
-        api.submit_order(
+        order = api.submit_order(
             symbol=symbol,
             notional=float(notional_usd),
             side="buy",
             type="market",
             time_in_force="gtc",
         )
-        return True
+        return order
+    except Exception:
+        return None
+
+
+def _sell_market(api, symbol: str, qty: float):
+    try:
+        order = api.submit_order(
+            symbol=symbol,
+            qty=float(qty),
+            side="sell",
+            type="market",
+            time_in_force="gtc",
+        )
+        return order
+    except Exception:
+        return None
+
+
+def _load_state(path: str) -> dict:
+    try:
+        if not path:
+            return {}
+        if not os.path.exists(path):
+            return {}
+        with open(path, "r", encoding="utf-8") as f:
+            obj = json.load(f)
+        if isinstance(obj, dict):
+            return obj
+        return {}
+    except Exception:
+        return {}
+
+
+def _save_state(path: str, state: dict) -> None:
+    try:
+        if not path:
+            return
+        tmp = f"{path}.tmp"
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(state, f, indent=2, sort_keys=True)
+        os.replace(tmp, path)
+    except Exception:
+        return
+
+
+def _include_open_positions_in_coins(api, coins: list[str]) -> list[str]:
+    """
+    Ensure any existing open positions are managed by the bot even if not listed in LIVE_COINS.
+    """
+    try:
+        have = {_normalize_symbol(c) for c in (coins or [])}
+        out = list(coins or [])
+        for p in api.list_positions():
+            sym = _format_symbol_for_bot(getattr(p, "symbol", "") or "")
+            if not sym:
+                continue
+            n = _normalize_symbol(sym)
+            if n not in have:
+                out.append(sym)
+                have.add(n)
+        return out
+    except Exception:
+        return list(coins or [])
+
+
+def _maybe_sell_position(*, api, cfg: BotConfig, symbol: str, pos, bars: pd.DataFrame, state: dict) -> bool:
+    """
+    Backtest-style exits on the latest bar:
+    - Stop loss
+    - Target
+    - Trailing stop updates (BE / lock)
+    - Time exit by bars held
+    Returns True if a sell was sent.
+    """
+    if not cfg.enable_sells:
+        return False
+
+    if bars is None or bars.empty:
+        return False
+
+    try:
+        last = bars.iloc[-1]
+        hi = float(last.get("high", 0) or 0)
+        lo = float(last.get("low", 0) or 0)
+        close = float(last.get("close", 0) or 0)
     except Exception:
         return False
+
+    key = _normalize_symbol(symbol)
+    sym_state = state.get(key) if isinstance(state, dict) else None
+    if not isinstance(sym_state, dict):
+        sym_state = {}
+
+    entry_price = sym_state.get("entry_price")
+    if not entry_price:
+        try:
+            entry_price = float(getattr(pos, "avg_entry_price", 0) or 0) or None
+        except Exception:
+            entry_price = None
+
+    if not entry_price or float(entry_price) <= 0:
+        return False
+
+    take_profit = float(entry_price) * (1 + float(cfg.target_pct))
+    stop_loss = float(entry_price) * (1 - float(cfg.stop_loss_pct))
+    current_stop = sym_state.get("current_stop")
+    if current_stop is None:
+        current_stop = float(stop_loss)
+    trail_mode = sym_state.get("trail_mode") or "NONE"
+
+    # Conservative bar evaluation using current stop/target
+    if lo <= float(current_stop):
+        try:
+            qty = float(getattr(pos, "qty", 0) or 0)
+        except Exception:
+            qty = 0.0
+        if qty > 0:
+            order = _sell_market(api, symbol, qty=qty)
+            if order is not None:
+                print(f"{symbol}: SELL (STOP) qty={qty} stop={float(current_stop):.6f} entry={float(entry_price):.6f}")
+                state.pop(key, None)
+                return True
+        return False
+
+    if hi >= float(take_profit):
+        try:
+            qty = float(getattr(pos, "qty", 0) or 0)
+        except Exception:
+            qty = 0.0
+        if qty > 0:
+            order = _sell_market(api, symbol, qty=qty)
+            if order is not None:
+                print(f"{symbol}: SELL (TARGET) qty={qty} tp={float(take_profit):.6f} entry={float(entry_price):.6f}")
+                state.pop(key, None)
+                return True
+        return False
+
+    # Trailing stop updates (effective next bar)
+    if cfg.use_trailing:
+        be_price = float(entry_price)
+        lock_price = float(entry_price) * (1 + float(cfg.trail_lock_pct))
+        if hi >= float(entry_price) * (1 + float(cfg.trail_lock_trigger_pct)) and float(current_stop) < lock_price:
+            current_stop = lock_price
+            trail_mode = "+LOCK"
+        elif hi >= float(entry_price) * (1 + float(cfg.trail_be_pct)) and float(current_stop) < be_price:
+            current_stop = be_price
+            trail_mode = "BE"
+
+    bars_held = int(sym_state.get("bars_held") or 0) + 1
+    if bars_held >= int(cfg.hold_max_bars):
+        try:
+            qty = float(getattr(pos, "qty", 0) or 0)
+        except Exception:
+            qty = 0.0
+        if qty > 0:
+            order = _sell_market(api, symbol, qty=qty)
+            if order is not None:
+                print(f"{symbol}: SELL (TIME) qty={qty} bars={bars_held} close={close:.6f}")
+                state.pop(key, None)
+                return True
+
+    state[key] = {
+        **sym_state,
+        "entry_price": float(entry_price),
+        "bars_held": int(bars_held),
+        "current_stop": float(current_stop),
+        "trail_mode": str(trail_mode),
+    }
+    return False
 
 
 def main() -> int:
     cfg = _build_config()
+    state = _load_state(cfg.state_path)
 
     print("Initializing live bot (paper trading).")
     print(f"Coins: {', '.join(cfg.coins)}")
     print(f"Thresholds: KING >= {cfg.king_threshold:.2f}, COUNCIL >= {cfg.council_threshold:.2f}")
-    print(f"Polling every {cfg.poll_seconds}s, bars_limit={cfg.bars_limit}")
+    print(f"Polling every {cfg.poll_seconds}s, bars_limit={cfg.bars_limit}, timeframe={cfg.timeframe}")
+    if cfg.enable_sells:
+        print(
+            "Sells enabled: "
+            f"TP={cfg.target_pct:.2%} SL={cfg.stop_loss_pct:.2%} "
+            f"hold_max_bars={cfg.hold_max_bars} trailing={cfg.use_trailing}"
+        )
 
     try:
         from api.alpaca_adapter import create_alpaca_client
@@ -226,13 +463,19 @@ def main() -> int:
         now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%SZ")
         print(f"\nScan @ {now}")
 
-        for symbol in cfg.coins:
-            if _has_open_position(api, symbol):
-                print(f"{symbol}: position open, skip")
+        coins = _include_open_positions_in_coins(api, cfg.coins)
+        for symbol in coins:
+            bars = _get_crypto_bars(api, symbol, timeframe=cfg.timeframe, limit=cfg.bars_limit)
+            if bars.empty:
                 continue
 
-            bars = _get_crypto_bars(api, symbol, limit=cfg.bars_limit)
-            if bars.empty:
+            pos = _get_open_position(api, symbol)
+            if pos is not None:
+                sold = _maybe_sell_position(api=api, cfg=cfg, symbol=symbol, pos=pos, bars=bars, state=state)
+                _save_state(cfg.state_path, state)
+                if sold:
+                    continue
+                print(f"{symbol}: position open, holding")
                 continue
 
             features = _prepare_features(bars)
@@ -248,7 +491,7 @@ def main() -> int:
                 continue
 
             if king_conf < cfg.king_threshold:
-                print(f"{symbol}: KING pass ({king_conf:.2f})")
+                print(f"{symbol}: KING fail ({king_conf:.2f})")
                 continue
 
             try:
@@ -272,8 +515,20 @@ def main() -> int:
                 print(f"{symbol}: insufficient cash ({cash:.2f})")
                 continue
 
-            ok = _buy_market(api, symbol, notional_usd=notional)
-            if ok:
+            order = _buy_market(api, symbol, notional_usd=notional)
+            if order is not None:
+                try:
+                    avg_fill = float(getattr(order, "filled_avg_price", 0) or 0) or None
+                except Exception:
+                    avg_fill = None
+                state[_normalize_symbol(symbol)] = {
+                    "entry_price": avg_fill,
+                    "entry_ts": datetime.now(timezone.utc).isoformat(),
+                    "bars_held": 0,
+                    "current_stop": None,
+                    "trail_mode": "NONE",
+                }
+                _save_state(cfg.state_path, state)
                 print(f"{symbol}: BUY (notional ${notional:.2f})")
             else:
                 print(f"{symbol}: BUY failed")

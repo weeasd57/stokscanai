@@ -15,9 +15,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy the rest of the code into an 'api' folder to preserve package structure
 COPY . ./api/
 
-# Expose port
-ENV PORT=8080
-EXPOSE 8080
+# Hugging Face Spaces expects the app to listen on port 7860 by default.
+# Keep PORT override support for other platforms.
+ENV PORT=7860
+EXPOSE 7860
 
 # Start command pointing to the api package
-CMD ["python", "-m", "uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8080"]
+CMD ["sh", "-c", "python -m uvicorn api.main:app --host 0.0.0.0 --port ${PORT:-7860}"]
