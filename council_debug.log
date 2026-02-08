@@ -787,3 +787,7 @@ ModuleNotFoundError: No module named 'tradingview_integration'
 2026-02-07 22:25:37,706 - INFO - Started server process [4840]
 2026-02-07 22:25:37,753 - INFO - Waiting for application startup.
 2026-02-07 22:25:37,782 - INFO - Application startup complete.
+2026-02-07 22:46:27,238 - ERROR - COUNCIL: File logging initialized.
+2026-02-07 22:46:29,566 - INFO - Started server process [6520]
+2026-02-07 22:46:29,566 - INFO - Waiting for application startup.
+2026-02-07 22:46:29,571 - INFO - Application startup complete.
