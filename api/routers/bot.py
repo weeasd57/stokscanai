@@ -9,7 +9,7 @@ from datetime import datetime
 from api.live_bot import bot_instance
 from api.stock_ai import get_cached_tickers
 
-router = APIRouter(prefix="/bot", tags=["Live Bot"])
+router = APIRouter(tags=["AI_BOT"])
 
 class BotConfigUpdate(BaseModel):
     alpaca_key_id: Optional[str] = None

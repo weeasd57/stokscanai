@@ -69,7 +69,8 @@ app.include_router(scan_tech.router)
 app.include_router(admin.router)
 app.include_router(alpaca.router)
 from api.routers import bot
-app.include_router(bot.router)
+app.include_router(bot.router, prefix="/ai_bot")
+app.include_router(bot.router, prefix="/bot") # Compatibility Alias
 
 CONFIG_FILE = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "admin_config.json"))
 

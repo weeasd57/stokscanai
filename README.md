@@ -108,9 +108,13 @@ cd "C:\Users\MR_CODER\Desktop\AI stocks\AI_BOT"
 py -m py_compile (Get-ChildItem -Recurse -Filter *.py | % FullName)
 
 # Option B: run as one-liners via PowerShell 7 (pwsh.exe)
-& "C:\Program Files\PowerShell\7\pwsh.exe" -NoProfile -Command "cd 'c:\Users\MR_CODER\Desktop\AI stocks'; robocopy api AI_BOT\api /MIR /XD __pycache__ .pytest_cache .mypy_cache .ruff_cache /XF *.pyc /R:1 /W:1"
+& "C:\Program Files\PowerShell\7\pwsh.exe" -NoProfile -Command "cd 'c:\Users\MR_CODER\Desktop\AI stocks'; 
+✔
+robocopy api AI_BOT\api /MIR /XD __pycache__ .pytest_cache .mypy_cache .ruff_cache /XF *.pyc /R:1 /W:1"
+
 & "C:\Program Files\PowerShell\7\pwsh.exe" -NoProfile -Command "cd 'c:\Users\MR_CODER\Desktop\AI stocks\AI_BOT'; py -m py_compile (Get-ChildItem -Recurse -Filter *.py | % FullName)"
 ```
+
 
 ## 🤝 Contributing
 Contributions are welcome! Please create a Pull Request for any bug fixes or new features.

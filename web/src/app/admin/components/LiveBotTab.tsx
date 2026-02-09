@@ -252,7 +252,7 @@ export default function LiveBotTab() {
     const fetchStatus = async (silent = false) => {
         if (!silent) setRefreshing(true);
         try {
-            const res = await fetch("/api/bot/status");
+            const res = await fetch("/api/ai_bot/status");
             if (res.ok) {
                 const data = await res.json();
 
@@ -309,7 +309,7 @@ export default function LiveBotTab() {
 
     const handleStart = async () => {
         try {
-            const res = await fetch("/api/bot/start", { method: "POST" });
+            const res = await fetch("/api/ai_bot/start", { method: "POST" });
             if (res.ok) {
                 toast.success("Bot started command sent");
                 fetchStatus();
@@ -325,7 +325,7 @@ export default function LiveBotTab() {
 
     const handleStop = async () => {
         try {
-            const res = await fetch("/api/bot/stop", { method: "POST" });
+            const res = await fetch("/api/ai_bot/stop", { method: "POST" });
             if (res.ok) {
                 toast.success("Bot stop command sent");
                 fetchStatus();
@@ -340,7 +340,7 @@ export default function LiveBotTab() {
 
     const handleUpdateConfig = async () => {
         try {
-            const res = await fetch("/api/bot/config", {
+            const res = await fetch("/api/ai_bot/config", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(configForm)
@@ -370,7 +370,7 @@ export default function LiveBotTab() {
     const fetchPerformance = async (silent = false) => {
         if (!silent) setPerformanceLoading(true);
         try {
-            const res = await fetch("/api/bot/performance");
+            const res = await fetch("/api/ai_bot/performance");
             if (res.ok) {
                 const data = await res.json();
                 setPerformance(data);

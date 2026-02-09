@@ -683,6 +683,7 @@ class LiveBot:
                         
                     bars = self._get_crypto_bars(symbol, limit=self.config.bars_limit)
                     if bars.empty:
+                        self._log(f"{symbol}: No bars found.")
                         continue
 
                     # Save to Supabase (Background or Sync? Sync is safer for data integrity, threaded is faster)
@@ -709,7 +710,7 @@ class LiveBot:
                         continue
 
                     if king_conf < self.config.king_threshold:
-                        # self._log(f"{symbol}: KING pass ({king_conf:.2f})")
+                        self._log(f"{symbol}: KING pass ({king_conf:.2f} < {self.config.king_threshold})")
                         continue
 
                     self._log(f"SIGNAL: {symbol} KING={king_conf:.2f}")
