@@ -271,18 +271,16 @@ export default function LiveBotTab() {
 
                 if (data.logs && Array.isArray(data.logs)) {
                     data.logs.forEach((l: string) => {
-                        const match = l.match(/Score:\s*(\d+(\.\d+)?)/);
+                        const match = l.match(/(?:KING|COUNCIL)(?:=|\s*pass\s*\(|:\s*)(\d+(\.\d+)?)/i);
                         if (match && match[1]) {
                             const score = parseFloat(match[1]);
                             // Increment all buckets that this score clears
-                            for (let t = 4; t <= 9; t++) {
+                            for (let t = 4; t <= 10; t++) {
                                 const thresh = t / 10;
                                 if (score >= thresh) {
                                     stats[thresh.toFixed(1)] = (stats[thresh.toFixed(1)] || 0) + 1;
                                 }
                             }
-                            // Also 1.0 if applicable, though loop above covers 0.4-0.9
-                            if (score >= 1.0) stats["1.0"] = (stats["1.0"] || 0) + 1;
                         }
                     });
                 }

@@ -32,7 +32,7 @@ class BotConfig:
     poll_seconds: int
     timeframe: str = "1Hour"
     use_council: bool = True
-    data_source: str = "alpaca"  # "alpaca" | "binance"
+    data_source: str = "binance"  # "alpaca" | "binance"
 
     # Risk
     max_open_positions: int = 5
@@ -46,7 +46,7 @@ class BotConfig:
     trail_lock_pct: float = 0.05
     
     # Supabase integration
-    save_to_supabase: bool = True  # Save polling data to Supabase
+    save_to_supabase: bool = False  # Save polling data to Supabase
     
     # Model Paths
     king_model_path: str = "api/models/KING_CRYPTO 👑.pkl"
@@ -224,7 +224,7 @@ class LiveBot:
             bars_limit=int(float(_read_env("BARS_LIMIT", "200") or 200)),
             poll_seconds=int(float(_read_env("POLL_SECONDS", "300") or 300)),
             timeframe=str(_read_env("TIMEFRAME", "1Hour")),
-            data_source=str(_read_env("LIVE_DATA_SOURCE", "alpaca") or "alpaca").strip().lower(),
+            data_source=str(_read_env("LIVE_DATA_SOURCE", "binance") or "binance").strip().lower(),
             enable_sells=_parse_bool(_read_env("LIVE_ENABLE_SELLS", "1"), True),
             target_pct=_parse_float(_read_env("LIVE_TARGET_PCT", "0.10"), 0.10),
             stop_loss_pct=_parse_float(_read_env("LIVE_STOP_LOSS_PCT", "0.05"), 0.05),
@@ -233,7 +233,7 @@ class LiveBot:
             trail_be_pct=_parse_float(_read_env("LIVE_TRAIL_BE_PCT", "0.05"), 0.05),
             trail_lock_trigger_pct=_parse_float(_read_env("LIVE_TRAIL_LOCK_TRIGGER_PCT", "0.08"), 0.08),
             trail_lock_pct=_parse_float(_read_env("LIVE_TRAIL_LOCK_PCT", "0.05"), 0.05),
-            save_to_supabase=_parse_bool(_read_env("LIVE_SAVE_TO_SUPABASE", "1"), True),
+            save_to_supabase=_parse_bool(_read_env("LIVE_SAVE_TO_SUPABASE", "0"), False),
             king_model_path=str(_read_env("LIVE_KING_MODEL_PATH", "api/models/KING_CRYPTO 👑.pkl")),
             council_model_path=str(_read_env("LIVE_COUNCIL_MODEL_PATH", "api/models/COUNCIL_CRYPTO.pkl")),
             max_open_positions=int(float(_read_env("LIVE_MAX_OPEN_POSITIONS", "5") or 5)),
@@ -402,6 +402,7 @@ class LiveBot:
         # Some TA feature generators crash on very short series (e.g., certain windowed indicators).
         # If we don't have enough bars, skip this scan safely.
         if len(df) < 50:
+            self._log(f"Warning: Not enough bars for features ({len(df)} < 50)")
             return pd.DataFrame()
 
         try:
@@ -430,7 +431,7 @@ class LiveBot:
                 return pd.DataFrame()
             return bars.reset_index()
         except Exception as e:
-            # self._log(f"Error fetching bars for {symbol}: {e}")
+            self._log(f"Error fetching bars for {symbol}: {e}")
             return pd.DataFrame()
 
     def _save_to_supabase(self, bars: pd.DataFrame, symbol: str):
@@ -699,6 +700,7 @@ class LiveBot:
 
                     features = self._prepare_features(bars)
                     if features.empty:
+                        self._log(f"{symbol}: Features empty (insufficient data).")
                         continue
 
                     X_all = features.iloc[[-1]].copy()
