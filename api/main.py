@@ -45,7 +45,7 @@ load_dotenv()
 print(f"DEBUG: NEXT_PUBLIC_SUPABASE_URL loaded: {'Yes' if os.getenv('NEXT_PUBLIC_SUPABASE_URL') else 'No'}")
 print(f"DEBUG: SUPABASE_SERVICE_ROLE_KEY loaded: {'Yes' if os.getenv('SUPABASE_SERVICE_ROLE_KEY') else 'No'}")
 
-app = FastAPI(title="AI Stocks API", version="1.0.0")
+app = FastAPI(title="Artoro API", version="1.0.0")
 
 @app.on_event("startup")
 async def startup_event():
@@ -354,7 +354,7 @@ def evaluate_open_positions_history(req: EvaluatePositionsRequest):
 def root():
     """صفحة رئيسية بسيطة لحل مشكلة 404 من UptimeRobot"""
     return {
-        "app": "AI Stocks API",
+        "app": "Artoro API",
         "version": "1.0.0",
         "status": "running",
         "endpoints": {
@@ -365,7 +365,7 @@ def root():
             "admin": "/admin",
             "docs": "/docs"
         },
-        "message": "Welcome to AI Stocks API! Visit /docs for API documentation."
+        "message": "Welcome to Artoro API! Visit /docs for API documentation."
     }
 
 

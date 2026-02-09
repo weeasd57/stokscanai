@@ -116,7 +116,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
             }
 
             // Real OpenRouter Call (Example implementation, assuming OpenRouter is preferred)
-            const systemPrompt = `You are a Stock Market AI Assistant integrated into the "AI Stocks Predictor" app.
+            const systemPrompt = `You are a Stock Market AI Assistant integrated into the "Artoro" app.
             
             APP CONTEXT:
             - Home: Dashboard with popular stocks.
@@ -137,7 +137,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
                     "Content-Type": "application/json",
                     "Authorization": `Bearer ${openRouterKey}`,
                     "HTTP-Referer": window.location.origin,
-                    "X-Title": "AI Stocks Predictor"
+                    "X-Title": "Artoro"
                 },
                 body: JSON.stringify({
                     model: "google/gemini-flash-1.5", // Still can use Gemini via OpenRouter if desired, or move to GPT-4o-mini

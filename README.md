@@ -1,6 +1,6 @@
-# AI Stocks Predictor
+# Artoro
 
-A modern, AI-powered stock analysis and prediction platform. This application combines EOD technical analysis with Machine Learning (Random Forest) to identify high-probability trading opportunities.
+Advanced AI-driven stock analysis platform. Combining RandomForest models with multi-source fundamentals to give you the edge.
 
 ![Dashboard Preview](docs/dashboard.png)
 

@@ -41,8 +41,8 @@ export default function Header() {
                         <Link href="/" className="group flex items-center gap-3">
                             <div className="relative flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-violet-600 shadow-xl shadow-blue-500/20 transition-all duration-500 group-hover:rotate-12 group-hover:scale-110">
                                 <Image
-                                    src="/favicon_io/favicon-32x32.png"
-                                    alt="elztona logo"
+                                    src="/favicon_io/apple-touch-icon.png"
+                                    alt="Artoro logo"
                                     width={20}
                                     height={20}
                                     className="rounded-lg"

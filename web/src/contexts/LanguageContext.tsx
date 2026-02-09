@@ -15,8 +15,8 @@ const LanguageContext = createContext<LanguageContextType | undefined>(undefined
 
 const translations: Record<string, Record<Language, string>> = {
     "app.title": {
-        en: "elztona",
-        ar: "elztona",
+        en: "Artoro",
+        ar: "Artoro",
     },
     "app.subtitle": {
         en: "AI-powered stock insights to help you spot opportunities with confidence",

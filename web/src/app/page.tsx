@@ -121,8 +121,8 @@ export default function HomePage() {
         <h1 className="text-4xl font-black tracking-tighter text-white uppercase italic flex items-center gap-4">
           <div className="p-3 rounded-2xl bg-indigo-600 shadow-xl shadow-indigo-600/20">
             <Image
-              src="/favicon_io/favicon-32x32.png"
-              alt="elztona logo"
+              src="/favicon_io/apple-touch-icon.png"
+              alt="Artoro logo"
               width={32}
               height={32}
               className="rounded-lg"

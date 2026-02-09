@@ -6,8 +6,8 @@ import Footer from "@/components/Footer";
 import ChatWidget from "@/components/ChatWidget";
 
 export const metadata = {
-  title: "elztona",
-  description: "Smart AI insights to help you analyze and discover stock opportunities",
+  title: "Artoro",
+  description: "Advanced AI-driven stock analysis platform. Combining RandomForest models with multi-source fundamentals to give you the edge.",
   manifest: "/favicon_io/site.webmanifest",
   icons: {
     icon: [
