@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Activity, Calendar, Play, TrendingUp, Target, AlertTriangle, CheckCircle2, FileText, Globe, Trash2, Eye, EyeOff, History as HistoryIcon, ChevronDown, LineChart, Database, Users, Cpu, ShieldCheck, Zap, Info } from "lucide-react";
+import { Activity, Calendar, Play, TrendingUp, Target, AlertTriangle, CheckCircle2, FileText, Globe, Trash2, Eye, Wallet, EyeOff, History as HistoryIcon, ChevronDown, LineChart, Database, Users, Cpu, ShieldCheck, Zap, Info } from "lucide-react";
 import { getLocalModels, type LocalModelMeta, getBacktests, getBacktestTrades, deleteBacktest, updateBacktestVisibility } from "@/lib/api";
 import { useAppState } from "@/contexts/AppStateContext";
 import { toast } from "sonner";
@@ -392,7 +392,7 @@ const BacktestAnalysisModal = ({ isOpen, onClose, bt, trades, loading }: { isOpe
                             <td className="px-6 py-4 text-center">
                               <span className="text-xs font-mono font-bold text-zinc-200">
                                 {(() => {
-                                  const fundScore = (t.features as any)?.fund_score ?? (t.features as any)?.fundamental_score ?? (t.features as any)?.validator_score ?? (t as any)?.fund_score ?? (t as any)?.Validator_Score;
+                                  const fundScore = (t.features as any)?.fund_score ?? (t.features as any)?.fundamental_score ?? (t as any)?.Fund_Score ?? (t as any)?.fund_score ?? (t as any)?.Validator_Score;
                                   if (fundScore === null || fundScore === undefined || Number.isNaN(Number(fundScore))) return '—';
                                   const n = Number(fundScore);
                                   return n <= 1 ? `${(n * 100).toFixed(1)}%` : `${n.toFixed(1)}%`;
@@ -452,6 +452,7 @@ export default function BacktestTab() {
   const [targetPct, setTargetPct] = useState<number>(15);
   const [stopLossPct, setStopLossPct] = useState<number>(5);
   const [councilThreshold, setCouncilThreshold] = useState<number>(0.1);
+  const [startingCapital, setStartingCapital] = useState<number>(100000);
 
   const [running, setRunning] = useState(false);
   const [currentBacktestId, setCurrentBacktestId] = useState<string | null>(null);
@@ -632,6 +633,7 @@ export default function BacktestTab() {
         meta_threshold: normalizeThreshold01(metaThreshold),
         target_pct: targetPct / 100,
         stop_loss_pct: stopLossPct / 100,
+        capital: startingCapital,
       };
       // Intentionally silent (avoid noisy debug logs in the browser console)
 
@@ -971,27 +973,43 @@ export default function BacktestTab() {
                   </div>
                 </div>
 
-                {/* Council Threshold */}
-                {selectedCouncilModel && (
-                  <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-500">
-                    <label className="text-[9px] font-bold text-indigo-400 uppercase tracking-widest flex items-center justify-between">
-                      <span className="flex items-center gap-2"><ShieldCheck className="h-3 w-3" /> Council consensus</span>
-                      <span className="text-[8px] text-zinc-500 normal-case font-medium lowercase">Scale: 0.0 — 1.0</span>
+                {/* Council Threshold & Capital */}
+                <div className="grid grid-cols-2 gap-4">
+                  {selectedCouncilModel && (
+                    <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-500">
+                      <label className="text-[9px] font-bold text-indigo-400 uppercase tracking-widest flex items-center justify-between">
+                        <span className="flex items-center gap-2"><ShieldCheck className="h-3 w-3" /> Council consensus</span>
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="number"
+                          min={0}
+                          max={1}
+                          step={0.01}
+                          value={councilThreshold}
+                          onChange={(e) => setCouncilThreshold(Number(e.target.value))}
+                          className="w-full h-14 pl-5 pr-12 rounded-2xl border border-indigo-500/20 bg-indigo-500/5 text-white font-mono text-lg focus:ring-2 focus:ring-indigo-500/40 outline-none transition-all"
+                        />
+                        <div className="absolute right-4 top-1/2 -translate-y-1/2 text-indigo-400/60 font-mono text-xs">0-1</div>
+                      </div>
+                    </div>
+                  )}
+                  <div className="space-y-3">
+                    <label className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest flex items-center justify-between">
+                      <span className="flex items-center gap-2"><Wallet className="h-3 w-3 text-indigo-400" /> Starting Capital</span>
                     </label>
                     <div className="relative">
                       <input
                         type="number"
-                        min={0}
-                        max={1}
-                        step={0.01}
-                        value={councilThreshold}
-                        onChange={(e) => setCouncilThreshold(Number(e.target.value))}
-                        className="w-full h-14 pl-5 pr-12 rounded-2xl border border-indigo-500/20 bg-indigo-500/5 text-white font-mono text-lg focus:ring-2 focus:ring-indigo-500/40 outline-none transition-all"
+                        value={startingCapital}
+                        onChange={(e) => setStartingCapital(Number(e.target.value))}
+                        className="w-full h-14 pl-5 pr-12 rounded-2xl border border-white/5 bg-zinc-900/80 text-white font-mono text-lg focus:ring-2 focus:ring-indigo-500/40 outline-none transition-all"
+                        placeholder="100000"
                       />
-                      <div className="absolute right-4 top-1/2 -translate-y-1/2 text-indigo-400/60 font-mono text-xs">0-1</div>
+                      <div className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-500 font-mono text-xs">EGP</div>
                     </div>
                   </div>
-                )}
+                </div>
               </div>
             </div>
 
@@ -1255,18 +1273,29 @@ export default function BacktestTab() {
                         </div>
                       </td>
                       <td className="px-6 py-4 text-center">
-                        <div className="flex flex-col items-center gap-1">
+                        <div className="flex flex-col items-center gap-1.5">
                           {bt.council_model ? (
-                            <span className="px-2 py-1 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 font-mono text-[9px] uppercase tracking-tighter">
-                              {bt.council_model.replace(".pkl", "")}
-                              <span className="ml-1 opacity-60">@{bt.council_threshold ?? 0.1}</span>
-                            </span>
+                            <div className="flex flex-col items-center">
+                              <span className="px-2 py-0.5 rounded bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 font-mono text-[8px] uppercase tracking-tighter mb-1">
+                                {bt.council_model.replace(".pkl", "")}
+                                <span className="ml-1 opacity-60">@{bt.council_threshold ?? 0.1}</span>
+                              </span>
+                            </div>
                           ) : (
                             <span className="text-zinc-600 uppercase text-[8px] font-black tracking-widest">NONE</span>
                           )}
-                          <span className="text-[8px] font-bold text-zinc-500 uppercase tracking-widest">
-                            Meta: {bt.meta_threshold ?? 0.4}
-                          </span>
+                          <div className="flex items-center gap-2">
+                            <span className="px-1.5 py-0.5 rounded bg-white/5 border border-white/5 text-zinc-500 font-mono text-[8px] uppercase">
+                              Meta: {bt.meta_threshold ?? 0.4}
+                            </span>
+                            {(bt.target_pct !== undefined || bt.stop_loss_pct !== undefined) && (
+                              <div className="flex items-center gap-1 text-[8px] font-mono font-bold">
+                                <span className="text-emerald-500/80">T:{Math.round((bt.target_pct || 0) * 100)}%</span>
+                                <span className="text-zinc-700">|</span>
+                                <span className="text-red-500/80">S:{Math.round((bt.stop_loss_pct || 0) * 100)}%</span>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </td>
                       <td className="px-6 py-4 text-center">
@@ -1312,48 +1341,30 @@ export default function BacktestTab() {
                           const tradesLog = (bt as any).trades_log as any[] | undefined;
                           let totalProfitCash = 0;
                           let requiredBalance = 0;
+                          const startingCap = bt.capital || 100000;
 
                           if (Array.isArray(tradesLog) && tradesLog.length > 0) {
                             const daily: Record<string, number> = {};
 
                             for (const t of tradesLog) {
-                              const entryRaw =
-                                (t as any).Entry_Date ||
-                                (t as any).entry_date ||
-                                (t as any).features?.entry_date ||
-                                (t as any).features?.trade_date;
-                              const exitRaw =
-                                (t as any).Exit_Date ||
-                                (t as any).exit_date ||
-                                (t as any).features?.exit_date ||
-                                (t as any).features?.trade_date;
+                              const entryRaw = (t as any).Entry_Date || (t as any).entry_date || (t as any).features?.entry_date || (t as any).features?.trade_date;
+                              const exitRaw = (t as any).Exit_Date || (t as any).exit_date || (t as any).features?.exit_date || (t as any).features?.trade_date;
 
                               const entry = new Date(entryRaw);
                               const exit = new Date(exitRaw);
                               if (!Number.isFinite(entry.getTime()) || !Number.isFinite(exit.getTime())) continue;
 
-                              // profit_cash
                               const pc = Number((t as any).Profit_Cash ?? (t as any).profit_cash ?? (t as any).features?.profit_cash ?? 0) || 0;
                               totalProfitCash += pc;
 
-                              // position_cash = رأس المال المستخدم في الصفقة
-                              const positionCash = Number(
-                                (t as any).Position_Cash ??
-                                (t as any).position_cash ??
-                                (t as any).features?.position_cash ??
-                                0
-                              ) || 0;
-
+                              const positionCash = Number((t as any).Position_Cash ?? (t as any).position_cash ?? (t as any).features?.position_cash ?? 0) || 0;
                               if (positionCash <= 0) continue;
 
                               const start = entry < exit ? entry : exit;
                               const end = exit > entry ? exit : entry;
-
                               const cursor = new Date(start);
                               let steps = 0;
-                              const maxDays = 400;
-
-                              while (cursor <= end && steps < maxDays) {
+                              while (cursor <= end && steps < 400) {
                                 const key = cursor.toISOString().slice(0, 10);
                                 if (!daily[key]) daily[key] = 0;
                                 daily[key] += positionCash;
@@ -1365,18 +1376,20 @@ export default function BacktestTab() {
                           }
 
                           const colorClass = (totalProfitCash || 0) >= 0 ? "text-emerald-400" : "text-red-400";
+                          const isWarning = requiredBalance > startingCap;
 
                           return (
-                            <div className={`font-mono font-bold text-[10px] ${colorClass}`}>
-                              <span className="text-[9px] mr-1">Bal:</span>
-                              <span className="text-sm">
-                                {requiredBalance > 0 ? Math.round(requiredBalance).toLocaleString() : "—"}
-                              </span>
-                              <span className="mx-1 opacity-40">/</span>
-                              <span className="text-sm">
-                                {totalProfitCash !== 0 ? Math.round(Math.abs(totalProfitCash)).toLocaleString() : "0"}
-                              </span>
-                              <span className="ml-1 text-[8px] opacity-60">EGP</span>
+                            <div className="flex flex-col items-end gap-1">
+                              <div className="flex items-center gap-1.5 font-mono text-[9px] text-zinc-500">
+                                <span>Cap: {startingCap.toLocaleString()}</span>
+                                <span className="opacity-20">/</span>
+                                <span className={colorClass}>Profit: {Math.round(totalProfitCash).toLocaleString()}</span>
+                              </div>
+                              <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded-md font-mono font-bold text-[10px] ${isWarning ? 'bg-red-500/10 text-red-500 border border-red-500/20' : 'bg-white/5 text-zinc-300 border border-white/5'}`}>
+                                <span className="text-[8px] opacity-60 uppercase tracking-tighter">Max Exp:</span>
+                                <span>{requiredBalance > 0 ? Math.round(requiredBalance).toLocaleString() : "—"}</span>
+                                {isWarning && <AlertTriangle className="h-2.5 w-2.5 ml-0.5 animate-pulse" />}
+                              </div>
                             </div>
                           );
                         })()}

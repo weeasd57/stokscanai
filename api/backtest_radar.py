@@ -815,6 +815,7 @@ def main():
     parser.add_argument("--validator-threshold", type=float, default=None, help="Override validator threshold (0-1)")
     parser.add_argument("--target-pct", type=float, default=None, help="Override target profit percentage (e.g. 0.15)")
     parser.add_argument("--stop-loss-pct", type=float, default=None, help="Override stop loss percentage (e.g. 0.05)")
+    parser.add_argument("--capital", type=float, default=100000, help="Initial capital for simulation")
     parser.add_argument("--quiet", "-q", action="store_true", help="Suppress verbose debug output")
     parser.add_argument("--no-trades-json", action="store_true", help="Do not print trades JSON to stdout")
     args = parser.parse_args()
@@ -1091,6 +1092,7 @@ def main():
                 validator_threshold=args.validator_threshold,
                 target_pct_override=args.target_pct,
                 stop_loss_pct_override=args.stop_loss_pct,
+                capital=args.capital,
             ) 
             
             if isinstance(res, dict) and res:
@@ -1137,7 +1139,7 @@ def main():
         return
         
     global_log = pd.concat(all_trades).sort_values("Date")
-    capital_per_trade = 10000
+    capital_per_trade = args.capital / 10
 
     # Dynamic Position Sizing (based on Validator Score when available, otherwise Council Score)
     # Profit_Cash is computed using a fixed base notional per trade (capital_per_trade) times a size multiplier.
@@ -1164,9 +1166,11 @@ def main():
     avg_pre_win_rate = (sum(r.get("pre_council_win_rate", 0) * r.get("pre_council_trades", 0) for r in all_res_metadata) / total_pre_trades) if total_pre_trades > 0 else 0
     avg_post_win_rate = (sum(r.get("post_council_win_rate", 0) * r.get("post_council_trades", 0) for r in all_res_metadata) / total_post_trades) if total_post_trades > 0 else 0
     
-    # For profit %, it's cumulative. Let's just output the totals.
-    total_pre_profit_pct = sum(r.get("pre_council_profit_pct", 0) for r in all_res_metadata) / len(all_res_metadata) # simplified
-    total_post_profit_pct = sum(r.get("post_council_profit_pct", 0) for r in all_res_metadata) / len(all_res_metadata) # simplified
+    # For profit %, it's cumulative ROI on the same starting capital base across different symbols.
+    # Since each symbol simulation uses the full capital as base, we sum the ROIs.
+    # ROI_total = (Profit_A / Cap) + (Profit_B / Cap) ... = (Sum_Profit / Cap).
+    total_pre_profit_pct = sum(r.get("pre_council_profit_pct", 0) for r in all_res_metadata)
+    total_post_profit_pct = sum(r.get("post_council_profit_pct", 0) for r in all_res_metadata)
 
     # Aggregate rejected profitable
     rejected_profitable = sum(r.get("rejected_profitable", 0) for r in all_res_metadata)
@@ -1201,7 +1205,7 @@ def main():
     print(f"Win Rate:              {win_rate:.1f}%", flush=True)
     print(f"Avg Return per Trade:  {global_log['PnL_Pct'].mean()*100:.2f}%", flush=True)
     print("-" * 20, flush=True)
-    print(f"Simulated Profit (Base 10k + Dynamic Sizing): {int(net_profit):,} EGP", flush=True)
+    print(f"Simulated Profit (Base {int(capital_per_trade):,} + Dynamic Sizing): {int(net_profit):,} EGP", flush=True)
     
     print("\n--- Council Impact Analysis ---", flush=True)
     print(f"Pre-Council Trades:    {total_pre_trades}", flush=True)

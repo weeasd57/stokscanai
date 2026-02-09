@@ -780,7 +780,7 @@ def _get_exchange_bulk_data(
     # 1. Simple cache check
     cached = _EXCHANGE_BULK_CACHE.get(cache_key)
     if cached and (now - cached.get("ts", 0) < _EXCHANGE_BULK_TTL_SECONDS):
-        print(f"DEBUG: Bulk Cache Hit for {cache_key}")
+        # Suppressed redundant logs to keep terminal clean
         return cached.get("data", {})
 
     # 2. Get or create a lock for this specific cache key to prevent "loop refetch"
@@ -793,12 +793,12 @@ def _get_exchange_bulk_data(
         # Re-check cache after acquiring lock
         cached = _EXCHANGE_BULK_CACHE.get(cache_key)
         if cached and (time.time() - cached.get("ts", 0) < _EXCHANGE_BULK_TTL_SECONDS):
-            print(f"DEBUG: Bulk Cache Hit (locked) for {cache_key}")
+            # Suppressed redundant logs (locked)
             return cached.get("data", {})
 
         max_attempts = 3
-        page_size = 1000
-        max_workers = 3
+        page_size = 5000
+        max_workers = 10
         last_err = None
 
         for attempt in range(1, max_attempts + 1):

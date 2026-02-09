@@ -725,6 +725,7 @@ class BacktestRequest(PBM):
     council_threshold: float | None = None
     target_pct: float | None = None
     stop_loss_pct: float | None = None
+    capital: float = 100000
 
 
 def _safe_basename(name: str) -> str:
@@ -900,7 +901,12 @@ async def backtest_endpoint(req: BacktestRequest, background_tasks: BackgroundTa
             "total_trades": 0,
             "win_rate": 0,
             "net_profit": 0,
-            "avg_return_per_trade": 0
+            "avg_return_per_trade": 0,
+            "meta_threshold": req.meta_threshold,
+            "council_threshold": req.council_threshold,
+            "target_pct": req.target_pct,
+            "stop_loss_pct": req.stop_loss_pct,
+            "capital": req.capital
         }).execute()
         
         backtest_id = res.data[0]["id"] if res.data else None
@@ -920,6 +926,7 @@ async def backtest_endpoint(req: BacktestRequest, background_tasks: BackgroundTa
         council_threshold=req.council_threshold,
         target_pct=req.target_pct,
         stop_loss_pct=req.stop_loss_pct,
+        capital=req.capital,
     )
 
     background_tasks.add_task(run_backtest_task, req_sanitized, backtest_id)
@@ -974,6 +981,9 @@ def run_backtest_task(req: BacktestRequest, backtest_id: str = None):
 
     if req.stop_loss_pct is not None:
         cmd.extend(["--stop-loss-pct", str(req.stop_loss_pct)])
+
+    if req.capital is not None:
+        cmd.extend(["--capital", str(req.capital)])
     
     # Always use quiet mode in background tasks to keep terminal clean
     cmd.append("--quiet")

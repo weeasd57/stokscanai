@@ -617,7 +617,10 @@ def get_crypto_symbols_stats(
 
     try:
         res = sb.rpc("get_crypto_symbol_stats", {"p_timeframe": timeframe}).execute()
-        return res.data or []
+        # Filter for /USD symbols only as per user request
+        data = res.data or []
+        filtered = [d for d in data if str(d.get("symbol", "")).strip().upper().endswith("/USD")]
+        return filtered
     except Exception as e:
         if _is_missing_table_error(e, "stock_bars_intraday"):
             raise HTTPException(

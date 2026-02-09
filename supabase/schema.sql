@@ -945,7 +945,13 @@ create table if not exists public.backtests (
     pre_council_win_rate double precision null,
     post_council_win_rate double precision null,
     pre_council_profit_pct double precision null,
+    pre_council_profit_pct double precision null,
     post_council_profit_pct double precision null,
+    capital numeric(18, 2) default 100000.00,
+    meta_threshold numeric(4, 2) null,
+    council_threshold numeric(4, 2) null,
+    target_pct numeric(10, 4) null,
+    stop_loss_pct numeric(10, 4) null,
     constraint backtests_pkey primary key (id)
 ) TABLESPACE pg_default;
 

@@ -103,6 +103,10 @@ export default function LiveBotTab() {
     const [uptime, setUptime] = useState("00:00:00");
     const logsEndRef = useRef<HTMLDivElement>(null);
 
+    // Logs & Analytics State
+    const [logFilter, setLogFilter] = useState<'ALL' | 'ACCEPTED' | 'REJECTED' | 'ERROR'>('ALL');
+    const [thresholdStats, setThresholdStats] = useState<Record<string, number>>({});
+
     const fetchAccount = async (silent = false) => {
         if (!silent) setAlpacaAccountLoading(true);
         try {
@@ -251,6 +255,39 @@ export default function LiveBotTab() {
             const res = await fetch("/api/bot/status");
             if (res.ok) {
                 const data = await res.json();
+
+                // Keep more history (1000 items)
+                if (data.logs && data.logs.length > 1000) {
+                    data.logs = data.logs.slice(-1000);
+                }
+
+                // Compute Threshold Stats from logs
+                // Log format example: "[2024-02-09 10:00:00] [INFO] [AAPL] Score: 0.85 (Threshold 0.80) -> ACCEPTED"
+                // or just extracting any number after "Score:"
+                const stats: Record<string, number> = {};
+                for (let i = 4; i <= 10; i++) {
+                    stats[(i / 10).toFixed(1)] = 0;
+                }
+
+                if (data.logs && Array.isArray(data.logs)) {
+                    data.logs.forEach((l: string) => {
+                        const match = l.match(/Score:\s*(\d+(\.\d+)?)/);
+                        if (match && match[1]) {
+                            const score = parseFloat(match[1]);
+                            // Increment all buckets that this score clears
+                            for (let t = 4; t <= 9; t++) {
+                                const thresh = t / 10;
+                                if (score >= thresh) {
+                                    stats[thresh.toFixed(1)] = (stats[thresh.toFixed(1)] || 0) + 1;
+                                }
+                            }
+                            // Also 1.0 if applicable, though loop above covers 0.4-0.9
+                            if (score >= 1.0) stats["1.0"] = (stats["1.0"] || 0) + 1;
+                        }
+                    });
+                }
+                setThresholdStats(stats);
+
                 setStatus(data);
                 // Initialize config form if empty or if config updated externally
                 if (!silent) {
@@ -824,24 +861,53 @@ export default function LiveBotTab() {
                                     <h2 className="text-sm font-bold tracking-widest text-zinc-300">SYSTEM LOGS</h2>
                                 </div>
                                 <div className="flex gap-2">
-                                    <div className="w-2.5 h-2.5 rounded-full bg-red-500/20 border border-red-500/50" />
-                                    <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/20 border border-yellow-500/50" />
-                                    <div className="w-2.5 h-2.5 rounded-full bg-emerald-500/20 border border-emerald-500/50" />
+                                    {(['ALL', 'ACCEPTED', 'REJECTED', 'ERROR'] as const).map(f => (
+                                        <button
+                                            key={f}
+                                            onClick={() => setLogFilter(f)}
+                                            className={`px-3 py-1 rounded-full text-[10px] font-bold transition-all ${logFilter === f
+                                                ? 'bg-white text-black shadow-lg shadow-white/10'
+                                                : 'bg-zinc-800 text-zinc-500 hover:bg-zinc-700'
+                                                }`}
+                                        >
+                                            {f}
+                                        </button>
+                                    ))}
                                 </div>
                             </div>
 
-                            <div className="flex-1 p-6 overflow-y-auto font-mono text-xs space-y-1.5 custom-scrollbar">
+                            {/* Threshold Dashboard */}
+                            <div className="px-6 py-3 border-b border-zinc-800 bg-black/40 flex items-center justify-between gap-4 overflow-x-auto">
+                                {Object.entries(thresholdStats).sort((a, b) => parseFloat(a[0]) - parseFloat(b[0])).map(([thresh, count]) => (
+                                    <div key={thresh} className="flex flex-col items-center min-w-[3rem]">
+                                        <span className="text-[9px] font-black text-zinc-600 uppercase">TH {thresh}</span>
+                                        <span className={`text-xs font-mono font-bold ${count > 0 ? 'text-indigo-400' : 'text-zinc-700'}`}>
+                                            {count}
+                                        </span>
+                                    </div>
+                                ))}
+                            </div>
+
+                            <div className="flex-1 p-6 overflow-y-auto font-mono text-xs space-y-1.5 custom-scrollbar max-h-[600px]">
                                 {status?.logs && status.logs.length > 0 ? (
-                                    status.logs.map((log, i) => (
-                                        <div key={i} className={`break-all border-l-2 pl-3 py-0.5 ${log.includes("BUY") ? "border-emerald-500 text-emerald-400 bg-emerald-500/5" :
-                                            log.includes("ERROR") ? "border-red-500 text-red-500 bg-red-500/5" :
-                                                log.includes("SIGNAL") ? "border-indigo-500 text-indigo-300" :
-                                                    "border-zinc-800 text-zinc-400"
-                                            }`}>
-                                            <span className="opacity-50 mr-2">{log.split("]")[0]}]</span>
-                                            {log.split("]")[1]}
-                                        </div>
-                                    ))
+                                    status.logs
+                                        .filter(log => {
+                                            if (logFilter === 'ALL') return true;
+                                            if (logFilter === 'ACCEPTED') return log.includes("ACCEPTED") || log.includes("BUY");
+                                            if (logFilter === 'REJECTED') return log.includes("REJECTED");
+                                            if (logFilter === 'ERROR') return log.includes("ERROR") || log.includes("Exception");
+                                            return true;
+                                        })
+                                        .map((log, i) => (
+                                            <div key={i} className={`break-all border-l-2 pl-3 py-0.5 ${log.includes("BUY") ? "border-emerald-500 text-emerald-400 bg-emerald-500/5" :
+                                                log.includes("ERROR") ? "border-red-500 text-red-500 bg-red-500/5" :
+                                                    log.includes("SIGNAL") ? "border-indigo-500 text-indigo-300" :
+                                                        "border-zinc-800 text-zinc-400"
+                                                }`}>
+                                                <span className="opacity-50 mr-2">{log.split("]")[0]}]</span>
+                                                {log.split("]")[1]}
+                                            </div>
+                                        ))
                                 ) : (
                                     <div className="text-zinc-700 italic flex items-center justify-center h-full">Waiting for data stream...</div>
                                 )}
