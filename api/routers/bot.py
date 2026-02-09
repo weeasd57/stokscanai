@@ -34,6 +34,9 @@ class BotConfigUpdate(BaseModel):
     trail_lock_trigger_pct: Optional[float] = None
     trail_lock_pct: Optional[float] = None
     save_to_supabase: Optional[bool] = None
+    king_model_path: Optional[str] = None
+    council_model_path: Optional[str] = None
+    max_open_positions: Optional[int] = None
 
 @router.post("/start")
 def start_bot():

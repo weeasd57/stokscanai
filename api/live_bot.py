@@ -34,7 +34,8 @@ class BotConfig:
     use_council: bool = True
     data_source: str = "alpaca"  # "alpaca" | "binance"
 
-    # Exit logic (mirrors backtest_radar defaults)
+    # Risk
+    max_open_positions: int = 5
     enable_sells: bool = True
     target_pct: float = 0.10
     stop_loss_pct: float = 0.05
@@ -46,6 +47,10 @@ class BotConfig:
     
     # Supabase integration
     save_to_supabase: bool = True  # Save polling data to Supabase
+    
+    # Model Paths
+    king_model_path: str = "api/models/KING_CRYPTO 👑.pkl"
+    council_model_path: str = "api/models/COUNCIL_CRYPTO.pkl"
 
 def _read_env(name: str, default: Optional[str] = None, required: bool = False) -> Optional[str]:
     v = os.getenv(name, default)
@@ -229,6 +234,9 @@ class LiveBot:
             trail_lock_trigger_pct=_parse_float(_read_env("LIVE_TRAIL_LOCK_TRIGGER_PCT", "0.08"), 0.08),
             trail_lock_pct=_parse_float(_read_env("LIVE_TRAIL_LOCK_PCT", "0.05"), 0.05),
             save_to_supabase=_parse_bool(_read_env("LIVE_SAVE_TO_SUPABASE", "1"), True),
+            king_model_path=str(_read_env("LIVE_KING_MODEL_PATH", "api/models/KING_CRYPTO 👑.pkl")),
+            council_model_path=str(_read_env("LIVE_COUNCIL_MODEL_PATH", "api/models/COUNCIL_CRYPTO.pkl")),
+            max_open_positions=int(float(_read_env("LIVE_MAX_OPEN_POSITIONS", "5") or 5)),
         )
 
     def update_config(self, updates: Dict[str, Any]):
@@ -246,11 +254,12 @@ class LiveBot:
             for k, v in updates.items():
                 if k in current:
                     # Type conversion
-                    if k in ["king_threshold", "council_threshold", "max_notional_usd", "pct_cash_per_trade"]:
+                    if k in ["king_threshold", "council_threshold", "max_notional_usd", "pct_cash_per_trade", 
+                             "target_pct", "stop_loss_pct", "trail_be_pct", "trail_lock_trigger_pct", "trail_lock_pct"]:
                         current[k] = _parse_float(v, current[k])
-                    elif k in ["bars_limit", "poll_seconds"]:
+                    elif k in ["bars_limit", "poll_seconds", "max_open_positions", "hold_max_bars"]:
                         current[k] = int(float(v))
-                    elif k == "use_council":
+                    elif k in ["use_council", "enable_sells", "use_trailing", "save_to_supabase"]:
                         current[k] = bool(v)
                     else:
                         current[k] = v
@@ -297,6 +306,26 @@ class LiveBot:
     def _load_models(self):
         from api.backtest_radar import load_model, reconstruct_meta_model
         from api.council_validator import load_council_validator_from_path
+
+        self._log(f"Loading KING model from {self.config.king_model_path}...")
+        king_art = load_model(self.config.king_model_path)
+        if king_art is None:
+            raise ValueError(f"Failed to load KING model from {self.config.king_model_path}")
+        
+        king_clf = reconstruct_meta_model(king_art)
+        if king_clf is None:
+             # Fallback if it's already a classifier
+             king_clf = king_art
+
+        self._log(f"Loading COUNCIL model from {self.config.council_model_path}...")
+        # Note: load_council_validator_from_path handles its own loading internal to the pkl
+        validator = load_council_validator_from_path(self.config.council_model_path)
+        if validator is None:
+            # We don't raise here because COUNCIL might be optional if use_council is False,
+            # but usually it's better to have it if configured.
+            self._log("Warning: COUNCIL validator failed to load.")
+
+        return king_art, king_clf, validator
 
 
     def _include_open_positions_in_coins(self):
@@ -704,17 +733,26 @@ class LiveBot:
                     except Exception:
                         cash = 0.0
 
-                    notional = min(cash * self.config.pct_cash_per_trade, self.config.max_notional_usd)
-                    if notional < 10:
-                        self._log(f"{symbol}: insufficient cash ({cash:.2f})")
-                        continue
+                    # Check Max Open Positions limit
+                    try:
+                        positions = self.api.list_positions()
+                        if len(positions) >= self.config.max_open_positions:
+                            # self._log(f"Scan: Max open positions reached ({len(positions)}). Skipping buys.")
+                            pass
+                        else:
+                            notional = min(cash * self.config.pct_cash_per_trade, self.config.max_notional_usd)
+                            if notional < 10:
+                                self._log(f"{symbol}: insufficient cash ({cash:.2f})")
+                                continue
 
-                    self._log(f"{symbol}: Placing BUY order for ${notional:.2f}")
-                    ok = self._buy_market(symbol, notional_usd=notional)
-                    if ok:
-                        self._log(f"{symbol}: BUY executed.")
-                    else:
-                        self._log(f"{symbol}: BUY failed.")
+                            self._log(f"{symbol}: Placing BUY order for ${notional:.2f}")
+                            ok = self._buy_market(symbol, notional_usd=notional)
+                            if ok:
+                                self._log(f"{symbol}: BUY executed.")
+                            else:
+                                self._log(f"{symbol}: BUY failed.")
+                    except Exception as e:
+                        self._log(f"Error checking positions/buying for {symbol}: {e}")
 
                 # Wait for next poll or stop signal
                 # Break it into small chunks to be responsive to stop

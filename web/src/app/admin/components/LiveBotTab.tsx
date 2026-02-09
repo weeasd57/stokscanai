@@ -33,6 +33,9 @@ interface BotConfig {
     trail_lock_trigger_pct: number;
     trail_lock_pct: number;
     save_to_supabase: boolean;
+    king_model_path: string;
+    council_model_path: string;
+    max_open_positions: number;
 }
 
 interface PerformanceData {
@@ -132,12 +135,7 @@ export default function LiveBotTab() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    // Auto-scroll logs
-    useEffect(() => {
-        if (logsEndRef.current) {
-            logsEndRef.current.scrollIntoView({ behavior: "smooth" });
-        }
-    }, [status?.logs]);
+    // Auto-scroll logs removed per user request
 
     // Uptime calculation
     useEffect(() => {
@@ -502,136 +500,213 @@ export default function LiveBotTab() {
                                 </div>
                             </div>
 
-                            {/* Council Toggle */}
-                            <div className="bg-black/20 rounded-xl p-4 border border-white/5 flex items-center justify-between">
-                                <div className="space-y-1">
-                                    <label className="text-sm font-bold text-white flex items-center gap-2">
-                                        {useCouncil ? <ShieldCheck className="w-4 h-4 text-emerald-400" /> : <ShieldAlert className="w-4 h-4 text-zinc-500" />}
-                                        Council Validation
-                                    </label>
-                                    <p className="text-xs text-zinc-500">Require multi-model consensus for trades</p>
+                            {/* Council Validation Section */}
+                            <div className="bg-black/40 rounded-2xl p-5 border border-white/5 space-y-4 shadow-xl">
+                                <div className="flex items-center justify-between">
+                                    <div className="space-y-1">
+                                        <label className="text-sm font-black text-white flex items-center gap-2 tracking-tight">
+                                            {useCouncil ? <ShieldCheck className="w-4 h-4 text-emerald-400" /> : <ShieldAlert className="w-4 h-4 text-zinc-500" />}
+                                            COUNCIL VALIDATION
+                                        </label>
+                                        <p className="text-[10px] text-zinc-500 uppercase font-bold tracking-widest">Multi-model consensus</p>
+                                    </div>
+                                    <Switch.Root
+                                        checked={useCouncil}
+                                        onCheckedChange={(c: boolean) => setConfigForm({ ...configForm, use_council: c })}
+                                        className={`w-12 h-6 rounded-full relative shadow-inner transition-colors duration-300 ${useCouncil ? 'bg-emerald-600' : 'bg-zinc-700'}`}
+                                    >
+                                        <Switch.Thumb className={`block w-4 h-4 rounded-full bg-white shadow-lg transition-transform duration-300 transform translate-y-1 ${useCouncil ? 'translate-x-7' : 'translate-x-1'}`} />
+                                    </Switch.Root>
                                 </div>
-                                <Switch.Root
-                                    checked={useCouncil}
-                                    onCheckedChange={(c: boolean) => setConfigForm({ ...configForm, use_council: c })}
-                                    className={`w-12 h-6 rounded-full relative shadow-inner transition-colors duration-300 ${useCouncil ? 'bg-emerald-600' : 'bg-zinc-700'}`}
-                                >
-                                    <Switch.Thumb className={`block w-4 h-4 rounded-full bg-white shadow-lg transition-transform duration-300 transform translate-y-1 ${useCouncil ? 'translate-x-7' : 'translate-x-1'}`} />
-                                </Switch.Root>
+
+                                {useCouncil && (
+                                    <div className="space-y-4 pt-2 border-t border-white/5 animate-in fade-in duration-300">
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Council Threshold</label>
+                                            <input
+                                                type="number" step="0.01"
+                                                value={configForm.council_threshold}
+                                                onChange={(e) => setConfigForm({ ...configForm, council_threshold: parseFloat(e.target.value) })}
+                                                className="w-full bg-black/60 border border-white/5 rounded-xl px-4 py-2.5 text-sm font-mono focus:outline-none focus:border-indigo-500/50 transition-all text-indigo-200"
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Council Validator Path</label>
+                                            <input
+                                                type="text"
+                                                value={configForm.council_model_path}
+                                                onChange={(e) => setConfigForm({ ...configForm, council_model_path: e.target.value })}
+                                                className="w-full bg-black/60 border border-white/5 rounded-xl px-4 py-2.5 text-xs font-mono focus:outline-none focus:border-indigo-500/50 transition-all text-zinc-400"
+                                            />
+                                        </div>
+                                    </div>
+                                )}
                             </div>
 
-                            {/* Thresholds */}
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <label className="text-xs font-bold text-zinc-500 uppercase">King Threshold</label>
-                                    <input
-                                        type="number" step="0.01"
-                                        value={configForm.king_threshold}
-                                        onChange={(e) => setConfigForm({ ...configForm, king_threshold: parseFloat(e.target.value) })}
-                                        className="w-full bg-black/40 border border-white/5 rounded-xl px-4 py-3 text-sm font-mono focus:outline-none focus:border-indigo-500/50 focus:bg-indigo-500/5 transition-all"
-                                    />
-                                </div>
-                                <div className={`space-y-2 transition-opacity duration-300 ${useCouncil ? 'opacity-100' : 'opacity-40 grayscale'}`}>
-                                    <label className="text-xs font-bold text-zinc-500 uppercase">Council Threshold</label>
-                                    <input
-                                        type="number" step="0.01"
-                                        disabled={!useCouncil}
-                                        value={configForm.council_threshold}
-                                        onChange={(e) => setConfigForm({ ...configForm, council_threshold: parseFloat(e.target.value) })}
-                                        className="w-full bg-black/40 border border-white/5 rounded-xl px-4 py-3 text-sm font-mono focus:outline-none focus:border-indigo-500/50 focus:bg-indigo-500/5 transition-all disabled:cursor-not-allowed"
-                                    />
-                                </div>
-                            </div>
-
-                            {/* Risk Management */}
-                            <div className="p-4 rounded-xl border border-dashed border-zinc-700/50 space-y-4">
-                                <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Risk Management</label>
-                                <div className="grid grid-cols-2 gap-4">
+                            {/* Model Hub Section */}
+                            <div className="bg-black/40 rounded-2xl p-5 border border-white/5 space-y-4 shadow-xl">
+                                <label className="text-xs font-black text-zinc-400 uppercase tracking-[0.2em] flex items-center gap-2">
+                                    <ShieldCheck className="w-3.5 h-3.5 text-purple-400" /> Model Intelligence
+                                </label>
+                                <div className="space-y-4">
                                     <div className="space-y-2">
-                                        <label className="text-[10px] font-bold text-zinc-600 uppercase">Max Notional ($)</label>
+                                        <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">King Model Path</label>
                                         <input
-                                            type="number"
-                                            value={configForm.max_notional_usd}
-                                            onChange={(e) => setConfigForm({ ...configForm, max_notional_usd: parseFloat(e.target.value) })}
-                                            className="w-full bg-black/40 border border-white/5 rounded-xl px-3 py-2 text-sm font-mono focus:outline-none focus:border-red-500/50 transition-all text-red-200"
+                                            type="text"
+                                            value={configForm.king_model_path}
+                                            onChange={(e) => setConfigForm({ ...configForm, king_model_path: e.target.value })}
+                                            className="w-full bg-black/60 border border-white/5 rounded-xl px-4 py-2.5 text-xs font-mono focus:outline-none focus:border-purple-500/50 transition-all text-zinc-400"
                                         />
                                     </div>
                                     <div className="space-y-2">
-                                        <label className="text-[10px] font-bold text-zinc-600 uppercase">% Cash/Trade</label>
+                                        <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">King Confidence Threshold</label>
                                         <input
                                             type="number" step="0.01"
-                                            value={configForm.pct_cash_per_trade}
-                                            onChange={(e) => setConfigForm({ ...configForm, pct_cash_per_trade: parseFloat(e.target.value) })}
-                                            className="w-full bg-black/40 border border-white/5 rounded-xl px-3 py-2 text-sm font-mono focus:outline-none focus:border-red-500/50 transition-all text-red-200"
+                                            value={configForm.king_threshold}
+                                            onChange={(e) => setConfigForm({ ...configForm, king_threshold: parseFloat(e.target.value) })}
+                                            className="w-full bg-black/60 border border-white/5 rounded-xl px-4 py-2.5 text-sm font-mono focus:outline-none focus:border-purple-500/50 transition-all text-purple-200"
                                         />
                                     </div>
                                 </div>
                             </div>
 
-                            {/* Exit Strategy (Backtest Style) */}
-                            <div className="p-4 rounded-xl border border-dashed border-zinc-700/50 space-y-4">
-                                <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Exit Strategy</label>
-
-                                <div className="bg-black/20 rounded-xl p-4 border border-white/5 flex items-center justify-between">
+                            {/* Exit Strategy Section */}
+                            <div className="bg-black/40 rounded-2xl p-5 border border-white/5 space-y-5 shadow-xl">
+                                <div className="flex items-center justify-between">
                                     <div className="space-y-1">
-                                        <label className="text-sm font-bold text-white">Auto Sell</label>
-                                        <p className="text-xs text-zinc-500">Enable target/stop/time exits (like backtest)</p>
+                                        <label className="text-sm font-black text-white tracking-tight flex items-center gap-2">
+                                            <ArrowDownRight className="w-4 h-4 text-orange-400" /> EXIT STRATEGY
+                                        </label>
+                                        <p className="text-[10px] text-zinc-500 uppercase font-bold tracking-widest">Auto-sell logic</p>
                                     </div>
                                     <Switch.Root
                                         checked={Boolean(configForm.enable_sells ?? true)}
                                         onCheckedChange={(c: boolean) => setConfigForm({ ...configForm, enable_sells: c })}
-                                        className={`w-12 h-6 rounded-full relative shadow-inner transition-colors duration-300 ${(configForm.enable_sells ?? true) ? 'bg-emerald-600' : 'bg-zinc-700'}`}
+                                        className={`w-12 h-6 rounded-full relative shadow-inner transition-colors duration-300 ${(configForm.enable_sells ?? true) ? 'bg-orange-600' : 'bg-zinc-700'}`}
                                     >
                                         <Switch.Thumb className={`block w-4 h-4 rounded-full bg-white shadow-lg transition-transform duration-300 transform translate-y-1 ${(configForm.enable_sells ?? true) ? 'translate-x-7' : 'translate-x-1'}`} />
                                     </Switch.Root>
                                 </div>
 
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-bold text-zinc-600 uppercase">Target %</label>
-                                        <input
-                                            type="number"
-                                            step="0.01"
-                                            value={configForm.target_pct}
-                                            onChange={(e) => setConfigForm({ ...configForm, target_pct: parseFloat(e.target.value) })}
-                                            className="w-full bg-black/40 border border-white/5 rounded-xl px-3 py-2 text-sm font-mono focus:outline-none focus:border-white/20 transition-all"
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-bold text-zinc-600 uppercase">Stop Loss %</label>
-                                        <input
-                                            type="number"
-                                            step="0.01"
-                                            value={configForm.stop_loss_pct}
-                                            onChange={(e) => setConfigForm({ ...configForm, stop_loss_pct: parseFloat(e.target.value) })}
-                                            className="w-full bg-black/40 border border-white/5 rounded-xl px-3 py-2 text-sm font-mono focus:outline-none focus:border-white/20 transition-all"
-                                        />
-                                    </div>
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-bold text-zinc-600 uppercase">Hold Max Bars</label>
-                                        <input
-                                            type="number"
-                                            min={1}
-                                            value={configForm.hold_max_bars}
-                                            onChange={(e) => setConfigForm({ ...configForm, hold_max_bars: parseInt(e.target.value) })}
-                                            className="w-full bg-black/40 border border-white/5 rounded-xl px-3 py-2 text-sm font-mono focus:outline-none focus:border-white/20 transition-all"
-                                        />
-                                    </div>
-                                    <div className="bg-black/20 rounded-xl p-4 border border-white/5 flex items-center justify-between">
-                                        <div className="space-y-1">
-                                            <label className="text-sm font-bold text-white">Trailing</label>
-                                            <p className="text-xs text-zinc-500">BE / lock-profit rules</p>
+                                {configForm.enable_sells && (
+                                    <div className="space-y-5 animate-in fade-in duration-300">
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="space-y-2">
+                                                <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Target %</label>
+                                                <input
+                                                    type="number" step="0.01"
+                                                    value={configForm.target_pct}
+                                                    onChange={(e) => setConfigForm({ ...configForm, target_pct: parseFloat(e.target.value) })}
+                                                    className="w-full bg-black/60 border border-white/5 rounded-xl px-4 py-2.5 text-sm font-mono focus:outline-none focus:border-emerald-500/50 transition-all text-emerald-200"
+                                                />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Stop Loss %</label>
+                                                <input
+                                                    type="number" step="0.01"
+                                                    value={configForm.stop_loss_pct}
+                                                    onChange={(e) => setConfigForm({ ...configForm, stop_loss_pct: parseFloat(e.target.value) })}
+                                                    className="w-full bg-black/60 border border-white/5 rounded-xl px-4 py-2.5 text-sm font-mono focus:outline-none focus:border-red-500/50 transition-all text-red-200"
+                                                />
+                                            </div>
                                         </div>
-                                        <Switch.Root
-                                            checked={Boolean(configForm.use_trailing ?? true)}
-                                            onCheckedChange={(c: boolean) => setConfigForm({ ...configForm, use_trailing: c })}
-                                            className={`w-12 h-6 rounded-full relative shadow-inner transition-colors duration-300 ${(configForm.use_trailing ?? true) ? 'bg-indigo-600' : 'bg-zinc-700'}`}
-                                        >
-                                            <Switch.Thumb className={`block w-4 h-4 rounded-full bg-white shadow-lg transition-transform duration-300 transform translate-y-1 ${(configForm.use_trailing ?? true) ? 'translate-x-7' : 'translate-x-1'}`} />
-                                        </Switch.Root>
+
+                                        <div className="space-y-4 pt-4 border-t border-white/5">
+                                            <div className="flex items-center justify-between">
+                                                <div className="space-y-1">
+                                                    <label className="text-xs font-bold text-white tracking-wider flex items-center gap-2">
+                                                        <Activity className="w-3 h-3 text-blue-400" /> Trailing Stop
+                                                    </label>
+                                                </div>
+                                                <Switch.Root
+                                                    checked={Boolean(configForm.use_trailing ?? true)}
+                                                    onCheckedChange={(c: boolean) => setConfigForm({ ...configForm, use_trailing: c })}
+                                                    className={`w-10 h-5 rounded-full relative shadow-inner transition-colors duration-300 ${(configForm.use_trailing ?? true) ? 'bg-blue-600' : 'bg-zinc-700'}`}
+                                                >
+                                                    <Switch.Thumb className={`block w-3 h-3 rounded-full bg-white shadow-lg transition-transform duration-300 transform translate-y-1 ${(configForm.use_trailing ?? true) ? 'translate-x-6' : 'translate-x-1'}`} />
+                                                </Switch.Root>
+                                            </div>
+
+                                            {configForm.use_trailing && (
+                                                <div className="grid grid-cols-3 gap-2 animate-in slide-in-from-top-2 duration-300">
+                                                    <div className="space-y-1">
+                                                        <label className="text-[8px] font-black text-zinc-600 uppercase">BE %</label>
+                                                        <input
+                                                            type="number" step="0.01"
+                                                            value={configForm.trail_be_pct}
+                                                            onChange={(e) => setConfigForm({ ...configForm, trail_be_pct: parseFloat(e.target.value) })}
+                                                            className="w-full bg-black/60 border border-white/5 rounded-lg px-2 py-1.5 text-[10px] font-mono focus:outline-none transition-all"
+                                                        />
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        <label className="text-[8px] font-black text-zinc-600 uppercase">Lock Trigg %</label>
+                                                        <input
+                                                            type="number" step="0.01"
+                                                            value={configForm.trail_lock_trigger_pct}
+                                                            onChange={(e) => setConfigForm({ ...configForm, trail_lock_trigger_pct: parseFloat(e.target.value) })}
+                                                            className="w-full bg-black/60 border border-white/5 rounded-lg px-2 py-1.5 text-[10px] font-mono focus:outline-none transition-all"
+                                                        />
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        <label className="text-[8px] font-black text-zinc-600 uppercase">Lock Profit %</label>
+                                                        <input
+                                                            type="number" step="0.01"
+                                                            value={configForm.trail_lock_pct}
+                                                            onChange={(e) => setConfigForm({ ...configForm, trail_lock_pct: parseFloat(e.target.value) })}
+                                                            className="w-full bg-black/60 border border-white/5 rounded-lg px-2 py-1.5 text-[10px] font-mono focus:outline-none transition-all"
+                                                        />
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Hold Max Bars</label>
+                                            <input
+                                                type="number" min={1}
+                                                value={configForm.hold_max_bars}
+                                                onChange={(e) => setConfigForm({ ...configForm, hold_max_bars: parseInt(e.target.value) })}
+                                                className="w-full bg-black/60 border border-white/5 rounded-xl px-4 py-2.5 text-sm font-mono focus:outline-none border-white/5 transition-all"
+                                            />
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Risk Management Section */}
+                            <div className="bg-black/40 rounded-2xl p-5 border border-white/5 space-y-5 shadow-xl font-mono">
+                                <label className="text-xs font-black text-red-400 uppercase tracking-[0.2em] flex items-center gap-2">
+                                    <ShieldAlert className="w-3.5 h-3.5" /> Risk Firewall
+                                </label>
+                                <div className="space-y-4">
+                                    <div className="flex justify-between items-center bg-red-500/5 rounded-xl p-3 border border-red-500/10">
+                                        <label className="text-[10px] font-black text-red-500/70 uppercase">Max Open Trades</label>
+                                        <input
+                                            type="number" min={1}
+                                            value={configForm.max_open_positions}
+                                            onChange={(e) => setConfigForm({ ...configForm, max_open_positions: parseInt(e.target.value) })}
+                                            className="w-16 bg-transparent text-right text-sm font-black text-red-400 focus:outline-none"
+                                        />
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black text-zinc-600 uppercase">Per-Trade Notional ($)</label>
+                                            <input
+                                                type="number"
+                                                value={configForm.max_notional_usd}
+                                                onChange={(e) => setConfigForm({ ...configForm, max_notional_usd: parseFloat(e.target.value) })}
+                                                className="w-full bg-black/40 border border-white/5 rounded-xl px-3 py-2 text-sm text-zinc-300 focus:outline-none border-white/10"
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black text-zinc-600 uppercase">% Cash Allocate</label>
+                                            <input
+                                                type="number" step="0.01"
+                                                value={configForm.pct_cash_per_trade}
+                                                onChange={(e) => setConfigForm({ ...configForm, pct_cash_per_trade: parseFloat(e.target.value) })}
+                                                className="w-full bg-black/40 border border-white/5 rounded-xl px-3 py-2 text-sm text-zinc-300 focus:outline-none border-white/10"
+                                            />
+                                        </div>
                                     </div>
                                 </div>
                             </div>
