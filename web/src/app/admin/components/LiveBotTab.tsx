@@ -594,18 +594,18 @@ export default function LiveBotTab() {
                                             <div className="space-y-2">
                                                 <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Target %</label>
                                                 <input
-                                                    type="number" step="0.01"
-                                                    value={configForm.target_pct}
-                                                    onChange={(e) => setConfigForm({ ...configForm, target_pct: parseFloat(e.target.value) })}
+                                                    type="number" step="0.1"
+                                                    value={Math.round((configForm.target_pct || 0) * 100 * 100) / 100}
+                                                    onChange={(e) => setConfigForm({ ...configForm, target_pct: parseFloat(e.target.value) / 100 })}
                                                     className="w-full bg-black/60 border border-white/5 rounded-xl px-4 py-2.5 text-sm font-mono focus:outline-none focus:border-emerald-500/50 transition-all text-emerald-200"
                                                 />
                                             </div>
                                             <div className="space-y-2">
                                                 <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Stop Loss %</label>
                                                 <input
-                                                    type="number" step="0.01"
-                                                    value={configForm.stop_loss_pct}
-                                                    onChange={(e) => setConfigForm({ ...configForm, stop_loss_pct: parseFloat(e.target.value) })}
+                                                    type="number" step="0.1"
+                                                    value={Math.round((configForm.stop_loss_pct || 0) * 100 * 100) / 100}
+                                                    onChange={(e) => setConfigForm({ ...configForm, stop_loss_pct: parseFloat(e.target.value) / 100 })}
                                                     className="w-full bg-black/60 border border-white/5 rounded-xl px-4 py-2.5 text-sm font-mono focus:outline-none focus:border-red-500/50 transition-all text-red-200"
                                                 />
                                             </div>
@@ -632,27 +632,27 @@ export default function LiveBotTab() {
                                                     <div className="space-y-1">
                                                         <label className="text-[8px] font-black text-zinc-600 uppercase">BE %</label>
                                                         <input
-                                                            type="number" step="0.01"
-                                                            value={configForm.trail_be_pct}
-                                                            onChange={(e) => setConfigForm({ ...configForm, trail_be_pct: parseFloat(e.target.value) })}
+                                                            type="number" step="0.1"
+                                                            value={Math.round((configForm.trail_be_pct || 0) * 100 * 100) / 100}
+                                                            onChange={(e) => setConfigForm({ ...configForm, trail_be_pct: parseFloat(e.target.value) / 100 })}
                                                             className="w-full bg-black/60 border border-white/5 rounded-lg px-2 py-1.5 text-[10px] font-mono focus:outline-none transition-all"
                                                         />
                                                     </div>
                                                     <div className="space-y-1">
                                                         <label className="text-[8px] font-black text-zinc-600 uppercase">Lock Trigg %</label>
                                                         <input
-                                                            type="number" step="0.01"
-                                                            value={configForm.trail_lock_trigger_pct}
-                                                            onChange={(e) => setConfigForm({ ...configForm, trail_lock_trigger_pct: parseFloat(e.target.value) })}
+                                                            type="number" step="0.1"
+                                                            value={Math.round((configForm.trail_lock_trigger_pct || 0) * 100 * 100) / 100}
+                                                            onChange={(e) => setConfigForm({ ...configForm, trail_lock_trigger_pct: parseFloat(e.target.value) / 100 })}
                                                             className="w-full bg-black/60 border border-white/5 rounded-lg px-2 py-1.5 text-[10px] font-mono focus:outline-none transition-all"
                                                         />
                                                     </div>
                                                     <div className="space-y-1">
                                                         <label className="text-[8px] font-black text-zinc-600 uppercase">Lock Profit %</label>
                                                         <input
-                                                            type="number" step="0.01"
-                                                            value={configForm.trail_lock_pct}
-                                                            onChange={(e) => setConfigForm({ ...configForm, trail_lock_pct: parseFloat(e.target.value) })}
+                                                            type="number" step="0.1"
+                                                            value={Math.round((configForm.trail_lock_pct || 0) * 100 * 100) / 100}
+                                                            onChange={(e) => setConfigForm({ ...configForm, trail_lock_pct: parseFloat(e.target.value) / 100 })}
                                                             className="w-full bg-black/60 border border-white/5 rounded-lg px-2 py-1.5 text-[10px] font-mono focus:outline-none transition-all"
                                                         />
                                                     </div>
@@ -701,9 +701,9 @@ export default function LiveBotTab() {
                                         <div className="space-y-2">
                                             <label className="text-[10px] font-black text-zinc-600 uppercase">% Cash Allocate</label>
                                             <input
-                                                type="number" step="0.01"
-                                                value={configForm.pct_cash_per_trade}
-                                                onChange={(e) => setConfigForm({ ...configForm, pct_cash_per_trade: parseFloat(e.target.value) })}
+                                                type="number" step="0.1"
+                                                value={Math.round((configForm.pct_cash_per_trade || 0) * 100 * 100) / 100}
+                                                onChange={(e) => setConfigForm({ ...configForm, pct_cash_per_trade: parseFloat(e.target.value) / 100 })}
                                                 className="w-full bg-black/40 border border-white/5 rounded-xl px-3 py-2 text-sm text-zinc-300 focus:outline-none border-white/10"
                                             />
                                         </div>

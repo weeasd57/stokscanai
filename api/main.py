@@ -723,6 +723,8 @@ class BacktestRequest(PBM):
     validator_model: str | None = None
     meta_threshold: float | None = None
     council_threshold: float | None = None
+    target_pct: float | None = None
+    stop_loss_pct: float | None = None
 
 
 def _safe_basename(name: str) -> str:
@@ -916,6 +918,8 @@ async def backtest_endpoint(req: BacktestRequest, background_tasks: BackgroundTa
         validator_model=requested_validator,
         meta_threshold=req.meta_threshold,
         council_threshold=req.council_threshold,
+        target_pct=req.target_pct,
+        stop_loss_pct=req.stop_loss_pct,
     )
 
     background_tasks.add_task(run_backtest_task, req_sanitized, backtest_id)
@@ -964,6 +968,12 @@ def run_backtest_task(req: BacktestRequest, backtest_id: str = None):
     
     if req.council_threshold is not None:
         cmd.extend(["--validator-threshold", str(req.council_threshold)])
+
+    if req.target_pct is not None:
+        cmd.extend(["--target-pct", str(req.target_pct)])
+
+    if req.stop_loss_pct is not None:
+        cmd.extend(["--stop-loss-pct", str(req.stop_loss_pct)])
     
     # Always use quiet mode in background tasks to keep terminal clean
     cmd.append("--quiet")

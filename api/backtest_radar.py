@@ -210,6 +210,8 @@ def run_radar_simulation(
     sim_end_dt: datetime | None = None,
     quiet: bool = False,
     validator_threshold: float | None = None,
+    target_pct_override: float | None = None,
+    stop_loss_pct_override: float | None = None,
 ):
     """
     Simulation of Radar: Base Model Detector -> Meta Model Confirmation.
@@ -269,6 +271,12 @@ def run_radar_simulation(
                 USE_TRAILING = False
         except Exception:
             pass
+
+    # UI/CLI Overrides (highest precedence)
+    if target_pct_override is not None and target_pct_override > 0:
+        TARGET_PCT = target_pct_override
+    if stop_loss_pct_override is not None and stop_loss_pct_override > 0:
+        STOP_LOSS_PCT = stop_loss_pct_override
 
     def _position_size_multiplier(score: float | None) -> float:
         """
@@ -805,6 +813,8 @@ def main():
     parser.add_argument("--validator", default=None, help="Optional Council Validator model (trained on KING BUYs)")
     parser.add_argument("--meta-threshold", type=float, default=None, help="Override meta threshold (0-1)")
     parser.add_argument("--validator-threshold", type=float, default=None, help="Override validator threshold (0-1)")
+    parser.add_argument("--target-pct", type=float, default=None, help="Override target profit percentage (e.g. 0.15)")
+    parser.add_argument("--stop-loss-pct", type=float, default=None, help="Override stop loss percentage (e.g. 0.05)")
     parser.add_argument("--quiet", "-q", action="store_true", help="Suppress verbose debug output")
     parser.add_argument("--no-trades-json", action="store_true", help="Do not print trades JSON to stdout")
     args = parser.parse_args()
@@ -1079,6 +1089,8 @@ def main():
                 sim_end_dt=sim_end_dt,
                 quiet=args.quiet,
                 validator_threshold=args.validator_threshold,
+                target_pct_override=args.target_pct,
+                stop_loss_pct_override=args.stop_loss_pct,
             ) 
             
             if isinstance(res, dict) and res:

@@ -449,6 +449,8 @@ export default function BacktestTab() {
   const [startDate, setStartDate] = useState(new Date().toISOString().slice(0, 10));
   const [endDate, setEndDate] = useState(new Date().toISOString().slice(0, 10));
   const [metaThreshold, setMetaThreshold] = useState<number>(0.6);
+  const [targetPct, setTargetPct] = useState<number>(15);
+  const [stopLossPct, setStopLossPct] = useState<number>(5);
   const [councilThreshold, setCouncilThreshold] = useState<number>(0.1);
 
   const [running, setRunning] = useState(false);
@@ -616,7 +618,7 @@ export default function BacktestTab() {
 
     setRunning(true);
     setError(null); // Clear previous errors
-      setResult(null);
+    setResult(null);
 
     try {
       const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "/api";
@@ -628,6 +630,8 @@ export default function BacktestTab() {
         council_model: selectedCouncilModel,
         council_threshold: normalizeThreshold01(councilThreshold),
         meta_threshold: normalizeThreshold01(metaThreshold),
+        target_pct: targetPct / 100,
+        stop_loss_pct: stopLossPct / 100,
       };
       // Intentionally silent (avoid noisy debug logs in the browser console)
 
@@ -933,7 +937,41 @@ export default function BacktestTab() {
                   </div>
                 </div>
 
-                {/* Council Threshold - Smart Conditional Logic */}
+                {/* Target & Stop Loss Section */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-3">
+                    <label className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest flex items-center justify-between">
+                      <span className="flex items-center gap-2"><Target className="h-3 w-3 text-emerald-400" /> Target %</span>
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        value={targetPct}
+                        onChange={(e) => setTargetPct(Number(e.target.value))}
+                        className="w-full h-14 pl-5 pr-12 rounded-2xl border border-white/5 bg-zinc-900/80 text-white font-mono text-lg focus:ring-2 focus:ring-emerald-500/40 outline-none transition-all"
+                        placeholder="15"
+                      />
+                      <div className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-500 font-mono text-xs">%</div>
+                    </div>
+                  </div>
+                  <div className="space-y-3">
+                    <label className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest flex items-center justify-between">
+                      <span className="flex items-center gap-2"><AlertTriangle className="h-3 w-3 text-red-400" /> Stop Loss %</span>
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        value={stopLossPct}
+                        onChange={(e) => setStopLossPct(Number(e.target.value))}
+                        className="w-full h-14 pl-5 pr-12 rounded-2xl border border-white/5 bg-zinc-900/80 text-white font-mono text-lg focus:ring-2 focus:ring-red-500/40 outline-none transition-all"
+                        placeholder="5"
+                      />
+                      <div className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-500 font-mono text-xs">%</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Council Threshold */}
                 {selectedCouncilModel && (
                   <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-500">
                     <label className="text-[9px] font-bold text-indigo-400 uppercase tracking-widest flex items-center justify-between">
@@ -1002,6 +1040,7 @@ export default function BacktestTab() {
               </div>
             </div>
           </div>
+
 
           {/* Action Button and Status */}
           <div className="pt-8 border-t border-white/5 space-y-4">
@@ -1368,7 +1407,7 @@ export default function BacktestTab() {
                         </button>
                       </td>
                     </tr>
-                  </React.Fragment >
+                  </React.Fragment>
                 ))
               )}
             </tbody>
