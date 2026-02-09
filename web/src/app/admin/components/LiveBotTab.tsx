@@ -130,6 +130,7 @@ export default function LiveBotTab() {
     };
 
     useEffect(() => {
+        fetchStatus();
         fetchAccount(true);
         fetchPositions(true);
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -231,7 +232,6 @@ export default function LiveBotTab() {
 
     // Auto-refresh when running (match Poll Interval)
     useEffect(() => {
-        fetchStatus();
         const interval = setInterval(() => {
             if (status?.status === "running") {
                 fetchStatus(true);
@@ -759,6 +759,7 @@ export default function LiveBotTab() {
                                         <option value="1Min" className="bg-zinc-950 text-white">1 Minute</option>
                                         <option value="5Min" className="bg-zinc-950 text-white">5 Minutes</option>
                                         <option value="15Min" className="bg-zinc-950 text-white">15 Minutes</option>
+                                        <option value="30Min" className="bg-zinc-950 text-white">30 Minutes</option>
                                         <option value="1Hour" className="bg-zinc-950 text-white">1 Hour (Default)</option>
                                         <option value="4Hour" className="bg-zinc-950 text-white">4 Hours</option>
                                         <option value="1Day" className="bg-zinc-950 text-white">1 Day</option>
