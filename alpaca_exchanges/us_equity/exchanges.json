@@ -1,0 +1,26 @@
+[
+  {
+    "name": "AMEX",
+    "asset_count": 286
+  },
+  {
+    "name": "ARCA",
+    "asset_count": 2562
+  },
+  {
+    "name": "BATS",
+    "asset_count": 1204
+  },
+  {
+    "name": "NASDAQ",
+    "asset_count": 5305
+  },
+  {
+    "name": "NYSE",
+    "asset_count": 2885
+  },
+  {
+    "name": "OTC",
+    "asset_count": 1016
+  }
+]

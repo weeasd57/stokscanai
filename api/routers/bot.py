@@ -90,13 +90,32 @@ def get_available_coins(source: Optional[str] = None, limit: int = 0):
             # Load from local alpaca_exchanges/crypto/CRYPTO.json
             base_dir = Path(os.getcwd())
             alpaca_json = base_dir / "alpaca_exchanges" / "crypto" / "CRYPTO.json"
+            
+            # Additional check: look relative to this file's directory
+            if not alpaca_json.exists():
+                alpaca_json = Path(__file__).parent.parent / "alpaca_exchanges" / "crypto" / "CRYPTO.json"
+
             if alpaca_json.exists():
                 with open(alpaca_json, "r", encoding="utf-8") as f:
                     data = json.load(f)
                     # Filter for symbols with status="active" and return as strings
                     symbols = [item.get("symbol") for item in data if item.get("status") == "active"]
                     return sorted(list(set(symbols))) if limit <= 0 else sorted(list(set(symbols)))[:limit]
-            return []
+            
+            # Fallback for remote deployments (Hugging Face / Vercel)
+            fallback = [
+                "AAVE/USD", "AAVE/USDC", "AAVE/USDT", "AVAX/USD", "AVAX/USDC", "AVAX/USDT",
+                "BAT/USD", "BAT/USDC", "BCH/BTC", "BCH/USD", "BCH/USDC", "BCH/USDT",
+                "BTC/USD", "BTC/USDC", "BTC/USDT", "CRV/USD", "CRV/USDC", "DOGE/USD",
+                "DOGE/USDC", "DOGE/USDT", "DOT/USD", "DOT/USDC", "ETH/BTC", "ETH/USD",
+                "ETH/USDC", "ETH/USDT", "GRT/USD", "GRT/USDC", "LINK/BTC", "LINK/USD",
+                "LINK/USDC", "LINK/USDT", "LTC/BTC", "LTC/USD", "LTC/USDC", "LTC/USDT",
+                "PEPE/USD", "SHIB/USD", "SHIB/USDC", "SHIB/USDT", "SOL/USD", "SOL/USDC",
+                "SOL/USDT", "SUSHI/USD", "SUSHI/USDC", "SUSHI/USDT", "TRUMP/USD",
+                "UNI/BTC", "UNI/USD", "UNI/USDC", "UNI/USDT", "USDC/USD", "USDT/USD",
+                "USDT/USDC", "XRP/USD", "XTZ/USD", "XTZ/USDC", "YFI/USD", "YFI/USDC", "YFI/USDT"
+            ]
+            return sorted(fallback)[:limit] if limit > 0 else sorted(fallback)
             
         tickers = get_cached_tickers()
         # Convert set of (symbol, exchange) to formatted strings
