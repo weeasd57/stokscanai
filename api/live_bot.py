@@ -32,7 +32,7 @@ class BotConfig:
     poll_seconds: int
     timeframe: str = "1Hour"
     use_council: bool = True
-    data_source: str = "binance"  # "alpaca" | "binance"
+    data_source: str = "binance"  # "alpaca" | "binance" | "yfinance"
 
     # Risk
     max_open_positions: int = 5
@@ -431,7 +431,49 @@ class LiveBot:
                 return pd.DataFrame()
             return bars.reset_index()
         except Exception as e:
+            if "451" in str(e) or "block" in str(e).lower():
+                 self._log(f"Binance blocked (451). Trying yfinance fallback...")
+                 return self._get_yfinance_bars(symbol, limit)
             self._log(f"Error fetching bars for {symbol}: {e}")
+            return pd.DataFrame()
+
+    def _get_yfinance_bars(self, symbol: str, limit: int) -> pd.DataFrame:
+        try:
+            import yfinance as yf
+            # Map BTC/USD to BTC-USD
+            yf_sym = symbol.replace("/", "-")
+            
+            # Map timeframe
+            tf_map = {"1Hour": "1h", "1min": "1m", "5min": "5m", "15min": "15m", "1Day": "1d"}
+            period_map = {"1h": "10d", "1m": "1d", "5m": "5d", "15m": "10d", "1d": "1mo"}
+            
+            tf = tf_map.get(self.config.timeframe, "1h")
+            period = period_map.get(tf, "10d")
+            
+            ticker = yf.Ticker(yf_sym)
+            df = ticker.history(period=period, interval=tf)
+            if df.empty:
+                return pd.DataFrame()
+            
+            df = df.reset_index()
+            df = df.rename(columns={
+                "Datetime": "timestamp", 
+                "Date": "timestamp",
+                "Open": "open", 
+                "High": "high", 
+                "Low": "low", 
+                "Close": "close", 
+                "Volume": "volume"
+            })
+            # Ensure UTC
+            if df["timestamp"].dt.tz is None:
+                df["timestamp"] = df["timestamp"].dt.tz_localize("UTC")
+            else:
+                df["timestamp"] = df["timestamp"].dt.tz_convert("UTC")
+                
+            return df.tail(limit)
+        except Exception as e:
+            self._log(f"yfinance fallback failed for {symbol}: {e}")
             return pd.DataFrame()
 
     def _save_to_supabase(self, bars: pd.DataFrame, symbol: str):

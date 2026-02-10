@@ -61,10 +61,34 @@ def _to_float(value: Any) -> Optional[float]:
 
 def fetch_binance_klines(symbol: str, interval: str, limit: int = 1000) -> List[List[Any]]:
     params: Dict[str, Any] = {"symbol": symbol, "interval": interval, "limit": int(limit)}
-    res = requests.get("https://api.binance.com/api/v3/klines", params=params, timeout=15)
-    res.raise_for_status()
-    data = res.json()
-    return data if isinstance(data, list) else []
+    
+    # Try multiple base URLs to bypass potential IP blocks (Common on Hugging Face/Cloud)
+    base_urls = [
+        "https://api.binance.com",
+        "https://api1.binance.com",
+        "https://api2.binance.com",
+        "https://api3.binance.com",
+        "https://data-api.binance.vision" # Public data node
+    ]
+    
+    last_err = None
+    for base in base_urls:
+        try:
+            res = requests.get(f"{base}/api/v3/klines", params=params, timeout=10)
+            if res.status_code == 200:
+                data = res.json()
+                return data if isinstance(data, list) else []
+            if res.status_code == 451:
+                last_err = f"Block 451 on {base}"
+                continue
+            res.raise_for_status()
+        except Exception as e:
+            last_err = str(e)
+            continue
+            
+    if last_err:
+        raise RuntimeError(f"Binance fetch failed for all endpoints. Last error: {last_err}")
+    return []
 
 
 def fetch_binance_bars_df(symbol: str, timeframe: str, limit: int) -> pd.DataFrame:
