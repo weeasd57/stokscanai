@@ -59,36 +59,48 @@ def _to_float(value: Any) -> Optional[float]:
         return None
 
 
-def fetch_binance_klines(symbol: str, interval: str, limit: int = 1000) -> List[List[Any]]:
-    params: Dict[str, Any] = {"symbol": symbol, "interval": interval, "limit": int(limit)}
-    
-    # Try multiple base URLs to bypass potential IP blocks (Common on Hugging Face/Cloud)
-    base_urls = [
-        "https://api.binance.com",
-        "https://api1.binance.com",
-        "https://api2.binance.com",
-        "https://api3.binance.com",
-        "https://data-api.binance.vision" # Public data node
-    ]
+# Binance Base URLs to bypass potential IP blocks (Common on Hugging Face/Cloud)
+BINANCE_BASE_URLS = [
+    "https://api.binance.com",
+    "https://api1.binance.com",
+    "https://api2.binance.com",
+    "https://api3.binance.com",
+    "https://data-api.binance.vision" # Public data node
+]
+
+def _binance_get(endpoint: str, params: Optional[Dict[str, Any]] = None, timeout: int = 15) -> Optional[Any]:
+    """Helper to try multiple Binance base URLs until success."""
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    }
     
     last_err = None
-    for base in base_urls:
+    for base in BINANCE_BASE_URLS:
         try:
-            res = requests.get(f"{base}/api/v3/klines", params=params, timeout=10)
+            url = f"{base}/{endpoint.lstrip('/')}"
+            res = requests.get(url, params=params, headers=headers, timeout=timeout)
+            
+            # Normal success
             if res.status_code == 200:
-                data = res.json()
-                return data if isinstance(data, list) else []
-            if res.status_code == 451:
-                last_err = f"Block 451 on {base}"
+                return res.json()
+            
+            # Handle specific failure codes (like 451 geo-block or 403) by trying next endpoint
+            if res.status_code in [403, 429, 451]:
+                last_err = f"Endpoint {base} returned {res.status_code}"
                 continue
+                
             res.raise_for_status()
         except Exception as e:
-            last_err = str(e)
+            last_err = f"Endpoint {base} failed: {str(e)}"
             continue
             
-    if last_err:
-        raise RuntimeError(f"Binance fetch failed for all endpoints. Last error: {last_err}")
-    return []
+    print(f"DEBUG: Binance fetch failed across all endpoints. Last error: {last_err}")
+    return None
+
+def fetch_binance_klines(symbol: str, interval: str, limit: int = 1000) -> List[List[Any]]:
+    params: Dict[str, Any] = {"symbol": symbol, "interval": interval, "limit": int(limit)}
+    data = _binance_get("api/v3/klines", params=params)
+    return data if isinstance(data, list) else []
 
 
 def fetch_binance_bars_df(symbol: str, timeframe: str, limit: int) -> pd.DataFrame:
@@ -131,10 +143,9 @@ def fetch_all_binance_symbols(quote_asset: Optional[str] = "USDT", limit: int = 
     try:
         # If we need top N, we must get ticker stats for volume sorting
         if limit > 0:
-            res = requests.get("https://api.binance.com/api/v3/ticker/24hr", timeout=15)
-            if res.status_code != 200:
+            data = _binance_get("api/v3/ticker/24hr", timeout=20)
+            if not data or not isinstance(data, list):
                 return []
-            data = res.json()
             # data is list of dicts: {symbol, quoteVolume, ...}
             
             # Filter for quote asset (suffix)
@@ -164,10 +175,10 @@ def fetch_all_binance_symbols(quote_asset: Optional[str] = "USDT", limit: int = 
             return [f"{x[1]}/{q_suffix}" for x in top_n]
 
         # Otherwise standard exchangeInfo (lighter weight if we just want all)
-        res = requests.get("https://api.binance.com/api/v3/exchangeInfo", timeout=10)
-        if res.status_code != 200:
+        data = _binance_get("api/v3/exchangeInfo", timeout=15)
+        if not data or not isinstance(data, dict):
              return []
-        data = res.json()
+        
         symbols = []
         for s in data.get("symbols", []):
             if s.get("status") != "TRADING":
@@ -181,5 +192,7 @@ def fetch_all_binance_symbols(quote_asset: Optional[str] = "USDT", limit: int = 
             
             symbols.append(f"{base}/{quote}")
         return sorted(symbols)
-    except Exception:
+    except Exception as e:
+        print(f"DEBUG: Error in fetch_all_binance_symbols: {e}")
         return []
+
