@@ -76,6 +76,7 @@ interface BotStatus {
         count: number;
         timestamp: string;
         status: string;
+        has_volume?: boolean;
         error?: string;
     }>;
 }
@@ -200,7 +201,7 @@ export default function LiveBotTab() {
         return safe.toLocaleString(undefined, { style: "currency", currency: "USD", maximumFractionDigits: 2 });
     };
 
-    const [coinSource, setCoinSource] = useState<"database" | "binance">("database");
+    const [coinSource, setCoinSource] = useState<"database" | "alpaca">("alpaca");
     const [coinLimit, setCoinLimit] = useState(100);
     const autoSelectRef = useRef(false);
 
@@ -208,7 +209,7 @@ export default function LiveBotTab() {
         const fetchCoins = async () => {
             try {
                 // Fetch coins from bot API, supporting source parameter
-                const limitParam = coinSource === "binance" ? `&limit=${coinLimit}` : "";
+                const limitParam = coinSource === "alpaca" ? `&limit=${coinLimit}` : "";
                 const res = await fetch(`/api/bot/available_coins?source=${coinSource}${limitParam}`);
                 if (res.ok) {
                     const data = await res.json();
@@ -601,14 +602,14 @@ export default function LiveBotTab() {
                                                 MY ASSETS
                                             </button>
                                             <button
-                                                onClick={() => setCoinSource("binance")}
-                                                className={`px-3 py-1 text-[10px] font-bold rounded-md transition-all ${coinSource === "binance" ? "bg-indigo-600 text-white" : "text-zinc-500 hover:text-zinc-300"}`}
+                                                onClick={() => setCoinSource("alpaca")}
+                                                className={`px-3 py-1 text-[10px] font-bold rounded-md transition-all ${coinSource === "alpaca" ? "bg-indigo-600 text-white" : "text-zinc-500 hover:text-zinc-300"}`}
                                             >
-                                                BINANCE
+                                                ALPACA
                                             </button>
                                         </div>
 
-                                        {coinSource === "binance" && (
+                                        {coinSource === "alpaca" && (
                                             <div className="flex items-center gap-1 overflow-x-auto custom-scrollbar pb-1 max-w-full">
                                                 {[10, 50, 100, 0].map(lim => (
                                                     <button
@@ -1022,7 +1023,7 @@ export default function LiveBotTab() {
                     {/* Right Column: Logs & Trades */}
                     <div className="lg:col-span-2 flex flex-col gap-6 h-full">
                         {/* Live Logs */}
-                        <div className="flex-1 bg-black border border-zinc-800 rounded-3xl p-1 shadow-2xl overflow-hidden flex flex-col min-h-[400px]">
+                        <div className="flex-1 bg-black border border-zinc-800 rounded-3xl p-1 shadow-2xl overflow-hidden flex flex-col min-h-[600px]">
                             <div className="flex items-center justify-between px-6 py-4 bg-zinc-900/50 border-b border-zinc-800">
                                 <div className="flex items-center gap-3">
                                     <Terminal className="w-5 h-5 text-emerald-400" />
@@ -1056,7 +1057,7 @@ export default function LiveBotTab() {
                                 ))}
                             </div>
 
-                            <div className="flex-1 p-6 overflow-y-auto font-mono text-xs space-y-1.5 custom-scrollbar max-h-[600px]">
+                            <div className="flex-1 p-6 overflow-y-auto font-mono text-xs space-y-1.5 custom-scrollbar max-h-[1200px]">
                                 {status?.logs && status.logs.length > 0 ? (
                                     status.logs
                                         .filter(log => {
@@ -1102,6 +1103,7 @@ export default function LiveBotTab() {
                                             <th className="px-6 py-3">Symbol</th>
                                             <th className="px-6 py-3">Source</th>
                                             <th className="px-6 py-3">Bars</th>
+                                            <th className="px-6 py-3">Volume</th>
                                             <th className="px-6 py-3">Status</th>
                                             <th className="px-6 py-3 text-right">Last Update</th>
                                         </tr>
@@ -1114,6 +1116,17 @@ export default function LiveBotTab() {
                                                     <td className="px-6 py-3 text-zinc-500">{data.source}</td>
                                                     <td className="px-6 py-3">
                                                         <span className={data.count > 0 ? "text-emerald-400 font-bold" : "text-red-400 font-bold"}>{data.count}</span>
+                                                    </td>
+                                                    <td className="px-6 py-3">
+                                                        {data.has_volume ? (
+                                                            <span className="text-emerald-500 flex items-center gap-1">
+                                                                <Check className="w-3 h-3" /> YES
+                                                            </span>
+                                                        ) : (
+                                                            <span className="text-red-500 flex items-center gap-1">
+                                                                <X className="w-3 h-3" /> NO
+                                                            </span>
+                                                        )}
                                                     </td>
                                                     <td className="px-6 py-3">
                                                         <span className={`px-2 py-0.5 rounded-full text-[9px] font-black ${data.status === 'OK' ? 'bg-emerald-500/10 text-emerald-500' :
@@ -1129,7 +1142,7 @@ export default function LiveBotTab() {
                                             ))
                                         ) : (
                                             <tr>
-                                                <td colSpan={5} className="px-6 py-8 text-center text-zinc-700 italic">No data stream initialized</td>
+                                                <td colSpan={6} className="px-6 py-8 text-center text-zinc-700 italic">No data stream initialized</td>
                                             </tr>
                                         )}
                                     </tbody>
@@ -1431,17 +1444,17 @@ export default function LiveBotTab() {
                                 My Symbols
                             </button>
                             <button
-                                onClick={() => setCoinSource("binance")}
-                                className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-all ${coinSource === "binance"
+                                onClick={() => setCoinSource("alpaca")}
+                                className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-all ${coinSource === "alpaca"
                                     ? "bg-indigo-500 text-white shadow-lg shadow-indigo-500/20"
                                     : "text-zinc-500 hover:text-zinc-300"
                                     }`}
                             >
-                                All Binance
+                                All Alpaca
                             </button>
                         </div>
 
-                        {coinSource === "binance" && (
+                        {coinSource === "alpaca" && (
                             <div className="flex gap-2 mb-4 overflow-x-auto custom-scrollbar pb-2">
                                 {[10, 20, 50, 100, 200, 500, 1000, 0].map(lim => (
                                     <button

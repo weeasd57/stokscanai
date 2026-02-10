@@ -432,10 +432,18 @@ class LiveBot:
             
             if bars is None: return pd.DataFrame() # fail-safe
             
+            has_volume = False
+            if not bars.empty and "volume" in bars.columns:
+                try:
+                    has_volume = float(bars["volume"].sum()) > 0
+                except:
+                    has_volume = False
+
             # Update data stream
             self._data_stream[symbol] = {
                 "source": self.config.data_source,
                 "count": len(bars),
+                "has_volume": has_volume,
                 "timestamp": datetime.now(timezone.utc).isoformat(),
                 "status": "OK" if not bars.empty else "EMPTY"
             }

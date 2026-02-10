@@ -85,6 +85,18 @@ def get_available_coins(source: Optional[str] = None, limit: int = 0):
         if source == "binance":
             from api.binance_data import fetch_all_binance_symbols
             return fetch_all_binance_symbols(quote_asset="USDT", limit=limit)
+        
+        if source == "alpaca":
+            # Load from local alpaca_exchanges/crypto/CRYPTO.json
+            base_dir = Path(os.getcwd())
+            alpaca_json = base_dir / "alpaca_exchanges" / "crypto" / "CRYPTO.json"
+            if alpaca_json.exists():
+                with open(alpaca_json, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                    # Filter for symbols with status="active" and return as strings
+                    symbols = [item.get("symbol") for item in data if item.get("status") == "active"]
+                    return sorted(list(set(symbols))) if limit <= 0 else sorted(list(set(symbols)))[:limit]
+            return []
             
         tickers = get_cached_tickers()
         # Convert set of (symbol, exchange) to formatted strings
