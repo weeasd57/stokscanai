@@ -350,10 +350,40 @@ const BacktestAnalysisModal = ({ isOpen, onClose, bt, trades, loading }: { isOpe
                               <span className="text-sm font-black text-white">{t.symbol}</span>
                             </td>
                             <td className="px-6 py-4 text-left">
-                              <span className="text-xs font-mono text-zinc-400">{t.features?.entry_date || t.features?.trade_date || t.created_at?.slice(0, 10) || 'N/A'}</span>
+                              <span className="text-xs font-mono text-zinc-400">
+                                {(() => {
+                                  const rawDate = t.features?.entry_date || t.features?.trade_date || t.created_at;
+                                  if (!rawDate) return 'N/A';
+                                  try {
+                                    const d = new Date(rawDate);
+                                    if (!Number.isFinite(d.getTime())) return 'N/A';
+                                    const yyyy = d.getFullYear();
+                                    const mm = String(d.getMonth() + 1).padStart(2, '0');
+                                    const dd = String(d.getDate()).padStart(2, '0');
+                                    const hh = String(d.getHours()).padStart(2, '0');
+                                    const min = String(d.getMinutes()).padStart(2, '0');
+                                    return `${yyyy}-${mm}-${dd} ${hh}:${min}`;
+                                  } catch { return 'N/A'; }
+                                })()}
+                              </span>
                             </td>
                             <td className="px-6 py-4 text-left">
-                              <span className="text-xs font-mono text-zinc-400">{t.features?.exit_date || t.features?.trade_date || t.created_at?.slice(0, 10) || 'N/A'}</span>
+                              <span className="text-xs font-mono text-zinc-400">
+                                {(() => {
+                                  const rawDate = t.features?.exit_date || t.features?.trade_date || t.created_at;
+                                  if (!rawDate) return 'N/A';
+                                  try {
+                                    const d = new Date(rawDate);
+                                    if (!Number.isFinite(d.getTime())) return 'N/A';
+                                    const yyyy = d.getFullYear();
+                                    const mm = String(d.getMonth() + 1).padStart(2, '0');
+                                    const dd = String(d.getDate()).padStart(2, '0');
+                                    const hh = String(d.getHours()).padStart(2, '0');
+                                    const min = String(d.getMinutes()).padStart(2, '0');
+                                    return `${yyyy}-${mm}-${dd} ${hh}:${min}`;
+                                  } catch { return 'N/A'; }
+                                })()}
+                              </span>
                             </td>
                             <td className="px-6 py-4 text-center">
                               <div className="flex flex-col items-center">
@@ -375,8 +405,8 @@ const BacktestAnalysisModal = ({ isOpen, onClose, bt, trades, loading }: { isOpe
                             </td>
                             <td className="px-6 py-4 text-left">
                               <div className="flex flex-col font-mono text-[11px]">
-                                <span className="text-zinc-500">In: {(t.entry_price || 0) < 0.1 ? (t.entry_price || 0).toFixed(6) : (t.entry_price || 0).toFixed(2)}</span>
-                                <span className="text-zinc-300 font-bold">Out: {(t.exit_price || 0) < 0.1 ? (t.exit_price || 0).toFixed(6) : (t.exit_price || 0).toFixed(2)}</span>
+                                <span className="text-zinc-500">In: {(t.entry_price || 0) < 0.1 ? (t.entry_price || 0).toFixed(8) : (t.entry_price || 0).toFixed(2)}</span>
+                                <span className="text-zinc-300 font-bold">Out: {(t.exit_price || 0) < 0.1 ? (t.exit_price || 0).toFixed(8) : (t.exit_price || 0).toFixed(2)}</span>
                               </div>
                             </td>
                             <td className="px-6 py-4 text-center">
@@ -445,6 +475,7 @@ export default function BacktestTab() {
   const [modelsLoading, setModelsLoading] = useState(false);
   const [selectedModel, setSelectedModel] = useState<string | null>(null);
   const [selectedExchange, setSelectedExchange] = useState("EGX");
+  const [selectedTimeframe, setSelectedTimeframe] = useState<string>("1D");
   const [selectedCouncilModel, setSelectedCouncilModel] = useState<string | null>(null);
   const [startDate, setStartDate] = useState(new Date().toISOString().slice(0, 10));
   const [endDate, setEndDate] = useState(new Date().toISOString().slice(0, 10));
@@ -468,6 +499,15 @@ export default function BacktestTab() {
 
   const [tradesLoading, setTradesLoading] = useState(false);
   const [tradesRows, setTradesRows] = useState<any[]>([]);
+
+  // Auto-set timeframe based on exchange
+  useEffect(() => {
+    if (selectedExchange === "CRYPTO") {
+      setSelectedTimeframe("1H");
+    } else {
+      setSelectedTimeframe("1D");
+    }
+  }, [selectedExchange]);
   const [tradesTitle, setTradesTitle] = useState<string>("");
   const [viewingBacktest, setViewingBacktest] = useState<any>(null);
 
@@ -634,6 +674,7 @@ export default function BacktestTab() {
         target_pct: targetPct / 100,
         stop_loss_pct: stopLossPct / 100,
         capital: startingCapital,
+        timeframe: selectedTimeframe,
       };
       // Intentionally silent (avoid noisy debug logs in the browser console)
 
@@ -906,6 +947,23 @@ export default function BacktestTab() {
                     ))}
                 </select>
               </div>
+            </div>
+
+            {/* Timeframe Selector Row */}
+            <div className="space-y-3">
+              <label className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest flex items-center gap-2">
+                <Calendar className="h-3 w-3" /> Timeframe
+              </label>
+              <select
+                value={selectedTimeframe}
+                onChange={(e) => setSelectedTimeframe(e.target.value)}
+                className="w-full h-14 px-5 rounded-2xl border border-white/5 bg-zinc-900/80 text-white font-mono text-sm focus:ring-2 focus:ring-emerald-500/40 outline-none transition-all cursor-pointer hover:border-emerald-500/30"
+              >
+                <option value="1H" className="bg-zinc-900 text-white">1H (Hourly)</option>
+                <option value="4H" className="bg-zinc-900 text-white">4H (4-Hour)</option>
+                <option value="1D" className="bg-zinc-900 text-white">1D (Daily)</option>
+                <option value="1W" className="bg-zinc-900 text-white">1W (Weekly)</option>
+              </select>
             </div>
           </div>
 
@@ -1327,14 +1385,36 @@ export default function BacktestTab() {
                         </div>
                       </td>
                       <td className="px-6 py-4 text-right">
-                        <div className="flex flex-col items-end gap-1">
-                          <span className={`font-mono text-[9px] ${(bt.pre_council_profit_pct || bt.profit_pct || 0) >= 0 ? "text-emerald-500/60" : "text-red-500/60"}`}>
-                            {(bt.pre_council_profit_pct || bt.profit_pct || 0).toFixed(1)}%
-                          </span>
-                          <span className={`font-mono font-bold ${(bt.post_council_profit_pct || bt.profit_pct || 0) >= 0 ? "text-emerald-500" : "text-red-500"}`}>
-                            {(bt.post_council_profit_pct || bt.profit_pct || 0).toFixed(1)}%
-                          </span>
-                        </div>
+                        {(() => {
+                          const tradesLog = (bt as any).trades_log as any[] | undefined;
+                          let preProfit = 0;
+                          let postProfit = 0;
+                          const cap = bt.capital || 100000;
+
+                          if (Array.isArray(tradesLog)) {
+                            for (const t of tradesLog) {
+                              const pc = Number((t as any).Profit_Cash ?? (t as any).profit_cash ?? (t as any).features?.profit_cash ?? 0) || 0;
+                              const isAccepted = (t as any).Status === "Accepted" || (t as any).status === "Accepted";
+
+                              preProfit += pc;
+                              if (isAccepted) postProfit += pc;
+                            }
+                          }
+
+                          const prePct = (preProfit / cap) * 100;
+                          const postPct = (postProfit / cap) * 100;
+
+                          return (
+                            <div className="flex flex-col items-end gap-1">
+                              <span className={`font-mono text-[9px] ${prePct >= 0 ? "text-emerald-500/60" : "text-red-500/60"}`}>
+                                {prePct.toFixed(1)}%
+                              </span>
+                              <span className={`font-mono font-bold ${postPct >= 0 ? "text-emerald-500" : "text-red-500"}`}>
+                                {postPct.toFixed(1)}%
+                              </span>
+                            </div>
+                          );
+                        })()}
                       </td>
                       <td className="px-6 py-4 text-right whitespace-nowrap">
                         {(() => {

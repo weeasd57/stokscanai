@@ -6,12 +6,26 @@ from typing import Any, Dict, List, Optional, Tuple
 
 
 def _project_root() -> str:
-    # api/ is one level below project root
-    return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-
+    # 1. Start with the directory containing this file (api/)
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    
+    # 2. Check if alpaca_exchanges exists in the parent
+    parent_dir = os.path.dirname(current_dir)
+    if os.path.exists(os.path.join(parent_dir, "alpaca_exchanges")):
+        return parent_dir
+        
+    # 3. Check /app (Hugging Face)
+    if os.path.exists("/app/alpaca_exchanges"):
+        return "/app"
+        
+    return parent_dir
 
 def alpaca_exchanges_dir() -> str:
-    return os.path.join(_project_root(), "alpaca_exchanges")
+    root = _project_root()
+    path = os.path.join(root, "alpaca_exchanges")
+    if not os.path.exists(path):
+        print(f"DEBUG: alpaca_exchanges not found in {path}. Root was {root}")
+    return path
 
 
 def _safe_read_json(path: str) -> Any:

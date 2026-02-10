@@ -4,11 +4,27 @@ from functools import lru_cache
 from typing import Any, Dict, List, Optional
 
 def _project_root() -> str:
-    # api/ symbols_local.py is one level below project root
-    return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    # 1. Start with the directory containing this file (api/)
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    
+    # 2. Check if symbols_data exists in the parent (typical local/Vercel structure)
+    parent_dir = os.path.dirname(current_dir)
+    if os.path.exists(os.path.join(parent_dir, "symbols_data")):
+        return parent_dir
+        
+    # 3. Check /app (typical Hugging Face structure)
+    if os.path.exists("/app/symbols_data"):
+        return "/app"
+        
+    # 4. Fallback to parent directory as project root
+    return parent_dir
 
 def _default_symbols_dir() -> str:
-    return os.path.join(_project_root(), "symbols_data")
+    root = _project_root()
+    path = os.path.join(root, "symbols_data")
+    if not os.path.exists(path):
+        print(f"DEBUG: symbols_data not found in {path}. Root was {root}")
+    return path
 
 def _safe_read_json(path: str) -> Any:
     try:

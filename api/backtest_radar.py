@@ -728,13 +728,17 @@ def run_radar_simulation(
             # Set in_trade flag
             in_trade = True
 
+            # Non-compounding: assume fixed allocation of 10% capital per trade
+            # This matches the calculation in main() for consistency
+            trade_pnl_cash = (capital * 0.1) * pnl_pct
+
             # Track pre-council (all radar signals)
-            balance_pre *= (1 + pnl_pct)
+            balance_pre += trade_pnl_cash
             pre_council_trades.append({**trade_data, "Balance": int(balance_pre)})
             
             # Only track post-council if passes both filters
             if passes_council:
-                balance_post *= (1 + pnl_pct)
+                balance_post += trade_pnl_cash
                 post_council_trades.append({**trade_data, "Balance": int(balance_post)})
                 trade_log.append({**trade_data, "Balance": int(balance_post)})
             else:
@@ -1166,11 +1170,9 @@ def main():
     avg_pre_win_rate = (sum(r.get("pre_council_win_rate", 0) * r.get("pre_council_trades", 0) for r in all_res_metadata) / total_pre_trades) if total_pre_trades > 0 else 0
     avg_post_win_rate = (sum(r.get("post_council_win_rate", 0) * r.get("post_council_trades", 0) for r in all_res_metadata) / total_post_trades) if total_post_trades > 0 else 0
     
-    # For profit %, it's cumulative ROI on the same starting capital base across different symbols.
-    # Since each symbol simulation uses the full capital as base, we sum the ROIs.
-    # ROI_total = (Profit_A / Cap) + (Profit_B / Cap) ... = (Sum_Profit / Cap).
-    total_pre_profit_pct = sum(r.get("pre_council_profit_pct", 0) for r in all_res_metadata)
-    total_post_profit_pct = sum(r.get("post_council_profit_pct", 0) for r in all_res_metadata)
+    # For profit %, it's cumulative ROI based on net_profit relative to total capital.
+    total_pre_profit_pct = (global_log['Position_Cash'] * global_log['PnL_Pct']).sum() / args.capital * 100
+    total_post_profit_pct = (net_profit / args.capital) * 100
 
     # Aggregate rejected profitable
     rejected_profitable = sum(r.get("rejected_profitable", 0) for r in all_res_metadata)
