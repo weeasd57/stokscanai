@@ -1,25 +1,8 @@
-# TODO
 
-## ✅ Completed
-- [x] Advanced Live Bot with 7-layer filtering system
-- [x] Risk management (max positions, exposure limits, daily trade limits)
-- [x] Performance analytics endpoint (`/bot/performance`)
-- [x] Comprehensive logging system (trades, performance, alerts)
-- [x] Test setup script
-- [x] Landing page على `/` (حل مشكلة 404)
-- [x] Timer لتشغيل البوت في الواجهة
-- [x] Auto-scroll في نافذة Debug
-- [x] Frontend UI للـ Performance Analytics في LIVE BOT CONTROL
-- [x] Real-time performance charts وإحصائيات
-- [x] **Supabase Schema** (bot_trades, bot_state, alerts, daily_perf)
-- [x] **Save to Supabase Toggle** (Backend logic and integration guide)
 
-## 🔄 In Progress
-- [ ] تطبيق حفظ الصفقات الفعلية في Supabase
-- [ ] استرجاع البيانات من Supabase عند إعادة التشغيل
+- add traders to the telegram bot by all logics for risk management and should bot get all data from this bot for can sell and save earns in the database and show it in the admin live bot dashboard for can see all analsysis 
 
-## 📋 Planned
-- [ ] Email/SMS alerts for circuit breaker
-- [ ] Backtesting integration
-- [ ] Multi-exchange support
-- [ ] Export performance reports (PDF/CSV)
+"Use this token to access the HTTP API:
+7753197178:AAGfN5SZdJTA7OjtWP_xtuCrfTyxVGXXKQA
+Keep your token secure and store it safely, it can be used by anyone to control your bot.
+"

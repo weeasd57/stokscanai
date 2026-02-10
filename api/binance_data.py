@@ -122,3 +122,64 @@ def fetch_binance_bars_df(symbol: str, timeframe: str, limit: int) -> pd.DataFra
     df = df.dropna(subset=["timestamp"]).sort_values("timestamp")
     return df
 
+def fetch_all_binance_symbols(quote_asset: Optional[str] = "USDT", limit: int = 0) -> List[str]:
+    """
+    Fetches trading symbols from Binance.
+    If limit > 0, fetches 24hr ticker stats and returns top N by Quote Volume.
+    Otherwise returns all trading symbols alphabetically.
+    """
+    try:
+        # If we need top N, we must get ticker stats for volume sorting
+        if limit > 0:
+            res = requests.get("https://api.binance.com/api/v3/ticker/24hr", timeout=15)
+            if res.status_code != 200:
+                return []
+            data = res.json()
+            # data is list of dicts: {symbol, quoteVolume, ...}
+            
+            # Filter for quote asset (suffix)
+            valid = []
+            q_suffix = (quote_asset or "USDT").upper()
+            
+            for item in data:
+                s = item.get("symbol", "")
+                if not s.endswith(q_suffix):
+                    continue
+                # Base is symbol minus suffix
+                base = s[:-len(q_suffix)]
+                
+                # Exclude leveraged tokens or other weird things if needed? 
+                # For now just standard filter.
+                
+                vol = float(item.get("quoteVolume", 0) or 0)
+                valid.append((s, base, vol))
+            
+            # Sort by volume desc
+            valid.sort(key=lambda x: x[2], reverse=True)
+            
+            # Take top N
+            top_n = valid[:limit]
+            
+            # Format as BASE/QUOTE
+            return [f"{x[1]}/{q_suffix}" for x in top_n]
+
+        # Otherwise standard exchangeInfo (lighter weight if we just want all)
+        res = requests.get("https://api.binance.com/api/v3/exchangeInfo", timeout=10)
+        if res.status_code != 200:
+             return []
+        data = res.json()
+        symbols = []
+        for s in data.get("symbols", []):
+            if s.get("status") != "TRADING":
+                continue
+            
+            base = s.get("baseAsset")
+            quote = s.get("quoteAsset")
+            
+            if quote_asset and quote != quote_asset:
+                continue
+            
+            symbols.append(f"{base}/{quote}")
+        return sorted(symbols)
+    except Exception:
+        return []

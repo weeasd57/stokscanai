@@ -79,29 +79,27 @@ def update_bot_config(config: BotConfigUpdate):
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/available_coins")
-def get_available_coins():
-    """Fetches available coins from Supabase stock_ai cache."""
+def get_available_coins(source: Optional[str] = None, limit: int = 0):
+    """Fetches available coins from Supabase stock_ai cache or directly from Binance."""
     try:
+        if source == "binance":
+            from api.binance_data import fetch_all_binance_symbols
+            return fetch_all_binance_symbols(quote_asset="USDT", limit=limit)
+            
         tickers = get_cached_tickers()
         # Convert set of (symbol, exchange) to formatted strings
-        # Only include CRYPTO or format appropriately? 
-        # User asked for 'my symbols from supabase'.
-        # We can try to be smart: if exchange is CRYPTO, append /USD if missing
-        
         out = []
         for symbol, exchange in tickers:
             s_up = symbol.upper()
             e_up = exchange.upper()
             
-            # Simple heuristic matching the bot's expected format (e.g. BTC/USD)
             if e_up in ["CRYPTO", "US", "CCC"] or "/" in s_up:
-                # If it already has /, keep it
                 if "/" in s_up:
                     out.append(s_up)
                 elif e_up == "CRYPTO":
                     out.append(f"{s_up}/USD")
                 else:
-                    out.append(s_up) # e.g. Stock ticker
+                    out.append(s_up)
             else:
                  out.append(s_up)
                  

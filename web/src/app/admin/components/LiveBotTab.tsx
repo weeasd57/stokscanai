@@ -200,22 +200,25 @@ export default function LiveBotTab() {
         return safe.toLocaleString(undefined, { style: "currency", currency: "USD", maximumFractionDigits: 2 });
     };
 
+    const [coinSource, setCoinSource] = useState<"database" | "binance">("database");
+    const [coinLimit, setCoinLimit] = useState(100);
+    const autoSelectRef = useRef(false);
+
     useEffect(() => {
         const fetchCoins = async () => {
             try {
-                // Fetch coins that actually have data in the database (intraday bars)
-                const res = await fetch("/api/alpaca/crypto-symbols-stats?timeframe=1h");
+                // Fetch coins from bot API, supporting source parameter
+                const limitParam = coinSource === "binance" ? `&limit=${coinLimit}` : "";
+                const res = await fetch(`/api/bot/available_coins?source=${coinSource}${limitParam}`);
                 if (res.ok) {
                     const data = await res.json();
-                    if (Array.isArray(data) && data.length > 0) {
-                        // The stats endpoint returns objects like { symbol: "BTC/USD", ... }
-                        const symbols = data.map((item: any) => item.symbol).filter((s: any) => typeof s === 'string');
-                        setAvailableCoins(symbols);
-
-                        // Auto-select if bot is stopped or starting fresh
-                        // We check if we are NOT running to avoid disrupting active config
-                        // But since we are here on mount, status might be unknown.
-                        // We rely on the useEffect below to sync.
+                    if (Array.isArray(data)) {
+                        setAvailableCoins(data);
+                        // Auto-select if requested (e.g. clicking Top 50)
+                        if (autoSelectRef.current) {
+                            setConfigForm(prev => ({ ...prev, coins: data }));
+                            autoSelectRef.current = false;
+                        }
                     }
                 }
             } catch (e) {
@@ -223,14 +226,31 @@ export default function LiveBotTab() {
             }
         };
         fetchCoins();
-    }, []);
+    }, [coinSource, coinLimit]);
 
-    // Auto-select coins when available and bot is stopped
+    // Auto-save configuration with debounce
     useEffect(() => {
-        if (availableCoins.length > 0 && status?.status !== 'running' && status?.status !== 'starting') {
-            setConfigForm(prev => ({ ...prev, coins: availableCoins }));
-        }
-    }, [availableCoins, status?.status]);
+        if (!configForm || status?.status === 'running' || status?.status === 'starting') return;
+
+        const timeout = setTimeout(() => {
+            handleUpdateConfig(true);
+        }, 1000);
+
+        return () => clearTimeout(timeout);
+    }, [configForm, status?.status]);
+
+    // Auto-select removed - User manually selects assets now
+
+    // Auto-save configuration when it changes
+    useEffect(() => {
+        if (!configForm || status?.status === 'running' || status?.status === 'starting') return;
+
+        const timeout = setTimeout(() => {
+            handleUpdateConfig(true); // pass silent=true to suppress toast
+        }, 1000); // Debounce 1s
+
+        return () => clearTimeout(timeout);
+    }, [configForm, status?.status]);
 
     const pollSecondsRaw = configForm.poll_seconds;
     const pollSeconds = typeof pollSecondsRaw === "number" ? pollSecondsRaw : Number(pollSecondsRaw);
@@ -344,25 +364,25 @@ export default function LiveBotTab() {
         }
     };
 
-    const handleUpdateConfig = async () => {
+    const handleUpdateConfig = async (silent: boolean = false) => {
         try {
-            const res = await fetch("/api/ai_bot/config", {
+            const res = await fetch("/api/bot/config", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(configForm)
             });
             if (res.ok) {
                 const data = await res.json();
-                toast.success("Configuration updated");
+                if (!silent) toast.success("Configuration updated");
                 setStatus((prev) => prev ? { ...prev, config: data.config } : prev);
             } else {
                 const err = await res.json();
-                toast.error(err.detail || "Failed to update config");
+                if (!silent) toast.error(err.detail || "Failed to update config");
             }
         } catch (error) {
-            toast.error("Failed to update config");
+            if (!silent) toast.error("Failed to update config");
         }
-    }
+    };
 
     const toggleCoin = (coin: string) => {
         const current = configForm.coins || [];
@@ -546,34 +566,151 @@ export default function LiveBotTab() {
 
                         <div className="space-y-6 relative z-10">
                             {/* Coins Selection */}
-                            <div className="space-y-2">
+                            <div className="space-y-4">
                                 <div className="flex items-center justify-between">
                                     <label className="text-xs font-bold text-zinc-500 uppercase flex items-center gap-2">
                                         <Target className="w-3.5 h-3.5" /> Target Assets
                                     </label>
-                                    <button
-                                        onClick={handleSyncAlpaca}
-                                        disabled={syncingAlpaca || isRunning}
-                                        className="text-[10px] font-black bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-2 py-1 rounded hover:bg-indigo-500/20 transition-all disabled:opacity-50"
-                                    >
-                                        {syncingAlpaca ? "SYNCING..." : "SYNC FROM ALPACA"}
-                                    </button>
+                                    <div className="flex items-center gap-2">
+                                        <button
+                                            onClick={() => setConfigForm({ ...configForm, coins: [] })}
+                                            disabled={isRunning || (configForm.coins || []).length === 0}
+                                            className="text-[10px] font-bold text-red-400 hover:text-red-300 disabled:opacity-30 transition-colors"
+                                        >
+                                            CLEAR ALL
+                                        </button>
+                                        <button
+                                            onClick={handleSyncAlpaca}
+                                            disabled={syncingAlpaca || isRunning}
+                                            className="text-[10px] font-black bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-2 py-1 rounded hover:bg-indigo-500/20 transition-all disabled:opacity-50"
+                                        >
+                                            {syncingAlpaca ? "SYNC" : "SYNC ALPACA"}
+                                        </button>
+                                    </div>
                                 </div>
-                                <div className="flex flex-wrap gap-2 mb-2 min-h-[42px] p-2 bg-black/40 border border-white/5 rounded-xl">
-                                    {(configForm.coins || []).map(coin => (
-                                        <span key={coin} className="px-2 py-1 rounded-lg bg-indigo-500/20 text-indigo-300 text-xs font-bold border border-indigo-500/20 flex items-center gap-1">
-                                            {coin}
-                                            <button onClick={() => toggleCoin(coin)} className="hover:text-white"><X className="w-3 h-3" /></button>
-                                        </span>
-                                    ))}
-                                    <button
-                                        onClick={() => setCoinDialogOpen(true)}
-                                        className="px-2 py-1 rounded-lg bg-zinc-800 text-zinc-400 text-xs font-bold hover:bg-zinc-700 hover:text-white transition-colors flex items-center gap-1"
-                                    >
-                                        <Plus className="w-3 h-3" /> ADD
-                                    </button>
+
+                                {/* Smart Add Interface */}
+                                <div className="bg-black/40 border border-white/5 rounded-xl p-3 space-y-3">
+                                    {/* Source & Filter Controls */}
+                                    <div className="flex flex-wrap items-center gap-2">
+                                        <div className="flex bg-black/40 rounded-lg p-0.5 border border-white/5">
+                                            <button
+                                                onClick={() => setCoinSource("database")}
+                                                className={`px-3 py-1 text-[10px] font-bold rounded-md transition-all ${coinSource === "database" ? "bg-indigo-600 text-white" : "text-zinc-500 hover:text-zinc-300"}`}
+                                            >
+                                                MY ASSETS
+                                            </button>
+                                            <button
+                                                onClick={() => setCoinSource("binance")}
+                                                className={`px-3 py-1 text-[10px] font-bold rounded-md transition-all ${coinSource === "binance" ? "bg-indigo-600 text-white" : "text-zinc-500 hover:text-zinc-300"}`}
+                                            >
+                                                BINANCE
+                                            </button>
+                                        </div>
+
+                                        {coinSource === "binance" && (
+                                            <div className="flex items-center gap-1 overflow-x-auto custom-scrollbar pb-1 max-w-full">
+                                                {[10, 50, 100, 0].map(lim => (
+                                                    <button
+                                                        key={lim}
+                                                        onClick={() => {
+                                                            autoSelectRef.current = lim > 0;
+                                                            setCoinLimit(lim);
+                                                        }}
+                                                        className={`px-2 py-1 text-[9px] font-bold rounded-md border whitespace-nowrap transition-all ${coinLimit === lim
+                                                            ? "bg-emerald-500/20 border-emerald-500 text-emerald-400"
+                                                            : "bg-zinc-800 border-zinc-800 text-zinc-500 hover:border-zinc-600"
+                                                            }`}
+                                                    >
+                                                        {lim === 0 ? "ALL" : `TOP ${lim}`}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Search & Bulk Add */}
+                                    <div className="relative group">
+                                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500 group-focus-within:text-indigo-400 transition-colors" />
+                                        <input
+                                            type="text"
+                                            placeholder={`Search to add from ${availableCoins.length} available...`}
+                                            value={coinSearch}
+                                            onChange={(e) => setCoinSearch(e.target.value)}
+                                            className="w-full bg-black/40 border border-zinc-800 rounded-lg pl-9 pr-32 py-2.5 text-xs font-mono focus:outline-none focus:border-indigo-500 transition-all text-white placeholder:text-zinc-600"
+                                        />
+                                        <div className="absolute right-1 top-1/2 -translate-y-1/2">
+                                            {coinSearch && (
+                                                <button
+                                                    onClick={() => {
+                                                        const filtered = availableCoins.filter(c => c.toLowerCase().includes(coinSearch.toLowerCase()));
+                                                        const current = new Set(configForm.coins || []);
+                                                        const toAdd = filtered.filter(c => !current.has(c));
+                                                        if (toAdd.length > 0) {
+                                                            setConfigForm(prev => ({ ...prev, coins: [...(prev.coins || []), ...toAdd] }));
+                                                            setCoinSearch(""); // Clear on add
+                                                        }
+                                                    }}
+                                                    className="px-2 py-1 text-[9px] font-bold bg-indigo-500/20 text-indigo-300 rounded border border-indigo-500/20 hover:bg-indigo-500 hover:text-white transition-all"
+                                                >
+                                                    ADD FILTERED
+                                                </button>
+                                            )}
+                                        </div>
+
+                                        {/* Autocomplete Dropdown */}
+                                        {coinSearch && (
+                                            <div className="absolute top-full left-0 right-0 mt-2 bg-zinc-900 border border-zinc-800 rounded-lg shadow-2xl z-50 max-h-48 overflow-y-auto custom-scrollbar">
+                                                {availableCoins.filter(c => c.toLowerCase().includes(coinSearch.toLowerCase())).slice(0, 50).map(coin => {
+                                                    const isSelected = (configForm.coins || []).includes(coin);
+                                                    return (
+                                                        <button
+                                                            key={coin}
+                                                            disabled={isSelected}
+                                                            onClick={() => {
+                                                                if (!isSelected) {
+                                                                    setConfigForm(prev => ({ ...prev, coins: [...(prev.coins || []), coin] }));
+                                                                    setCoinSearch("");
+                                                                }
+                                                            }}
+                                                            className={`w-full text-left px-4 py-2 text-xs font-mono flex items-center justify-between hover:bg-white/5 transition-colors ${isSelected ? "opacity-50 cursor-default" : ""}`}
+                                                        >
+                                                            <span className={isSelected ? "text-indigo-400" : "text-white"}>{coin}</span>
+                                                            {isSelected && <Check className="w-3 h-3 text-indigo-500" />}
+                                                        </button>
+                                                    )
+                                                })}
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Active Assets Grid */}
+                                <div className="bg-black/20 rounded-xl p-3 border border-white/5 min-h-[80px]">
+                                    {(configForm.coins || []).length === 0 ? (
+                                        <div className="h-full flex flex-col items-center justify-center text-zinc-600 gap-2 py-4">
+                                            <Target className="w-8 h-8 opacity-20" />
+                                            <span className="text-xs font-bold opacity-50">NO ASSETS TARGETED</span>
+                                            <span className="text-[10px] opacity-40">Search and add symbols above</span>
+                                        </div>
+                                    ) : (
+                                        <div className="flex flex-wrap gap-2">
+                                            {(configForm.coins || []).slice().reverse().map(coin => (
+                                                <span key={coin} className="group px-2.5 py-1.5 rounded-lg bg-indigo-500/10 text-indigo-300 text-xs font-bold border border-indigo-500/10 flex items-center gap-2 hover:bg-indigo-500/20 transition-all select-none">
+                                                    {coin}
+                                                    <button
+                                                        onClick={() => toggleCoin(coin)}
+                                                        className="text-indigo-400/50 hover:text-white transition-colors p-0.5 rounded-md hover:bg-white/10"
+                                                    >
+                                                        <X className="w-3 h-3" />
+                                                    </button>
+                                                </span>
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
                             </div>
+
 
                             {/* Council Validation Section */}
                             <div className="bg-black/40 rounded-2xl p-5 border border-white/5 space-y-4 shadow-xl">
@@ -875,17 +1012,10 @@ export default function LiveBotTab() {
                                 </Switch.Root>
                             </div>
 
-                            <button
-                                onClick={handleUpdateConfig}
-                                disabled={isRunning}
-                                className={`w-full py-4 rounded-xl font-black tracking-wider flex items-center justify-center gap-2 transition-all ${isRunning
-                                    ? "bg-zinc-800/50 text-zinc-600 cursor-not-allowed border border-zinc-800"
-                                    : "bg-white text-black hover:bg-indigo-50 shadow-[0_0_20px_rgba(255,255,255,0.1)] hover:shadow-[0_0_30px_rgba(99,102,241,0.3)]"
-                                    }`}
-                            >
-                                <Save className="w-4 h-4" />
-                                {isRunning ? "STOP SYSTEM TO UPDATE" : "SAVE CONFIGURATION"}
-                            </button>
+                            <div className="flex items-center justify-center gap-2 w-full py-4 rounded-xl bg-zinc-900/50 border border-white/5 text-xs font-bold text-zinc-500 uppercase tracking-widest">
+                                <div className={`w-2 h-2 rounded-full ${isRunning ? "bg-zinc-700" : "bg-emerald-500 animate-pulse"}`} />
+                                {isRunning ? "Stop to Edit Config" : "Configuration Auto-Saves"}
+                            </div>
                         </div>
                     </div>
 
@@ -1289,6 +1419,44 @@ export default function LiveBotTab() {
                                 className="w-full bg-black/50 border border-zinc-800 rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:border-indigo-500 transition-colors"
                             />
                         </div>
+
+                        <div className="flex gap-2 mb-4 p-1 bg-black/40 rounded-lg border border-white/5">
+                            <button
+                                onClick={() => setCoinSource("database")}
+                                className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-all ${coinSource === "database"
+                                    ? "bg-indigo-500 text-white shadow-lg shadow-indigo-500/20"
+                                    : "text-zinc-500 hover:text-zinc-300"
+                                    }`}
+                            >
+                                My Symbols
+                            </button>
+                            <button
+                                onClick={() => setCoinSource("binance")}
+                                className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-all ${coinSource === "binance"
+                                    ? "bg-indigo-500 text-white shadow-lg shadow-indigo-500/20"
+                                    : "text-zinc-500 hover:text-zinc-300"
+                                    }`}
+                            >
+                                All Binance
+                            </button>
+                        </div>
+
+                        {coinSource === "binance" && (
+                            <div className="flex gap-2 mb-4 overflow-x-auto custom-scrollbar pb-2">
+                                {[10, 20, 50, 100, 200, 500, 1000, 0].map(lim => (
+                                    <button
+                                        key={lim}
+                                        onClick={() => setCoinLimit(lim)}
+                                        className={`px-3 py-1 text-[10px] font-bold rounded-full whitespace-nowrap transition-all border ${coinLimit === lim
+                                            ? "bg-emerald-500/20 border-emerald-500 text-emerald-400"
+                                            : "bg-zinc-800 border-zinc-700 text-zinc-400 hover:border-zinc-500"
+                                            }`}
+                                    >
+                                        {lim === 0 ? "ALL" : `Top ${lim}`}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
 
                         <div className="grid grid-cols-2 gap-2 max-h-[300px] overflow-y-auto custom-scrollbar pr-2">
                             {(availableCoins.length > 0 ? availableCoins : COMMON_COINS).filter(c => c.toLowerCase().includes(coinSearch.toLowerCase())).map(coin => {
