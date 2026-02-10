@@ -71,6 +71,13 @@ interface BotStatus {
     error: string | null;
     logs: string[];
     trades: Trade[];
+    data_stream?: Record<string, {
+        source: string;
+        count: number;
+        timestamp: string;
+        status: string;
+        error?: string;
+    }>;
 }
 
 type PollUnit = "s" | "m" | "h";
@@ -980,7 +987,7 @@ export default function LiveBotTab() {
                                                     </td>
                                                     <td className="px-6 py-3">
                                                         <span className={`px-2 py-0.5 rounded-full text-[9px] font-black ${data.status === 'OK' ? 'bg-emerald-500/10 text-emerald-500' :
-                                                                data.status === 'EMPTY' ? 'bg-amber-500/10 text-amber-500' : 'bg-red-500/10 text-red-500'
+                                                            data.status === 'EMPTY' ? 'bg-amber-500/10 text-amber-500' : 'bg-red-500/10 text-red-500'
                                                             }`}>
                                                             {data.status}
                                                         </span>
