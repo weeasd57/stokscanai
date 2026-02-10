@@ -114,6 +114,17 @@ class AlpacaPyAdapter:
         req = CryptoBarsRequest(symbol_or_symbols=symbol, timeframe=tf, limit=int(limit))
         return self._data.get_crypto_bars(req)
 
+    def get_watchlists(self):
+        return self._trading.get_watchlists()
+
+    def get_watchlist_by_name(self, name: str):
+        # First find the ID
+        wls = self.get_watchlists()
+        for wl in wls:
+            if wl.name.lower() == name.lower():
+                return self._trading.get_watchlist_by_id(wl.id)
+        return None
+
 
 def create_alpaca_client(
     *,

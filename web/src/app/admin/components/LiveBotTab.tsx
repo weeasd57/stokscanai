@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Play, Square, Activity, Settings, Terminal, RefreshCw, Save, Coins, ShieldCheck, ShieldAlert, Plus, X, Search, Check, BarChart3, PieChart, ArrowUpRight, ArrowDownRight, Clock } from "lucide-react";
+import { Play, Square, Activity, Settings, Terminal, RefreshCw, Save, Coins, ShieldCheck, ShieldAlert, Plus, X, Search, Check, BarChart3, PieChart, ArrowUpRight, ArrowDownRight, Clock, Globe, Target } from "lucide-react";
 import { useRef } from "react";
 import { toast } from "sonner";
 import { getAlpacaAccount, getAlpacaPositions, type AlpacaAccountInfo, type AlpacaPositionInfo } from "@/lib/api";
@@ -103,6 +103,7 @@ export default function LiveBotTab() {
     const [uptime, setUptime] = useState("00:00:00");
     const logsEndRef = useRef<HTMLDivElement>(null);
 
+    const [syncingAlpaca, setSyncingAlpaca] = useState(false);
     // Logs & Analytics State
     const [logFilter, setLogFilter] = useState<'ALL' | 'ACCEPTED' | 'REJECTED' | 'ERROR'>('ALL');
     const [thresholdStats, setThresholdStats] = useState<Record<string, number>>({});
@@ -365,6 +366,29 @@ export default function LiveBotTab() {
         }
     };
 
+    const handleSyncAlpaca = async () => {
+        setSyncingAlpaca(true);
+        try {
+            const res = await fetch("/api/ai_bot/alpaca_watchlist");
+            if (res.ok) {
+                const coins: string[] = await res.json();
+                if (coins.length > 0) {
+                    setConfigForm({ ...configForm, coins });
+                    toast.success(`Synced ${coins.length} symbols from Alpaca`);
+                } else {
+                    toast.error("No symbols found in Alpaca watchlist");
+                }
+            } else {
+                const err = await res.json();
+                toast.error(err.detail || "Failed to sync watchlist");
+            }
+        } catch (error) {
+            toast.error("Network error during sync");
+        } finally {
+            setSyncingAlpaca(false);
+        }
+    };
+
     const fetchPerformance = async (silent = false) => {
         if (!silent) setPerformanceLoading(true);
         try {
@@ -516,9 +540,18 @@ export default function LiveBotTab() {
                         <div className="space-y-6 relative z-10">
                             {/* Coins Selection */}
                             <div className="space-y-2">
-                                <label className="text-xs font-bold text-zinc-500 uppercase flex items-center gap-2">
-                                    <Coins className="w-3 h-3" /> Target Assets
-                                </label>
+                                <div className="flex items-center justify-between">
+                                    <label className="text-xs font-bold text-zinc-500 uppercase flex items-center gap-2">
+                                        <Target className="w-3.5 h-3.5" /> Target Assets
+                                    </label>
+                                    <button
+                                        onClick={handleSyncAlpaca}
+                                        disabled={syncingAlpaca || isRunning}
+                                        className="text-[10px] font-black bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-2 py-1 rounded hover:bg-indigo-500/20 transition-all disabled:opacity-50"
+                                    >
+                                        {syncingAlpaca ? "SYNCING..." : "SYNC FROM ALPACA"}
+                                    </button>
+                                </div>
                                 <div className="flex flex-wrap gap-2 mb-2 min-h-[42px] p-2 bg-black/40 border border-white/5 rounded-xl">
                                     {(configForm.coins || []).map(coin => (
                                         <span key={coin} className="px-2 py-1 rounded-lg bg-indigo-500/20 text-indigo-300 text-xs font-bold border border-indigo-500/20 flex items-center gap-1">
@@ -910,6 +943,60 @@ export default function LiveBotTab() {
                                     <div className="text-zinc-700 italic flex items-center justify-center h-full">Waiting for data stream...</div>
                                 )}
                                 <div ref={logsEndRef} />
+                            </div>
+                        </div>
+
+                        {/* Market Data Stream */}
+                        <div className="bg-black/80 border border-zinc-800 rounded-3xl p-1 shadow-2xl flex flex-col min-h-[250px] relative group/stream">
+                            <div className="flex items-center justify-between px-6 py-4 bg-zinc-900/30 border-b border-zinc-800">
+                                <div className="flex items-center gap-3">
+                                    <Globe className="w-5 h-5 text-indigo-400" />
+                                    <h2 className="text-sm font-bold tracking-widest text-zinc-300">MARKET DATA STREAM</h2>
+                                </div>
+                                <div className="text-[10px] font-black text-emerald-500/70 uppercase flex items-center gap-1.5 backdrop-blur-md bg-emerald-500/5 px-3 py-1 rounded-full border border-emerald-500/10">
+                                    <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
+                                    Live Processing
+                                </div>
+                            </div>
+                            <div className="flex-1 overflow-x-auto">
+                                <table className="w-full text-[11px] text-left border-collapse">
+                                    <thead className="bg-zinc-900/50 text-[10px] font-black text-zinc-500 uppercase tracking-wider border-b border-zinc-800">
+                                        <tr>
+                                            <th className="px-6 py-3">Symbol</th>
+                                            <th className="px-6 py-3">Source</th>
+                                            <th className="px-6 py-3">Bars</th>
+                                            <th className="px-6 py-3">Status</th>
+                                            <th className="px-6 py-3 text-right">Last Update</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-white/5 font-mono">
+                                        {status?.data_stream && Object.keys(status.data_stream).length > 0 ? (
+                                            Object.entries(status.data_stream).map(([sym, data]: [string, any]) => (
+                                                <tr key={sym} className="hover:bg-indigo-500/5 transition-colors font-mono">
+                                                    <td className="px-6 py-3 font-bold text-zinc-200">{sym}</td>
+                                                    <td className="px-6 py-3 text-zinc-500">{data.source}</td>
+                                                    <td className="px-6 py-3">
+                                                        <span className={data.count > 0 ? "text-emerald-400 font-bold" : "text-red-400 font-bold"}>{data.count}</span>
+                                                    </td>
+                                                    <td className="px-6 py-3">
+                                                        <span className={`px-2 py-0.5 rounded-full text-[9px] font-black ${data.status === 'OK' ? 'bg-emerald-500/10 text-emerald-500' :
+                                                                data.status === 'EMPTY' ? 'bg-amber-500/10 text-amber-500' : 'bg-red-500/10 text-red-500'
+                                                            }`}>
+                                                            {data.status}
+                                                        </span>
+                                                    </td>
+                                                    <td className="px-6 py-3 text-right text-zinc-600">
+                                                        {data.timestamp ? new Date(data.timestamp).toLocaleTimeString() : 'N/A'}
+                                                    </td>
+                                                </tr>
+                                            ))
+                                        ) : (
+                                            <tr>
+                                                <td colSpan={5} className="px-6 py-8 text-center text-zinc-700 italic">No data stream initialized</td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                </table>
                             </div>
                         </div>
 

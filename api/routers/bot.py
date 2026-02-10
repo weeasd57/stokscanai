@@ -110,6 +110,48 @@ def get_available_coins():
         print(f"Error fetching coins: {e}")
         return []
 
+@router.get("/alpaca_watchlist")
+def get_alpaca_watchlist():
+    """Fetches symbols from the user's Alpaca primary watchlist."""
+    from api.alpaca_adapter import create_alpaca_client
+    try:
+        cfg = bot_instance.config
+        if not cfg.alpaca_key_id or not cfg.alpaca_secret_key:
+             raise HTTPException(status_code=400, detail="Alpaca keys not configured")
+             
+        client = create_alpaca_client(
+            key_id=cfg.alpaca_key_id,
+            secret_key=cfg.alpaca_secret_key,
+            base_url=cfg.alpaca_base_url
+        )
+        
+        # Try to find 'KING' or 'Primary' or just take the first one
+        watchlists = client.get_watchlists()
+        if not watchlists:
+             return []
+             
+        target_wl = None
+        for wl in watchlists:
+             if wl.name.upper() in ["KING", "PRIMARY", "AI_BOT"]:
+                  target_wl = client.get_watchlist_by_id(wl.id)
+                  break
+        
+        if not target_wl:
+             target_wl = client.get_watchlist_by_id(watchlists[0].id)
+             
+        symbols = []
+        if target_wl and hasattr(target_wl, "assets"):
+             for asset in target_wl.assets:
+                  sym = asset["symbol"]
+                  # Heuristic: if it's crypto but missing USD, append it
+                  # Actually let's just return what's there
+                  symbols.append(sym)
+                  
+        return sorted(list(set(symbols)))
+    except Exception as e:
+        print(f"Error fetching Alpaca watchlist: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @router.get("/performance")
 def get_bot_performance():
     """تحليل شامل لأداء البوت من ملفات السجلات"""

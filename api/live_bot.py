@@ -184,6 +184,7 @@ class LiveBot:
         self._status = "stopped"  # stopped, running, error
         self._last_scan_time = None
         self._error_msg = None
+        self._data_stream = {} # {symbol: {source, count, timestamp, status, error}}
         self._started_at = None  # Track when bot started
         
         # Default config from env or defaults
@@ -298,6 +299,7 @@ class LiveBot:
                 "config": asdict(self.config),
                 "last_scan": self._last_scan_time,
                 "error": self._error_msg,
+                "data_stream": self._data_stream,
                 "logs": list(self._logs)[-50:], # Return last 50 logs
                 "trades": list(self._trades)[-20:],
                 "started_at": self._started_at
@@ -423,14 +425,33 @@ class LiveBot:
             if (getattr(self.config, "data_source", "alpaca") or "alpaca").lower() == "binance":
                 from api.binance_data import fetch_binance_bars_df
 
-                return fetch_binance_bars_df(symbol, timeframe=self.config.timeframe, limit=int(limit))
-
-            # Alpaca (self.api is set in _run_loop)
-            bars = self.api.get_crypto_bars(symbol, timeframe=self.config.timeframe, limit=int(limit)).df
-            if bars is None or getattr(bars, "empty", True):
+                bars = fetch_binance_bars_df(symbol, timeframe=self.config.timeframe, limit=int(limit))
+            else:
+                # Alpaca (self.api is set in _run_loop)
+                bars = self.api.get_crypto_bars(symbol, timeframe=self.config.timeframe, limit=int(limit)).df
+            
+            if bars is None: return pd.DataFrame() # fail-safe
+            
+            # Update data stream
+            self._data_stream[symbol] = {
+                "source": self.config.data_source,
+                "count": len(bars),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "status": "OK" if not bars.empty else "EMPTY"
+            }
+            
+            if bars.empty:
                 return pd.DataFrame()
             return bars.reset_index()
         except Exception as e:
+            err_msg = str(e)
+            self._data_stream[symbol] = {
+                "source": self.config.data_source,
+                "count": 0,
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "status": "ERROR",
+                "message": err_msg
+            }
             if "451" in str(e) or "block" in str(e).lower():
                  self._log(f"Binance blocked (451). Trying yfinance fallback...")
                  return self._get_yfinance_bars(symbol, limit)
