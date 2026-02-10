@@ -361,9 +361,14 @@ def _binance_fetch_klines(symbol: str, interval: str, limit: int = 1000, end_tim
     }
     if end_time_ms is not None:
         params["endTime"] = end_time_ms
-    res = requests.get("https://api.binance.com/api/v3/klines", params=params, timeout=15)
+    
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    }
+    
+    res = requests.get("https://api.binance.com/api/v3/klines", params=params, headers=headers, timeout=15)
     if res.status_code != 200:
-        raise HTTPException(status_code=500, detail=f"Binance API error: {res.text}")
+        raise HTTPException(status_code=500, detail=f"Binance API error ({res.status_code}): {res.text}")
     data = res.json()
     if not isinstance(data, list):
         return []
@@ -1210,7 +1215,11 @@ def sync_alpaca_prices(req: PriceSyncRequest):
                     target_bars = max(50, missing_forward + 50)
                 try:
                     klines = _binance_fetch_history(bn_symbol, interval, target_bars)
-                except Exception:
+                except Exception as e:
+                    print(f"DEBUG: Binance fetch failed for {bn_symbol}: {e}")
+                    # If only one symbol was requested, don't fail silently
+                    if len(symbols) == 1:
+                        raise HTTPException(status_code=500, detail=f"Failed to fetch {bn_symbol} from Binance: {str(e)}")
                     continue
 
                 for k in klines:
