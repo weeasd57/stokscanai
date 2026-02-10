@@ -1455,6 +1455,13 @@ export default function LiveBotTab() {
                         </div>
 
                         {coinSource === "alpaca" && (
+                            <div className="mb-4 p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-[10px] text-amber-200/70 leading-relaxed animate-in fade-in duration-500">
+                                <Activity className="w-3 h-3 mb-1 text-amber-500" />
+                                <strong>Important:</strong> Trading <code>/USDC</code> or <code>/USDT</code> pairs requires having those specific assets. If you only have USD, please use <code>/USD</code> pairs (recommended).
+                            </div>
+                        )}
+
+                        {coinSource === "alpaca" && (
                             <div className="flex gap-2 mb-4 overflow-x-auto custom-scrollbar pb-2">
                                 {[10, 20, 50, 100, 200, 500, 1000, 0].map(lim => (
                                     <button
