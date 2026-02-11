@@ -33,9 +33,9 @@ export default function Header() {
     ];
 
     return (
-        <header className="fixed top-0 left-0 right-0 z-[100] px-6 py-6 md:px-8 overflow-hidden">
+        <header className="fixed top-0 left-0 right-0 z-[100] px-6 py-6 md:px-8">
             <div className="mx-auto max-w-[1800px] w-full">
-                <div className="flex items-center justify-between rounded-[2rem] border border-white/10 bg-zinc-950/40 backdrop-blur-3xl px-6 py-3.5 shadow-[0_20px_50px_rgba(0,0,0,0.5)] ring-1 ring-white/5 transition-all duration-500 hover:border-white/20 overflow-hidden">
+                <div className="flex items-center justify-between rounded-[2rem] border border-white/10 bg-zinc-950/40 backdrop-blur-3xl px-6 py-3.5 shadow-[0_20px_50px_rgba(0,0,0,0.5)] ring-1 ring-white/5 transition-all duration-500 hover:border-white/20">
                     {/* Brand / Logo */}
                     <div className="flex items-center gap-6">
                         <Link href="/" className="group flex items-center gap-3">
