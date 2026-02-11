@@ -497,6 +497,40 @@ class LiveBot:
             self.config.coins = existing
             self._log(f"Included {added} open Alpaca position(s) into coin list.")
 
+    def _sync_pos_state(self):
+        """
+        Sync internal _pos_state with actual Alpaca positions.
+        Removes symbols from _pos_state that no longer have open positions in Alpaca.
+        Ensures the total_managed count used by Risk Firewall is accurate.
+        """
+        try:
+            positions = self.api.list_positions()
+            current_alpaca_norms = set()
+            
+            for p in positions:
+                sym = str(getattr(p, "symbol", "") or "")
+                norm = _normalize_symbol(sym)
+                current_alpaca_norms.add(norm)
+                
+                # If we have it in Alpaca but not in _pos_state, add a basic entry
+                if norm not in self._pos_state:
+                    self._pos_state[norm] = {
+                        "entry_price": float(getattr(p, "avg_entry_price", 0)),
+                        "entry_ts": datetime.now(timezone.utc).isoformat(),
+                        "bars_held": 0,
+                        "current_stop": None,
+                        "trail_mode": "NONE",
+                    }
+            
+            # Remove symbols from _pos_state that are NOT in Alpaca
+            to_remove = [norm for norm in self._pos_state if norm not in current_alpaca_norms]
+            for norm in to_remove:
+                self._log(f"Sync: Removing {norm} from internal state (no longer in Alpaca).")
+                self._pos_state.pop(norm, None)
+                
+        except Exception as e:
+            self._log(f"Sync Error: Failed to synchronize position state: {e}")
+
     def _align_for_king(self, X_src: pd.DataFrame, king_artifact: object) -> pd.DataFrame:
         if not isinstance(X_src, pd.DataFrame):
             X_src = pd.DataFrame(X_src)
@@ -1072,7 +1106,11 @@ class LiveBot:
                 now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%SZ")
                 self._last_scan_time = now
                 self._log(f"--- SCAN CYCLE START ({now}) ---")
-                self._log(f"Config: {self.config.timeframe} | {len(self.config.coins)} symbols | mode={self.config.execution_mode}")
+                
+                # Sync positions first to ensure Risk Firewall is accurate
+                self._sync_pos_state()
+                
+                self._log(f"Config: {self.config.timeframe} | {len(self.config.coins)} symbols | mode={self.config.execution_mode} | active_positions={len(self._pos_state)}/{self.config.max_open_positions}")
                 
                 for symbol in self.config.coins:
                     if self._stop_event.is_set():
@@ -1122,6 +1160,7 @@ class LiveBot:
                         self._log(f"COUNCIL CHECK: {symbol} COUNCIL={council_conf:.2f}")
 
                         if council_conf < self.config.council_threshold:
+                            self._log(f"COUNCIL REJECTED: {symbol} ({council_conf:.2f} < {self.config.council_threshold})")
                             continue
                     else:
                          self._log(f"COUNCIL SKIPPED: {symbol}")
@@ -1132,7 +1171,10 @@ class LiveBot:
                         # Count total positions (real + virtual tracked in _pos_state)
                         total_managed = len(self._pos_state)
                         if total_managed >= self.config.max_open_positions:
+                            msg = f"⚠️ *RISK FIREWALL ALERT*\n\nLimit Reached: {total_managed}/{self.config.max_open_positions} positions.\nSkipping signal for `{symbol}`.\n\n_Increase 'Max Open Trades' in settings if you want to allow more simultaneous positions._"
                             self._log(f"RISK FIREWALL: Max positions reached ({total_managed}/{self.config.max_open_positions}). Skipping signal for {symbol}.")
+                            if self.telegram_bridge:
+                                self.telegram_bridge.send_notification(msg)
                             continue
                     except Exception as e:
                         self._log(f"Error checking Risk Firewall: {e}")
@@ -1232,7 +1274,7 @@ class BotManager:
         if "primary" not in self._bots:
             self.create_bot("primary", "Primary Bot")
 
-    def _save_bots(self):
+    def save_bots(self):
         """Save all bot configurations."""
         try:
             self._state_file.parent.mkdir(exist_ok=True)
@@ -1253,7 +1295,7 @@ class BotManager:
             bot.set_telegram_bridge(self._telegram_bridge)
             
         self._bots[bot_id] = bot
-        self._save_bots()
+        self.save_bots()
         return bot
 
     def delete_bot(self, bot_id: str):
@@ -1262,7 +1304,7 @@ class BotManager:
         if bot_id in self._bots:
             self._bots[bot_id].stop()
             del self._bots[bot_id]
-            self._save_bots()
+            self.save_bots()
 
     def get_bot(self, bot_id: str) -> Optional[LiveBot]:
         return self._bots.get(bot_id)

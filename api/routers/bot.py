@@ -89,6 +89,7 @@ def update_bot_config(config: BotConfigUpdate, bot_id: str = "primary"):
         updates = config.dict(exclude_unset=True)
         print(f"DEBUG: Received config update for {bot_id}: {updates}")
         bot.update_config(updates)
+        bot_manager.save_bots()
         status = bot.get_status()
         return {"status": "updated", "config": status["config"]}
     except Exception as e:

@@ -4,7 +4,7 @@ import requests
 from typing import List, Optional, Dict, Literal, Tuple
 from collections import defaultdict
 from fastapi import APIRouter, BackgroundTasks, HTTPException
-from fastapi.responses import JSONResponse, StreamingResponse
+from fastapi.responses import JSONResponse, StreamingResponse, FileResponse
 from pydantic import BaseModel
 from eodhd import APIClient
 from dotenv import load_dotenv
@@ -107,6 +107,37 @@ def list_local_models() -> List[str]:
     models = [f for f in os.listdir(models_dir) if f.endswith(".pkl")]
     models.append("THE_COUNCIL")
     return models
+
+@router.get("/download-model/{filename}")
+def download_local_model(filename: str):
+    """
+    Download a local model .pkl file from the api/models directory.
+    Useful for retrieving models trained inside the Hugging Face container.
+    """
+    # Sanitize and validate filename
+    if not filename.endswith(".pkl"):
+        raise HTTPException(status_code=400, detail="Only .pkl files can be downloaded")
+        
+    # Prevent path traversal
+    filename = os.path.basename(filename)
+    
+    base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+    models_dir = os.path.join(base_dir, "models")
+    file_path = os.path.join(models_dir, filename)
+    
+    if not os.path.exists(file_path):
+        # List available models to help the user if they got the name wrong
+        avail = [f for f in os.listdir(models_dir) if f.endswith(".pkl")]
+        raise HTTPException(
+            status_code=404, 
+            detail=f"Model file '{filename}' not found. Available: {avail}"
+        )
+        
+    return FileResponse(
+        path=file_path,
+        filename=filename,
+        media_type="application/octet-stream"
+    )
 
 @router.get("/db-inventory")
 def get_db_inventory_endpoint():

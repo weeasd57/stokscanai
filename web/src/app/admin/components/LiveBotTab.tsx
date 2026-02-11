@@ -118,6 +118,9 @@ export default function LiveBotTab() {
     const [createBotDialogOpen, setCreateBotDialogOpen] = useState(false);
     const [newBotName, setNewBotName] = useState("");
     const [isCreatingBot, setIsCreatingBot] = useState(false);
+    const [renameBotDialogOpen, setRenameBotDialogOpen] = useState(false);
+    const [renameBotName, setRenameBotName] = useState("");
+    const [isRenamingBot, setIsRenamingBot] = useState(false);
 
     // Command States
     const [isStarting, setIsStarting] = useState(false);
@@ -351,6 +354,33 @@ export default function LiveBotTab() {
             toast.error("Error creating bot");
         } finally {
             setIsCreatingBot(false);
+        }
+    };
+
+    const handleRenameBot = async () => {
+        if (!renameBotName.trim()) return;
+        setIsRenamingBot(true);
+        try {
+            const res = await fetch(`/api/ai_bot/config?bot_id=${selectedBotId}`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ name: renameBotName.trim() })
+            });
+            if (res.ok) {
+                toast.success(`Bot renamed to "${renameBotName}"`);
+                setRenameBotName("");
+                setRenameBotDialogOpen(false);
+                await fetchBotList();
+                // Optionally update local state too if we want immediate feedback without full fetch
+                setStatus(prev => prev ? { ...prev, config: { ...prev.config, name: renameBotName.trim() } } : prev);
+            } else {
+                const err = await res.json();
+                toast.error(err.detail || "Failed to rename bot");
+            }
+        } catch (e) {
+            toast.error("Error renaming bot");
+        } finally {
+            setIsRenamingBot(false);
         }
     };
 
@@ -603,16 +633,28 @@ export default function LiveBotTab() {
                         </h1>
                         <div className="flex items-center gap-2 mt-1">
                             {botList.map(bot => (
-                                <button
-                                    key={bot.id}
-                                    onClick={() => setSelectedBotId(bot.id)}
-                                    className={`px-3 py-1 rounded-lg text-xs font-bold transition-all border ${selectedBotId === bot.id
-                                        ? "bg-indigo-500 text-white border-indigo-400 shadow-lg shadow-indigo-500/20"
-                                        : "bg-black/40 text-zinc-500 border-white/5 hover:border-white/10"
-                                        }`}
-                                >
-                                    {bot.name}
-                                </button>
+                                <div key={bot.id} className="group relative flex items-center">
+                                    <button
+                                        onClick={() => setSelectedBotId(bot.id)}
+                                        className={`flex-1 px-3 py-1 rounded-lg text-xs font-bold transition-all border text-left ${selectedBotId === bot.id
+                                            ? "bg-indigo-500 text-white border-indigo-400 shadow-lg shadow-indigo-500/20"
+                                            : "bg-black/40 text-zinc-500 border-white/5 hover:border-white/10"
+                                            }`}
+                                    >
+                                        {bot.name}
+                                    </button>
+                                    {bot.id !== "primary" && (
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleDeleteBot(bot.id, bot.name);
+                                            }}
+                                            className="absolute -right-2 top-0 p-1 rounded-full bg-red-500/10 text-red-500 border border-red-500/20 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500 hover:text-white z-10"
+                                        >
+                                            <X className="w-2.5 h-2.5" />
+                                        </button>
+                                    )}
+                                </div>
                             ))}
                             <Dialog.Root open={createBotDialogOpen} onOpenChange={setCreateBotDialogOpen}>
                                 <Dialog.Trigger asChild>
@@ -657,6 +699,48 @@ export default function LiveBotTab() {
                 </div>
 
                 <div className="flex items-center gap-3">
+                    <Dialog.Root open={renameBotDialogOpen} onOpenChange={(open: boolean) => {
+                        if (open && status?.config?.name) setRenameBotName(status.config.name);
+                        setRenameBotDialogOpen(open);
+                    }}>
+                        <Dialog.Trigger asChild>
+                            <button className="p-3 rounded-2xl bg-zinc-900/50 border border-white/5 hover:bg-white/10 transition-all group" title="Rename Bot">
+                                <Settings className="w-4 h-4 text-zinc-400 group-hover:text-white" />
+                            </button>
+                        </Dialog.Trigger>
+                        <Dialog.Portal>
+                            <Dialog.Overlay className="fixed inset-0 bg-black/80 backdrop-blur-sm animate-in fade-in duration-300 z-50" />
+                            <Dialog.Content className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-zinc-950 border border-zinc-800 p-8 rounded-3xl shadow-2xl animate-in zoom-in-95 duration-300 z-50">
+                                <div className="space-y-6">
+                                    <div className="space-y-2">
+                                        <h2 className="text-xl font-black text-white">Rename Bot</h2>
+                                        <p className="text-sm text-zinc-500 font-medium">Update the display name for this instance.</p>
+                                    </div>
+                                    <div className="space-y-4">
+                                        <div className="space-y-2">
+                                            <label className="text-xs font-bold text-zinc-500 uppercase">New Name</label>
+                                            <input
+                                                type="text"
+                                                value={renameBotName}
+                                                onChange={(e) => setRenameBotName(e.target.value)}
+                                                placeholder="e.g., Scalper Pro"
+                                                className="w-full bg-black/40 border border-white/5 rounded-xl px-4 py-3 text-sm font-bold focus:outline-none focus:border-indigo-500 transition-all"
+                                                onKeyDown={(e) => e.key === 'Enter' && handleRenameBot()}
+                                            />
+                                        </div>
+                                        <button
+                                            onClick={handleRenameBot}
+                                            disabled={isRenamingBot || !renameBotName.trim()}
+                                            className="w-full bg-indigo-500 hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-black py-4 rounded-xl shadow-lg shadow-indigo-500/20 transition-all"
+                                        >
+                                            {isRenamingBot ? <RefreshCw className="w-5 h-5 animate-spin mx-auto" /> : "UPDATE NAME"}
+                                        </button>
+                                    </div>
+                                </div>
+                            </Dialog.Content>
+                        </Dialog.Portal>
+                    </Dialog.Root>
+
                     <button
                         onClick={() => fetchStatus()}
                         disabled={refreshing}

@@ -1201,6 +1201,13 @@ export default function BacktestTab() {
         });
       } else if (data.totalTrades !== undefined) {
         setResult(data);
+        setViewingBacktest({
+          ...data,
+          model_name: selectedModel,
+          exchange: selectedExchange,
+          created_at: new Date().toISOString()
+        });
+        setTradesRows(data.trades || []);
         loadHistory();
         setRunning(false);
       } else {
@@ -1265,9 +1272,11 @@ export default function BacktestTab() {
 
     // For Manual Backtests: Restore to Dashboard
     const toastId = toast.loading("Restoring Analysis...");
+    setTradesLoading(true);
     try {
       const trades = await getBacktestTrades(bt.id);
       const safeTrades = Array.isArray(trades) ? trades : [];
+      setTradesLoading(false);
 
       // Calculate missing metrics if needed
       let totalReturn = 0;
@@ -1285,6 +1294,9 @@ export default function BacktestTab() {
       };
 
       setResult(restoredResult);
+      setViewingBacktest(bt);
+      setTradesRows(safeTrades);
+      setTradesOpen(true);
       setActiveMainTab("manual");
 
       // Also restore inputs for context if possible (optional but nice)
@@ -1295,6 +1307,7 @@ export default function BacktestTab() {
       toast.success("Analysis Restored", { description: "Viewing historical results in Dashboard." });
 
     } catch (err: any) {
+      setTradesLoading(false);
       toast.dismiss(toastId);
       toast.error("Failed to load history", { description: err.message });
     }
@@ -2052,42 +2065,7 @@ export default function BacktestTab() {
         </div>
       )}
 
-      {result && activeMainTab === "manual" && (
-        <div className="relative overflow-hidden rounded-3xl border border-emerald-500/20 bg-zinc-900/60 backdrop-blur-3xl p-8 shadow-2xl animate-in fade-in slide-in-from-bottom-8 duration-700">
-          <div className="absolute -top-24 -left-24 h-48 w-48 bg-emerald-500/10 blur-[100px]" />
 
-          <div className="relative flex items-center gap-4 mb-8">
-            <div className="p-3 rounded-2xl bg-emerald-500/20 border border-emerald-500/30">
-              <CheckCircle2 className="h-6 w-6 text-emerald-400" />
-            </div>
-            <div>
-              <h3 className="text-xl font-black text-white uppercase tracking-tight">Backtest <span className="text-emerald-500">Insights</span></h3>
-              <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Performance breakdown for {selectedModel}</p>
-            </div>
-          </div>
-
-          <div className="relative grid grid-cols-2 md:grid-cols-4 gap-6">
-            <div className="group rounded-2xl border border-white/5 bg-white/[0.02] p-6 text-center hover:bg-white/[0.04] transition-all">
-              <div className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-3 group-hover:text-zinc-400 transition-colors">Total Trades</div>
-              <div className="text-4xl font-black text-white font-mono tracking-tighter">{result.totalTrades.toLocaleString()}</div>
-            </div>
-            <div className="group rounded-2xl border border-emerald-500/10 bg-emerald-500/[0.02] p-6 text-center hover:bg-emerald-500/[0.04] transition-all">
-              <div className="text-[10px] font-black text-emerald-500/60 uppercase tracking-widest mb-3 group-hover:text-emerald-500 transition-colors">Win Rate</div>
-              <div className="text-4xl font-black text-emerald-400 font-mono tracking-tighter">{result.winRate.toFixed(1)}%</div>
-            </div>
-            <div className="group rounded-2xl border border-white/5 bg-white/[0.02] p-6 text-center hover:bg-white/[0.04] transition-all">
-              <div className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-3 group-hover:text-zinc-400 transition-colors">Avg Return</div>
-              <div className="text-4xl font-black text-white font-mono tracking-tighter">{result.avgReturnPerTrade.toFixed(2)}%</div>
-            </div>
-            <div className="group rounded-2xl border border-white/5 bg-white/[0.02] p-6 text-center hover:bg-white/[0.04] transition-all">
-              <div className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-3 group-hover:text-zinc-400 transition-colors">Net Profit</div>
-              <div className={`text-4xl font-black font-mono tracking-tighter ${result.netProfit >= 0 ? "text-emerald-400" : "text-red-400"}`}>
-                {(result.netProfit || 0).toFixed(2)}%
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* History Section */}
       <div className="flex flex-col gap-6">
