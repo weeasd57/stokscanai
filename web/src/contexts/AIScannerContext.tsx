@@ -565,28 +565,33 @@ export const AIScannerProvider = ({ children }: { children: ReactNode }) => {
         }).catch(err => console.error("Failed to sync initial scanDays:", err));
     }, []);
 
-    // Load History from LocalStorage
+    // Load History from Supabase on mount (Trade data should be cloud-only)
     useEffect(() => {
-        try {
-            const saved = localStorage.getItem("ai_scan_history");
-            if (saved) {
-                const history = JSON.parse(saved);
-                if (Array.isArray(history)) {
+        if (!user) return;
+
+        async function loadHistory() {
+            setLoading(true);
+            try {
+                const history = await fetchScanHistory(); // Already defined to fetch from Supabase
+                if (history && history.length > 0) {
                     setAiScanner(prev => ({ ...prev, scanHistory: history }));
                 }
+            } catch (err) {
+                console.error("Failed to load history from Supabase:", err);
+            } finally {
+                setLoading(false);
             }
-        } catch (err) {
-            console.error("Failed to load history from localStorage", err);
         }
-    }, []);
 
-    // Save History to LocalStorage whenever it changes
+        void loadHistory();
+    }, [user, fetchScanHistory]);
+
+    // Save History to Supabase whenever it changes (Individual results already saved in runAiScan)
+    // Here we ensure the summary history list is consistent
     useEffect(() => {
-        if (state.scanHistory.length > 0) {
-            localStorage.setItem("ai_scan_history", JSON.stringify(state.scanHistory));
-        }
+        // Individual scan results are already persisted row-by-row in saveScanToSupabase
+        // and fetched via fetchScanHistory. No need for redundant bulk state-sync of the array.
     }, [state.scanHistory]);
-
     const stopAiScan = useCallback(() => {
         if (abortRef.current) {
             abortRef.current.abort();

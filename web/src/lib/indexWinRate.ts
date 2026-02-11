@@ -13,7 +13,7 @@ export function calculateIndexWinRate(startDate: string, endDate: string): numbe
   try {
     // في بيئة التطوير، سنقوم بقراءة الملف مباشرة
     // في بيئة الإنتاج، يجب أن تكون هذه البيانات متاحة من API
-    
+
     // محاكاة بيانات EGX30 - يجب استبدالها بالبيانات الحقيقية
     const mockIndexData: IndexData[] = [
       { date: "2024-01-01", symbol: "EGX:EGX30", open: 15000, high: 15200, low: 14800, close: 15100, volume: 0, adjusted_close: 15100 },
@@ -21,28 +21,28 @@ export function calculateIndexWinRate(startDate: string, endDate: string): numbe
       { date: "2024-02-01", symbol: "EGX:EGX30", open: 15250, high: 15400, low: 15100, close: 15350, volume: 0, adjusted_close: 15350 },
       { date: "2024-02-29", symbol: "EGX:EGX30", open: 15350, high: 15500, low: 15200, close: 15480, volume: 0, adjusted_close: 15480 },
     ];
-    
+
     // تحويل التواريخ
     const start = new Date(startDate);
     const end = new Date(endDate);
-    
+
     // تصفية البيانات للفترة المطلوبة
     const periodData = mockIndexData.filter(item => {
       const itemDate = new Date(item.date);
       return itemDate >= start && itemDate <= end;
     });
-    
+
     if (periodData.length < 2) {
       return 0.0;
     }
-    
+
     // حساب نسبة التغيير
     const startPrice = periodData[0].close;
     const endPrice = periodData[periodData.length - 1].close;
-    
+
     const winRate = ((endPrice - startPrice) / startPrice) * 100;
     return Math.round(winRate * 100) / 100; // تقريب لمنزلتين عشريتين
-    
+
   } catch (error) {
     console.error('Error calculating index win rate:', error);
     return 0.0;
@@ -63,14 +63,14 @@ export async function getIndexWinRateFromAPI(startDate: string, endDate: string)
         index: 'EGX30'
       })
     });
-    
+
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
-    
+
     const data = await response.json();
     return data.win_rate || 0.0;
-    
+
   } catch (error) {
     console.error('Error fetching index win rate from API:', error);
     // الرجوع إلى الحساب المحلي في حالة فشل API
@@ -78,26 +78,7 @@ export async function getIndexWinRateFromAPI(startDate: string, endDate: string)
   }
 }
 
-// دالة مساعدة لتحسين أداء الحساب
+// دالة مساعدة لتحسين أداء الحساب (تم تعطيل الكاش المحلي بناءً على طلب المستخدم)
 export function getCachedIndexWinRate(startDate: string, endDate: string): number {
-  const cacheKey = `index_winrate_${startDate}_${endDate}`;
-  const cached = localStorage.getItem(cacheKey);
-  
-  if (cached) {
-    const { value, timestamp } = JSON.parse(cached);
-    // التحقق من أن البيانات لا تزيد عن 24 ساعة
-    if (Date.now() - timestamp < 24 * 60 * 60 * 1000) {
-      return value;
-    }
-  }
-  
-  const winRate = calculateIndexWinRate(startDate, endDate);
-  
-  // حفظ في الكاش
-  localStorage.setItem(cacheKey, JSON.stringify({
-    value: winRate,
-    timestamp: Date.now()
-  }));
-  
-  return winRate;
+  return calculateIndexWinRate(startDate, endDate);
 }

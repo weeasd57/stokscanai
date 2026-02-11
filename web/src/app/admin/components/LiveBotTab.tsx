@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Play, Square, Activity, Settings, Terminal, RefreshCw, Save, Coins, ShieldCheck, ShieldAlert, Plus, X, Search, Check, BarChart3, PieChart, ArrowUpRight, ArrowDownRight, Clock, Globe, Target, Trash2, History as HistoryIcon } from "lucide-react";
+import { Play, Square, Activity, Settings, Terminal, RefreshCw, Save, Coins, ShieldCheck, ShieldAlert, Plus, X, Search, Check, BarChart3, PieChart, ArrowUpRight, ArrowDownRight, Clock, Globe, Target, Trash2, History as HistoryIcon, Maximize2 } from "lucide-react";
 import { useRef } from "react";
 import { toast } from "sonner";
 import { getAlpacaAccount, getAlpacaPositions, type AlpacaAccountInfo, type AlpacaPositionInfo } from "@/lib/api";
+import LiveCandleChart from "./LiveCandleChart";
 // Radix UI Imports
 import * as Dialog from "@radix-ui/react-dialog";
 import * as Switch from "@radix-ui/react-switch";
@@ -45,6 +46,9 @@ interface BotListItem {
     name: string;
     status: string;
     mode: string;
+    uptime?: string;
+    current_activity?: string;
+    active_positions_count?: number;
 }
 
 interface PerformanceData {
@@ -70,6 +74,9 @@ interface Trade {
     symbol: string;
     action: string;
     amount: number;
+    price?: number;
+    entry_price?: number;
+    pnl?: number;
     order_id: string;
 }
 
@@ -81,6 +88,8 @@ interface BotStatus {
     error: string | null;
     logs: string[];
     trades: Trade[];
+    active_positions_count?: number;
+    current_activity?: string;
     data_stream?: Record<string, {
         source: string;
         count: number;
@@ -140,11 +149,12 @@ export default function LiveBotTab() {
     const [performance, setPerformance] = useState<PerformanceData | null>(null);
     const [performanceLoading, setPerformanceLoading] = useState(false);
     const [uptime, setUptime] = useState("00:00:00");
+    const [logFilter, setLogFilter] = useState<"ALL" | "ACCEPTED" | "REJECTED" | "ERROR">("ALL");
     const logsEndRef = useRef<HTMLDivElement>(null);
 
     const [syncingAlpaca, setSyncingAlpaca] = useState(false);
     // Logs & Analytics State
-    const [logFilter, setLogFilter] = useState<'ALL' | 'ACCEPTED' | 'REJECTED' | 'ERROR'>('ALL');
+    const [selectedChartSymbol, setSelectedChartSymbol] = useState<string | null>(null);
     const [thresholdStats, setThresholdStats] = useState<Record<string, number>>({});
 
     const fetchAccount = async (silent = false) => {
@@ -271,7 +281,7 @@ export default function LiveBotTab() {
 
             if (assetTab === "CRYPTO") {
                 source = coinSource === "alpaca" ? "alpaca" : "database";
-                url = `/api/ai_bot/available_coins?source=${source}&limit=${coinLimit}`;
+                url = `/api/ai_bot/available_coins?source=${source}&limit=${coinLimit}&pair_type=${cryptoFilter}`;
             } else if (assetTab === "STOCKS") {
                 source = "alpaca_stocks";
                 url = `/api/ai_bot/available_coins?source=${source}&limit=${coinLimit}`;
@@ -286,7 +296,11 @@ export default function LiveBotTab() {
                 if (Array.isArray(data)) {
                     setAvailableCoins(data);
                     if (autoSelectRef.current) {
-                        setConfigForm(prev => ({ ...prev, coins: data }));
+                        // Apply the cryptoFilter so only matching pairs are auto-selected
+                        const filtered = assetTab === "CRYPTO" && cryptoFilter !== "ALL"
+                            ? data.filter((c: string) => c.endsWith(`/${cryptoFilter}`))
+                            : data;
+                        setConfigForm(prev => ({ ...prev, coins: filtered }));
                         autoSelectRef.current = false;
                     }
                 }
@@ -592,14 +606,18 @@ export default function LiveBotTab() {
 
     const fetchPerformance = async (silent = false) => {
         if (!silent) setPerformanceLoading(true);
+        console.log(`[Dashboard] Fetching performance for ${selectedBotId}`);
         try {
             const res = await fetch(`/api/ai_bot/performance?bot_id=${selectedBotId}`);
             if (res.ok) {
                 const data = await res.json();
+                console.log(`[Dashboard] Performance data received: ${data.trades?.length || 0} trades found`);
                 setPerformance(data);
+            } else {
+                console.error(`[Dashboard] Performance fetch failed with status ${res.status}`);
             }
         } catch (error) {
-            console.error("Failed to fetch performance", error);
+            console.error("[Dashboard] Failed to fetch performance", error);
         } finally {
             if (!silent) setPerformanceLoading(false);
         }
@@ -627,9 +645,31 @@ export default function LiveBotTab() {
                         <Activity className="w-6 h-6 text-indigo-400" />
                     </div>
                     <div>
-                        <h1 className="text-xl font-black text-white tracking-tighter flex items-center gap-2">
+                        <h1 className="text-xl font-black text-white tracking-tighter flex items-center gap-3">
                             AI TRADING TERMINAL
-                            <span className="text-[10px] bg-indigo-500/20 text-indigo-400 px-2 py-0.5 rounded-full border border-indigo-500/30">V2.0 MULTI-BOT</span>
+                            <div className="flex items-center gap-2">
+                                <span className="text-[10px] bg-indigo-500/20 text-indigo-400 px-2 py-0.5 rounded-full border border-indigo-500/30">V2.0 MULTI-BOT</span>
+                                {status?.status === 'running' && (
+                                    <>
+                                        <div className="flex items-center gap-1.5 px-2 py-0.5 bg-emerald-500/10 border border-emerald-500/20 rounded-full animate-in fade-in duration-500">
+                                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                            <span className="text-[10px] font-black text-emerald-400 font-mono tracking-wider">UP: {uptime}</span>
+                                        </div>
+                                        <div className="flex items-center gap-1.5 px-2 py-0.5 bg-blue-500/10 border border-blue-500/20 rounded-full animate-in fade-in duration-500">
+                                            <Activity className="w-3 h-3 text-blue-400" />
+                                            <span className="text-[10px] font-black text-blue-400 font-mono tracking-wider">
+                                                POS: {status.active_positions_count || 0}/{status.config?.max_open_positions || 3}
+                                            </span>
+                                        </div>
+                                        <div className="flex items-center gap-1.5 px-2 py-0.5 bg-indigo-500/10 border border-indigo-500/20 rounded-full animate-in fade-in duration-500 max-w-[200px] overflow-hidden whitespace-nowrap">
+                                            <Terminal className="w-3 h-3 text-indigo-400" />
+                                            <span className="text-[10px] font-black text-indigo-400 font-mono tracking-wider truncate">
+                                                {status.current_activity?.toUpperCase() || "IDLE"}
+                                            </span>
+                                        </div>
+                                    </>
+                                )}
+                            </div>
                         </h1>
                         <div className="flex items-center gap-2 mt-1">
                             {botList.map(bot => (
@@ -1499,7 +1539,152 @@ export default function LiveBotTab() {
                             </div>
                         </div>
 
-                        {/* Market Data Stream */}
+                        {/* ACTIVE CHARTS SECTION */}
+                        {positionsBySymbol.size > 0 && (
+                            <div className="space-y-4 animate-in fade-in slide-in-from-top-4 duration-700">
+                                <div className="flex items-center justify-between px-2">
+                                    <div className="flex items-center gap-3">
+                                        <Activity className="w-5 h-5 text-indigo-400" />
+                                        <h2 className="text-[10px] font-black tracking-[0.2em] text-zinc-400 uppercase">Active Position Monitors</h2>
+                                    </div>
+                                    <div className="px-3 py-1 bg-indigo-500/10 border border-indigo-500/20 rounded-full text-[9px] font-black text-indigo-400 uppercase tracking-widest">
+                                        {positionsBySymbol.size} Active
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-4">
+                                    {Array.from(positionsBySymbol.values()).map((pos) => (
+                                        <LiveCandleChart
+                                            key={pos.symbol}
+                                            symbol={pos.symbol}
+                                            botId={selectedBotId}
+                                            height={350}
+                                            showControls={true}
+                                            autoRefresh={true}
+                                        />
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Recent Executions Section - Twin Tables */}
+                        <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+                            {/* BUY SIGNALS & ORDERS */}
+                            <div className="bg-black/80 border border-zinc-800 rounded-3xl p-1 shadow-2xl flex flex-col min-h-[400px]">
+                                <div className="flex items-center justify-between px-6 py-4 bg-zinc-900/50 border-b border-zinc-800">
+                                    <div className="flex items-center gap-3">
+                                        <ArrowUpRight className="w-5 h-5 text-emerald-400" />
+                                        <h2 className="text-[10px] font-black tracking-[0.2em] text-zinc-400">BUY SIGNALS & ORDERS</h2>
+                                    </div>
+                                </div>
+                                <div className="flex-1 overflow-x-auto">
+                                    <table className="w-full text-[11px] text-left border-collapse">
+                                        <thead className="bg-zinc-900/50 text-[10px] font-black text-zinc-500 uppercase tracking-wider border-b border-zinc-800">
+                                            <tr>
+                                                <th className="px-4 py-3">Time</th>
+                                                <th className="px-4 py-3">Symbol</th>
+                                                <th className="px-4 py-3">Price</th>
+                                                <th className="px-4 py-3">Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-white/5 font-mono">
+                                            {(() => {
+                                                // Prioritize Supabase performance trades, fallback to live status trades
+                                                const allTrades = performance?.trades || status?.trades || [];
+                                                const buyTrades = allTrades.filter(t => t.action === 'BUY' || t.action === 'SIGNAL');
+
+                                                console.log(`[Dashboard] Buy Table - Displaying from ${performance?.trades ? 'Performance (Supabase)' : 'Status (Memory)'}`);
+
+                                                // Deduplicate: keep only the latest trade per symbol
+                                                const seen = new Set<string>();
+                                                const deduped = buyTrades.slice().reverse().filter(t => {
+                                                    const key = normalizePosKey(t.symbol);
+                                                    if (seen.has(key)) return false;
+                                                    seen.add(key);
+                                                    return true;
+                                                });
+                                                if (deduped.length === 0) {
+                                                    return <tr><td colSpan={4} className="px-4 py-8 text-center text-zinc-700 italic">No buy signals recorded</td></tr>;
+                                                }
+                                                return deduped.slice(0, 30).map((trade, i) => {
+                                                    const isActive = positionsBySymbol.has(normalizePosKey(trade.symbol));
+                                                    return (
+                                                        <tr key={i} className={`hover:bg-white/5 transition-colors group ${isActive ? 'bg-emerald-500/5' : ''}`}>
+                                                            <td className="px-4 py-3 text-zinc-600 whitespace-nowrap text-[10px]">
+                                                                {new Date(trade.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                            </td>
+                                                            <td className={`px-4 py-3 font-bold transition-all ${isActive ? 'text-emerald-400 drop-shadow-[0_0_8px_rgba(52,211,153,0.3)]' : 'text-zinc-300'}`}>
+                                                                {trade.symbol}
+                                                            </td>
+                                                            <td className="px-4 py-3 text-zinc-400">${(trade.price || 0).toFixed(2)}</td>
+                                                            <td className="px-4 py-3">
+                                                                <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase ${trade.action === 'BUY' ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/10' : 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/10'}`}>
+                                                                    {trade.action}
+                                                                </span>
+                                                            </td>
+                                                        </tr>
+                                                    );
+                                                });
+                                            })()}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            {/* SELL EXECUTIONS & PROFITS */}
+                            <div className="bg-black/80 border border-zinc-800 rounded-3xl p-1 shadow-2xl flex flex-col min-h-[400px]">
+                                <div className="flex items-center justify-between px-6 py-4 bg-zinc-900/50 border-b border-zinc-800">
+                                    <div className="flex items-center gap-3">
+                                        <ArrowDownRight className="w-5 h-5 text-red-400" />
+                                        <h2 className="text-[10px] font-black tracking-[0.2em] text-zinc-400">SELL EXECUTIONS & PROFITS</h2>
+                                    </div>
+                                </div>
+                                <div className="flex-1 overflow-x-auto">
+                                    <table className="w-full text-[11px] text-left border-collapse">
+                                        <thead className="bg-zinc-900/50 text-[10px] font-black text-zinc-500 uppercase tracking-wider border-b border-zinc-800">
+                                            <tr>
+                                                <th className="px-4 py-3">Time</th>
+                                                <th className="px-4 py-3">Symbol</th>
+                                                <th className="px-4 py-3 text-right">Profit</th>
+                                                <th className="px-4 py-3 text-right">Price</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-white/5 font-mono">
+                                            {(() => {
+                                                const allTrades = performance?.trades || status?.trades || [];
+                                                const sellTrades = allTrades.filter(t => t.action === 'SELL');
+
+                                                console.log(`[Dashboard] Sell Table - Displaying from ${performance?.trades ? 'Performance (Supabase)' : 'Status (Memory)'}`);
+
+                                                if (sellTrades.length === 0) {
+                                                    return <tr><td colSpan={4} className="px-4 py-8 text-center text-zinc-700 italic">No sell executions yet</td></tr>;
+                                                }
+
+                                                return sellTrades.slice().reverse().slice(0, 30).map((trade, i) => {
+                                                    const pnl = trade.pnl || 0;
+                                                    const isActive = positionsBySymbol.has(normalizePosKey(trade.symbol));
+                                                    return (
+                                                        <tr key={i} className={`hover:bg-white/5 transition-colors group ${isActive ? 'bg-indigo-500/5' : ''}`}>
+                                                            <td className="px-4 py-3 text-zinc-600 whitespace-nowrap text-[10px]">
+                                                                {new Date(trade.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                            </td>
+                                                            <td className={`px-4 py-3 font-bold transition-all ${isActive ? 'text-indigo-400 drop-shadow-[0_0_8px_rgba(129,140,248,0.3)]' : 'text-zinc-300'}`}>
+                                                                {trade.symbol}
+                                                            </td>
+                                                            <td className={`px-4 py-3 text-right font-black ${pnl >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                                                                {pnl >= 0 ? '+' : ''}{pnl.toFixed(2)}
+                                                            </td>
+                                                            <td className="px-4 py-3 text-right text-zinc-500">${(trade.price || 0).toFixed(2)}</td>
+                                                        </tr>
+                                                    );
+                                                });
+                                            })()}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Market Data Stream - moved below BUY/SELL tables */}
                         <div className="bg-black/80 border border-zinc-800 rounded-3xl p-1 shadow-2xl flex flex-col min-h-[250px] relative group/stream">
                             <div className="flex items-center justify-between px-6 py-4 bg-zinc-900/30 border-b border-zinc-800">
                                 <div className="flex items-center gap-3">
@@ -1558,66 +1743,6 @@ export default function LiveBotTab() {
                                         ) : (
                                             <tr>
                                                 <td colSpan={6} className="px-6 py-8 text-center text-zinc-700 italic">No data stream initialized</td>
-                                            </tr>
-                                        )}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-
-                        {/* Recent Executions Section */}
-                        <div className="bg-black border border-zinc-800 rounded-3xl p-1 shadow-2xl flex flex-col min-h-[350px]">
-                            <div className="flex items-center justify-between px-6 py-4 bg-zinc-900/50 border-b border-zinc-800">
-                                <div className="flex items-center gap-3">
-                                    <HistoryIcon className="w-5 h-5 text-indigo-400" />
-                                    <h2 className="text-sm font-bold tracking-widest text-zinc-300">RECENT EXECUTIONS & SIGNALS</h2>
-                                </div>
-                            </div>
-                            <div className="flex-1 overflow-x-auto">
-                                <table className="w-full text-[11px] text-left border-collapse">
-                                    <thead className="bg-zinc-900/50 text-[10px] font-black text-zinc-500 uppercase tracking-wider border-b border-zinc-800">
-                                        <tr>
-                                            <th className="px-4 py-3">Time</th>
-                                            <th className="px-4 py-3">Symbol</th>
-                                            <th className="px-4 py-3">Action</th>
-                                            <th className="px-4 py-3">Amount</th>
-                                            <th className="px-4 py-3">P/L (Intra)</th>
-                                            <th className="px-4 py-3">Market Value</th>
-                                            <th className="px-4 py-3">Order ID</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-white/5 font-mono">
-                                        {(status?.trades && status.trades.length > 0) ? (
-                                            status.trades.slice().reverse().slice(0, 50).map((trade: any, i: number) => {
-                                                const pos = positionsBySymbol.get(normalizePosKey(trade.symbol));
-                                                return (
-                                                    <tr key={i} className="hover:bg-white/5 transition-colors group">
-                                                        <td className="px-4 py-4 text-zinc-500 whitespace-nowrap">{new Date(trade.timestamp).toLocaleString()}</td>
-                                                        <td className="px-4 py-4 font-bold text-white group-hover:shadow-[0_0_15px_rgba(255,255,255,0.1)] transition-all">{trade.symbol}</td>
-                                                        <td className="px-4 py-4">
-                                                            <span className={`px-2 py-1 rounded text-[10px] font-black uppercase ${trade.action === 'BUY' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/20' :
-                                                                trade.action === 'SIGNAL' ? 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/20' :
-                                                                    'bg-red-500/20 text-red-400 border border-red-500/20'
-                                                                }`}>
-                                                                {trade.action}
-                                                            </span>
-                                                        </td>
-                                                        <td className="px-4 py-4 text-zinc-300 font-mono">${trade.amount.toFixed(2)}</td>
-                                                        <td className="px-4 py-4 text-zinc-300 font-mono">
-                                                            {trade.action === 'SIGNAL' ? "-" : (alpacaPositionsLoading ? "…" : fmtUsd(pos?.unrealized_intraday_pl || 0))}
-                                                        </td>
-                                                        <td className="px-4 py-4 text-zinc-300 font-mono">
-                                                            {trade.action === 'SIGNAL' ? "-" : (alpacaPositionsLoading ? "…" : fmtUsd(pos?.market_value || 0))}
-                                                        </td>
-                                                        <td className="px-4 py-4 font-mono text-xs text-zinc-600">{trade.order_id}</td>
-                                                    </tr>
-                                                );
-                                            })
-                                        ) : (
-                                            <tr>
-                                                <td colSpan={7} className="px-4 py-8 text-center text-zinc-600 italic">
-                                                    No trades executed yet
-                                                </td>
                                             </tr>
                                         )}
                                     </tbody>
@@ -1747,8 +1872,16 @@ export default function LiveBotTab() {
                                                     Object.entries(performance!.symbol_performance)
                                                         .sort(([, a], [, b]) => b.profit - a.profit)
                                                         .map(([symbol, stats]) => (
-                                                            <tr key={symbol} className="hover:bg-white/5 transition-colors">
-                                                                <td className="px-4 py-3 font-bold text-white">{symbol}</td>
+                                                            <tr key={symbol} className="hover:bg-white/5 transition-colors group">
+                                                                <td className="px-4 py-3">
+                                                                    <button
+                                                                        onClick={() => setSelectedChartSymbol(symbol)}
+                                                                        className="flex items-center gap-2 font-bold text-zinc-300 hover:text-indigo-400 transition-colors group/btn"
+                                                                    >
+                                                                        {symbol}
+                                                                        <Maximize2 className="w-3 h-3 opacity-0 group-hover/btn:opacity-100" />
+                                                                    </button>
+                                                                </td>
                                                                 <td className="px-4 py-3 text-center text-zinc-400">{stats.trades}</td>
                                                                 <td className="px-4 py-3 text-center">
                                                                     <span className={stats.win_rate >= 50 ? 'text-emerald-400' : 'text-zinc-500'}>
@@ -1793,8 +1926,14 @@ export default function LiveBotTab() {
                                             {performance?.open_positions && performance!.open_positions.length > 0 ? (
                                                 performance!.open_positions.map((pos, i) => (
                                                     <tr key={i} className="hover:bg-white/5 transition-colors group">
-                                                        <td className="px-4 py-4 font-bold text-white flex items-center gap-2">
-                                                            {pos.symbol}
+                                                        <td className="px-4 py-4 font-bold text-white">
+                                                            <button
+                                                                onClick={() => setSelectedChartSymbol(pos.symbol)}
+                                                                className="flex items-center gap-2 font-bold text-zinc-300 hover:text-indigo-400 transition-colors group/btn"
+                                                            >
+                                                                {pos.symbol}
+                                                                <Maximize2 className="w-3 h-3 opacity-0 group-hover/btn:opacity-100" />
+                                                            </button>
                                                         </td>
                                                         <td className="px-4 py-4">
                                                             <span className="px-2 py-1 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/10 text-[10px] font-black uppercase tracking-tighter">
@@ -1824,10 +1963,9 @@ export default function LiveBotTab() {
                             </div>
                         </>
                     )}
-
                 </div>
-            )
-            }
+            )}
+
 
             {/* Coin Selection Dialog */}
             <Dialog.Root open={coinDialogOpen} onOpenChange={setCoinDialogOpen}>
@@ -1923,6 +2061,26 @@ export default function LiveBotTab() {
                             <Dialog.Close className="px-6 py-2.5 rounded-xl bg-white text-black font-bold hover:bg-zinc-200 transition-colors">
                                 Done
                             </Dialog.Close>
+                        </div>
+                    </Dialog.Content>
+                </Dialog.Portal>
+            </Dialog.Root>
+            {/* Historical Chart Modal */}
+            <Dialog.Root open={!!selectedChartSymbol} onOpenChange={(open: boolean) => !open && setSelectedChartSymbol(null)}>
+                <Dialog.Portal>
+                    <Dialog.Overlay className="fixed inset-0 bg-black/80 backdrop-blur-md z-[100] transition-opacity" />
+                    <Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[95vw] h-[90vh] bg-zinc-950 border border-zinc-800 rounded-3xl p-1 z-[101] shadow-2xl flex flex-col">
+                        <div className="flex-1 min-h-0">
+                            {selectedChartSymbol && (
+                                <LiveCandleChart
+                                    symbol={selectedChartSymbol}
+                                    botId={selectedBotId}
+                                    height={Infinity} // Will use flex-1
+                                    onClose={() => setSelectedChartSymbol(null)}
+                                    showControls={true}
+                                    autoRefresh={false} // Static historical view
+                                />
+                            )}
                         </div>
                     </Dialog.Content>
                 </Dialog.Portal>

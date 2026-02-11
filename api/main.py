@@ -120,6 +120,24 @@ from api.routers import bot
 app.include_router(bot.router, prefix="/ai_bot")
 app.include_router(bot.router, prefix="/bot") # Compatibility Alias
 
+@app.post("/tg-webhook/{token}")
+async def telegram_webhook(token: str, request: Request):
+    """Endpoint for Telegram Webhooks."""
+    if not hasattr(app.state, "telegram_bridge"):
+        raise HTTPException(status_code=503, detail="Telegram bridge not active")
+    
+    bridge = app.state.telegram_bridge
+    if token != bridge.token:
+        raise HTTPException(status_code=403, detail="Invalid token")
+    
+    data = await request.json()
+    # Process in background task to avoid blocking Telegram
+    from fastapi import BackgroundTasks
+    bt = BackgroundTasks()
+    bt.add_task(bridge.handle_webhook_update, data)
+    
+    return {"ok": True}
+
 CONFIG_FILE = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "admin_config.json"))
 
 

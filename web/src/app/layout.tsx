@@ -29,7 +29,7 @@ export default function RootLayout({
       <body className="bg-zinc-950 text-zinc-50 antialiased selection:bg-blue-500/30 pt-32">
         <Providers>
           <Header />
-          <main className="mx-auto w-full max-w-5xl px-6 pb-12">
+          <main className="w-full pb-12">
             {children}
           </main>
           <Footer />

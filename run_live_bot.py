@@ -4,6 +4,7 @@ import time
 import warnings
 import json
 import logging
+from api.stock_ai import _supabase_upsert_with_retry
 from dataclasses import dataclass, field
 from datetime import datetime, timezone, timedelta
 from typing import Optional, Dict, List, Tuple
@@ -626,6 +627,16 @@ def _maybe_sell_position(*, api, cfg: BotConfig, symbol: str, pos, bars: pd.Data
                 pnl_pct = ((current_stop - entry_price) / entry_price) if entry_price > 0 else 0
                 logger.info(f"{symbol}: SELL (STOP) qty={qty} stop=${float(current_stop):.6f} entry=${float(entry_price):.6f} PnL={pnl_pct:+.2%}")
                 state.pop(key, None)
+                _save_trade_to_supabase("live_bot", {
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "symbol": symbol,
+                    "action": "SELL",
+                    "amount": qty,
+                    "price": float(current_stop),
+                    "entry_price": entry_price,
+                    "pnl": (current_stop - entry_price) * qty if entry_price > 0 else 0,
+                    "order_id": getattr(order, "id", "unknown") if hasattr(order, "id") else "unknown"
+                })
                 return True
         return False
 
@@ -640,6 +651,16 @@ def _maybe_sell_position(*, api, cfg: BotConfig, symbol: str, pos, bars: pd.Data
                 pnl_pct = ((take_profit - entry_price) / entry_price) if entry_price > 0 else 0
                 logger.info(f"{symbol}: SELL (TARGET) qty={qty} tp=${float(take_profit):.6f} entry=${float(entry_price):.6f} PnL={pnl_pct:+.2%}")
                 state.pop(key, None)
+                _save_trade_to_supabase("live_bot", {
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "symbol": symbol,
+                    "action": "SELL",
+                    "amount": qty,
+                    "price": float(take_profit),
+                    "entry_price": entry_price,
+                    "pnl": (take_profit - entry_price) * qty if entry_price > 0 else 0,
+                    "order_id": getattr(order, "id", "unknown") if hasattr(order, "id") else "unknown"
+                })
                 return True
         return False
 
@@ -670,6 +691,16 @@ def _maybe_sell_position(*, api, cfg: BotConfig, symbol: str, pos, bars: pd.Data
                 pnl_pct = ((close - entry_price) / entry_price) if entry_price > 0 else 0
                 logger.info(f"{symbol}: SELL (TIME) qty={qty} bars={bars_held} close=${close:.6f} PnL={pnl_pct:+.2%}")
                 state.pop(key, None)
+                _save_trade_to_supabase("live_bot", {
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "symbol": symbol,
+                    "action": "SELL",
+                    "amount": qty,
+                    "price": close,
+                    "entry_price": entry_price,
+                    "pnl": (close - entry_price) * qty if entry_price > 0 else 0,
+                    "order_id": getattr(order, "id", "unknown") if hasattr(order, "id") else "unknown"
+                })
                 return True
 
     state[key] = {
@@ -681,6 +712,42 @@ def _maybe_sell_position(*, api, cfg: BotConfig, symbol: str, pos, bars: pd.Data
         "highest_price": float(highest_price),
     }
     return False
+
+
+def _save_trade_to_supabase(bot_id: str, trade: dict):
+    """Save a single trade record to Supabase 'bot_trades' table."""
+    try:
+        # Map fields
+        record = {
+            "bot_id": bot_id,
+            "timestamp": trade.get("timestamp"),
+            "symbol": trade.get("symbol"),
+            "action": trade.get("action"),
+            "amount": trade.get("amount"),
+            "price": trade.get("price"),
+            "entry_price": trade.get("entry_price"),
+            "pnl": trade.get("pnl"),
+            "king_conf": trade.get("king_conf"),
+            "council_conf": trade.get("council_conf"),
+            "order_id": trade.get("order_id"),
+            "metadata": {k: v for k, v in trade.items() if k not in [
+                "timestamp", "symbol", "action", "amount", "price", "entry_price", "pnl", "king_conf", "council_conf", "order_id"
+            ]}
+        }
+        
+        # Clean numeric fields (ensure they are float or None, not INF/NAN)
+        for k in ["amount", "price", "entry_price", "pnl", "king_conf", "council_conf"]:
+            if k in record:
+                v = record[k]
+                try:
+                    fv = float(v)
+                    record[k] = fv if np.isfinite(fv) else None
+                except (TypeError, ValueError):
+                    record[k] = None
+
+        _supabase_upsert_with_retry("bot_trades", [record])
+    except Exception as e:
+        logging.error(f"Supabase Trade Log Error: {e}")
 
 
 def main() -> int:
@@ -825,6 +892,16 @@ def main() -> int:
                 _save_json(cfg.state_path, state)
                 daily_trades += 1
                 logger.info(f"{symbol}: BUY (notional ${notional:.2f})")
+                _save_trade_to_supabase("live_bot", {
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "symbol": symbol,
+                    "action": "BUY",
+                    "amount": notional,
+                    "price": avg_fill,
+                    "king_conf": king_conf,
+                    "council_conf": council_conf,
+                    "order_id": getattr(order, "id", "unknown") if hasattr(order, "id") else "unknown"
+                })
             else:
                 logger.warning(f"{symbol}: BUY failed")
 

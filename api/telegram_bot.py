@@ -48,6 +48,17 @@ class TelegramBot:
         with open("state/telegram_chat_id.json", "w") as f:
             json.dump({"chat_id": chat_id}, f)
 
+    async def handle_webhook_update(self, data: dict):
+        """Processes an update received via webhook."""
+        if not self.application:
+            return
+        
+        try:
+            update = Update.de_json(data, self.application.bot)
+            await self.application.process_update(update)
+        except Exception as e:
+            self._log(f"Webhook processing error: {e}")
+
     async def start_handler(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handles /start command."""
         chat_id = update.effective_chat.id
@@ -222,8 +233,26 @@ class TelegramBot:
             
             # Start the bot
             self._log("Starting Telegram Bot poll...")
-            # We use run_polling to block this thread until stopped
-            self.application.run_polling(close_loop=True)
+            
+            # Check for WEBHOOK_URL in env
+            webhook_url = os.getenv("WEBHOOK_URL")
+            if webhook_url:
+                # Hugging Face Spaces usually forward to 7860, but let's assume we handle it in uvicorn
+                hook_path = f"{webhook_url.rstrip('/')}/tg-webhook/{self.token}"
+                self._log(f"Setting webhook to: {hook_path}")
+                # We don't use run_webhook because we want uvicorn to handle the HTTP
+                # Just set the webhook and let it be
+                async def _set_hook():
+                    await self.application.bot.set_webhook(url=hook_path)
+                    await self.application.initialize()
+                    await self.application.start()
+                
+                self.loop.run_until_complete(_set_hook())
+                # Keep loop running for async tasks but don't poll
+                self.loop.run_forever()
+            else:
+                # We use run_polling to block this thread until stopped
+                self.application.run_polling(close_loop=True)
         except Exception as e:
             self._log(f"Fatal error in Telegram thread: {e}")
         finally:

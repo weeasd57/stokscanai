@@ -194,7 +194,7 @@ const DEFAULT_STATE: AppState = {
 const AppStateContext = createContext<AppStateContextType | undefined>(undefined);
 
 type PersistedAppState = {
-  home: Pick<HomeState, "ticker" | "chartType" | "showEma50" | "showEma200" | "showBB" | "showRsi" | "showVolume" | "watchlist">;
+  home: Pick<HomeState, "ticker" | "chartType" | "showEma50" | "showEma200" | "showBB" | "showRsi" | "showVolume" | "watchlist" | "predictHistory">;
   techScanner: Pick<
     TechScannerState,
     | "country"
@@ -265,16 +265,23 @@ function safeParseHomePredict(raw: string | null): PredictResponse | null {
   }
 }
 
-function maybeRestoreHomeData(prev: AppState): AppState {
-  const cached = safeParseHomePredict(localStorage.getItem(HOME_PRED_KEY));
-  if (!cached) return prev;
+function maybeRestoreCloudHomeData(prev: AppState, cloud: PersistedAppState | null): AppState {
+  if (!cloud || !cloud.home) return prev;
+  // If we have cloud history but no current data, populate it
   if (prev.home.data) return prev;
+
+  // Find the last predict in history if possible
+  const history = cloud.home.predictHistory || [];
+  const last = history[history.length - 1];
+
   return {
     ...prev,
     home: {
       ...prev.home,
-      ticker: cached.ticker,
-      data: cached,
+      ...cloud.home,
+      // Metadata like ticker and data can be restored from cloud
+      ticker: last?.ticker || prev.home.ticker,
+      data: last?.data || null,
     },
   };
 }
@@ -334,6 +341,7 @@ function toPersistedState(full: AppState): PersistedAppState {
       showRsi: full.home.showRsi,
       showVolume: full.home.showVolume,
       watchlist: full.home.watchlist,
+      predictHistory: full.home.predictHistory,
     },
     techScanner: {
       country: full.techScanner.country,
@@ -544,9 +552,9 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       if (!user) {
         // If not logged in, rely solely on local storage
         if (local) {
-          setState((prev) => maybeRestoreHomeData(mergeDefaults(local)));
+          setState(mergeDefaults(local));
         } else {
-          setState((prev) => maybeRestoreHomeData(DEFAULT_STATE));
+          setState(DEFAULT_STATE);
         }
         hasSettingsInitializedRef.current = false;
         lastSettingsUserIdRef.current = null;
@@ -581,9 +589,15 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
 
       // Merge strategy: Remote > Local > Default
       // If we have remote, use it. If not, use local.
-      const nextState = hasRemote ? mergeDefaults(remote as PersistedAppState) : local ? mergeDefaults(local) : DEFAULT_STATE;
+      let nextState = hasRemote ? mergeDefaults(remote as PersistedAppState) : local ? mergeDefaults(local) : DEFAULT_STATE;
+
+      // Explicitly restore cloud-only history items that were filtered out of local
+      if (hasRemote) {
+        nextState = maybeRestoreCloudHomeData(nextState, remote as PersistedAppState);
+      }
+
       if (cancelled) return;
-      setState(maybeRestoreHomeData(nextState));
+      setState(nextState);
 
       // Mark as initialized
       hasSettingsInitializedRef.current = true;
@@ -598,15 +612,38 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   }, [supabase, user]);
 
   useEffect(() => {
-    const persisted = toPersistedState(state);
+    const fullPersisted = toPersistedState(state);
 
-    // Always save to local storage immediately (or debounced)
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(persisted));
+    // Filtered state for localStorage (Privacy/Security: No trade history on disk)
+    const localFiltered = {
+      ...fullPersisted,
+      home: {
+        ...fullPersisted.home,
+        predictHistory: [],
+      },
+      techScanner: {
+        ...fullPersisted.techScanner,
+        results: [],
+        scanHistory: [],
+      },
+      aiScanner: {
+        ...fullPersisted.aiScanner,
+        results: [],
+        scanHistory: [],
+      }
+    };
 
+    // 1. Always save UI preferences to local storage
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(localFiltered));
+
+    // 2. Save FULL state (including history) to Supabase
     if (user) {
       const timeoutId = window.setTimeout(() => {
-        void supabase.from("user_settings").upsert({ user_id: user.id, app_state: persisted }, { onConflict: "user_id" });
-      }, 1000); // 1s debounce for invalidation
+        void supabase.from("user_settings").upsert({
+          user_id: user.id,
+          app_state: fullPersisted // Save everything to cloud
+        }, { onConflict: "user_id" });
+      }, 1500); // Slightly longer debounce for full sync
 
       return () => {
         window.clearTimeout(timeoutId);
@@ -715,7 +752,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
             },
           };
         });
-        // Also clear localStorage cache for this symbol
+        // Also clear localStorage cache for this symbol (legacy)
         localStorage.removeItem(HOME_PRED_KEY);
         throw err;
       }
@@ -735,7 +772,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
         };
       });
 
-      localStorage.setItem(HOME_PRED_KEY, JSON.stringify({ data: res, savedAt: Date.now() }));
+      // localStorage.setItem(HOME_PRED_KEY, JSON.stringify({ data: res, savedAt: Date.now() }));
     },
     []
   );

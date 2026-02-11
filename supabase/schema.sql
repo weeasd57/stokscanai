@@ -1079,3 +1079,70 @@ CREATE TRIGGER update_bot_daily_performance_updated_at BEFORE UPDATE ON bot_dail
 
 -- يمكنك إضافة policies حسب احتياجاتك
 
+-- Bot Trade Logs (Migrated from local JSON)
+create table if not exists public.bot_trades (
+    id uuid primary key default gen_random_uuid(),
+    bot_id text not null,
+    timestamp timestamptz not null default now(),
+    symbol text not null,
+    action text not null check (action in ('BUY', 'SELL')),
+    amount numeric(18,6),
+    price numeric(18,6),
+    entry_price numeric(18,6),
+    pnl numeric(18,6),
+    king_conf numeric(10,4),
+    council_conf numeric(10,4),
+    order_id text,
+    metadata jsonb not null default '{}'::jsonb
+);
+
+create index if not exists idx_bot_trades_bot_id on public.bot_trades(bot_id);
+create index if not exists idx_bot_trades_symbol on public.bot_trades(symbol);
+create index if not exists idx_bot_trades_timestamp on public.bot_trades(timestamp desc);
+
+alter table public.bot_trades enable row level security;
+create policy "allow_read_all_bot_trades" on public.bot_trades for select using (true);
+grant select, insert on public.bot_trades to anon, authenticated, service_role;
+
+
+-- Create bot_logs table
+create table if not exists public.bot_logs (
+    id uuid primary key default gen_random_uuid(),
+    bot_id text not null,
+    timestamp timestamptz not null default now(),
+    level text not null default 'INFO',
+    message text not null,
+    metadata jsonb default '{}'::jsonb
+);
+
+create index if not exists idx_bot_logs_bot_id on public.bot_logs(bot_id);
+create index if not exists idx_bot_logs_timestamp on public.bot_logs(timestamp desc);
+
+alter table public.bot_logs enable row level security;
+create policy "allow_read_all_bot_logs" on public.bot_logs for select using (true);
+grant select, insert on public.bot_logs to anon, authenticated, service_role;
+
+-- Ensure bot_trades also exists (if not already)
+create table if not exists public.bot_trades (
+    id uuid primary key default gen_random_uuid(),
+    bot_id text not null,
+    timestamp timestamptz not null default now(),
+    symbol text not null,
+    action text not null check (action in ('BUY', 'SELL')),
+    amount numeric(18,6),
+    price numeric(18,6),
+    entry_price numeric(18,6),
+    pnl numeric(18,6),
+    king_conf numeric(10,4),
+    council_conf numeric(10,4),
+    order_id text,
+    metadata jsonb not null default '{}'::jsonb
+);
+
+create index if not exists idx_bot_trades_bot_id on public.bot_trades(bot_id);
+create index if not exists idx_bot_trades_symbol on public.bot_trades(symbol);
+create index if not exists idx_bot_trades_timestamp on public.bot_trades(timestamp desc);
+
+alter table public.bot_trades enable row level security;
+create policy "allow_read_all_bot_trades" on public.bot_trades for select using (true);
+grant select, insert on public.bot_trades to anon, authenticated, service_role;

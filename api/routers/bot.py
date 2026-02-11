@@ -7,7 +7,7 @@ from pathlib import Path
 from datetime import datetime
 
 from api.live_bot import bot_manager
-from api.stock_ai import get_cached_tickers
+from api.stock_ai import get_cached_tickers, _supabase_read_with_retry, supabase, _init_supabase
 
 router = APIRouter(tags=["AI_BOT"])
 
@@ -155,7 +155,7 @@ def get_available_models():
         return []
 
 @router.get("/available_coins")
-def get_available_coins(source: Optional[str] = None, limit: int = 0, country: Optional[str] = None):
+def get_available_coins(source: Optional[str] = None, limit: int = 0, country: Optional[str] = None, pair_type: Optional[str] = None):
     """Fetches available coins from various sources including local files."""
     try:
         if source == "alpaca_stocks":
@@ -210,6 +210,9 @@ def get_available_coins(source: Optional[str] = None, limit: int = 0, country: O
                     data = json.load(f)
                     # Filter for symbols with status="active" and return as strings
                     symbols = [item.get("symbol") for item in data if item.get("status") == "active"]
+                    # Apply pair_type filter (e.g. 'USD' -> only /USD pairs)
+                    if pair_type and pair_type != "ALL":
+                        symbols = [s for s in symbols if s and s.endswith(f"/{pair_type}")]
                     return sorted(list(set(symbols))) if limit <= 0 else sorted(list(set(symbols)))[:limit]
             
             # Fallback for remote deployments (Hugging Face / Vercel)
@@ -230,6 +233,9 @@ def get_available_coins(source: Optional[str] = None, limit: int = 0, country: O
                 "USDT/USDC", "XTZ/USDC", "YFI/USDC", "YFI/USDT"
             ]
             fallback = usd_pairs + stable_pairs
+            # Apply pair_type filter
+            if pair_type and pair_type != "ALL":
+                fallback = [s for s in fallback if s.endswith(f"/{pair_type}")]
             return sorted(fallback)[:limit] if limit > 0 else sorted(fallback)
             
         tickers = get_cached_tickers()
@@ -323,6 +329,74 @@ def get_alpaca_watchlist(bot_id: str = "primary"):
 def get_bot_performance(bot_id: str = "primary"):
     """تحليل شامل لأداء البوت من ملفات السجلات"""
     try:
+        # Try to fetch from Supabase first
+        _init_supabase()
+        if supabase:
+            try:
+                # Query bot_trades table for this bot
+                response = supabase.table("bot_trades").select("*").eq("bot_id", bot_id).order("timestamp", desc=True).execute()
+                trades = response.data or []
+                
+                buys = [t for t in trades if t.get("action") == "BUY"]
+                sells = [t for t in trades if t.get("action") == "SELL"]
+                
+                wins = [t for t in sells if (t.get("pnl") or 0) > 0]
+                losses = [t for t in sells if (t.get("pnl") or 0) <= 0]
+                
+                total_pnl = sum((t.get("pnl") or 0) for t in sells)
+                
+                # Exit reasons from Supabase metadata or action
+                exit_reasons = {}
+                for trade in sells:
+                    reason = trade.get("metadata", {}).get("reason") or "Manual/Unknown"
+                    exit_reasons[reason] = exit_reasons.get(reason, 0) + 1
+                
+                # Symbol stats
+                symbols_stats = {}
+                for trade in sells:
+                    symbol = trade.get("symbol", "Unknown")
+                    if symbol not in symbols_stats:
+                        symbols_stats[symbol] = {"count": 0, "pnl": 0, "wins": 0}
+                    symbols_stats[symbol]["count"] += 1
+                    symbols_stats[symbol]["pnl"] += (trade.get("pnl") or 0)
+                    if (trade.get("pnl") or 0) > 0:
+                        symbols_stats[symbol]["wins"] += 1
+                
+                for s in symbols_stats:
+                    symbols_stats[s]["win_rate"] = (symbols_stats[s]["wins"] / symbols_stats[s]["count"] * 100) if symbols_stats[s]["count"] > 0 else 0
+
+                # Open positions from bot state (real-time)
+                bot = bot_manager.get_bot(bot_id)
+                open_positions = []
+                if bot:
+                    for s, pos_data in bot._pos_state.items():
+                         open_positions.append({
+                            "symbol": s,
+                            "entry_price": pos_data.get("entry_price"),
+                            "entry_time": pos_data.get("entry_time"),
+                            "bars_held": pos_data.get("bars_held", 0),
+                            "trail_mode": pos_data.get("trail_mode", "NONE"),
+                        })
+
+                return {
+                    "total_trades": len(buys),
+                    "win_rate": (len(wins) / len(sells) * 100) if sells else 0,
+                    "profit_loss": total_pnl,
+                    "profit_loss_pct": 0, # Could be calculated if balance is tracked in DB
+                    "avg_trade_profit": (total_pnl / len(sells)) if sells else 0,
+                    "exit_reasons": exit_reasons,
+                    "symbol_performance": symbols_stats,
+                    "open_positions": open_positions,
+                    "trades": trades,
+                    "last_updated": datetime.now().isoformat(),
+                    "source": "supabase"
+                }
+            except Exception as e:
+                print(f"Supabase performance fetch error: {e}")
+                import traceback
+                traceback.print_exc()
+                # Fallback to local files below...
+
         base_dir = Path(os.getcwd())
         logs_dir = base_dir / "logs"
         state_dir = base_dir / "state"
@@ -437,5 +511,189 @@ def get_bot_performance(bot_id: str = "primary"):
     except Exception as e:
         import traceback
         print(f"Error in get_bot_performance: {e}")
+        print(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/logs")
+def get_bot_logs(bot_id: str = "primary", lines: int = 100):
+    """Returns the last N lines of logs from the running bot."""
+    try:
+        bot = bot_manager.get_bot(bot_id)
+        if not bot:
+            raise HTTPException(status_code=404, detail=f"Bot {bot_id} not found")
+        
+        # Get logs from deque (last N)
+        all_logs = list(bot._logs)
+        requested_logs = all_logs[-lines:] if len(all_logs) > lines else all_logs
+        
+        return {
+            "bot_id": bot_id,
+            "count": len(requested_logs),
+            "logs": requested_logs
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/candles")
+def get_candles(symbol: str, bot_id: str = "primary", limit: int = 200):
+    """Fetch OHLC candle data + entry/exit markers for a symbol."""
+    try:
+        _init_supabase()
+        if not supabase:
+            raise HTTPException(status_code=503, detail="Supabase not available")
+
+        # Try to resolve normalized symbol (e.g. BATUSD -> BAT/USD) using bot config
+        if bot and hasattr(bot.config, "coins") and bot.config.coins:
+            # Create map of normalized -> original
+            norm_map = {c.upper().replace("/", "").replace("-", "").replace("_", ""): c for c in bot.config.coins}
+            clean_sym = symbol.upper().replace("/", "").replace("-", "").replace("_", "")
+            if clean_sym in norm_map:
+                symbol = norm_map[clean_sym]
+                print(f"DEBUG: Resolved {clean_sym} to {symbol}")
+
+        # The bot stores symbol as BTC (without /USD suffix) in stock_bars_intraday
+        db_symbol = symbol.split("/")[0] if "/" in symbol else symbol
+
+        # Get the bot's timeframe config so we query the right data
+        bot = bot_manager.get_bot(bot_id)
+        timeframe = "15Min"
+        if bot:
+            raw_tf = getattr(bot.config, "timeframe", "15Min") or "15Min"
+            # Map common formats to DB format
+            tf_map = {
+                "1min": "1Min", "5min": "5Min", "15min": "15Min", "30min": "30Min",
+                "1h": "1Hour", "1hour": "1Hour", "4h": "4Hour", "4hour": "4Hour",
+                "1d": "1Day", "1day": "1Day",
+                "1Min": "1Min", "5Min": "5Min", "15Min": "15Min", "30Min": "30Min",
+                "1Hour": "1Hour", "4Hour": "4Hour", "1Day": "1Day",
+            }
+            timeframe = tf_map.get(raw_tf.lower(), raw_tf) if raw_tf else "15Min"
+
+        # Determine exchange - simple heuristic: if it has /USD or /USDT it's crypto, 
+        # unless it's a known stock format. In this bot, Cryptos are often /USD.
+        exchange = "CRYPTO"
+        if bot:
+            ds = getattr(bot.config, "data_source", "").lower()
+            if "alpaca" in ds and "/" not in symbol:
+                exchange = "US"
+        elif "/" not in symbol:
+            exchange = "US"
+
+        # Query OHLC data with retry
+        MAX_RETRIES = 2
+        candles_resp = None
+        for attempt in range(MAX_RETRIES):
+            try:
+                candles_resp = supabase.table("stock_bars_intraday") \
+                    .select("ts,open,high,low,close,volume") \
+                    .eq("symbol", db_symbol) \
+                    .eq("exchange", exchange) \
+                    .eq("timeframe", timeframe) \
+                    .order("ts", desc=True) \
+                    .limit(limit) \
+                    .execute()
+                break # Success
+            except Exception as e:
+                print(f"DEBUG: Candle fetch attempt {attempt+1} failed: {e}")
+                if attempt == MAX_RETRIES - 1:
+                    pass # Allow empty result fallback or bubbling
+                else:
+                    import time # Import time for sleep
+                    time.sleep(0.5)
+        
+        raw_candles = candles_resp.data or [] if candles_resp else []
+        # Reverse to chronological order
+        raw_candles.reverse()
+
+        # Format for lightweight-charts: time as unix timestamp
+        candles = []
+        for c in raw_candles:
+            try:
+                ts = c.get("ts", "")
+                # Parse ISO timestamp to unix seconds
+                if ts:
+                    dt = datetime.fromisoformat(ts.replace("Z", "+00:00"))
+                    unix_ts = int(dt.timestamp())
+                else:
+                    continue
+                candles.append({
+                    "time": unix_ts,
+                    "open": float(c.get("open", 0)),
+                    "high": float(c.get("high", 0)),
+                    "low": float(c.get("low", 0)),
+                    "close": float(c.get("close", 0)),
+                    "volume": int(c.get("volume", 0) or 0),
+                })
+            except Exception:
+                continue
+
+        # Query entry/exit markers from bot_trades
+        markers_resp = supabase.table("bot_trades") \
+            .select("timestamp,action,price,entry_price,pnl") \
+            .eq("bot_id", bot_id) \
+            .eq("symbol", symbol) \
+            .order("timestamp", desc=False) \
+            .execute()
+
+        raw_markers = markers_resp.data or []
+        print(f"DEBUG: /candles for {symbol} - Found {len(raw_candles)} candles and {len(raw_markers)} markers")
+        markers = []
+        for m in raw_markers:
+            try:
+                ts = m.get("timestamp", "")
+                if ts:
+                    dt = datetime.fromisoformat(ts.replace("Z", "+00:00"))
+                    unix_ts = int(dt.timestamp())
+                else:
+                    continue
+
+                action = m.get("action", "").upper()
+                price = float(m.get("price", 0) or 0)
+                pnl = m.get("pnl")
+
+                if action in ("BUY", "SIGNAL"):
+                    markers.append({
+                        "time": unix_ts,
+                        "position": "belowBar",
+                        "color": "#22c55e",
+                        "shape": "arrowUp",
+                        "text": f"BUY ${price:.2f}",
+                        "price": price,
+                    })
+                elif action == "SELL":
+                    pnl_txt = f" P&L: ${float(pnl):.2f}" if pnl is not None else ""
+                    markers.append({
+                        "time": unix_ts,
+                        "position": "aboveBar",
+                        "color": "#ef4444" if (pnl or 0) <= 0 else "#22c55e",
+                        "shape": "arrowDown",
+                        "text": f"SELL ${price:.2f}{pnl_txt}",
+                        "price": price,
+                    })
+            except Exception:
+                continue
+
+        # Get current entry price if position is open
+        entry_price = None
+        if bot:
+            from api.live_bot import _normalize_symbol
+            pos = bot._pos_state.get(_normalize_symbol(symbol))
+            if pos:
+                entry_price = pos.get("entry_price")
+
+        return {
+            "symbol": symbol,
+            "candles": candles,
+            "markers": markers,
+            "entry_price": entry_price,
+            "timeframe": timeframe,
+            "count": len(candles),
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        import traceback
+        print(f"Error in get_candles: {e}")
         print(traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
