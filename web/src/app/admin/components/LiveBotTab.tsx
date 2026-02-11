@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Play, Square, Activity, Settings, Terminal, RefreshCw, Save, Coins, ShieldCheck, ShieldAlert, Plus, X, Search, Check, BarChart3, PieChart, ArrowUpRight, ArrowDownRight, Clock, Globe, Target } from "lucide-react";
+import { Play, Square, Activity, Settings, Terminal, RefreshCw, Save, Coins, ShieldCheck, ShieldAlert, Plus, X, Search, Check, BarChart3, PieChart, ArrowUpRight, ArrowDownRight, Clock, Globe, Target, Trash2, History as HistoryIcon } from "lucide-react";
 import { useRef } from "react";
 import { toast } from "sonner";
 import { getAlpacaAccount, getAlpacaPositions, type AlpacaAccountInfo, type AlpacaPositionInfo } from "@/lib/api";
@@ -36,6 +36,15 @@ interface BotConfig {
     king_model_path: string;
     council_model_path: string;
     max_open_positions: number;
+    name: string;
+    execution_mode: "ALPACA" | "TELEGRAM" | "BOTH";
+}
+
+interface BotListItem {
+    id: string;
+    name: string;
+    status: string;
+    mode: string;
 }
 
 interface PerformanceData {
@@ -53,6 +62,7 @@ interface PerformanceData {
         win_rate: number;
     }>;
     open_positions: any[];
+    trades?: Trade[];
 }
 
 interface Trade {
@@ -102,6 +112,24 @@ export default function LiveBotTab() {
     const [alpacaPositions, setAlpacaPositions] = useState<AlpacaPositionInfo[]>([]);
     const [alpacaPositionsLoading, setAlpacaPositionsLoading] = useState(false);
 
+    // Multi-Bot State
+    const [botList, setBotList] = useState<BotListItem[]>([]);
+    const [selectedBotId, setSelectedBotId] = useState<string>("primary");
+    const [createBotDialogOpen, setCreateBotDialogOpen] = useState(false);
+    const [newBotName, setNewBotName] = useState("");
+    const [isCreatingBot, setIsCreatingBot] = useState(false);
+
+    // Command States
+    const [isStarting, setIsStarting] = useState(false);
+    const [isStopping, setIsStopping] = useState(false);
+
+    // Asset Selection State
+    const [assetTab, setAssetTab] = useState<"CRYPTO" | "STOCKS" | "GLOBAL">("CRYPTO");
+    const [cryptoFilter, setCryptoFilter] = useState<"ALL" | "USD" | "USDT">("ALL");
+    const [countries, setCountries] = useState<{ name: string, count: number }[]>([]);
+    const [selectedCountry, setSelectedCountry] = useState<string>("USA");
+    const [availableModels, setAvailableModels] = useState<string[]>([]);
+
     const [pollIntervalValue, setPollIntervalValue] = useState(2);
     const [pollIntervalUnit, setPollIntervalUnit] = useState<PollUnit>("s");
 
@@ -143,11 +171,12 @@ export default function LiveBotTab() {
     };
 
     useEffect(() => {
+        fetchBotList();
         fetchStatus();
         fetchAccount(true);
         fetchPositions(true);
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    }, [selectedBotId]);
 
     // Auto-scroll logs removed per user request
 
@@ -205,44 +234,148 @@ export default function LiveBotTab() {
     const [coinLimit, setCoinLimit] = useState(100);
     const autoSelectRef = useRef(false);
 
-    useEffect(() => {
-        const fetchCoins = async () => {
-            try {
-                // Fetch coins from bot API, supporting source parameter
-                const limitParam = coinSource === "alpaca" ? `&limit=${coinLimit}` : "";
-                const res = await fetch(`/api/bot/available_coins?source=${coinSource}${limitParam}`);
-                if (res.ok) {
-                    const data = await res.json();
-                    if (Array.isArray(data)) {
-                        setAvailableCoins(data);
-                        // Auto-select if requested (e.g. clicking Top 50)
-                        if (autoSelectRef.current) {
-                            setConfigForm(prev => ({ ...prev, coins: data }));
-                            autoSelectRef.current = false;
-                        }
+    const fetchModels = async () => {
+        try {
+            const res = await fetch("/api/ai_bot/models");
+            if (res.ok) {
+                const data = await res.json();
+                setAvailableModels(data);
+            }
+        } catch (e) {
+            console.error("Failed to fetch models", e);
+        }
+    };
+
+    const fetchCountries = async () => {
+        try {
+            const res = await fetch("/api/ai_bot/countries");
+            if (res.ok) {
+                const data = await res.json();
+                setCountries(data);
+                if (data.length > 0 && !data.some((c: { name: string }) => c.name === selectedCountry)) {
+                    setSelectedCountry(data[0].name);
+                }
+            }
+        } catch (e) {
+            console.error("Failed to fetch countries", e);
+        }
+    };
+
+    const fetchCoins = async () => {
+        try {
+            let source = "";
+            let url = "";
+
+            if (assetTab === "CRYPTO") {
+                source = coinSource === "alpaca" ? "alpaca" : "database";
+                url = `/api/ai_bot/available_coins?source=${source}&limit=${coinLimit}`;
+            } else if (assetTab === "STOCKS") {
+                source = "alpaca_stocks";
+                url = `/api/ai_bot/available_coins?source=${source}&limit=${coinLimit}`;
+            } else if (assetTab === "GLOBAL") {
+                source = "global";
+                url = `/api/ai_bot/available_coins?source=${source}&country=${selectedCountry}&limit=${coinLimit}`;
+            }
+
+            const res = await fetch(url);
+            if (res.ok) {
+                const data = await res.json();
+                if (Array.isArray(data)) {
+                    setAvailableCoins(data);
+                    if (autoSelectRef.current) {
+                        setConfigForm(prev => ({ ...prev, coins: data }));
+                        autoSelectRef.current = false;
                     }
                 }
-            } catch (e) {
-                console.error("Failed to fetch available coins", e);
             }
-        };
+        } catch (e) {
+            console.error("Failed to fetch coins", e);
+        }
+    };
+
+    useEffect(() => {
+        if (assetTab === "GLOBAL") {
+            setConfigForm(prev => ({ ...prev, data_source: "tvdata" }));
+        } else if (assetTab === "CRYPTO" && configForm.data_source === "tvdata") {
+            setConfigForm(prev => ({ ...prev, data_source: "binance" }));
+        } else if (assetTab === "STOCKS" && configForm.data_source === "tvdata") {
+            setConfigForm(prev => ({ ...prev, data_source: "alpaca" }));
+        }
+    }, [assetTab, configForm.data_source]);
+
+    useEffect(() => {
+        fetchModels();
+        if (assetTab === "GLOBAL") {
+            fetchCountries();
+        }
+    }, [assetTab]);
+
+    useEffect(() => {
         fetchCoins();
-    }, [coinSource, coinLimit]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [coinSource, coinLimit, assetTab, selectedCountry, cryptoFilter]);
+
+    const fetchBotList = async () => {
+        try {
+            const res = await fetch("/api/ai_bot/list");
+            if (res.ok) {
+                const data = await res.json();
+                setBotList(data.bots || []);
+            }
+        } catch (e) {
+            console.error("Failed to fetch bot list", e);
+        }
+    };
+
+    const handleCreateBot = async () => {
+        if (!newBotName.trim()) return;
+        setIsCreatingBot(true);
+        try {
+            const bot_id = newBotName.trim().toLowerCase().replace(/\s+/g, '_');
+            const res = await fetch("/api/ai_bot/create", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ bot_id, name: newBotName.trim() })
+            });
+            if (res.ok) {
+                toast.success(`Bot "${newBotName}" created`);
+                setNewBotName("");
+                setCreateBotDialogOpen(false);
+                await fetchBotList();
+                setSelectedBotId(bot_id);
+            } else {
+                const err = await res.json();
+                toast.error(err.detail || "Failed to create bot");
+            }
+        } catch (e) {
+            toast.error("Error creating bot");
+        } finally {
+            setIsCreatingBot(false);
+        }
+    };
+
+    const handleDeleteBot = async (id: string, name: string) => {
+        if (id === "primary") {
+            toast.error("Cannot delete primary bot");
+            return;
+        }
+        if (!confirm(`Are you sure you want to delete bot "${name}"?`)) return;
+
+        try {
+            const res = await fetch(`/api/ai_bot/delete/${id}`, { method: "DELETE" });
+            if (res.ok) {
+                toast.success("Bot deleted");
+                if (selectedBotId === id) setSelectedBotId("primary");
+                fetchBotList();
+            } else {
+                toast.error("Failed to delete bot");
+            }
+        } catch (e) {
+            toast.error("Error deleting bot");
+        }
+    };
 
     // Auto-save configuration with debounce
-    useEffect(() => {
-        if (!configForm || status?.status === 'running' || status?.status === 'starting') return;
-
-        const timeout = setTimeout(() => {
-            handleUpdateConfig(true);
-        }, 1000);
-
-        return () => clearTimeout(timeout);
-    }, [configForm, status?.status]);
-
-    // Auto-select removed - User manually selects assets now
-
-    // Auto-save configuration when it changes
     useEffect(() => {
         if (!configForm || status?.status === 'running' || status?.status === 'starting') return;
 
@@ -263,25 +396,31 @@ export default function LiveBotTab() {
         (alpacaPositions || []).map((p) => [normalizePosKey(p.symbol), p])
     );
 
-    // Auto-refresh when running (match Poll Interval)
+    // Auto-refresh when running (Fixed 3s interval for UI responsiveness)
     useEffect(() => {
         const interval = setInterval(() => {
             if (status?.status === "running") {
                 fetchStatus(true);
                 fetchAccount(true);
                 fetchPositions(true);
-                if (activeTab === 'performance') {
-                    fetchPerformance(true);
-                }
+                fetchPerformance(true);
             }
-        }, pollMs);
+        }, 3000); // Fixed 3s refresh
         return () => clearInterval(interval);
-    }, [status?.status, pollMs, activeTab]);
+    }, [status?.status, selectedBotId]); // Refresh when botId changes as well
+
+    // Initial load and refresh on bot switch
+    useEffect(() => {
+        fetchStatus(false);
+        fetchPerformance(false);
+        fetchAccount(false);
+        fetchPositions(false);
+    }, [selectedBotId]);
 
     const fetchStatus = async (silent = false) => {
         if (!silent) setRefreshing(true);
         try {
-            const res = await fetch("/api/ai_bot/status");
+            const res = await fetch(`/api/ai_bot/status?bot_id=${selectedBotId}`);
             if (res.ok) {
                 const data = await res.json();
 
@@ -336,7 +475,7 @@ export default function LiveBotTab() {
 
     const handleStart = async () => {
         try {
-            const res = await fetch("/api/ai_bot/start", { method: "POST" });
+            const res = await fetch(`/api/ai_bot/start?bot_id=${selectedBotId}`, { method: "POST" });
             if (res.ok) {
                 toast.success("Bot started command sent");
                 fetchStatus();
@@ -351,8 +490,9 @@ export default function LiveBotTab() {
     };
 
     const handleStop = async () => {
+        setIsStopping(true);
         try {
-            const res = await fetch("/api/ai_bot/stop", { method: "POST" });
+            const res = await fetch(`/api/ai_bot/stop?bot_id=${selectedBotId}`, { method: "POST" });
             if (res.ok) {
                 toast.success("Bot stop command sent");
                 fetchStatus();
@@ -362,12 +502,15 @@ export default function LiveBotTab() {
             }
         } catch (error) {
             toast.error("Failed to stop bot");
+        } finally {
+            setIsStopping(false);
         }
     };
 
+
     const handleUpdateConfig = async (silent: boolean = false) => {
         try {
-            const res = await fetch("/api/bot/config", {
+            const res = await fetch(`/api/ai_bot/config?bot_id=${selectedBotId}`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(configForm)
@@ -420,7 +563,7 @@ export default function LiveBotTab() {
     const fetchPerformance = async (silent = false) => {
         if (!silent) setPerformanceLoading(true);
         try {
-            const res = await fetch("/api/ai_bot/performance");
+            const res = await fetch(`/api/ai_bot/performance?bot_id=${selectedBotId}`);
             if (res.ok) {
                 const data = await res.json();
                 setPerformance(data);
@@ -446,85 +589,106 @@ export default function LiveBotTab() {
     const useCouncil = configForm.use_council ?? true;
 
     return (
-        <div className="max-w-[1800px] mx-auto p-6 md:p-8 space-y-8">
-            {/* Header Section */}
-            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative">
-                <div className="relative z-10">
-                    <h1 className="text-4xl font-black tracking-tighter text-white mb-2 flex items-center gap-4 drop-shadow-[0_0_15px_rgba(99,102,241,0.5)]">
-                        <Activity className="w-10 h-10 text-indigo-500 animate-pulse-slow" />
-                        LIVE BOT CONTROL
-                    </h1>
-                    <div className="flex flex-wrap items-center gap-3">
-                        <div className="flex items-center gap-3 bg-black/40 backdrop-blur-md px-4 py-2 rounded-full border border-white/5 w-fit">
-                            <div className={`w-3 h-3 rounded-full shadow-[0_0_10px_currentColor] ${isRunning ? "bg-emerald-500 text-emerald-500 animate-pulse" : "bg-red-500 text-red-500"}`} />
-                            <span className="text-sm font-bold text-zinc-300 uppercase tracking-widest">
-                                Status: <span className={isRunning ? "text-emerald-400" : "text-red-400"}>{status?.status || "UNKNOWN"}</span>
-                            </span>
-                            {status?.last_scan && (
-                                <>
-                                    <span className="text-zinc-700">|</span>
-                                    <span className="text-xs text-zinc-500 font-mono flex items-center gap-1.5">
-                                        <RefreshCw className="w-3 h-3" /> {new Date(status.last_scan).toLocaleTimeString()}
-                                    </span>
-                                </>
-                            )}
-                        </div>
-
-                        {isRunning && (
-                            <div className="flex items-center gap-3 bg-indigo-500/10 backdrop-blur-md px-4 py-2 rounded-full border border-indigo-500/20 w-fit">
-                                <Clock className="w-4 h-4 text-indigo-400 animate-spin-slow" />
-                                <span className="text-sm font-mono font-bold text-indigo-300 tracking-wider">
-                                    UPTIME: {uptime}
-                                </span>
-                            </div>
-                        )}
+        <div className="space-y-6 max-w-[1600px] mx-auto animate-in fade-in zoom-in-95 duration-500">
+            {/* Multi-Bot Management Header */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-black/40 border border-white/5 rounded-3xl p-6 backdrop-blur-xl">
+                <div className="flex items-center gap-4">
+                    <div className="bg-indigo-500/10 p-3 rounded-2xl border border-indigo-500/20">
+                        <Activity className="w-6 h-6 text-indigo-400" />
                     </div>
-
-                    <div className="mt-4 flex flex-wrap gap-3 text-xs">
-                        <div className="px-3 py-2 rounded-2xl bg-zinc-900/50 border border-white/5">
-                            <div className="text-zinc-500 uppercase font-bold tracking-widest">Alpaca Cash</div>
-                            <div className="text-white font-mono">{alpacaAccountLoading ? "…" : fmtUsd(alpacaAccount?.cash)}</div>
-                        </div>
-                        <div className="px-3 py-2 rounded-2xl bg-zinc-900/50 border border-white/5">
-                            <div className="text-zinc-500 uppercase font-bold tracking-widest">Buying Power</div>
-                            <div className="text-white font-mono">{alpacaAccountLoading ? "…" : fmtUsd(alpacaAccount?.buying_power)}</div>
-                        </div>
-                        <div className="px-3 py-2 rounded-2xl bg-zinc-900/50 border border-white/5">
-                            <div className="text-zinc-500 uppercase font-bold tracking-widest">Portfolio</div>
-                            <div className="text-white font-mono">{alpacaAccountLoading ? "…" : fmtUsd(alpacaAccount?.portfolio_value)}</div>
+                    <div>
+                        <h1 className="text-xl font-black text-white tracking-tighter flex items-center gap-2">
+                            AI TRADING TERMINAL
+                            <span className="text-[10px] bg-indigo-500/20 text-indigo-400 px-2 py-0.5 rounded-full border border-indigo-500/30">V2.0 MULTI-BOT</span>
+                        </h1>
+                        <div className="flex items-center gap-2 mt-1">
+                            {botList.map(bot => (
+                                <button
+                                    key={bot.id}
+                                    onClick={() => setSelectedBotId(bot.id)}
+                                    className={`px-3 py-1 rounded-lg text-xs font-bold transition-all border ${selectedBotId === bot.id
+                                        ? "bg-indigo-500 text-white border-indigo-400 shadow-lg shadow-indigo-500/20"
+                                        : "bg-black/40 text-zinc-500 border-white/5 hover:border-white/10"
+                                        }`}
+                                >
+                                    {bot.name}
+                                </button>
+                            ))}
+                            <Dialog.Root open={createBotDialogOpen} onOpenChange={setCreateBotDialogOpen}>
+                                <Dialog.Trigger asChild>
+                                    <button className="p-1 px-2 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20 transition-all">
+                                        <Plus className="w-4 h-4" />
+                                    </button>
+                                </Dialog.Trigger>
+                                <Dialog.Portal>
+                                    <Dialog.Overlay className="fixed inset-0 bg-black/80 backdrop-blur-sm animate-in fade-in duration-300 z-50" />
+                                    <Dialog.Content className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-zinc-950 border border-zinc-800 p-8 rounded-3xl shadow-2xl animate-in zoom-in-95 duration-300 z-50">
+                                        <div className="space-y-6">
+                                            <div className="space-y-2">
+                                                <h2 className="text-xl font-black text-white">Create New Bot</h2>
+                                                <p className="text-sm text-zinc-500 font-medium">Add a new specialized trading instance.</p>
+                                            </div>
+                                            <div className="space-y-4">
+                                                <div className="space-y-2">
+                                                    <label className="text-xs font-bold text-zinc-500 uppercase">Bot Name</label>
+                                                    <input
+                                                        type="text"
+                                                        value={newBotName}
+                                                        onChange={(e) => setNewBotName(e.target.value)}
+                                                        placeholder="e.g., Scalper Bot"
+                                                        className="w-full bg-black/40 border border-white/5 rounded-xl px-4 py-3 text-sm font-bold focus:outline-none focus:border-indigo-500 transition-all"
+                                                        onKeyDown={(e) => e.key === 'Enter' && handleCreateBot()}
+                                                    />
+                                                </div>
+                                                <button
+                                                    onClick={handleCreateBot}
+                                                    disabled={isCreatingBot || !newBotName.trim()}
+                                                    className="w-full bg-indigo-500 hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-black py-4 rounded-xl shadow-lg shadow-indigo-500/20 transition-all"
+                                                >
+                                                    {isCreatingBot ? <RefreshCw className="w-5 h-5 animate-spin mx-auto" /> : "INITIALIZE BOT"}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </Dialog.Content>
+                                </Dialog.Portal>
+                            </Dialog.Root>
                         </div>
                     </div>
                 </div>
 
                 <div className="flex items-center gap-3">
                     <button
-                        onClick={() => {
-                            fetchStatus();
-                            fetchAccount();
-                            fetchPositions();
-                        }}
-                        className="p-4 rounded-2xl bg-zinc-900/50 border border-white/5 hover:bg-white/10 hover:border-white/10 transition-all group"
+                        onClick={() => fetchStatus()}
+                        disabled={refreshing}
+                        className="p-3 rounded-2xl bg-zinc-900/50 border border-white/5 hover:bg-white/10 transition-all group"
                     >
-                        <RefreshCw className={`w-5 h-5 text-zinc-400 group-hover:text-white transition-colors ${refreshing ? "animate-spin" : ""}`} />
+                        <RefreshCw className={`w-4 h-4 text-zinc-400 group-hover:text-white transition-colors ${refreshing ? "animate-spin" : ""}`} />
                     </button>
 
-                    {!isRunning ? (
+                    <div className="flex bg-black/60 p-1 rounded-2xl border border-white/5 shadow-inner">
                         <button
                             onClick={handleStart}
-                            className="px-8 py-4 rounded-2xl bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white font-black text-sm tracking-widest flex items-center gap-3 transition-all shadow-[0_0_30px_rgba(16,185,129,0.3)] hover:shadow-[0_0_50px_rgba(16,185,129,0.5)] transform hover:scale-105"
+                            disabled={isRunning || isStarting}
+                            className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-black transition-all ${isRunning || isStarting
+                                ? "text-emerald-500/30 cursor-not-allowed"
+                                : "text-emerald-400 hover:bg-emerald-500/10 hover:text-emerald-300"
+                                }`}
                         >
-                            <Play className="w-5 h-5 fill-current" />
-                            START SYSTEM
+                            <Play className={`w-3.5 h-3.5 ${isStarting ? "animate-pulse" : ""}`} />
+                            {isStarting ? "STARTING..." : "START"}
                         </button>
-                    ) : (
                         <button
                             onClick={handleStop}
-                            className="px-8 py-4 rounded-2xl bg-gradient-to-r from-red-600 to-red-500 hover:from-red-500 hover:to-red-400 text-white font-black text-sm tracking-widest flex items-center gap-3 transition-all shadow-[0_0_30px_rgba(239,68,68,0.3)] hover:shadow-[0_0_50px_rgba(239,68,68,0.5)] transform hover:scale-105"
+                            disabled={!isRunning || isStopping}
+                            className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-black transition-all ${!isRunning || isStopping
+                                ? "text-red-500/30 cursor-not-allowed"
+                                : "text-red-400 hover:bg-red-500/10 hover:text-red-300"
+                                }`}
                         >
-                            <Square className="w-5 h-5 fill-current" />
-                            STOP SYSTEM
+                            <Square className={`w-3.5 h-3.5 ${isStopping ? "animate-pulse" : ""}`} />
+                            {isStopping ? "STOP" : "STOP"}
                         </button>
-                    )}
+                    </div>
                 </div>
             </div>
 
@@ -567,33 +731,95 @@ export default function LiveBotTab() {
 
                         <div className="space-y-6 relative z-10">
                             {/* Coins Selection */}
+                            {/* Asset Selection Panel */}
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold text-zinc-500 uppercase">Execution Mode</label>
+                                <select
+                                    value={configForm.execution_mode || "BOTH"}
+                                    onChange={(e) => setConfigForm({ ...configForm, execution_mode: e.target.value as any })}
+                                    className="w-full bg-black/40 border border-white/5 rounded-xl px-4 py-3 text-sm font-mono focus:outline-none focus:border-indigo-500/50 transition-all text-white border-white/10"
+                                >
+                                    <option value="BOTH" className="bg-zinc-950 text-white">Together (Alpaca + Telegram)</option>
+                                    <option value="ALPACA" className="bg-zinc-950 text-white">Alpaca Only (Auto-Trade)</option>
+                                    <option value="TELEGRAM" className="bg-zinc-950 text-white">Telegram Only (Signal Only)</option>
+                                </select>
+                            </div>
+
                             <div className="space-y-4">
                                 <div className="flex items-center justify-between">
                                     <label className="text-xs font-bold text-zinc-500 uppercase flex items-center gap-2">
                                         <Target className="w-3.5 h-3.5" /> Target Assets
                                     </label>
-                                    <div className="flex items-center gap-2">
+                                    <div className="flex bg-black/40 rounded-lg p-0.5 border border-white/5">
                                         <button
-                                            onClick={() => setConfigForm({ ...configForm, coins: [] })}
-                                            disabled={isRunning || (configForm.coins || []).length === 0}
-                                            className="text-[10px] font-bold text-red-400 hover:text-red-300 disabled:opacity-30 transition-colors"
+                                            onClick={() => setAssetTab("CRYPTO")}
+                                            className={`px-3 py-1 rounded-md text-[10px] font-bold transition-all ${assetTab === "CRYPTO" ? "bg-indigo-500 text-white shadow-lg" : "text-zinc-500 hover:text-zinc-300"}`}
                                         >
-                                            CLEAR ALL
+                                            CRYPTO
                                         </button>
+                                        <button
+                                            onClick={() => setAssetTab("STOCKS")}
+                                            className={`px-3 py-1 rounded-md text-[10px] font-bold transition-all ${assetTab === "STOCKS" ? "bg-indigo-500 text-white shadow-lg" : "text-zinc-500 hover:text-zinc-300"}`}
+                                        >
+                                            US STOCKS
+                                        </button>
+                                        <button
+                                            onClick={() => setAssetTab("GLOBAL")}
+                                            className={`px-3 py-1 rounded-md text-[10px] font-bold transition-all ${assetTab === "GLOBAL" ? "bg-indigo-500 text-white shadow-lg" : "text-zinc-500 hover:text-zinc-300"}`}
+                                        >
+                                            GLOBAL
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* Asset Filters */}
+
+
+                                {assetTab === "STOCKS" && (
+                                    <div className="p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-xl text-xs text-yellow-200 flex items-center gap-2">
+                                        <Globe className="w-4 h-4" />
+                                        <span>US Stock Market (Alpaca)</span>
+                                    </div>
+                                )}
+
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        onClick={() => setConfigForm({ ...configForm, coins: [] })}
+                                        disabled={isRunning || (configForm.coins || []).length === 0}
+                                        className="text-[10px] font-bold text-red-400 hover:text-red-300 disabled:opacity-30 transition-colors"
+                                    >
+                                        CLEAR ALL
+                                    </button>
+                                    {assetTab === "GLOBAL" ? (
+                                        <button
+                                            onClick={() => {
+                                                if (availableCoins.length > 0) {
+                                                    setConfigForm({ ...configForm, coins: availableCoins });
+                                                    toast.success(`Added all ${availableCoins.length} symbols for ${selectedCountry}`);
+                                                }
+                                            }}
+                                            disabled={isRunning || availableCoins.length === 0}
+                                            className="text-[10px] font-black bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-1 rounded hover:bg-emerald-500/20 transition-all disabled:opacity-50"
+                                        >
+                                            SYNC ALL {selectedCountry}
+                                        </button>
+                                    ) : (
                                         <button
                                             onClick={handleSyncAlpaca}
                                             disabled={syncingAlpaca || isRunning}
                                             className="text-[10px] font-black bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-2 py-1 rounded hover:bg-indigo-500/20 transition-all disabled:opacity-50"
                                         >
-                                            {syncingAlpaca ? "SYNC" : "SYNC ALPACA"}
+                                            {syncingAlpaca ? "SYNC" : assetTab === "STOCKS" ? "SYNC WATCHLIST" : "SYNC ALPACA"}
                                         </button>
-                                    </div>
+                                    )}
                                 </div>
+                            </div>
 
-                                {/* Smart Add Interface */}
-                                <div className="bg-black/40 border border-white/5 rounded-xl p-3 space-y-3">
-                                    {/* Source & Filter Controls */}
-                                    <div className="flex flex-wrap items-center gap-2">
+                            {/* Smart Add Interface */}
+                            <div className="bg-black/40 border border-white/5 rounded-xl p-3 space-y-3">
+                                {/* Source & Filter Controls */}
+                                <div className="flex flex-wrap items-center gap-2">
+                                    {assetTab === "CRYPTO" ? (
                                         <div className="flex bg-black/40 rounded-lg p-0.5 border border-white/5">
                                             <button
                                                 onClick={() => setCoinSource("database")}
@@ -608,14 +834,48 @@ export default function LiveBotTab() {
                                                 ALPACA
                                             </button>
                                         </div>
+                                    ) : null}
 
-                                        {coinSource === "alpaca" && (
-                                            <div className="flex items-center gap-1 overflow-x-auto custom-scrollbar pb-1 max-w-full">
-                                                {[10, 50, 100, 0].map(lim => (
+                                    {assetTab === "CRYPTO" && (
+                                        <select
+                                            value={cryptoFilter}
+                                            onChange={(e) => setCryptoFilter(e.target.value as any)}
+                                            className="bg-zinc-900 border border-zinc-800 rounded-lg px-2 py-1 text-[10px] font-bold text-zinc-400 focus:outline-none focus:border-indigo-500 transition-colors"
+                                        >
+                                            <option value="ALL">All Pairs</option>
+                                            <option value="USD">USD Pairs</option>
+                                            <option value="USDT">USDT Pairs</option>
+                                        </select>
+                                    )}
+
+                                    {assetTab === "GLOBAL" && (
+                                        <select
+                                            value={selectedCountry}
+                                            onChange={(e) => setSelectedCountry(e.target.value)}
+                                            className="bg-zinc-900 border border-zinc-800 rounded-lg px-2 py-1 text-[10px] font-bold text-zinc-400 focus:outline-none focus:border-indigo-500 transition-colors"
+                                        >
+                                            {countries.map(c => (
+                                                <option key={c.name} value={c.name}>{c.name} ({c.count})</option>
+                                            ))}
+                                        </select>
+                                    )}
+
+                                    {coinSource === "alpaca" && (
+                                        <div className="flex items-center gap-1 overflow-x-auto custom-scrollbar pb-1 max-w-full">
+                                            {[10, 50, 100, 0].map(lim => {
+                                                const countryObj = countries.find(c => c.name === selectedCountry);
+                                                const totalCount = countryObj?.count || 0;
+                                                const isHuge = assetTab === "GLOBAL" && lim === 0 && totalCount > 1000;
+
+                                                return (
                                                     <button
                                                         key={lim}
                                                         onClick={() => {
-                                                            autoSelectRef.current = lim > 0;
+                                                            if (isHuge) {
+                                                                toast.error(`Too many symbols (${totalCount}). Please use search or Top limits.`);
+                                                                return;
+                                                            }
+                                                            autoSelectRef.current = true;
                                                             setCoinLimit(lim);
                                                         }}
                                                         className={`px-2 py-1 text-[9px] font-bold rounded-md border whitespace-nowrap transition-all ${coinLimit === lim
@@ -625,78 +885,119 @@ export default function LiveBotTab() {
                                                     >
                                                         {lim === 0 ? "ALL" : `TOP ${lim}`}
                                                     </button>
-                                                ))}
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    {/* Search & Bulk Add */}
-                                    <div className="relative group">
-                                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500 group-focus-within:text-indigo-400 transition-colors" />
-                                        <input
-                                            type="text"
-                                            placeholder={`Search to add from ${availableCoins.length} available...`}
-                                            value={coinSearch}
-                                            onChange={(e) => setCoinSearch(e.target.value)}
-                                            className="w-full bg-black/40 border border-zinc-800 rounded-lg pl-9 pr-32 py-2.5 text-xs font-mono focus:outline-none focus:border-indigo-500 transition-all text-white placeholder:text-zinc-600"
-                                        />
-                                        <div className="absolute right-1 top-1/2 -translate-y-1/2">
-                                            {coinSearch && (
-                                                <button
-                                                    onClick={() => {
-                                                        const filtered = availableCoins.filter(c => c.toLowerCase().includes(coinSearch.toLowerCase()));
-                                                        const current = new Set(configForm.coins || []);
-                                                        const toAdd = filtered.filter(c => !current.has(c));
-                                                        if (toAdd.length > 0) {
-                                                            setConfigForm(prev => ({ ...prev, coins: [...(prev.coins || []), ...toAdd] }));
-                                                            setCoinSearch(""); // Clear on add
-                                                        }
-                                                    }}
-                                                    className="px-2 py-1 text-[9px] font-bold bg-indigo-500/20 text-indigo-300 rounded border border-indigo-500/20 hover:bg-indigo-500 hover:text-white transition-all"
-                                                >
-                                                    ADD FILTERED
-                                                </button>
-                                            )}
+                                                );
+                                            })}
                                         </div>
-
-                                        {/* Autocomplete Dropdown */}
-                                        {coinSearch && (
-                                            <div className="absolute top-full left-0 right-0 mt-2 bg-zinc-900 border border-zinc-800 rounded-lg shadow-2xl z-50 max-h-48 overflow-y-auto custom-scrollbar">
-                                                {availableCoins.filter(c => c.toLowerCase().includes(coinSearch.toLowerCase())).slice(0, 50).map(coin => {
-                                                    const isSelected = (configForm.coins || []).includes(coin);
-                                                    return (
-                                                        <button
-                                                            key={coin}
-                                                            disabled={isSelected}
-                                                            onClick={() => {
-                                                                if (!isSelected) {
-                                                                    setConfigForm(prev => ({ ...prev, coins: [...(prev.coins || []), coin] }));
-                                                                    setCoinSearch("");
-                                                                }
-                                                            }}
-                                                            className={`w-full text-left px-4 py-2 text-xs font-mono flex items-center justify-between hover:bg-white/5 transition-colors ${isSelected ? "opacity-50 cursor-default" : ""}`}
-                                                        >
-                                                            <span className={isSelected ? "text-indigo-400" : "text-white"}>{coin}</span>
-                                                            {isSelected && <Check className="w-3 h-3 text-indigo-500" />}
-                                                        </button>
-                                                    )
-                                                })}
-                                            </div>
-                                        )}
-                                    </div>
+                                    )}
                                 </div>
 
-                                {/* Active Assets Grid */}
-                                <div className="bg-black/20 rounded-xl p-3 border border-white/5 min-h-[80px]">
-                                    {(configForm.coins || []).length === 0 ? (
-                                        <div className="h-full flex flex-col items-center justify-center text-zinc-600 gap-2 py-4">
-                                            <Target className="w-8 h-8 opacity-20" />
-                                            <span className="text-xs font-bold opacity-50">NO ASSETS TARGETED</span>
-                                            <span className="text-[10px] opacity-40">Search and add symbols above</span>
+                                {/* Search & Bulk Add */}
+                                <div className="relative group">
+                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500 group-focus-within:text-indigo-400 transition-colors" />
+                                    <input
+                                        type="text"
+                                        placeholder={`Search to add from ${availableCoins.length} available...`}
+                                        value={coinSearch}
+                                        onChange={(e) => setCoinSearch(e.target.value)}
+                                        className="w-full bg-black/40 border border-zinc-800 rounded-lg pl-9 pr-32 py-2.5 text-xs font-mono focus:outline-none focus:border-indigo-500 transition-all text-white placeholder:text-zinc-600"
+                                    />
+                                    <div className="absolute right-1 top-1/2 -translate-y-1/2">
+                                        {coinSearch && (
+                                            <button
+                                                onClick={() => {
+                                                    const filtered = availableCoins.filter(c => {
+                                                        const matchesSearch = c.toLowerCase().includes(coinSearch.toLowerCase());
+                                                        if (assetTab === "CRYPTO") {
+                                                            if (!c.includes("/")) return false;
+                                                            if (cryptoFilter === "USD" && !c.endsWith("/USD")) return false;
+                                                            if (cryptoFilter === "USDT" && !c.endsWith("/USDT")) return false;
+                                                        } else if (assetTab === "STOCKS") {
+                                                            if (c.includes("/")) return false;
+                                                        } else if (assetTab === "GLOBAL") {
+                                                            // Assuming global assets might have a country prefix or suffix, or are just symbols
+                                                            // For now, no specific filtering logic beyond search for global, as `availableCoins` should already be filtered by country
+                                                        }
+                                                        return matchesSearch;
+                                                    });
+                                                    const current = new Set(configForm.coins || []);
+                                                    const toAdd = filtered.filter(c => !current.has(c));
+                                                    if (toAdd.length > 0) {
+                                                        setConfigForm(prev => ({ ...prev, coins: [...(prev.coins || []), ...toAdd] }));
+                                                        setCoinSearch(""); // Clear on add
+                                                    }
+                                                }}
+                                                className="px-2 py-1 text-[9px] font-bold bg-indigo-500/20 text-indigo-300 rounded border border-indigo-500/20 hover:bg-indigo-500 hover:text-white transition-all"
+                                            >
+                                                ADD FILTERED
+                                            </button>
+                                        )}
+                                    </div>
+
+                                    {/* Autocomplete Dropdown */}
+                                    {coinSearch && (
+                                        <div className="absolute top-full left-0 right-0 mt-2 bg-zinc-900 border border-zinc-800 rounded-lg shadow-2xl z-50 max-h-48 overflow-y-auto custom-scrollbar">
+                                            {availableCoins.filter(c => {
+                                                const matchesSearch = c.toLowerCase().includes(coinSearch.toLowerCase());
+                                                if (assetTab === "CRYPTO") {
+                                                    if (!c.includes("/")) return false;
+                                                    if (cryptoFilter === "USD" && !c.endsWith("/USD")) return false;
+                                                    if (cryptoFilter === "USDT" && !c.endsWith("/USDT")) return false;
+                                                } else if (assetTab === "STOCKS") {
+                                                    if (c.includes("/")) return false;
+                                                } else if (assetTab === "GLOBAL") {
+                                                    // For global, we assume any symbol returned by the backend is fine
+                                                    // Usually global symbols don't have a slash
+                                                    if (c.includes("/")) return false;
+                                                }
+                                                return matchesSearch;
+                                            }).slice(0, 50).map(coin => {
+                                                const isSelected = (configForm.coins || []).includes(coin);
+                                                return (
+                                                    <button
+                                                        key={coin}
+                                                        disabled={isSelected}
+                                                        onClick={() => {
+                                                            if (!isSelected) {
+                                                                setConfigForm(prev => ({ ...prev, coins: [...(prev.coins || []), coin] }));
+                                                                setCoinSearch("");
+                                                            }
+                                                        }}
+                                                        className={`w-full text-left px-4 py-2 text-xs font-mono flex items-center justify-between hover:bg-white/5 transition-colors ${isSelected ? "opacity-50 cursor-default" : ""}`}
+                                                    >
+                                                        <span className={isSelected ? "text-indigo-400" : "text-white"}>{coin}</span>
+                                                        {isSelected && <Check className="w-3 h-3 text-indigo-500" />}
+                                                    </button>
+                                                )
+                                            })}
                                         </div>
-                                    ) : (
-                                        <div className="flex flex-wrap gap-2">
-                                            {(configForm.coins || []).slice().reverse().map(coin => (
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Active Assets Grid */}
+                            <div className="bg-black/20 rounded-xl p-3 border border-white/5 min-h-[80px]">
+                                {(configForm.coins || []).length === 0 ? (
+                                    <div className="h-full flex flex-col items-center justify-center text-zinc-600 gap-2 py-4">
+                                        <Target className="w-8 h-8 opacity-20" />
+                                        <span className="text-xs font-bold opacity-50">NO ASSETS TARGETED</span>
+                                        <span className="text-[10px] opacity-40">Search and add symbols above</span>
+                                    </div>
+                                ) : (
+                                    <div className="flex flex-wrap gap-2">
+                                        {(configForm.coins || [])
+                                            .filter(coin => {
+                                                if (assetTab === "CRYPTO") {
+                                                    if (cryptoFilter === "USD" && !coin.endsWith("/USD")) return false;
+                                                    if (cryptoFilter === "USDT" && !coin.endsWith("/USDT")) return false;
+                                                } else if (assetTab === "STOCKS") {
+                                                    if (coin.includes("/")) return false;
+                                                } else if (assetTab === "GLOBAL") {
+                                                    if (coin.includes("/")) return false;
+                                                    // ideally we'd check if it's in the global list, but this is a good first pass
+                                                }
+                                                return true;
+                                            })
+                                            .slice().reverse().map(coin => (
                                                 <span key={coin} className="group px-2.5 py-1.5 rounded-lg bg-indigo-500/10 text-indigo-300 text-xs font-bold border border-indigo-500/10 flex items-center gap-2 hover:bg-indigo-500/20 transition-all select-none">
                                                     {coin}
                                                     <button
@@ -707,316 +1008,340 @@ export default function LiveBotTab() {
                                                     </button>
                                                 </span>
                                             ))}
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-
-
-                            {/* Council Validation Section */}
-                            <div className="bg-black/40 rounded-2xl p-5 border border-white/5 space-y-4 shadow-xl">
-                                <div className="flex items-center justify-between">
-                                    <div className="space-y-1">
-                                        <label className="text-sm font-black text-white flex items-center gap-2 tracking-tight">
-                                            {useCouncil ? <ShieldCheck className="w-4 h-4 text-emerald-400" /> : <ShieldAlert className="w-4 h-4 text-zinc-500" />}
-                                            COUNCIL VALIDATION
-                                        </label>
-                                        <p className="text-[10px] text-zinc-500 uppercase font-bold tracking-widest">Multi-model consensus</p>
-                                    </div>
-                                    <Switch.Root
-                                        checked={useCouncil}
-                                        onCheckedChange={(c: boolean) => setConfigForm({ ...configForm, use_council: c })}
-                                        className={`w-12 h-6 rounded-full relative shadow-inner transition-colors duration-300 ${useCouncil ? 'bg-emerald-600' : 'bg-zinc-700'}`}
-                                    >
-                                        <Switch.Thumb className={`block w-4 h-4 rounded-full bg-white shadow-lg transition-transform duration-300 transform translate-y-1 ${useCouncil ? 'translate-x-7' : 'translate-x-1'}`} />
-                                    </Switch.Root>
-                                </div>
-
-                                {useCouncil && (
-                                    <div className="space-y-4 pt-2 border-t border-white/5 animate-in fade-in duration-300">
-                                        <div className="space-y-2">
-                                            <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Council Threshold</label>
-                                            <input
-                                                type="number" step="0.01"
-                                                value={configForm.council_threshold}
-                                                onChange={(e) => setConfigForm({ ...configForm, council_threshold: parseFloat(e.target.value) })}
-                                                className="w-full bg-black/60 border border-white/5 rounded-xl px-4 py-2.5 text-sm font-mono focus:outline-none focus:border-indigo-500/50 transition-all text-indigo-200"
-                                            />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Council Validator Path</label>
-                                            <input
-                                                type="text"
-                                                value={configForm.council_model_path}
-                                                onChange={(e) => setConfigForm({ ...configForm, council_model_path: e.target.value })}
-                                                className="w-full bg-black/60 border border-white/5 rounded-xl px-4 py-2.5 text-xs font-mono focus:outline-none focus:border-indigo-500/50 transition-all text-zinc-400"
-                                            />
-                                        </div>
                                     </div>
                                 )}
                             </div>
+                        </div>
 
-                            {/* Model Hub Section */}
-                            <div className="bg-black/40 rounded-2xl p-5 border border-white/5 space-y-4 shadow-xl">
-                                <label className="text-xs font-black text-zinc-400 uppercase tracking-[0.2em] flex items-center gap-2">
-                                    <ShieldCheck className="w-3.5 h-3.5 text-purple-400" /> Model Intelligence
-                                </label>
-                                <div className="space-y-4">
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">King Model Path</label>
-                                        <input
-                                            type="text"
-                                            value={configForm.king_model_path}
-                                            onChange={(e) => setConfigForm({ ...configForm, king_model_path: e.target.value })}
-                                            className="w-full bg-black/60 border border-white/5 rounded-xl px-4 py-2.5 text-xs font-mono focus:outline-none focus:border-purple-500/50 transition-all text-zinc-400"
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">King Confidence Threshold</label>
-                                        <input
-                                            type="number" step="0.01"
-                                            value={configForm.king_threshold}
-                                            onChange={(e) => setConfigForm({ ...configForm, king_threshold: parseFloat(e.target.value) })}
-                                            className="w-full bg-black/60 border border-white/5 rounded-xl px-4 py-2.5 text-sm font-mono focus:outline-none focus:border-purple-500/50 transition-all text-purple-200"
-                                        />
-                                    </div>
-                                </div>
-                            </div>
 
-                            {/* Exit Strategy Section */}
-                            <div className="bg-black/40 rounded-2xl p-5 border border-white/5 space-y-5 shadow-xl">
-                                <div className="flex items-center justify-between">
-                                    <div className="space-y-1">
-                                        <label className="text-sm font-black text-white tracking-tight flex items-center gap-2">
-                                            <ArrowDownRight className="w-4 h-4 text-orange-400" /> EXIT STRATEGY
-                                        </label>
-                                        <p className="text-[10px] text-zinc-500 uppercase font-bold tracking-widest">Auto-sell logic</p>
-                                    </div>
-                                    <Switch.Root
-                                        checked={Boolean(configForm.enable_sells ?? true)}
-                                        onCheckedChange={(c: boolean) => setConfigForm({ ...configForm, enable_sells: c })}
-                                        className={`w-12 h-6 rounded-full relative shadow-inner transition-colors duration-300 ${(configForm.enable_sells ?? true) ? 'bg-orange-600' : 'bg-zinc-700'}`}
-                                    >
-                                        <Switch.Thumb className={`block w-4 h-4 rounded-full bg-white shadow-lg transition-transform duration-300 transform translate-y-1 ${(configForm.enable_sells ?? true) ? 'translate-x-7' : 'translate-x-1'}`} />
-                                    </Switch.Root>
-                                </div>
-
-                                {configForm.enable_sells && (
-                                    <div className="space-y-5 animate-in fade-in duration-300">
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <div className="space-y-2">
-                                                <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Target %</label>
-                                                <input
-                                                    type="number" step="0.1"
-                                                    value={Math.round((configForm.target_pct || 0) * 100 * 100) / 100}
-                                                    onChange={(e) => setConfigForm({ ...configForm, target_pct: parseFloat(e.target.value) / 100 })}
-                                                    className="w-full bg-black/60 border border-white/5 rounded-xl px-4 py-2.5 text-sm font-mono focus:outline-none focus:border-emerald-500/50 transition-all text-emerald-200"
-                                                />
-                                            </div>
-                                            <div className="space-y-2">
-                                                <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Stop Loss %</label>
-                                                <input
-                                                    type="number" step="0.1"
-                                                    value={Math.round((configForm.stop_loss_pct || 0) * 100 * 100) / 100}
-                                                    onChange={(e) => setConfigForm({ ...configForm, stop_loss_pct: parseFloat(e.target.value) / 100 })}
-                                                    className="w-full bg-black/60 border border-white/5 rounded-xl px-4 py-2.5 text-sm font-mono focus:outline-none focus:border-red-500/50 transition-all text-red-200"
-                                                />
-                                            </div>
-                                        </div>
-
-                                        <div className="space-y-4 pt-4 border-t border-white/5">
-                                            <div className="flex items-center justify-between">
-                                                <div className="space-y-1">
-                                                    <label className="text-xs font-bold text-white tracking-wider flex items-center gap-2">
-                                                        <Activity className="w-3 h-3 text-blue-400" /> Trailing Stop
-                                                    </label>
-                                                </div>
-                                                <Switch.Root
-                                                    checked={Boolean(configForm.use_trailing ?? true)}
-                                                    onCheckedChange={(c: boolean) => setConfigForm({ ...configForm, use_trailing: c })}
-                                                    className={`w-10 h-5 rounded-full relative shadow-inner transition-colors duration-300 ${(configForm.use_trailing ?? true) ? 'bg-blue-600' : 'bg-zinc-700'}`}
-                                                >
-                                                    <Switch.Thumb className={`block w-3 h-3 rounded-full bg-white shadow-lg transition-transform duration-300 transform translate-y-1 ${(configForm.use_trailing ?? true) ? 'translate-x-6' : 'translate-x-1'}`} />
-                                                </Switch.Root>
-                                            </div>
-
-                                            {configForm.use_trailing && (
-                                                <div className="grid grid-cols-3 gap-2 animate-in slide-in-from-top-2 duration-300">
-                                                    <div className="space-y-1">
-                                                        <label className="text-[8px] font-black text-zinc-600 uppercase">BE %</label>
-                                                        <input
-                                                            type="number" step="0.1"
-                                                            value={Math.round((configForm.trail_be_pct || 0) * 100 * 100) / 100}
-                                                            onChange={(e) => setConfigForm({ ...configForm, trail_be_pct: parseFloat(e.target.value) / 100 })}
-                                                            className="w-full bg-black/60 border border-white/5 rounded-lg px-2 py-1.5 text-[10px] font-mono focus:outline-none transition-all"
-                                                        />
-                                                    </div>
-                                                    <div className="space-y-1">
-                                                        <label className="text-[8px] font-black text-zinc-600 uppercase">Lock Trigg %</label>
-                                                        <input
-                                                            type="number" step="0.1"
-                                                            value={Math.round((configForm.trail_lock_trigger_pct || 0) * 100 * 100) / 100}
-                                                            onChange={(e) => setConfigForm({ ...configForm, trail_lock_trigger_pct: parseFloat(e.target.value) / 100 })}
-                                                            className="w-full bg-black/60 border border-white/5 rounded-lg px-2 py-1.5 text-[10px] font-mono focus:outline-none transition-all"
-                                                        />
-                                                    </div>
-                                                    <div className="space-y-1">
-                                                        <label className="text-[8px] font-black text-zinc-600 uppercase">Lock Profit %</label>
-                                                        <input
-                                                            type="number" step="0.1"
-                                                            value={Math.round((configForm.trail_lock_pct || 0) * 100 * 100) / 100}
-                                                            onChange={(e) => setConfigForm({ ...configForm, trail_lock_pct: parseFloat(e.target.value) / 100 })}
-                                                            className="w-full bg-black/60 border border-white/5 rounded-lg px-2 py-1.5 text-[10px] font-mono focus:outline-none transition-all"
-                                                        />
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </div>
-
-                                        <div className="space-y-2">
-                                            <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Hold Max Bars</label>
-                                            <input
-                                                type="number" min={1}
-                                                value={configForm.hold_max_bars}
-                                                onChange={(e) => setConfigForm({ ...configForm, hold_max_bars: parseInt(e.target.value) })}
-                                                className="w-full bg-black/60 border border-white/5 rounded-xl px-4 py-2.5 text-sm font-mono focus:outline-none border-white/5 transition-all"
-                                            />
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* Risk Management Section */}
-                            <div className="bg-black/40 rounded-2xl p-5 border border-white/5 space-y-5 shadow-xl font-mono">
-                                <label className="text-xs font-black text-red-400 uppercase tracking-[0.2em] flex items-center gap-2">
-                                    <ShieldAlert className="w-3.5 h-3.5" /> Risk Firewall
-                                </label>
-                                <div className="space-y-4">
-                                    <div className="flex justify-between items-center bg-red-500/5 rounded-xl p-3 border border-red-500/10">
-                                        <label className="text-[10px] font-black text-red-500/70 uppercase">Max Open Trades</label>
-                                        <input
-                                            type="number" min={1}
-                                            value={configForm.max_open_positions}
-                                            onChange={(e) => setConfigForm({ ...configForm, max_open_positions: parseInt(e.target.value) })}
-                                            className="w-16 bg-transparent text-right text-sm font-black text-red-400 focus:outline-none"
-                                        />
-                                    </div>
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="space-y-2">
-                                            <label className="text-[10px] font-black text-zinc-600 uppercase">Per-Trade Notional ($)</label>
-                                            <input
-                                                type="number"
-                                                value={configForm.max_notional_usd}
-                                                onChange={(e) => setConfigForm({ ...configForm, max_notional_usd: parseFloat(e.target.value) })}
-                                                className="w-full bg-black/40 border border-white/5 rounded-xl px-3 py-2 text-sm text-zinc-300 focus:outline-none border-white/10"
-                                            />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <label className="text-[10px] font-black text-zinc-600 uppercase">% Cash Allocate</label>
-                                            <input
-                                                type="number" step="0.1"
-                                                value={Math.round((configForm.pct_cash_per_trade || 0) * 100 * 100) / 100}
-                                                onChange={(e) => setConfigForm({ ...configForm, pct_cash_per_trade: parseFloat(e.target.value) / 100 })}
-                                                className="w-full bg-black/40 border border-white/5 rounded-xl px-3 py-2 text-sm text-zinc-300 focus:outline-none border-white/10"
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="space-y-4">
-                                <div className="space-y-2">
-                                    <label className="text-xs font-bold text-zinc-500 uppercase">Poll Interval</label>
-                                    <div className="flex gap-2">
-                                        <input
-                                            type="number"
-                                            min={1}
-                                            value={pollIntervalValue}
-                                            onChange={(e) => setPollSecondsFromParts(Number(e.target.value), pollIntervalUnit)}
-                                            className="flex-1 min-w-0 bg-black/40 border border-white/5 rounded-xl px-3 py-2 text-sm font-mono focus:outline-none focus:border-white/20 transition-all"
-                                        />
-                                        <select
-                                            value={pollIntervalUnit}
-                                            onChange={(e) => {
-                                                const nextUnit = e.target.value as PollUnit;
-                                                setPollSecondsFromParts(pollIntervalValue, nextUnit);
-                                            }}
-                                            className="shrink-0 w-[5.5rem] bg-black/40 border border-white/5 rounded-xl px-3 py-2 text-sm font-mono focus:outline-none focus:border-white/20 transition-all text-white"
-                                        >
-                                            <option value="s" className="bg-zinc-950 text-white">sec</option>
-                                            <option value="m" className="bg-zinc-950 text-white">min</option>
-                                            <option value="h" className="bg-zinc-950 text-white">hour</option>
-                                        </select>
-                                    </div>
-                                </div>
-
-                                <div className="space-y-2">
-                                    <label className="text-xs font-bold text-zinc-500 uppercase">Bars Limit</label>
-                                    <input
-                                        type="number"
-                                        value={configForm.bars_limit}
-                                        onChange={(e) => setConfigForm({ ...configForm, bars_limit: parseInt(e.target.value) })}
-                                        className="w-full bg-black/40 border border-white/5 rounded-xl px-3 py-2 text-sm font-mono focus:outline-none focus:border-white/20 transition-all"
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="space-y-2">
-                                <label className="text-xs font-bold text-zinc-500 uppercase">Timeframe</label>
-                                <div className="relative">
-                                    <select
-                                        value={configForm.timeframe || "1Hour"}
-                                        onChange={(e) => setConfigForm({ ...configForm, timeframe: e.target.value })}
-                                        className="w-full bg-black/40 border border-white/5 rounded-xl px-4 py-3 text-sm font-mono focus:outline-none focus:border-indigo-500/50 focus:bg-indigo-500/5 transition-all appearance-none cursor-pointer text-white"
-                                    >
-                                        <option value="1Min" className="bg-zinc-950 text-white">1 Minute</option>
-                                        <option value="5Min" className="bg-zinc-950 text-white">5 Minutes</option>
-                                        <option value="15Min" className="bg-zinc-950 text-white">15 Minutes</option>
-                                        <option value="30Min" className="bg-zinc-950 text-white">30 Minutes</option>
-                                        <option value="1Hour" className="bg-zinc-950 text-white">1 Hour (Default)</option>
-                                        <option value="4Hour" className="bg-zinc-950 text-white">4 Hours</option>
-                                        <option value="1Day" className="bg-zinc-950 text-white">1 Day</option>
-                                    </select>
-                                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-500">
-                                        <Settings className="w-4 h-4" />
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="space-y-2">
-                                <label className="text-xs font-bold text-zinc-500 uppercase">Data Source</label>
-                                <select
-                                    value={(configForm.data_source as string) || "alpaca"}
-                                    onChange={(e) => setConfigForm({ ...configForm, data_source: e.target.value })}
-                                    className="w-full bg-black/40 border border-white/5 rounded-xl px-4 py-3 text-sm font-mono focus:outline-none focus:border-white/20 transition-all text-white"
-                                >
-                                    <option value="alpaca" className="bg-zinc-950 text-white">Alpaca</option>
-                                    <option value="binance" className="bg-zinc-950 text-white">Binance</option>
-                                </select>
-                            </div>
-
-                            {/* Save to Supabase Toggle */}
-                            <div className="bg-black/20 rounded-xl p-4 border border-white/5 flex items-center justify-between">
+                        {/* Council Validation Section */}
+                        <div className="bg-black/40 rounded-2xl p-5 border border-white/5 space-y-4 shadow-xl">
+                            <div className="flex items-center justify-between">
                                 <div className="space-y-1">
-                                    <label className="text-sm font-bold text-white flex items-center gap-2">
-                                        <Save className="w-4 h-4 text-indigo-400" />
-                                        Save to Supabase
+                                    <label className="text-sm font-black text-white flex items-center gap-2 tracking-tight">
+                                        {useCouncil ? <ShieldCheck className="w-4 h-4 text-emerald-400" /> : <ShieldAlert className="w-4 h-4 text-zinc-500" />}
+                                        COUNCIL VALIDATION
                                     </label>
-                                    <p className="text-xs text-zinc-500">Persist poll data to DB</p>
+                                    <p className="text-[10px] text-zinc-500 uppercase font-bold tracking-widest">Multi-model consensus</p>
                                 </div>
                                 <Switch.Root
-                                    checked={configForm.save_to_supabase ?? true}
-                                    onCheckedChange={(c: boolean) => setConfigForm({ ...configForm, save_to_supabase: c })}
-                                    className={`w-12 h-6 rounded-full relative shadow-inner transition-colors duration-300 ${configForm.save_to_supabase !== false ? 'bg-indigo-600' : 'bg-zinc-700'}`}
+                                    checked={useCouncil}
+                                    onCheckedChange={(c: boolean) => setConfigForm({ ...configForm, use_council: c })}
+                                    className={`w-12 h-6 rounded-full relative shadow-inner transition-colors duration-300 ${useCouncil ? 'bg-emerald-600' : 'bg-zinc-700'}`}
                                 >
-                                    <Switch.Thumb className={`block w-4 h-4 rounded-full bg-white shadow-lg transition-transform duration-300 transform translate-y-1 ${configForm.save_to_supabase !== false ? 'translate-x-7' : 'translate-x-1'}`} />
+                                    <Switch.Thumb className={`block w-4 h-4 rounded-full bg-white shadow-lg transition-transform duration-300 transform translate-y-1 ${useCouncil ? 'translate-x-7' : 'translate-x-1'}`} />
                                 </Switch.Root>
                             </div>
 
-                            <div className="flex items-center justify-center gap-2 w-full py-4 rounded-xl bg-zinc-900/50 border border-white/5 text-xs font-bold text-zinc-500 uppercase tracking-widest">
-                                <div className={`w-2 h-2 rounded-full ${isRunning ? "bg-zinc-700" : "bg-emerald-500 animate-pulse"}`} />
-                                {isRunning ? "Stop to Edit Config" : "Configuration Auto-Saves"}
+                            {useCouncil && (
+                                <div className="space-y-4 pt-2 border-t border-white/5 animate-in fade-in duration-300">
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Council Threshold</label>
+                                        <input
+                                            type="number" step="0.01"
+                                            value={configForm.council_threshold}
+                                            onChange={(e) => setConfigForm({ ...configForm, council_threshold: parseFloat(e.target.value) })}
+                                            className="w-full bg-black/60 border border-white/5 rounded-xl px-4 py-2.5 text-sm font-mono focus:outline-none focus:border-indigo-500/50 transition-all text-indigo-200"
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Council Validator Path</label>
+                                        <select
+                                            value={configForm.council_model_path}
+                                            onChange={(e) => setConfigForm({ ...configForm, council_model_path: e.target.value })}
+                                            className="w-full bg-black/60 border border-white/5 rounded-xl px-4 py-2.5 text-xs font-mono focus:outline-none focus:border-indigo-500/50 transition-all text-zinc-400"
+                                        >
+                                            <option value="">Select Model...</option>
+                                            {availableModels.map(m => (
+                                                <option key={m} value={m}>{m.split('/').pop()}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Model Hub Section */}
+                        <div className="bg-black/40 rounded-2xl p-5 border border-white/5 space-y-4 shadow-xl">
+                            <label className="text-xs font-black text-zinc-400 uppercase tracking-[0.2em] flex items-center gap-2">
+                                <ShieldCheck className="w-3.5 h-3.5 text-purple-400" /> Model Intelligence
+                            </label>
+                            <div className="space-y-4">
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">King Model Path</label>
+                                    <select
+                                        value={configForm.king_model_path}
+                                        onChange={(e) => setConfigForm({ ...configForm, king_model_path: e.target.value })}
+                                        className="w-full bg-black/60 border border-white/5 rounded-xl px-4 py-2.5 text-xs font-mono focus:outline-none focus:border-purple-500/50 transition-all text-zinc-400"
+                                    >
+                                        <option value="">Select Model...</option>
+                                        {availableModels.map(m => (
+                                            <option key={m} value={m}>{m.split('/').pop()}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">King Confidence Threshold</label>
+                                    <input
+                                        type="number" step="0.01"
+                                        value={configForm.king_threshold}
+                                        onChange={(e) => setConfigForm({ ...configForm, king_threshold: parseFloat(e.target.value) })}
+                                        className="w-full bg-black/60 border border-white/5 rounded-xl px-4 py-2.5 text-sm font-mono focus:outline-none focus:border-purple-500/50 transition-all text-purple-200"
+                                    />
+                                </div>
                             </div>
+                        </div>
+
+                        {/* Exit Strategy Section */}
+                        <div className="bg-black/40 rounded-2xl p-5 border border-white/5 space-y-5 shadow-xl">
+                            <div className="flex items-center justify-between">
+                                <div className="space-y-1">
+                                    <label className="text-sm font-black text-white tracking-tight flex items-center gap-2">
+                                        <ArrowDownRight className="w-4 h-4 text-orange-400" /> EXIT STRATEGY
+                                    </label>
+                                    <p className="text-[10px] text-zinc-500 uppercase font-bold tracking-widest">Auto-sell logic</p>
+                                </div>
+                                <Switch.Root
+                                    checked={Boolean(configForm.enable_sells ?? true)}
+                                    onCheckedChange={(c: boolean) => setConfigForm({ ...configForm, enable_sells: c })}
+                                    className={`w-12 h-6 rounded-full relative shadow-inner transition-colors duration-300 ${(configForm.enable_sells ?? true) ? 'bg-orange-600' : 'bg-zinc-700'}`}
+                                >
+                                    <Switch.Thumb className={`block w-4 h-4 rounded-full bg-white shadow-lg transition-transform duration-300 transform translate-y-1 ${(configForm.enable_sells ?? true) ? 'translate-x-7' : 'translate-x-1'}`} />
+                                </Switch.Root>
+                            </div>
+
+                            {configForm.enable_sells && (
+                                <div className="space-y-5 animate-in fade-in duration-300">
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Target %</label>
+                                            <input
+                                                type="number" step="0.1"
+                                                value={Math.round((configForm.target_pct || 0) * 100 * 100) / 100}
+                                                onChange={(e) => setConfigForm({ ...configForm, target_pct: parseFloat(e.target.value) / 100 })}
+                                                className="w-full bg-black/60 border border-white/5 rounded-xl px-4 py-2.5 text-sm font-mono focus:outline-none focus:border-emerald-500/50 transition-all text-emerald-200"
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Stop Loss %</label>
+                                            <input
+                                                type="number" step="0.1"
+                                                value={Math.round((configForm.stop_loss_pct || 0) * 100 * 100) / 100}
+                                                onChange={(e) => setConfigForm({ ...configForm, stop_loss_pct: parseFloat(e.target.value) / 100 })}
+                                                className="w-full bg-black/60 border border-white/5 rounded-xl px-4 py-2.5 text-sm font-mono focus:outline-none focus:border-red-500/50 transition-all text-red-200"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-4 pt-4 border-t border-white/5">
+                                        <div className="flex items-center justify-between">
+                                            <div className="space-y-1">
+                                                <label className="text-xs font-bold text-white tracking-wider flex items-center gap-2">
+                                                    <Activity className="w-3 h-3 text-blue-400" /> Trailing Stop
+                                                </label>
+                                            </div>
+                                            <Switch.Root
+                                                checked={Boolean(configForm.use_trailing ?? true)}
+                                                onCheckedChange={(c: boolean) => setConfigForm({ ...configForm, use_trailing: c })}
+                                                className={`w-10 h-5 rounded-full relative shadow-inner transition-colors duration-300 ${(configForm.use_trailing ?? true) ? 'bg-blue-600' : 'bg-zinc-700'}`}
+                                            >
+                                                <Switch.Thumb className={`block w-3 h-3 rounded-full bg-white shadow-lg transition-transform duration-300 transform translate-y-1 ${(configForm.use_trailing ?? true) ? 'translate-x-6' : 'translate-x-1'}`} />
+                                            </Switch.Root>
+                                        </div>
+
+                                        {configForm.use_trailing && (
+                                            <div className="grid grid-cols-3 gap-2 animate-in slide-in-from-top-2 duration-300">
+                                                <div className="space-y-1">
+                                                    <label className="text-[8px] font-black text-zinc-600 uppercase">BE %</label>
+                                                    <input
+                                                        type="number" step="0.1"
+                                                        value={Math.round((configForm.trail_be_pct || 0) * 100 * 100) / 100}
+                                                        onChange={(e) => setConfigForm({ ...configForm, trail_be_pct: parseFloat(e.target.value) / 100 })}
+                                                        className="w-full bg-black/60 border border-white/5 rounded-lg px-2 py-1.5 text-[10px] font-mono focus:outline-none transition-all"
+                                                    />
+                                                </div>
+                                                <div className="space-y-1">
+                                                    <label className="text-[8px] font-black text-zinc-600 uppercase">Lock Trigg %</label>
+                                                    <input
+                                                        type="number" step="0.1"
+                                                        value={Math.round((configForm.trail_lock_trigger_pct || 0) * 100 * 100) / 100}
+                                                        onChange={(e) => setConfigForm({ ...configForm, trail_lock_trigger_pct: parseFloat(e.target.value) / 100 })}
+                                                        className="w-full bg-black/60 border border-white/5 rounded-lg px-2 py-1.5 text-[10px] font-mono focus:outline-none transition-all"
+                                                    />
+                                                </div>
+                                                <div className="space-y-1">
+                                                    <label className="text-[8px] font-black text-zinc-600 uppercase">Lock Profit %</label>
+                                                    <input
+                                                        type="number" step="0.1"
+                                                        value={Math.round((configForm.trail_lock_pct || 0) * 100 * 100) / 100}
+                                                        onChange={(e) => setConfigForm({ ...configForm, trail_lock_pct: parseFloat(e.target.value) / 100 })}
+                                                        className="w-full bg-black/60 border border-white/5 rounded-lg px-2 py-1.5 text-[10px] font-mono focus:outline-none transition-all"
+                                                    />
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Hold Max Bars</label>
+                                        <input
+                                            type="number" min={1}
+                                            value={configForm.hold_max_bars}
+                                            onChange={(e) => setConfigForm({ ...configForm, hold_max_bars: parseInt(e.target.value) })}
+                                            className="w-full bg-black/60 border border-white/5 rounded-xl px-4 py-2.5 text-sm font-mono focus:outline-none border-white/5 transition-all"
+                                        />
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Risk Management Section */}
+                        <div className="bg-black/40 rounded-2xl p-5 border border-white/5 space-y-5 shadow-xl font-mono">
+                            <label className="text-xs font-black text-red-400 uppercase tracking-[0.2em] flex items-center gap-2">
+                                <ShieldAlert className="w-3.5 h-3.5" /> Risk Firewall
+                            </label>
+                            <div className="space-y-4">
+                                <div className="flex justify-between items-center bg-red-500/5 rounded-xl p-3 border border-red-500/10">
+                                    <label className="text-[10px] font-black text-red-500/70 uppercase">Max Open Trades</label>
+                                    <input
+                                        type="number" min={1}
+                                        value={configForm.max_open_positions}
+                                        onChange={(e) => setConfigForm({ ...configForm, max_open_positions: parseInt(e.target.value) })}
+                                        className="w-16 bg-transparent text-right text-sm font-black text-red-400 focus:outline-none"
+                                    />
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black text-zinc-600 uppercase">Per-Trade Notional ($)</label>
+                                        <input
+                                            type="number"
+                                            value={configForm.max_notional_usd}
+                                            onChange={(e) => setConfigForm({ ...configForm, max_notional_usd: parseFloat(e.target.value) })}
+                                            className="w-full bg-black/40 border border-white/5 rounded-xl px-3 py-2 text-sm text-zinc-300 focus:outline-none border-white/10"
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black text-zinc-600 uppercase">% Cash Allocate</label>
+                                        <input
+                                            type="number" step="0.1"
+                                            value={Math.round((configForm.pct_cash_per_trade || 0) * 100 * 100) / 100}
+                                            onChange={(e) => setConfigForm({ ...configForm, pct_cash_per_trade: parseFloat(e.target.value) / 100 })}
+                                            className="w-full bg-black/40 border border-white/5 rounded-xl px-3 py-2 text-sm text-zinc-300 focus:outline-none border-white/10"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="space-y-4">
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold text-zinc-500 uppercase">Poll Interval</label>
+                                <div className="flex gap-2">
+                                    <input
+                                        type="number"
+                                        min={1}
+                                        value={pollIntervalValue}
+                                        onChange={(e) => setPollSecondsFromParts(Number(e.target.value), pollIntervalUnit)}
+                                        className="flex-1 min-w-0 bg-black/40 border border-white/5 rounded-xl px-3 py-2 text-sm font-mono focus:outline-none focus:border-white/20 transition-all"
+                                    />
+                                    <select
+                                        value={pollIntervalUnit}
+                                        onChange={(e) => {
+                                            const nextUnit = e.target.value as PollUnit;
+                                            setPollSecondsFromParts(pollIntervalValue, nextUnit);
+                                        }}
+                                        className="shrink-0 w-[5.5rem] bg-black/40 border border-white/5 rounded-xl px-3 py-2 text-sm font-mono focus:outline-none focus:border-white/20 transition-all text-white"
+                                    >
+                                        <option value="s" className="bg-zinc-950 text-white">sec</option>
+                                        <option value="m" className="bg-zinc-950 text-white">min</option>
+                                        <option value="h" className="bg-zinc-950 text-white">hour</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold text-zinc-500 uppercase">Bars Limit</label>
+                                <input
+                                    type="number"
+                                    value={configForm.bars_limit}
+                                    onChange={(e) => setConfigForm({ ...configForm, bars_limit: parseInt(e.target.value) })}
+                                    className="w-full bg-black/40 border border-white/5 rounded-xl px-3 py-2 text-sm font-mono focus:outline-none focus:border-white/20 transition-all"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="space-y-2">
+                            <label className="text-xs font-bold text-zinc-500 uppercase">Timeframe</label>
+                            <div className="relative">
+                                <select
+                                    value={configForm.timeframe || "1Hour"}
+                                    onChange={(e) => setConfigForm({ ...configForm, timeframe: e.target.value })}
+                                    className="w-full bg-black/40 border border-white/5 rounded-xl px-4 py-3 text-sm font-mono focus:outline-none focus:border-indigo-500/50 focus:bg-indigo-500/5 transition-all appearance-none cursor-pointer text-white"
+                                >
+                                    <option value="1Min" className="bg-zinc-950 text-white">1 Minute</option>
+                                    <option value="5Min" className="bg-zinc-950 text-white">5 Minutes</option>
+                                    <option value="15Min" className="bg-zinc-950 text-white">15 Minutes</option>
+                                    <option value="30Min" className="bg-zinc-950 text-white">30 Minutes</option>
+                                    <option value="1Hour" className="bg-zinc-950 text-white">1 Hour (Default)</option>
+                                    <option value="4Hour" className="bg-zinc-950 text-white">4 Hours</option>
+                                    <option value="1Day" className="bg-zinc-950 text-white">1 Day</option>
+                                </select>
+                                <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-500">
+                                    <Settings className="w-4 h-4" />
+                                </div>
+                            </div>
+                        </div>
+
+
+
+                        <div className="space-y-2">
+                            <label className="text-xs font-bold text-zinc-500 uppercase">Data Source</label>
+                            <select
+                                value={(configForm.data_source as string) || "alpaca"}
+                                onChange={(e) => setConfigForm({ ...configForm, data_source: e.target.value })}
+                                className="w-full bg-black/40 border border-white/5 rounded-xl px-4 py-3 text-sm font-mono focus:outline-none focus:border-white/20 transition-all text-white"
+                            >
+                                <option value="alpaca" className="bg-zinc-950 text-white">Alpaca</option>
+                                <option value="binance" className="bg-zinc-950 text-white">Binance</option>
+                                {assetTab === "GLOBAL" && (
+                                    <option value="tvdata" className="bg-zinc-950 text-white">TradingView (tvdata)</option>
+                                )}
+                            </select>
+                        </div>
+
+                        {selectedBotId !== "primary" && (
+                            <div className="pt-4 border-t border-white/5">
+                                <button
+                                    onClick={() => handleDeleteBot(selectedBotId, configForm.name || "Bot")}
+                                    className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 transition-all text-xs font-black uppercase tracking-widest group"
+                                >
+                                    <Trash2 className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                                    Delete Bot Instance
+                                </button>
+                            </div>
+                        )}
+
+                        {/* Save to Supabase Toggle */}
+                        <div className="bg-black/20 rounded-xl p-4 border border-white/5 flex items-center justify-between">
+                            <div className="space-y-1">
+                                <label className="text-sm font-bold text-white flex items-center gap-2">
+                                    <Save className="w-4 h-4 text-indigo-400" />
+                                    Save to Supabase
+                                </label>
+                                <p className="text-xs text-zinc-500">Persist poll data to DB</p>
+                            </div>
+                            <Switch.Root
+                                checked={configForm.save_to_supabase ?? true}
+                                onCheckedChange={(c: boolean) => setConfigForm({ ...configForm, save_to_supabase: c })}
+                                className={`w-12 h-6 rounded-full relative shadow-inner transition-colors duration-300 ${configForm.save_to_supabase !== false ? 'bg-indigo-600' : 'bg-zinc-700'}`}
+                            >
+                                <Switch.Thumb className={`block w-4 h-4 rounded-full bg-white shadow-lg transition-transform duration-300 transform translate-y-1 ${configForm.save_to_supabase !== false ? 'translate-x-7' : 'translate-x-1'}`} />
+                            </Switch.Root>
+                        </div>
+
+                        <div className="flex items-center justify-center gap-2 w-full py-4 rounded-xl bg-zinc-900/50 border border-white/5 text-xs font-bold text-zinc-500 uppercase tracking-widest">
+                            <div className={`w-2 h-2 rounded-full ${isRunning ? "bg-zinc-700" : "bg-emerald-500 animate-pulse"}`} />
+                            {isRunning ? "Stop to Edit Config" : "Configuration Auto-Saves"}
                         </div>
                     </div>
 
@@ -1067,16 +1392,22 @@ export default function LiveBotTab() {
                                             if (logFilter === 'ERROR') return log.includes("ERROR") || log.includes("Exception");
                                             return true;
                                         })
-                                        .map((log, i) => (
-                                            <div key={i} className={`break-all border-l-2 pl-3 py-0.5 ${log.includes("BUY") ? "border-emerald-500 text-emerald-400 bg-emerald-500/5" :
-                                                log.includes("ERROR") ? "border-red-500 text-red-500 bg-red-500/5" :
-                                                    log.includes("SIGNAL") ? "border-indigo-500 text-indigo-300" :
-                                                        "border-zinc-800 text-zinc-400"
-                                                }`}>
-                                                <span className="opacity-50 mr-2">{log.split("]")[0]}]</span>
-                                                {log.split("]")[1]}
-                                            </div>
-                                        ))
+                                        .map((log, i) => {
+                                            const parts = log.split("]");
+                                            const header = parts.slice(0, 2).join("]") + (parts.length > 1 ? "]" : "");
+                                            const message = parts.slice(2).join("]");
+                                            return (
+                                                <div key={i} className={`break-all border-l-2 pl-3 py-0.5 ${log.includes("BUY") ? "border-emerald-500 text-emerald-400 bg-emerald-500/5" :
+                                                    log.includes("ERROR") || log.includes("DATA ERROR") ? "border-red-500 text-red-500 bg-red-500/5" :
+                                                        log.includes("SIGNAL") ? "border-indigo-500 text-indigo-300" :
+                                                            log.includes("DEBUG") ? "border-zinc-700 text-zinc-500 text-[10px]" :
+                                                                "border-zinc-800 text-zinc-400"
+                                                    }`}>
+                                                    <span className="opacity-50 mr-2 font-bold">{header}</span>
+                                                    {message}
+                                                </div>
+                                            );
+                                        })
                                 ) : (
                                     <div className="text-zinc-700 italic flex items-center justify-center h-full">Waiting for data stream...</div>
                                 )}
@@ -1150,45 +1481,50 @@ export default function LiveBotTab() {
                             </div>
                         </div>
 
-                        {/* Recent Trades */}
-                        <div className="bg-zinc-900/40 border border-white/5 rounded-3xl p-6 backdrop-blur-xl">
-                            <div className="flex items-center gap-3 mb-4">
-                                <Activity className="w-5 h-5 text-purple-400" />
-                                <h2 className="text-sm font-bold tracking-widest text-white">RECENT EXECUTIONS</h2>
+                        {/* Recent Executions Section */}
+                        <div className="bg-black border border-zinc-800 rounded-3xl p-1 shadow-2xl flex flex-col min-h-[350px]">
+                            <div className="flex items-center justify-between px-6 py-4 bg-zinc-900/50 border-b border-zinc-800">
+                                <div className="flex items-center gap-3">
+                                    <HistoryIcon className="w-5 h-5 text-indigo-400" />
+                                    <h2 className="text-sm font-bold tracking-widest text-zinc-300">RECENT EXECUTIONS & SIGNALS</h2>
+                                </div>
                             </div>
-
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-sm text-left">
-                                    <thead className="text-[10px] font-black text-zinc-500 uppercase bg-black/20 tracking-wider">
+                            <div className="flex-1 overflow-x-auto">
+                                <table className="w-full text-[11px] text-left border-collapse">
+                                    <thead className="bg-zinc-900/50 text-[10px] font-black text-zinc-500 uppercase tracking-wider border-b border-zinc-800">
                                         <tr>
-                                            <th className="px-4 py-3 rounded-l-lg">Time</th>
+                                            <th className="px-4 py-3">Time</th>
                                             <th className="px-4 py-3">Symbol</th>
                                             <th className="px-4 py-3">Action</th>
                                             <th className="px-4 py-3">Amount</th>
-                                            <th className="px-4 py-3">Today's P/L ($)</th>
+                                            <th className="px-4 py-3">P/L (Intra)</th>
                                             <th className="px-4 py-3">Market Value</th>
-                                            <th className="px-4 py-3 rounded-r-lg">Order ID</th>
+                                            <th className="px-4 py-3">Order ID</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="divide-y divide-white/5">
-                                        {status?.trades && status.trades.length > 0 ? (
-                                            status.trades.map((trade, i) => {
+                                    <tbody className="divide-y divide-white/5 font-mono">
+                                        {(status?.trades && status.trades.length > 0) ? (
+                                            status.trades.slice().reverse().slice(0, 50).map((trade: any, i: number) => {
                                                 const pos = positionsBySymbol.get(normalizePosKey(trade.symbol));
                                                 return (
                                                     <tr key={i} className="hover:bg-white/5 transition-colors group">
-                                                        <td className="px-4 py-4 font-mono text-zinc-400 group-hover:text-white transition-colors">
-                                                            {new Date(trade.timestamp).toLocaleTimeString()}
-                                                        </td>
-                                                        <td className="px-4 py-4 font-bold text-white shadow-[0_0_10px_transparent] group-hover:shadow-[0_0_15px_rgba(255,255,255,0.1)] transition-all">{trade.symbol}</td>
+                                                        <td className="px-4 py-4 text-zinc-500 whitespace-nowrap">{new Date(trade.timestamp).toLocaleString()}</td>
+                                                        <td className="px-4 py-4 font-bold text-white group-hover:shadow-[0_0_15px_rgba(255,255,255,0.1)] transition-all">{trade.symbol}</td>
                                                         <td className="px-4 py-4">
-                                                            <span className={`px-2 py-1 rounded text-[10px] font-black uppercase ${trade.action === 'BUY' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/20' : 'bg-red-500/20 text-red-400 border border-red-500/20'
+                                                            <span className={`px-2 py-1 rounded text-[10px] font-black uppercase ${trade.action === 'BUY' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/20' :
+                                                                trade.action === 'SIGNAL' ? 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/20' :
+                                                                    'bg-red-500/20 text-red-400 border border-red-500/20'
                                                                 }`}>
                                                                 {trade.action}
                                                             </span>
                                                         </td>
                                                         <td className="px-4 py-4 text-zinc-300 font-mono">${trade.amount.toFixed(2)}</td>
-                                                        <td className="px-4 py-4 text-zinc-300 font-mono">{alpacaPositionsLoading ? "…" : fmtUsd(pos?.unrealized_intraday_pl || 0)}</td>
-                                                        <td className="px-4 py-4 text-zinc-300 font-mono">{alpacaPositionsLoading ? "…" : fmtUsd(pos?.market_value || 0)}</td>
+                                                        <td className="px-4 py-4 text-zinc-300 font-mono">
+                                                            {trade.action === 'SIGNAL' ? "-" : (alpacaPositionsLoading ? "…" : fmtUsd(pos?.unrealized_intraday_pl || 0))}
+                                                        </td>
+                                                        <td className="px-4 py-4 text-zinc-300 font-mono">
+                                                            {trade.action === 'SIGNAL' ? "-" : (alpacaPositionsLoading ? "…" : fmtUsd(pos?.market_value || 0))}
+                                                        </td>
                                                         <td className="px-4 py-4 font-mono text-xs text-zinc-600">{trade.order_id}</td>
                                                     </tr>
                                                 );
@@ -1278,9 +1614,9 @@ export default function LiveBotTab() {
                                         <h2 className="text-lg font-bold text-white tracking-tight">EXIT REASONS</h2>
                                     </div>
                                     <div className="space-y-4">
-                                        {performance?.exit_reasons && Object.entries(performance.exit_reasons).length > 0 ? (
-                                            Object.entries(performance.exit_reasons).map(([reason, count]) => {
-                                                const total = Object.values(performance.exit_reasons).reduce((a, b) => a + b, 0);
+                                        {performance?.exit_reasons && Object.entries(performance!.exit_reasons).length > 0 ? (
+                                            Object.entries(performance!.exit_reasons).map(([reason, count]) => {
+                                                const total = Object.values(performance!.exit_reasons).reduce((a, b) => a + b, 0);
                                                 const pct = (count / total) * 100;
                                                 return (
                                                     <div key={reason} className="space-y-1.5">
@@ -1323,8 +1659,8 @@ export default function LiveBotTab() {
                                                 </tr>
                                             </thead>
                                             <tbody className="divide-y divide-white/5 font-mono text-xs">
-                                                {performance?.symbol_performance && Object.entries(performance.symbol_performance).length > 0 ? (
-                                                    Object.entries(performance.symbol_performance)
+                                                {performance?.symbol_performance && Object.entries(performance!.symbol_performance).length > 0 ? (
+                                                    Object.entries(performance!.symbol_performance)
                                                         .sort(([, a], [, b]) => b.profit - a.profit)
                                                         .map(([symbol, stats]) => (
                                                             <tr key={symbol} className="hover:bg-white/5 transition-colors">
@@ -1370,8 +1706,8 @@ export default function LiveBotTab() {
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-white/5 font-mono text-xs">
-                                            {performance?.open_positions && performance.open_positions.length > 0 ? (
-                                                performance.open_positions.map((pos, i) => (
+                                            {performance?.open_positions && performance!.open_positions.length > 0 ? (
+                                                performance!.open_positions.map((pos, i) => (
                                                     <tr key={i} className="hover:bg-white/5 transition-colors group">
                                                         <td className="px-4 py-4 font-bold text-white flex items-center gap-2">
                                                             {pos.symbol}
@@ -1384,7 +1720,7 @@ export default function LiveBotTab() {
                                                         <td className="px-4 py-4 text-zinc-400">${(pos.entry_price || 0).toFixed(4)}</td>
                                                         <td className="px-4 py-4 text-white">${(pos.current_price || 0).toFixed(4)}</td>
                                                         <td className={`px-4 py-4 font-bold ${(pos.pl_pct || 0) >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                                                            {pos.pl_pct >= 0 ? '+' : ''}{pos.pl_pct.toFixed(2)}%
+                                                            {pos.pl_pct !== undefined ? (pos.pl_pct >= 0 ? '+' : '') + pos.pl_pct.toFixed(2) + '%' : 'N/A'}
                                                         </td>
                                                         <td className={`px-4 py-4 text-right font-bold ${(pos.pl_usd || 0) >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                                                             ${(pos.pl_usd || 0).toFixed(2)}
@@ -1404,8 +1740,10 @@ export default function LiveBotTab() {
                             </div>
                         </>
                     )}
+
                 </div>
-            )}
+            )
+            }
 
             {/* Coin Selection Dialog */}
             <Dialog.Root open={coinDialogOpen} onOpenChange={setCoinDialogOpen}>
@@ -1479,7 +1817,7 @@ export default function LiveBotTab() {
                         )}
 
                         <div className="grid grid-cols-2 gap-2 max-h-[300px] overflow-y-auto custom-scrollbar pr-2">
-                            {(availableCoins.length > 0 ? availableCoins : COMMON_COINS).filter(c => c.toLowerCase().includes(coinSearch.toLowerCase())).map(coin => {
+                            {(availableCoins.length > 0 ? availableCoins : COMMON_COINS).filter(c => c && typeof c === "string" && c.toLowerCase().includes(coinSearch.toLowerCase())).map(coin => {
                                 const active = (configForm.coins || []).includes(coin);
                                 return (
                                     <button
@@ -1509,6 +1847,7 @@ export default function LiveBotTab() {
             <style jsx global>{`
                 .custom-scrollbar::-webkit-scrollbar {
                     width: 6px;
+                    height: 6px;
                 }
                 .custom-scrollbar::-webkit-scrollbar-track {
                     background: rgba(255, 255, 255, 0.05);
@@ -1522,5 +1861,5 @@ export default function LiveBotTab() {
                 }
             `}</style>
         </div>
-    );
+    )
 }

@@ -33,9 +33,9 @@ export default function Header() {
     ];
 
     return (
-        <header className="fixed top-0 left-0 right-0 z-[100] px-6 py-6 md:px-8">
-            <div className="mx-auto max-w-[1800px]">
-                <div className="flex items-center justify-between rounded-[2rem] border border-white/10 bg-zinc-950/40 backdrop-blur-3xl px-6 py-3.5 shadow-[0_20px_50px_rgba(0,0,0,0.5)] ring-1 ring-white/5 transition-all duration-500 hover:border-white/20">
+        <header className="fixed top-0 left-0 right-0 z-[100] px-6 py-6 md:px-8 overflow-hidden">
+            <div className="mx-auto max-w-[1800px] w-full">
+                <div className="flex items-center justify-between rounded-[2rem] border border-white/10 bg-zinc-950/40 backdrop-blur-3xl px-6 py-3.5 shadow-[0_20px_50px_rgba(0,0,0,0.5)] ring-1 ring-white/5 transition-all duration-500 hover:border-white/20 overflow-hidden">
                     {/* Brand / Logo */}
                     <div className="flex items-center gap-6">
                         <Link href="/" className="group flex items-center gap-3">
@@ -50,25 +50,25 @@ export default function Header() {
                                 />
                                 <div className="absolute inset-0 rounded-xl bg-white/20 opacity-0 transition-opacity group-hover:opacity-100" />
                             </div>
-                            <div className="hidden flex-col sm:flex">
-                                <span className="text-base font-bold tracking-tight text-white leading-tight">
+                            <div className="flex flex-col min-w-0 sm:flex">
+                                <span className="text-base font-bold tracking-tight text-white leading-tight truncate">
                                     {t("app.title")}
                                 </span>
-                                <span className="text-[10px] uppercase tracking-[0.2em] font-bold text-zinc-500 leading-none">
+                                <span className="text-[10px] uppercase tracking-[0.2em] font-bold text-zinc-500 leading-none hidden xs:block">
                                     {t("header.pro_analysis")}
                                 </span>
                             </div>
                         </Link>
 
                         {/* Desktop Navigation */}
-                        <nav className="hidden lg:flex items-center gap-1 ml-4 py-1 px-1 rounded-xl bg-white/5 border border-white/5 min-w-[550px]">
+                        <nav className="hidden lg:flex items-center gap-1 ml-4 py-1 px-1 rounded-xl bg-white/5 border border-white/5 flex-wrap max-w-full">
                             {navItems.map((item) => {
                                 const isActive = pathname === item.href;
                                 return (
                                     <Link
                                         key={item.href}
                                         href={item.href}
-                                        className={`relative flex items-center justify-center gap-2 rounded-lg px-4 py-1.5 text-xs font-bold uppercase tracking-wider transition-all duration-300 flex-1 ${isActive
+                                        className={`relative flex items-center justify-center gap-1.5 rounded-lg px-2 lg:px-3 py-1.5 text-[10px] lg:text-xs font-bold uppercase tracking-wider transition-all duration-300 whitespace-nowrap ${isActive
                                             ? "bg-zinc-100 text-zinc-950 shadow-lg shadow-white/5"
                                             : "text-zinc-500 hover:text-zinc-50 hover:bg-white/5"
                                             }`}

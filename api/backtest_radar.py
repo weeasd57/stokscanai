@@ -820,6 +820,7 @@ def main():
     parser.add_argument("--target-pct", type=float, default=None, help="Override target profit percentage (e.g. 0.15)")
     parser.add_argument("--stop-loss-pct", type=float, default=None, help="Override stop loss percentage (e.g. 0.05)")
     parser.add_argument("--capital", type=float, default=100000, help="Initial capital for simulation")
+    parser.add_argument("--timeframe", default=None, help="Force a specific timeframe (e.g. 1h, 1d)")
     parser.add_argument("--quiet", "-q", action="store_true", help="Suppress verbose debug output")
     parser.add_argument("--no-trades-json", action="store_true", help="Do not print trades JSON to stdout")
     args = parser.parse_args()
@@ -895,6 +896,13 @@ def main():
     if args.exchange.strip().upper() == "CRYPTO" and not use_intraday:
         use_intraday = True
         timeframe = "1h"
+
+    # CLI Override for Timeframe
+    if args.timeframe:
+        timeframe = str(args.timeframe).strip().lower()
+        if timeframe != "1d":
+            use_intraday = True
+        print(f"⏱️ Forcing timeframe: {timeframe} (CLI override)", flush=True)
 
     if use_intraday:
         print(
@@ -1006,6 +1014,20 @@ def main():
                     print("👑 Loaded KING for validator-only mode.", flush=True)
         else:
             print(f"⚠️ Failed to load Council Validator from {v_path}", flush=True)
+
+    # Threshold Summary
+    print("\n" + "="*40, flush=True)
+    print("🎯 THRESHOLD CONFIGURATION:", flush=True)
+    print(f"   - Primary Model (KING): {sim_threshold:.2f}", flush=True)
+    if council or args.validator:
+        v_thresh = args.validator_threshold
+        if v_thresh is None:
+            v_obj = getattr(run_radar_simulation, "_validator", None)
+            v_thresh = float(getattr(v_obj, "approval_threshold", 0.5)) if v_obj else 0.55
+        print(f"   - Council/Validator:    {v_thresh:.2f}", flush=True)
+    else:
+        print("   - Council/Validator:    Disabled (No Filter)", flush=True)
+    print("="*40 + "\n", flush=True)
 
     # Running Simulation
     from api.train_exchange_model import add_technical_indicators, add_indicator_signals

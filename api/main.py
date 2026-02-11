@@ -47,11 +47,59 @@ print(f"DEBUG: SUPABASE_SERVICE_ROLE_KEY loaded: {'Yes' if os.getenv('SUPABASE_S
 
 app = FastAPI(title="Artoro API", version="1.0.0")
 
+# Request Logging Middleware
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    start_time = dt.datetime.now()
+    path = request.url.path
+    method = request.method
+    
+    # Skip noisy polling logs if they are successful
+    is_polling = any(p in path for p in ["/api/ai_bot/status", "/bot/status"])
+    
+    try:
+        response = await call_next(request)
+        duration = (dt.datetime.now() - start_time).total_seconds()
+        
+        # Log all failures, or non-polling successes
+        if response.status_code >= 400 or not is_polling:
+            print(f"[REQ] {method} {path} - {response.status_code} ({duration:.3f}s)", flush=True)
+            
+        return response
+    except Exception as e:
+        duration = (dt.datetime.now() - start_time).total_seconds()
+        print(f"[REQ ERROR] {method} {path} - FAILED ({duration:.3f}s): {e}", flush=True)
+        raise e
+
 @app.on_event("startup")
 async def startup_event():
     # Initialize Supabase at startup
     from api.stock_ai import _init_supabase
     _init_supabase()
+    
+    # Initialize Telegram Bot if token exists
+    tg_token = os.getenv("ARTORO_AI_BOT", "")
+    if tg_token:
+        try:
+            from api.telegram_bot import start_telegram_bridge
+            from api.live_bot import bot_manager, bot_instance
+            bridge = start_telegram_bridge(tg_token, bot_instance)
+            bot_manager.set_telegram_bridge(bridge)
+            # Store in app state for cleanup
+            app.state.telegram_bridge = bridge
+            print("Telegram Bot bridge started successfully.")
+        except Exception as e:
+            print(f"Failed to start Telegram Bot bridge: {e}")
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    # Cleanup Telegram Bot
+    if hasattr(app.state, "telegram_bridge"):
+        try:
+            print("Shutting down Telegram Bot bridge...")
+            app.state.telegram_bridge.stop()
+        except Exception as e:
+            print(f"Error during Telegram bridge shutdown: {e}")
 
 
 @app.exception_handler(Exception)
@@ -715,6 +763,18 @@ def get_news(symbol: str = Query(default="all_symbols")):
 # ------------------------------------------------------------------
 from pydantic import BaseModel as PBM
 
+class OptimizeRequest(PBM):
+    exchange: str
+    model: str
+    start_date: str = "2024-01-01"
+    step: float = 0.05
+
+class OptimizeRequest(PBM):
+    exchange: str
+    model: str
+    start_date: str = "2024-01-01"
+    step: float = 0.05
+
 class BacktestRequest(PBM):
     exchange: str
     model: str
@@ -1274,6 +1334,143 @@ def run_backtest_task(req: BacktestRequest, backtest_id: str = None):
             except: pass
 
 
+@app.post("/backtest")
+async def backtest_endpoint(req: BacktestRequest, background_tasks: BackgroundTasks):
+    """Run backtest as a background task."""
+    from api.stock_ai import supabase
+    
+    # Create record in DB first
+    try:
+        res = supabase.table("backtests").insert({
+            "model_name": req.model,
+            "exchange": req.exchange,
+            "start_date": req.start_date,
+            "status": "pending",
+            "status_msg": "Queued..."
+        }).execute()
+        backtest_id = res.data[0]["id"] if res.data else None
+    except Exception as e:
+        print(f"Error creating backtest record: {e}")
+        backtest_id = None
+
+    background_tasks.add_task(run_backtest_task, req, backtest_id)
+    return {"id": backtest_id, "message": f"Backtest for {req.model} started."}
+
+def run_optimize_task(req: OptimizeRequest, opt_id: str = None):
+    """Runs optimize_radar.py and updates status with trials."""
+    import subprocess
+    import os
+    import sys
+    import json
+    from api.stock_ai import supabase
+    
+    api_dir = os.path.dirname(os.path.abspath(__file__))
+    script_path = os.path.join(api_dir, "optimize_radar.py")
+    
+    cmd = [
+        sys.executable, script_path,
+        "--exchange", req.exchange,
+        "--model", req.model,
+        "--start", req.start_date,
+        "--step", str(req.step)
+    ]
+    
+    try:
+        if opt_id:
+            supabase.table("backtests").update({"status": "processing", "status_msg": "Initializing optimizer..."}).eq("id", opt_id).execute()
+        
+        process = subprocess.Popen(
+            cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            cwd=api_dir,
+            encoding='utf-8',
+            errors='replace',
+            bufsize=1, # Line buffered
+            universal_newlines=True
+        )
+        
+        trials = []
+        best_threshold = 0.0
+        best_profit = 0.0
+
+        for line in process.stdout:
+            clean_line = line.strip()
+            print(f"[OPT] {clean_line}")
+            
+            # Pattern: 0.30       | 10       | 70.0%     | 5,000           | 🔥 NEW HIGH!
+            if "|" in clean_line:
+                parts = [p.strip() for p in clean_line.split("|")]
+                if len(parts) >= 4 and parts[0].replace(".", "").isdigit():
+                    try:
+                        thresh = float(parts[0])
+                        trades = int(parts[1])
+                        win_rate = float(parts[2].replace("%", ""))
+                        profit = float(parts[3].replace(",", ""))
+                        
+                        trial = {
+                            "threshold": thresh,
+                            "trades": trades,
+                            "win_rate": win_rate,
+                            "profit": profit,
+                            "is_best": "NEW HIGH" in clean_line
+                        }
+                        trials.append(trial)
+                        
+                        if trial["is_best"]:
+                            best_threshold = thresh
+                            best_profit = profit
+                            
+                        if opt_id:
+                            msg = f"Testing {thresh}: Profit {profit:,.0f} ({len(trials)} trials)"
+                            supabase.table("backtests").update({"status_msg": msg}).eq("id", opt_id).execute()
+                    except:
+                        pass
+        
+        process.wait()
+        
+        if opt_id:
+            if process.returncode == 0:
+                supabase.table("backtests").update({
+                    "status": "completed",
+                    "status_msg": f"Optimization finished. Best Threshold: {best_threshold}",
+                    "net_profit": int(best_profit),
+                    "meta_threshold": best_threshold,
+                    "trades_log": json.dumps(trials) # Store trials as JSON string in trades_log
+                }).eq("id", opt_id).execute()
+            else:
+                supabase.table("backtests").update({
+                    "status": "failed",
+                    "status_msg": "Optimizer process failed."
+                }).eq("id", opt_id).execute()
+
+    except Exception as e:
+        print(f"Optimization Task Failed: {e}")
+        if opt_id:
+            try: supabase.table("backtests").update({"status": "failed", "status_msg": str(e)}).eq("id", opt_id).execute()
+            except: pass
+
+@app.post("/optimize")
+async def optimize_endpoint(req: OptimizeRequest, background_tasks: BackgroundTasks):
+    """Run parameter optimization as a background task."""
+    from api.stock_ai import supabase
+    try:
+        res = supabase.table("backtests").insert({
+            "model_name": f"OPT: {req.model}",
+            "exchange": req.exchange,
+            "start_date": req.start_date,
+            "status": "pending",
+            "status_msg": "Optimization queued..."
+        }).execute()
+        opt_id = res.data[0]["id"] if res.data else None
+    except Exception as e:
+        print(f"Error creating optimization record: {e}")
+        opt_id = None
+
+    background_tasks.add_task(run_optimize_task, req, opt_id)
+    return {"id": opt_id, "message": f"Optimization for {req.model} started."}
+
 @app.get("/backtests")
 async def get_backtests(model: Optional[str] = None):
     """Fetch all backtest historical records."""
@@ -1418,4 +1615,212 @@ async def update_backtest(id: str, req: BacktestUpdate):
     res = supabase.table("backtests").update({"is_public": req.is_public}).eq("id", id).execute()
     return res.data[0] if res.data else {"error": "not found"}
 
+
+# ==========================================
+# BACKTEST OPTIMIZATION ENDPOINTS
+# ==========================================
+from api.backtest_optimizer import BacktestOptimizer
+import threading
+import uuid
+
+# Global job storage (in production, use Redis or database)
+_optimization_jobs = {}
+
+class OptimizationRequest(BaseModel):
+    wave_values: List[float] = [0.7, 0.8, 0.9]
+    validator_values: List[float] = [0.0, 0.55, 0.7]
+    target_values: List[int] = [5, 10, 15]
+    stoploss_values: List[int] = [3, 5, 7]
+    model: str = "KING 👑.pkl"
+    council_filter: Optional[str] = None
+    exchange: str = "CRYPTO"
+    timeframe: str = "1H"
+    start_date: str
+    end_date: str
+    capital: int = 100000
+
+@app.post("/backtest/optimize")
+async def start_optimization(req: OptimizationRequest):
+    """Start a batch optimization job. Returns job_id for tracking progress."""
+    from api.stock_ai import supabase
+    
+    # Create record in Supabase first
+    opt_id = None
+    try:
+        res = supabase.table("backtests").insert({
+            "model_name": f"OPT: {req.model}",
+            "exchange": req.exchange,
+            "start_date": req.start_date,
+            "end_date": req.end_date,
+            "status": "running",
+            "status_msg": "Initializing search grid...",
+            "capital": req.capital,
+            "total_trades": 0,
+            "win_rate": 0.0,
+            "net_profit": 0.0
+        }).execute()
+        if res.data:
+            opt_id = res.data[0]["id"]
+    except Exception as e:
+        print(f"Error creating optimization record in DB: {e}")
+        # Continue with job_id anyway if DB fails
+    
+    job_id = opt_id or str(uuid.uuid4())
+    
+    # Prepare job parameters
+    job_params = {
+        "wave_values": req.wave_values,
+        "validator_values": req.validator_values,
+        "target_values": req.target_values,
+        "stoploss_values": req.stoploss_values,
+        "base_params": {
+            "model": req.model,
+            "council_filter": req.council_filter,
+            "exchange": req.exchange,
+            "timeframe": req.timeframe,
+            "start_date": req.start_date,
+            "end_date": req.end_date,
+            "capital": req.capital
+        }
+    }
+    
+    # Initialize job status
+    total_combinations = len(req.wave_values) * len(req.validator_values) * len(req.target_values) * len(req.stoploss_values)
+    _optimization_jobs[job_id] = {
+        "status": "running",
+        "progress": 0,
+        "total": total_combinations,
+        "results": [],
+        "started_at": dt.datetime.now().isoformat(),
+        "completed_at": None,
+        "error": None,
+        "opt_id": opt_id
+    }
+    
+    # Run optimization in background thread
+    def run_job():
+        try:
+            optimizer = BacktestOptimizer()
+            
+            def progress_callback(current, total, result):
+                _optimization_jobs[job_id]["progress"] = current
+                if result:
+                    _optimization_jobs[job_id]["results"].append(result)
+                
+                # Update Supabase progress
+                if opt_id:
+                    try:
+                        supabase.table("backtests").update({
+                            "status_msg": f"Optimizing: {current}/{total} combinations tested..."
+                        }).eq("id", opt_id).execute()
+                    except: pass
+            
+            results_df = optimizer.optimize_parameters(
+                wave_values=req.wave_values,
+                target_values=req.target_values,
+                stoploss_values=req.stoploss_values,
+                base_params={**job_params["base_params"], "validator_values": req.validator_values},
+                progress_callback=progress_callback
+            )
+            
+            # Save results (CSV/TXT removed as per user request, data stored in DB/Memory only)
+            
+            # Find best config
+            best_config = results_df.nlargest(1, 'profit_percent').to_dict('records')[0] if not results_df.empty else None
+            
+            # Update job status
+            _optimization_jobs[job_id].update({
+                "status": "completed",
+                "completed_at": dt.datetime.now().isoformat(),
+                "results_df": results_df.to_dict('records')
+            })
+            
+            # Update Supabase final result
+            if opt_id:
+                try:
+                    update_data = {
+                        "status": "completed",
+                        "status_msg": "Optimization completed successfully.",
+                        "trades_log": json.dumps(results_df.to_dict('records'))
+                    }
+                    if best_config:
+                        update_data.update({
+                            "meta_threshold": best_config.get("wave_confluence"),
+                            "target_pct": best_config.get("target_percent"),
+                            "stop_loss_pct": best_config.get("stop_loss_percent"),
+                            "net_profit": best_config.get("profit_cash")
+                        })
+                    supabase.table("backtests").update(update_data).eq("id", opt_id).execute()
+                except Exception as e:
+                    print(f"Error updating final optimization record: {e}")
+            
+        except Exception as e:
+            _optimization_jobs[job_id].update({
+                "status": "failed",
+                "error": str(e),
+                "completed_at": dt.datetime.now().isoformat()
+            })
+            if opt_id:
+                try:
+                    supabase.table("backtests").update({
+                        "status": "failed",
+                        "status_msg": f"Error: {str(e)}"
+                    }).eq("id", opt_id).execute()
+                except: pass
+    
+    thread = threading.Thread(target=run_job, daemon=True)
+    thread.start()
+    
+    return {
+        "job_id": job_id,
+        "status": "started",
+        "total_tests": total_combinations
+    }
+
+@app.get("/backtest/results/{job_id}")
+async def get_optimization_results(job_id: str):
+    """Get optimization job status and results."""
+    if job_id not in _optimization_jobs:
+        raise HTTPException(status_code=404, detail="Job not found")
+    
+    job = _optimization_jobs[job_id]
+    
+    return {
+        "job_id": job_id,
+        "status": job["status"],
+        "progress": job["progress"],
+        "total": job["total"],
+        "started_at": job["started_at"],
+        "completed_at": job["completed_at"],
+        "results": job.get("results_df", []),
+        "error": job.get("error")
+    }
+
+@app.get("/backtest/export/{job_id}")
+async def export_optimization_results(job_id: str, format: str = "csv"):
+    """Export optimization results as CSV or report."""
+    if job_id not in _optimization_jobs:
+        raise HTTPException(status_code=404, detail="Job not found")
+    
+    job = _optimization_jobs[job_id]
+    
+    if job["status"] != "completed":
+        raise HTTPException(status_code=400, detail="Job not completed yet")
+    
+    if format == "csv":
+        file_path = job.get("csv_path")
+    elif format == "report":
+        file_path = job.get("report_path")
+    else:
+        raise HTTPException(status_code=400, detail="Invalid format. Use 'csv' or 'report'")
+    
+    if not file_path or not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="File not found")
+    
+    from fastapi.responses import FileResponse
+    return FileResponse(
+        path=file_path,
+        filename=os.path.basename(file_path),
+        media_type='text/csv' if format == "csv" else 'text/plain'
+    )
 

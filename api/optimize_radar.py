@@ -107,23 +107,26 @@ def load_models_and_data(exchange="EGX", model_name="KING 👑.pkl", start_date=
     
     return combined_data, model, None
 
-def find_golden_threshold():
-    print("🧪 Starting Brute-Force Optimization for KING 👑...")
+def find_golden_threshold(exchange="EGX", model_name="KING 👑.pkl", start_date="2024-01-01", step=0.05):
+    print(f"🧪 Starting Brute-Force Optimization for {model_name} on {exchange}...")
     print("=" * 60)
-    print(f"{'Threshold':<10} | {'Trades':<8} | {'Win Rate':<10} | {'Net Profit (EGP)':<15} | {'Note'}")
+    print(f"{'Threshold':<10} | {'Trades':<8} | {'Win Rate':<10} | {'Net Profit':<15} | {'Note'}")
     print("-" * 60)
 
-    # 1. تحميل الداتا والموديلات مرة واحدة (عشان السرعة)
-    data, model, council_model = load_models_and_data() 
+    # 1. Load data and models once
+    try:
+        data, model, council_model = load_models_and_data(exchange=exchange, model_name=model_name, start_date=start_date) 
+    except Exception as e:
+        print(f"❌ Error loading: {e}")
+        return
     
     best_profit = -np.inf
     best_threshold = 0.0
     
-    # 2. حلقة التجربة (من 0.30 إلى 0.80)
-    # بنجرب كل 5% زيادة
-    for threshold in np.arange(0.30, 0.85, 0.05):
+    # 2. Optimization loop
+    for threshold in np.arange(0.30, 0.90, step):
         
-        # تشغيل المحاكاة بالعتبة الحالية
+        # Run simulation
         stats = run_radar_simulation(
             df=data, 
             model=model, 
@@ -131,12 +134,12 @@ def find_golden_threshold():
             threshold=threshold
         )
         
-        # حساب الربح من الصفقات المقبولة فقط
         trades_log = stats.get('Trades Log', pd.DataFrame())
         accepted_trades = trades_log[trades_log.get('Status') != 'Rejected']
         
         if not accepted_trades.empty:
-            profit = accepted_trades['PnL_Pct'].sum() * 10000  # 10k per trade
+            # We assume 10k capital per trade for relative comparison
+            profit = accepted_trades['PnL_Pct'].sum() * 10000 
             win_rate = (accepted_trades['PnL_Pct'] > 0).mean() * 100
             trades_count = len(accepted_trades)
         else:
@@ -144,19 +147,33 @@ def find_golden_threshold():
             win_rate = 0
             trades_count = 0
         
-        # 3. تقييم النتيجة
+        # 3. Evaluate
         note = ""
-        if profit > best_profit:
+        if profit > best_profit and trades_count > 0:
             best_profit = profit
             best_threshold = threshold
             note = "🔥 NEW HIGH!"
-        elif win_rate > 60 and profit > 5000:
+        elif win_rate > 60 and profit > 0:
             note = "🛡️ SAFE ZONE"
             
-        print(f"{threshold:.2f}       | {trades_count:<8} | {win_rate:.1f}%     | {profit:,.0f} EGP       | {note}")
+        print(f"{threshold:.2f}       | {trades_count:<8} | {win_rate:.1f}%     | {profit:,.0f}           | {note}")
 
     print("=" * 60)
-    print(f"🏆 BEST SETTING: Threshold = {best_threshold:.2f} (Profit: {best_profit:,.0f} EGP)")
+    print(f"🏆 BEST SETTING: Threshold = {best_threshold:.2f} (Estimated Profit: {best_profit:,.0f})")
+    return {"best_threshold": float(best_threshold), "best_profit": float(best_profit)}
 
 if __name__ == "__main__":
-    find_golden_threshold()
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--exchange", default="EGX")
+    parser.add_argument("--model", default="KING 👑.pkl")
+    parser.add_argument("--start", default="2024-01-01")
+    parser.add_argument("--step", type=float, default=0.05)
+    args = parser.parse_args()
+    
+    find_golden_threshold(
+        exchange=args.exchange,
+        model_name=args.model,
+        start_date=args.start,
+        step=args.step
+    )

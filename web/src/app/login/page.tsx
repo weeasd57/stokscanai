@@ -4,6 +4,7 @@ import { useMemo, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
+import { Eye, EyeOff } from "lucide-react";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -11,6 +12,7 @@ export default function LoginPage() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -26,14 +28,14 @@ export default function LoginPage() {
         setError(res.error);
         return;
       }
-      router.push("/profile");
+      router.push("/admin");
     } finally {
       setSubmitting(false);
     }
   }
 
   if (!loading && user) {
-    router.replace("/profile");
+    router.replace("/admin");
     return null;
   }
 
@@ -59,15 +61,24 @@ export default function LoginPage() {
 
           <div className="space-y-1">
             <label className="text-xs font-medium text-zinc-400">Password</label>
-            <input
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              type="password"
-              autoComplete="current-password"
-              className="h-10 w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 text-sm text-zinc-100 outline-none focus:border-indigo-500"
-              placeholder="••••••••"
-              required
-            />
+            <div className="relative">
+              <input
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                type={showPassword ? "text" : "password"}
+                autoComplete="current-password"
+                className="h-10 w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 pr-10 text-sm text-zinc-100 outline-none focus:border-indigo-500"
+                placeholder="••••••••"
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-200"
+              >
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
           </div>
 
           {error && <div className="rounded-lg border border-red-900/40 bg-red-950/30 p-3 text-xs text-red-300">{error}</div>}

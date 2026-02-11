@@ -110,7 +110,11 @@ def list_local_models() -> List[str]:
 
 @router.get("/db-inventory")
 def get_db_inventory_endpoint():
-    return get_supabase_inventory()
+    print("DEBUG: Fetching DB inventory...", flush=True)
+    start = time.time()
+    res = get_supabase_inventory()
+    print(f"DEBUG: DB inventory fetched in {time.time()-start:.3f}s", flush=True)
+    return res
 
 @router.get("/plans")
 def get_plans():

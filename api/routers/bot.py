@@ -6,7 +6,7 @@ import os
 from pathlib import Path
 from datetime import datetime
 
-from api.live_bot import bot_instance
+from api.live_bot import bot_manager
 from api.stock_ai import get_cached_tickers
 
 router = APIRouter(tags=["AI_BOT"])
@@ -37,27 +37,42 @@ class BotConfigUpdate(BaseModel):
     king_model_path: Optional[str] = None
     council_model_path: Optional[str] = None
     max_open_positions: Optional[int] = None
+    name: Optional[str] = None
+    execution_mode: Optional[str] = None
+
+class BotCreate(BaseModel):
+    bot_id: str
+    name: str
 
 @router.post("/start")
-def start_bot():
+def start_bot(bot_id: str = "primary"):
     try:
-        bot_instance.start()
-        return {"status": "started"}
+        bot = bot_manager.get_bot(bot_id)
+        if not bot:
+            raise HTTPException(status_code=404, detail=f"Bot {bot_id} not found")
+        bot.start()
+        return {"status": "started", "bot_id": bot_id}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
 @router.post("/stop")
-def stop_bot():
+def stop_bot(bot_id: str = "primary"):
     try:
-        bot_instance.stop()
-        return {"status": "stopping"}
+        bot = bot_manager.get_bot(bot_id)
+        if not bot:
+            raise HTTPException(status_code=404, detail=f"Bot {bot_id} not found")
+        bot.stop()
+        return {"status": "stopping", "bot_id": bot_id}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
 @router.get("/status")
-def get_bot_status():
+def get_bot_status(bot_id: str = "primary"):
     try:
-        return bot_instance.get_status()
+        bot = bot_manager.get_bot(bot_id)
+        if not bot:
+            raise HTTPException(status_code=404, detail=f"Bot {bot_id} not found")
+        return bot.get_status()
     except Exception as e:
         import traceback
         print(f"Error in get_bot_status: {e}")
@@ -65,12 +80,16 @@ def get_bot_status():
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/config")
-def update_bot_config(config: BotConfigUpdate):
+def update_bot_config(config: BotConfigUpdate, bot_id: str = "primary"):
     try:
+        bot = bot_manager.get_bot(bot_id)
+        if not bot:
+            raise HTTPException(status_code=404, detail=f"Bot {bot_id} not found")
+        
         updates = config.dict(exclude_unset=True)
-        print(f"DEBUG: Received config update: {updates}")
-        bot_instance.update_config(updates)
-        status = bot_instance.get_status()
+        print(f"DEBUG: Received config update for {bot_id}: {updates}")
+        bot.update_config(updates)
+        status = bot.get_status()
         return {"status": "updated", "config": status["config"]}
     except Exception as e:
         import traceback
@@ -78,10 +97,100 @@ def update_bot_config(config: BotConfigUpdate):
         print(traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.get("/available_coins")
-def get_available_coins(source: Optional[str] = None, limit: int = 0):
-    """Fetches available coins from Supabase stock_ai cache or directly from Binance."""
+@router.get("/countries")
+def get_available_countries():
+    """Returns a list of available countries and their symbol counts from summary files."""
     try:
+        base_dir = Path(os.getcwd())
+        symbols_dir = base_dir / "symbols_data"
+        
+        if not symbols_dir.exists():
+            return []
+            
+        # Try to find country_summary_*.json
+        summary_files = list(symbols_dir.glob("country_summary_*.json"))
+        if summary_files:
+            # Take the newest one
+            newest = max(summary_files, key=os.path.getmtime)
+            with open(newest, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                # Return list of objects with name and count
+                result = []
+                for country_name, info in data.items():
+                    count = info.get("TotalSymbols", 0)
+                    if count > 0:
+                        result.append({"name": country_name, "count": count})
+                return sorted(result, key=lambda x: x["name"])
+        
+        # Fallback: Parse filenames if summary is missing
+        country_files = list(symbols_dir.glob("*_all_symbols_*.json"))
+        countries = set()
+        for f in country_files:
+            name = f.name.split("_all_symbols_")[0]
+            if name and name != "all":
+                countries.add(name)
+        return [{"name": c, "count": 0} for c in sorted(list(countries))]
+    except Exception as e:
+        print(f"Error fetching countries: {e}")
+        return []
+
+@router.get("/models")
+def get_available_models():
+    """Returns a list of model files (.pkl) from the api/models directory."""
+    try:
+        base_dir = Path(os.getcwd())
+        models_dir = base_dir / "api" / "models"
+        
+        if not models_dir.exists():
+            return []
+            
+        # Find all .pkl files
+        model_files = list(models_dir.glob("*.pkl"))
+        # Return paths relative to models_dir or just the names? 
+        # The bot seems to expect a path. Let's return the relative path from base_dir for now.
+        return sorted([str(f.relative_to(base_dir)).replace("\\", "/") for f in model_files])
+    except Exception as e:
+        print(f"Error fetching models: {e}")
+        return []
+
+@router.get("/available_coins")
+def get_available_coins(source: Optional[str] = None, limit: int = 0, country: Optional[str] = None):
+    """Fetches available coins from various sources including local files."""
+    try:
+        if source == "alpaca_stocks":
+            base_dir = Path(os.getcwd())
+            alpaca_json = base_dir / "alpaca_exchanges" / "us_equity" / "all_assets.json"
+            if alpaca_json.exists():
+                with open(alpaca_json, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                    symbols = [item.get("symbol") for item in data if item.get("symbol") and item.get("status") == "active"]
+                    return sorted(list(set(symbols))) if limit <= 0 else sorted(list(set(symbols)))[:limit]
+            return []
+
+        if source == "global" and country:
+            base_dir = Path(os.getcwd())
+            symbols_dir = base_dir / "symbols_data"
+            
+            # Find the file for this country - be case-insensitive
+            country_files = list(symbols_dir.glob(f"{country}_all_symbols_*.json"))
+            if not country_files:
+                # Try partial match or alternate case if exactly country name glob fails
+                all_files = list(symbols_dir.glob("*_all_symbols_*.json"))
+                country_files = [f for f in all_files if f.name.lower().startswith(country.lower())]
+
+            if country_files:
+                # Take the newest
+                newest = max(country_files, key=os.path.getmtime)
+                with open(newest, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                    # Some files use "Symbol", some use "Code"
+                    symbols = [item.get("Symbol") or item.get("Code") for item in data if item.get("Symbol") or item.get("Code")]
+                    
+                    # Ensure limit=0 returns all
+                    effective_limit = len(symbols) if limit <= 0 else limit
+                    return sorted(list(set(symbols)))[:effective_limit]
+            return []
+
         if source == "binance":
             from api.binance_data import fetch_all_binance_symbols
             return fetch_all_binance_symbols(quote_asset="USDT", limit=limit)
@@ -144,12 +253,35 @@ def get_available_coins(source: Optional[str] = None, limit: int = 0):
         print(f"Error fetching coins: {e}")
         return []
 
+@router.get("/list")
+def list_bots():
+    return {"bots": bot_manager.list_bots()}
+
+@router.post("/create")
+def create_bot(req: BotCreate):
+    try:
+        bot_manager.create_bot(req.bot_id, req.name)
+        return {"status": "created", "bot_id": req.bot_id}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.delete("/delete/{bot_id}")
+def delete_bot(bot_id: str):
+    try:
+        bot_manager.delete_bot(bot_id)
+        return {"status": "deleted"}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
 @router.get("/alpaca_watchlist")
-def get_alpaca_watchlist():
+def get_alpaca_watchlist(bot_id: str = "primary"):
     """Fetches symbols from the user's Alpaca primary watchlist."""
     from api.alpaca_adapter import create_alpaca_client
     try:
-        cfg = bot_instance.config
+        bot = bot_manager.get_bot(bot_id)
+        if not bot:
+             raise HTTPException(status_code=404, detail=f"Bot {bot_id} not found")
+        cfg = bot.config
         if not cfg.alpaca_key_id or not cfg.alpaca_secret_key:
              raise HTTPException(status_code=400, detail="Alpaca keys not configured")
              
@@ -187,18 +319,18 @@ def get_alpaca_watchlist():
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/performance")
-def get_bot_performance():
+def get_bot_performance(bot_id: str = "primary"):
     """تحليل شامل لأداء البوت من ملفات السجلات"""
     try:
         base_dir = Path(os.getcwd())
         logs_dir = base_dir / "logs"
         state_dir = base_dir / "state"
         
-        # قراءة ملفات السجلات
-        trades_file = logs_dir / "trades.json"
-        performance_file = logs_dir / "performance.json"
-        alerts_file = logs_dir / "alerts.json"
-        state_file = state_dir / "bot_state.json"
+        # قراءة ملفات السجلات المختصة بهذا البوت
+        trades_file = logs_dir / f"{bot_id}_trades.json"
+        performance_file = logs_dir / f"{bot_id}_performance.json"
+        alerts_file = logs_dir / "alerts.json" # تنبيهات عامة أو يمكن تخصيصها لاحقاً
+        state_file = state_dir / "bot_state.json" # قديم، BotConfig يخزن الحالة الآن
         
         def load_json_file(filepath):
             if filepath.exists():
@@ -290,29 +422,15 @@ def get_bot_performance():
         worst_trade = min(sells, key=lambda x: x.get("pnl", 0)) if sells else None
         
         return {
-            "summary": {
-                "total_trades": len(buys),
-                "completed_trades": len(sells),
-                "open_positions_count": len(open_positions),
-                "wins": len(wins),
-                "losses": len(losses),
-                "win_rate": (len(wins) / len(sells) * 100) if sells else 0,
-                "total_pnl": total_pnl,
-                "avg_win": avg_win,
-                "avg_loss": avg_loss,
-                "profit_factor": abs(avg_win / avg_loss) if avg_loss != 0 else 0,
-            },
-            "daily": daily_stats,
+            "total_trades": len(buys),
+            "win_rate": (len(wins) / len(sells) * 100) if sells else 0,
+            "profit_loss": total_pnl,
+            "profit_loss_pct": daily_stats.get("daily_return_pct", 0),
+            "avg_trade_profit": (total_pnl / len(sells)) if sells else 0,
             "exit_reasons": exit_reasons,
-            "symbols": symbols_stats,
+            "symbol_performance": symbols_stats,
             "open_positions": open_positions,
-            "best_trade": best_trade,
-            "worst_trade": worst_trade,
-            "alerts": {
-                "total": len(alerts),
-                "recent": recent_alerts,
-                "by_type": alerts_by_type,
-            },
+            "trades": trades[::-1], # Reversed to show newest first
             "last_updated": datetime.now().isoformat(),
         }
     except Exception as e:

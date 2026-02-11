@@ -6,11 +6,17 @@
   color-scheme: dark;
 }
 
+html,
 body {
   @apply bg-zinc-950 text-zinc-50 antialiased;
+  overflow-x: hidden !important;
+  max-width: 100%;
+  position: relative;
+  width: 100%;
 }
 
 @layer utilities {
+
   /* ApexCharts dark dropdown + toolbar icons (admin charts) */
   .apexcharts-menu,
   .apexcharts-menu.apexcharts-menu-open,
@@ -56,28 +62,41 @@ body {
   }
 
   @keyframes shimmer {
-    0% { transform: translateX(-100%); }
-    100% { transform: translateX(100%); }
+    0% {
+      transform: translateX(-100%);
+    }
+
+    100% {
+      transform: translateX(100%);
+    }
   }
 
   @keyframes progress-stripe {
-    from { background-position: 40px 0; }
-    to { background-position: 0 0; }
+    from {
+      background-position: 40px 0;
+    }
+
+    to {
+      background-position: 0 0;
+    }
   }
 
   .custom-scrollbar::-webkit-scrollbar {
     width: 6px;
     height: 6px;
   }
+
   .custom-scrollbar::-webkit-scrollbar-track {
     background: rgba(255, 255, 255, 0.02);
     border-radius: 10px;
   }
+
   .custom-scrollbar::-webkit-scrollbar-thumb {
     background: rgba(99, 102, 241, 0.2);
     border-radius: 10px;
     border: 1px solid rgba(255, 255, 255, 0.05);
   }
+
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
     background: rgba(99, 102, 241, 0.4);
   }

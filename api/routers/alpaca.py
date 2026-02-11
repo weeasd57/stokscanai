@@ -470,10 +470,9 @@ def get_alpaca_supabase_stats(
     asset_class: Literal["us_equity", "crypto"] = Query("us_equity", description="us_equity or crypto"),
     exchange: Optional[str] = Query(None, description="Optional Alpaca exchange filter (e.g., NASDAQ, NYSE, CRYPTO)"),
 ):
-    """
-    Returns a lightweight summary of what Alpaca-related data exists in Supabase.
-    This is used by the Admin 'Data Center' UI.
-    """
+    print(f"DEBUG: Fetching Supabase stats for {asset_class} (Exchange: {exchange})...", flush=True)
+    import time
+    start = time.time()
     stock_ai._init_supabase()
     sb = stock_ai.supabase
     if not sb:
@@ -591,6 +590,7 @@ def get_alpaca_supabase_stats(
         except Exception:
             raise
 
+    print(f"DEBUG: Supabase stats fetched in {time.time()-start:.3f}s", flush=True)
     return {
         "asset_class": asset_class,
         "exchange_filter": exchange_u,

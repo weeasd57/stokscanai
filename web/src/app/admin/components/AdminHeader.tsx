@@ -21,8 +21,8 @@ export default function AdminHeader({ activeMainTab, setActiveMainTab }: AdminHe
                 <div className="flex flex-col md:flex-row md:items-center justify-start px-4 md:px-8 py-4 gap-4 md:gap-0">
 
                     {/* Navigation - Scrollable on mobile, Centered pills on desktop */}
-                    <nav className="relative w-full md:flex-1 overflow-x-auto pb-2 md:pb-0 -mx-4 px-4 md:mx-0 md:px-0 scrollbar-hide">
-                        <div className="flex items-center gap-1.5 md:gap-2 w-full p-1.5 bg-zinc-900/50 border border-white/5 rounded-2xl backdrop-blur-sm">
+                    <nav className="relative w-full md:flex-1 overflow-x-auto pb-2 md:pb-0 -mx-4 px-4 md:mx-0 md:px-0 scrollbar-hide max-w-full">
+                        <div className="flex items-center gap-1.5 md:gap-2 w-full p-1.5 bg-zinc-900/50 border border-white/5 rounded-2xl backdrop-blur-sm min-w-max md:min-w-0">
                             {tabs.map((tab) => {
                                 const isActive = activeMainTab === tab.id;
 

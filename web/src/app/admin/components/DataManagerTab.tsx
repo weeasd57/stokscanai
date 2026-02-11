@@ -283,8 +283,8 @@ export default function DataManagerTab({
         }
     };
     return (
-        <div className="p-8 max-w-[1800px] mx-auto w-full space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <header className="flex flex-col gap-2">
+        <div className="p-4 md:p-8 max-w-full mx-auto w-full space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 overflow-x-hidden">
+            <header className="flex flex-col gap-2 max-w-full">
                 <h1 className="text-3xl font-black tracking-tight text-white flex items-center gap-3">
                     <Database className="h-8 w-8 text-indigo-500" />
                     Data Manager
