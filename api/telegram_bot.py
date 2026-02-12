@@ -246,82 +246,83 @@ class TelegramBot:
                 self._log(f"Setting webhook to: {hook_path}")
                 # We don't use run_webhook because we want uvicorn to handle the HTTP
                 # Retry the ENTIRE init+webhook sequence.
-                # HF DNS can sometimes be very slow to start up.
+                # HF containers often block DNS for api.telegram.org.
+                # We use DNS-over-HTTPS to resolve the IP and write it to /etc/hosts.
                 async def _set_hook():
                     import socket
                     import os
                     import urllib.request
-                    import json
-                    
-                    # Store original getaddrinfo
-                    original_getaddrinfo = socket.getaddrinfo
+                    import json as _json
 
-                    def _resolve_doh(hostname):
-                        """Resolve hostname via DNS-over-HTTPS as a fallback."""
-                        self._log(f"Attempting DoH resolution for {hostname}...")
-                        # Try Cloudflare then Google
+                    def _resolve_via_doh(hostname):
+                        """Resolve hostname via DNS-over-HTTPS (Cloudflare + Google)."""
                         apis = [
                             f"https://cloudflare-dns.com/dns-query?name={hostname}&type=A",
                             f"https://dns.google/resolve?name={hostname}&type=A"
                         ]
-                        for api in apis:
+                        for api_url in apis:
                             try:
-                                req = urllib.request.Request(api, headers={"Accept": "application/dns-json"})
-                                with urllib.request.urlopen(req, timeout=5) as resp:
-                                    data = json.loads(resp.read().decode())
-                                    if data.get("Answer"):
-                                        ip = data["Answer"][0]["data"]
-                                        self._log(f"DoH Success ({api.split('/')[2]}): {hostname} -> {ip}")
-                                        return ip
+                                req = urllib.request.Request(api_url, headers={"Accept": "application/dns-json"})
+                                with urllib.request.urlopen(req, timeout=10) as resp:
+                                    data = _json.loads(resp.read().decode())
+                                    answers = data.get("Answer", [])
+                                    for ans in answers:
+                                        if ans.get("type") == 1:  # A record
+                                            return ans["data"]
                             except Exception as ex:
-                                self._log(f"DoH attempt failed for {api.split('/')[2]}: {ex}")
+                                self._log(f"DoH via {api_url.split('/')[2]} failed: {ex}")
                         return None
 
-                    def patched_getaddrinfo(host, port, family=0, type=0, proto=0, flags=0):
-                        if host == "api.telegram.org":
+                    def _inject_hosts_entry(hostname, ip):
+                        """Write an entry to /etc/hosts so ALL resolvers see it."""
+                        hosts_path = "/etc/hosts"
+                        entry = f"{ip} {hostname}"
+                        try:
+                            # Check if already present
+                            with open(hosts_path, "r") as f:
+                                if hostname in f.read():
+                                    self._log(f"/etc/hosts already has entry for {hostname}")
+                                    return True
+                            with open(hosts_path, "a") as f:
+                                f.write(f"\n{entry}\n")
+                            self._log(f"Wrote to /etc/hosts: {entry}")
+                            return True
+                        except PermissionError:
+                            self._log(f"No write access to {hosts_path} — cannot inject DNS override")
+                            return False
+                        except Exception as ex:
+                            self._log(f"Failed to write {hosts_path}: {ex}")
+                            return False
+
+                    # === Step 1: Try to fix DNS before anything else ===
+                    self._log("Waiting 10s for network baseline...")
+                    await asyncio.sleep(10)
+
+                    try:
+                        socket.gethostbyname("api.telegram.org")
+                        self._log("DNS working natively for api.telegram.org")
+                    except Exception:
+                        self._log("Local DNS cannot resolve api.telegram.org — trying DoH fallback...")
+                        ip = _resolve_via_doh("api.telegram.org")
+                        if ip:
+                            self._log(f"DoH resolved api.telegram.org -> {ip}")
+                            _inject_hosts_entry("api.telegram.org", ip)
+                            # Verify it worked
                             try:
-                                return original_getaddrinfo(host, port, family, type, proto, flags)
-                            except socket.gaierror:
-                                ip = _resolve_doh(host)
-                                if ip:
-                                    return original_getaddrinfo(ip, port, family, type, proto, flags)
-                                raise
-                        return original_getaddrinfo(host, port, family, type, proto, flags)
+                                resolved = socket.gethostbyname("api.telegram.org")
+                                self._log(f"Verification: api.telegram.org now resolves to {resolved}")
+                            except Exception as ve:
+                                self._log(f"Verification failed even after /etc/hosts: {ve}")
+                        else:
+                            self._log("DoH also failed — will keep retrying with native DNS")
 
-                    # Apply Monkey Patch
-                    socket.getaddrinfo = patched_getaddrinfo
-                    
-                    # Diagnostic: Check for proxy settings
-                    http_proxy = os.environ.get('http_proxy') or os.environ.get('HTTP_PROXY')
-                    https_proxy = os.environ.get('https_proxy') or os.environ.get('HTTPS_PROXY')
-                    if http_proxy or https_proxy:
-                        self._log(f"Proxy detected: HTTP={http_proxy}, HTTPS={https_proxy}")
-
-                    max_retries = 30 # Try for up to ~15-20 minutes if needed
-                    self._log("Waiting 15s for network baseline...")
-                    await asyncio.sleep(15)
-                    
+                    # === Step 2: Retry init + webhook ===
+                    max_retries = 15
                     for attempt in range(1, max_retries + 1):
                         try:
-                            # DNS Diagnostic
-                            try:
-                                t_ip = socket.gethostbyname("api.telegram.org")
-                                self._log(f"DNS Check: api.telegram.org -> {t_ip}")
-                            except Exception as dns_err:
-                                self._log(f"DNS Check: api.telegram.org resolution FAILED: {dns_err}")
-                                # Try a general one
-                                try:
-                                    g_ip = socket.gethostbyname("google.com")
-                                    self._log(f"DNS Check: google.com -> {g_ip} (Internet seems OK, but Telegram is blocked/unreachable)")
-                                except Exception:
-                                    self._log("DNS Check: google.com resolution FAILED (Total Network Isolation?)")
-                            
                             self._log(f"Telegram init attempt {attempt}/{max_retries}...")
-                            
-                            # If we survived until here, try the real init
                             if not getattr(self.application, "_initialized", False):
                                 await self.application.initialize()
-                            
                             await self.application.start()
                             await self.application.bot.set_webhook(url=hook_path)
                             self._log("SUCCESS: Telegram Bot is fully initialized and Webhook is set!")
@@ -333,7 +334,6 @@ class TelegramBot:
                                     await self.application.stop()
                             except:
                                 pass
-                            
                             if attempt == max_retries:
                                 raise
                             wait_time = min(attempt * 10, 60)
