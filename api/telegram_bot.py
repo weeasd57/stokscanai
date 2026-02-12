@@ -47,8 +47,8 @@ class TelegramBot:
 
     async def handle_webhook_update(self, data: dict):
         """Processes an update received via webhook."""
-        if not self.application:
-            self._log("Webhook received but application is not initialized.")
+        if not self.application or not getattr(self.application, "_initialized", False):
+            self._log("Webhook received but application is not fully initialized. Ignoring update.")
             return
         
         try:
