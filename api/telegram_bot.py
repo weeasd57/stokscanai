@@ -265,10 +265,16 @@ class TelegramBot:
                         try:
                             # DNS Diagnostic
                             try:
-                                ip = socket.gethostbyname("api.telegram.org")
-                                self._log(f"DNS Check: api.telegram.org -> {ip}")
+                                t_ip = socket.gethostbyname("api.telegram.org")
+                                self._log(f"DNS Check: api.telegram.org -> {t_ip}")
                             except Exception as dns_err:
-                                self._log(f"DNS Check: Resolution failed: {dns_err}")
+                                self._log(f"DNS Check: api.telegram.org resolution FAILED: {dns_err}")
+                                # Try a general one
+                                try:
+                                    g_ip = socket.gethostbyname("google.com")
+                                    self._log(f"DNS Check: google.com -> {g_ip} (Internet seems OK, but Telegram is blocked/unreachable)")
+                                except Exception:
+                                    self._log("DNS Check: google.com resolution FAILED (Total Network Isolation?)")
                             
                             self._log(f"Telegram init attempt {attempt}/{max_retries}...")
                             
