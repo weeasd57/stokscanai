@@ -245,23 +245,29 @@ class TelegramBot:
                 hook_path = f"{webhook_url.rstrip('/')}/tg-webhook/{self.token}"
                 self._log(f"Setting webhook to: {hook_path}")
                 # We don't use run_webhook because we want uvicorn to handle the HTTP
-                # Initialize first, THEN set the webhook with retries
+                # Retry the ENTIRE init+webhook sequence since DNS may
+                # not be ready when the HF container first starts.
                 async def _set_hook():
-                    await self.application.initialize()
-                    await self.application.start()
-                    
                     max_retries = 5
                     for attempt in range(1, max_retries + 1):
                         try:
-                            self._log(f"Setting webhook (Attempt {attempt}/{max_retries})...")
+                            self._log(f"Telegram init attempt {attempt}/{max_retries}...")
+                            await self.application.initialize()
+                            await self.application.start()
                             await self.application.bot.set_webhook(url=hook_path)
-                            self._log("Webhook set successfully.")
-                            break
+                            self._log("Webhook set successfully!")
+                            return
                         except Exception as e:
-                            self._log(f"Webhook setup attempt {attempt} failed: {e}")
+                            self._log(f"Attempt {attempt} failed: {e}")
+                            # Clean up partial init before retrying
+                            try:
+                                await self.application.shutdown()
+                            except Exception:
+                                pass
                             if attempt == max_retries:
                                 raise
-                            await asyncio.sleep(5)
+                            self._log(f"Retrying in {attempt * 5}s...")
+                            await asyncio.sleep(attempt * 5)
                 
                 self.loop.run_until_complete(_set_hook())
                 # Keep loop running for async tasks but don't poll
