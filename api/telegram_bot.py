@@ -250,6 +250,46 @@ class TelegramBot:
                 async def _set_hook():
                     import socket
                     import os
+                    import urllib.request
+                    import json
+                    
+                    # Store original getaddrinfo
+                    original_getaddrinfo = socket.getaddrinfo
+
+                    def _resolve_doh(hostname):
+                        """Resolve hostname via DNS-over-HTTPS as a fallback."""
+                        self._log(f"Attempting DoH resolution for {hostname}...")
+                        # Try Cloudflare then Google
+                        apis = [
+                            f"https://cloudflare-dns.com/dns-query?name={hostname}&type=A",
+                            f"https://dns.google/resolve?name={hostname}&type=A"
+                        ]
+                        for api in apis:
+                            try:
+                                req = urllib.request.Request(api, headers={"Accept": "application/dns-json"})
+                                with urllib.request.urlopen(req, timeout=5) as resp:
+                                    data = json.loads(resp.read().decode())
+                                    if data.get("Answer"):
+                                        ip = data["Answer"][0]["data"]
+                                        self._log(f"DoH Success ({api.split('/')[2]}): {hostname} -> {ip}")
+                                        return ip
+                            except Exception as ex:
+                                self._log(f"DoH attempt failed for {api.split('/')[2]}: {ex}")
+                        return None
+
+                    def patched_getaddrinfo(host, port, family=0, type=0, proto=0, flags=0):
+                        if host == "api.telegram.org":
+                            try:
+                                return original_getaddrinfo(host, port, family, type, proto, flags)
+                            except socket.gaierror:
+                                ip = _resolve_doh(host)
+                                if ip:
+                                    return original_getaddrinfo(ip, port, family, type, proto, flags)
+                                raise
+                        return original_getaddrinfo(host, port, family, type, proto, flags)
+
+                    # Apply Monkey Patch
+                    socket.getaddrinfo = patched_getaddrinfo
                     
                     # Diagnostic: Check for proxy settings
                     http_proxy = os.environ.get('http_proxy') or os.environ.get('HTTP_PROXY')
@@ -288,7 +328,6 @@ class TelegramBot:
                             return
                         except Exception as e:
                             self._log(f"Attempt {attempt} failed: {e}")
-                            # Don't shutdown the app entirely, just stop if it started
                             try:
                                 if self.application.running:
                                     await self.application.stop()
@@ -297,8 +336,6 @@ class TelegramBot:
                             
                             if attempt == max_retries:
                                 raise
-                            
-                            # Exponential backoff with a cap
                             wait_time = min(attempt * 10, 60)
                             self._log(f"Retrying in {wait_time}s...")
                             await asyncio.sleep(wait_time)
