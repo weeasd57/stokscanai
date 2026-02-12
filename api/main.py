@@ -20,6 +20,7 @@ load_dotenv(os.path.join(base_dir, ".env"))
 load_dotenv(os.path.join(base_dir, "web", ".env.local"), override=True)
 
 print(f"DEBUG: EODHD_API_KEY loaded: {'Yes' if os.getenv('EODHD_API_KEY') else 'No'}")
+print(f"DEBUG: ARTORO_AI_BOT loaded: {'Yes' if os.getenv('ARTORO_AI_BOT') else 'No'}")
 
 from fastapi import FastAPI, HTTPException, Request, Query, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
@@ -123,10 +124,12 @@ app.include_router(bot.router, prefix="/bot") # Compatibility Alias
 @app.post("/tg-webhook/{token}")
 async def telegram_webhook(token: str, request: Request):
     """Endpoint for Telegram Webhooks."""
-    if not hasattr(app.state, "telegram_bridge"):
+    from api.live_bot import bot_manager
+    bridge = getattr(app.state, "telegram_bridge", None) or getattr(bot_manager, "_telegram_bridge", None)
+
+    if not bridge:
         raise HTTPException(status_code=503, detail="Telegram bridge not active")
     
-    bridge = app.state.telegram_bridge
     if token != bridge.token:
         raise HTTPException(status_code=403, detail="Invalid token")
     

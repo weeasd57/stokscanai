@@ -62,7 +62,7 @@ class BotConfig:
     # ===== Advanced Risk & Strategy =====
     daily_loss_limit: float = 500.0
     max_consecutive_losses: int = 3
-    min_volume_ratio: float = 1.2
+    min_volume_ratio: float = 0.5
     use_rsi_filter: bool = True
     use_trend_filter: bool = True
     use_dynamic_sizing: bool = True
@@ -1413,6 +1413,18 @@ class LiveBot:
             return self._get_stock_bars(symbol, limit)
 
     def _get_crypto_bars(self, symbol: str, limit: int) -> pd.DataFrame:
+        """Fetch crypto bars from Binance via tvDatafeed."""
+        if not TvDatafeed:
+            return pd.DataFrame()
+            
+        # ✅ Strict Symbol Filter
+        normalized_symbol = symbol.strip().upper()
+        allowed_symbols = [s.strip().upper() for s in (self.config.coins or [])]
+        
+        if normalized_symbol not in allowed_symbols:
+             self._log(f"{symbol}: NOT IN CONFIG - Rejecting fetch")
+             return pd.DataFrame()
+
         try:
             source = (getattr(self.config, "data_source", "alpaca") or "alpaca").lower()
             if source == "binance":
@@ -1924,8 +1936,10 @@ class LiveBot:
                     scan_list = active_symbols
                     self._log(f"SMART SCAN (EXIT-ONLY): {total_managed}/{self.config.max_open_positions} positions full. Monitoring {len(active_symbols)} active symbols for exits.")
                 else:
-                    scan_list = list(self.config.coins)
-                    self._log(f"Config: {self.config.timeframe} | {len(self.config.coins)} symbols | mode={self.config.execution_mode} | active_positions={total_managed}/{self.config.max_open_positions}")
+                    # ✅ Strict Symbol Filter: Ensure only config.coins are scanned
+                    allowed = [c.strip().upper() for c in (self.config.coins or [])]
+                    scan_list = [sym for sym in self.config.coins if sym.strip().upper() in allowed]
+                    self._log(f"Config: {self.config.timeframe} | {len(scan_list)} symbols | mode={self.config.execution_mode} | active_positions={total_managed}/{self.config.max_open_positions}")
                 
                 for symbol in scan_list:
                     if self._stop_event.is_set():

@@ -180,13 +180,16 @@ class AlpacaPyAdapter:
             AlpacaClientError: If request fails
         """
         try:
+            from alpaca.trading.requests import GetOrdersRequest
+            from alpaca.trading.enums import QueryOrderStatus
+            
             status = kwargs.get("status", "open")
             status_map = {
-                "open": OrderStatus.OPEN,
-                "closed": OrderStatus.CLOSED,
-                "all": OrderStatus.ALL,
+                "open": QueryOrderStatus.OPEN,
+                "closed": QueryOrderStatus.CLOSED,
+                "all": QueryOrderStatus.ALL,
             }
-            status_enum = status_map.get(status, OrderStatus.OPEN)
+            status_enum = status_map.get(status, QueryOrderStatus.OPEN)
             req = GetOrdersRequest(status=status_enum)
             return self._trading.get_orders(filter=req)
         except Exception as e:
