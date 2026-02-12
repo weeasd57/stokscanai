@@ -245,11 +245,23 @@ class TelegramBot:
                 hook_path = f"{webhook_url.rstrip('/')}/tg-webhook/{self.token}"
                 self._log(f"Setting webhook to: {hook_path}")
                 # We don't use run_webhook because we want uvicorn to handle the HTTP
-                # Initialize first, THEN set the webhook
+                # Initialize first, THEN set the webhook with retries
                 async def _set_hook():
                     await self.application.initialize()
                     await self.application.start()
-                    await self.application.bot.set_webhook(url=hook_path)
+                    
+                    max_retries = 5
+                    for attempt in range(1, max_retries + 1):
+                        try:
+                            self._log(f"Setting webhook (Attempt {attempt}/{max_retries})...")
+                            await self.application.bot.set_webhook(url=hook_path)
+                            self._log("Webhook set successfully.")
+                            break
+                        except Exception as e:
+                            self._log(f"Webhook setup attempt {attempt} failed: {e}")
+                            if attempt == max_retries:
+                                raise
+                            await asyncio.sleep(5)
                 
                 self.loop.run_until_complete(_set_hook())
                 # Keep loop running for async tasks but don't poll

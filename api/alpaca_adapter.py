@@ -121,10 +121,11 @@ class AlpacaPyAdapter:
         
         paper = _looks_like_paper_url(base_url)
         
-        self._logger = logger
         if self._logger:
-            env_type = "paper" if paper else "live"
-            self._logger(f"Initializing Alpaca trading client ({env_type} environment)")
+            env_type = "!!! PAPER TRADING !!!" if paper else "=== LIVE TRADING ==="
+            self._logger(f"Initializing Alpaca trading client ({env_type})")
+            if paper:
+                self._logger("Check your settings if you expected LIVE positions!")
 
         # Trading client controls positions, orders, and account
         try:
