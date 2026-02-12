@@ -71,16 +71,17 @@ class BotConfig:
     # ===== Smart Bot Features =====
     # 1. Market Regime Detection
     use_market_regime: bool = True
-    regime_adx_threshold: float = 25.0  # ADX > this = trending
+    regime_adx_threshold: float = 18.0  # ADX > this = trending (Default loosened from 25.0)
     regime_sideways_size_mult: float = 0.5  # Reduce size in sideways
     
     # 2. Multi-Timeframe Confirmation
-    use_mtf_confirmation: bool = True
+    use_mtf_confirmation: bool = False
     mtf_higher_timeframe: str = "4Hour"  # Higher TF to confirm
     
     # 3. Dynamic ATR-based TP/SL
     use_atr_exits: bool = True
     atr_sl_multiplier: float = 1.5
+    atr_tp_multiplier: float = 2.5
     atr_tp_multiplier: float = 2.5
     atr_period: int = 14
     
@@ -97,7 +98,7 @@ class BotConfig:
     max_correlation: float = 0.80
     
     # 7. Win Rate Feedback
-    use_winrate_feedback: bool = True
+    use_winrate_feedback: bool = False
     winrate_lookback: int = 10
     winrate_low_threshold: float = 0.30
     winrate_high_threshold: float = 0.70
@@ -117,6 +118,9 @@ class BotConfig:
     partial_entry_pct: float = 0.60
     partial_exit_pct: float = 0.50
     
+    # Trading Mode
+    trading_mode: str = "hybrid"  # "defensive" | "aggressive" | "hybrid"
+
     # Model Paths
     king_model_path: str = "api/models/KING_CRYPTO 👑.pkl"
     council_model_path: str = "api/models/COUNCIL_CRYPTO.pkl"
@@ -400,29 +404,68 @@ class LiveBot:
         except Exception:
             pass
 
+    # ── Trading Mode Overrides ──
+    def _get_mode_overrides(self) -> dict:
+        """Return effective parameter overrides for the current trading_mode."""
+        mode = (self.config.trading_mode or "hybrid").lower()
 
-    def _check_signal_filters(self, symbol: str, bars: pd.DataFrame) -> tuple[bool, str]:
+        if mode == "defensive":
+            return {
+                "king_offset": 0.10,        # Harder to pass KING
+                "council_offset": 0.05,     # Harder to pass COUNCIL
+                "volume_mult": 1.5,         # Stricter volume (1.5x of config)
+                "skip_trend_filter": False,  # Keep SMA20 trend filter ON
+                "min_quality": 75,
+                "sideways_size_mult": 0.30,  # Greatly reduced sizing in sideways
+                "bear_size_mult": 0.0,       # Never trade in BEAR (blocked above)
+            }
+        elif mode == "aggressive":
+            return {
+                "king_offset": -0.10,       # Easier to pass KING
+                "council_offset": -0.05,    # Easier to pass COUNCIL
+                "volume_mult": 0.3,         # Relaxed volume (30% of config)
+                "skip_trend_filter": True,   # Skip SMA20 trend filter
+                "min_quality": 50,
+                "sideways_size_mult": 1.0,   # No reduction in sideways
+                "bear_size_mult": 0.50,      # Reduced size in BEAR
+            }
+        else:  # hybrid (default) - Balanced middle ground
+            return {
+                "king_offset": 0.0,
+                "council_offset": 0.0,
+                "volume_mult": 0.7,          # Relaxed from 1.0 (easier than default config)
+                "skip_trend_filter": False,
+                "min_quality": 55.0,         # Relaxed from 65.0
+                "sideways_size_mult": 0.7,   # Less restrictive than 0.5
+                "bear_size_mult": 0.3,       # Was 0.0 (Now allowing some BEAR trades)
+            }
+    def _check_signal_filters(self, symbol: str, bars: pd.DataFrame, mode_overrides: dict = None) -> tuple[bool, str]:
         """Check additional technical filters before entering a trade."""
         if bars.empty or len(bars) < 25:
             return False, "Insufficient data"
         
+        ov = mode_overrides or {}
+        
         try:
-            # 1. Volume Filter
+            # 1. Volume Filter (mode-adjusted)
             if self.config.min_volume_ratio > 0:
                 recent_volume = bars['volume'].iloc[-5:].mean()
                 avg_volume = bars['volume'].iloc[-25:-5].mean()
                 
-                if avg_volume > 0 and recent_volume < avg_volume * self.config.min_volume_ratio:
-                    return False, f"Low relative volume ({recent_volume/avg_volume:.2f}x)"
+                effective_vol_ratio = self.config.min_volume_ratio * ov.get("volume_mult", 1.0)
+                if avg_volume > 0 and recent_volume < avg_volume * effective_vol_ratio:
+                    return False, f"Low relative volume ({recent_volume/avg_volume:.2f}x < {effective_vol_ratio:.2f}x)"
             
-            # 2. Trend Filter (SMA20)
-            if self.config.use_trend_filter:
+            # 2. Trend Filter (SMA20) — skippable in aggressive mode
+            if self.config.use_trend_filter and not ov.get("skip_trend_filter", False):
                 closes = bars['close'].iloc[-20:]
                 sma_20 = closes.mean()
                 current_price = bars['close'].iloc[-1]
                 
-                if current_price < sma_20:
-                    return False, f"Price below SMA20 ({current_price:.4f} < {sma_20:.4f})"
+                # Add 3% tolerance
+                sma20_tolerance = 0.03
+                if current_price < sma_20 * (1 - sma20_tolerance):
+                    return False, f"Price below SMA20 tolerance ({current_price:.4f} < {sma_20 * (1 - sma20_tolerance):.4f})"
             
             # 3. RSI Filter
             if self.config.use_rsi_filter:
@@ -558,9 +601,11 @@ class LiveBot:
 
             sma20 = htf_bars['close'].iloc[-20:].mean()
             current = htf_bars['close'].iloc[-1]
-
-            if current < sma20:
-                return False, f"MTF REJECTED: HTF price {current:.4f} < SMA20 {sma20:.4f}"
+            
+            # Add 3% tolerance
+            sma20_tolerance = 0.03
+            if current < sma20 * (1 - sma20_tolerance):
+                return False, f"MTF REJECTED: HTF price {current:.4f} < SMA20 tolerance {sma20 * (1 - sma20_tolerance):.4f}"
 
             # Check slope of HTF SMA
             sma20_prev = htf_bars['close'].iloc[-25:-5].mean() if len(htf_bars) >= 25 else sma20
@@ -1079,11 +1124,13 @@ class LiveBot:
             hold_max_bars=int(float(_read_env("LIVE_HOLD_MAX_BARS", "30") or 30)),
             daily_loss_limit=_parse_float(_read_env("DAILY_LOSS_LIMIT", "500"), 500.0),
             max_consecutive_losses=int(float(_read_env("MAX_CONSECUTIVE_LOSSES", "3") or 3)),
-            min_volume_ratio=_parse_float(_read_env("MIN_VOLUME_RATIO", "1.2"), 1.2),
+            min_volume_ratio=_parse_float(_read_env("MIN_VOLUME_RATIO", "0.7"), 0.7),
             use_rsi_filter=_parse_bool(_read_env("USE_RSI_FILTER", "1"), True),
             use_trend_filter=_parse_bool(_read_env("USE_TREND_FILTER", "1"), True),
             use_dynamic_sizing=_parse_bool(_read_env("USE_DYNAMIC_SIZING", "1"), True),
             max_risk_per_trade_pct=_parse_float(_read_env("MAX_RISK_PER_TRADE_PCT", "0.02"), 0.02),
+
+            trading_mode=str(_read_env("TRADING_MODE", "hybrid") or "hybrid").strip().lower(),
 
             king_model_path=str(_read_env("LIVE_KING_MODEL_PATH", "api/models/KING_CRYPTO 👑.pkl")),
             council_model_path=str(_read_env("LIVE_COUNCIL_MODEL_PATH", "api/models/COUNCIL_CRYPTO.pkl")),
@@ -1125,6 +1172,10 @@ class LiveBot:
                                "use_partial_positions"]:
                         current[k] = _parse_bool(v, current[k])
 
+                    elif k in ["trading_mode", "execution_mode", "name", "data_source",
+                               "alpaca_key_id", "alpaca_secret_key", "alpaca_base_url",
+                               "king_model_path", "council_model_path", "timeframe"]:
+                        current[k] = str(v).strip()
                     else:
                         current[k] = v
             
@@ -1950,7 +2001,9 @@ class LiveBot:
                     # ✅ Strict Symbol Filter: Ensure only config.coins are scanned
                     allowed = [c.strip().upper() for c in (self.config.coins or [])]
                     scan_list = [sym for sym in self.config.coins if sym.strip().upper() in allowed]
-                    self._log(f"Config: {self.config.timeframe} | {len(scan_list)} symbols | mode={self.config.execution_mode} | active_positions={total_managed}/{self.config.max_open_positions}")
+                    
+                    mode = (self.config.trading_mode or "hybrid").lower()
+                    self._log(f"Config: {self.config.timeframe} | {len(scan_list)} symbols | mode={self.config.execution_mode} | trade_mode={mode} | active_positions={total_managed}/{self.config.max_open_positions}")
                 
                 for symbol in scan_list:
                     if self._stop_event.is_set():
@@ -1997,9 +2050,15 @@ class LiveBot:
 
                     # ── Feature 1: Market Regime Detection ──
                     regime = self._detect_market_regime(bars)
+                    mode = (self.config.trading_mode or "hybrid").lower()
+                    mode_ov = self._get_mode_overrides()
+
                     if regime == "BEAR":
-                        self._log(f"{symbol}: BEAR REGIME - Skipping BUY signals")
-                        continue
+                        if mode == "aggressive":
+                            self._log(f"{symbol}: BEAR REGIME (aggressive mode) → allowing with reduced size")
+                        else:
+                            self._log(f"{symbol}: BEAR REGIME - Skipping BUY signals (mode={mode})")
+                            continue
 
                     self._current_activity = f"Preparing features for {symbol}"
                     features = self._prepare_features(bars)
@@ -2023,8 +2082,9 @@ class LiveBot:
                     divergence_type, div_boost = self._detect_rsi_divergence(bars)
                     adjusted_conf = king_conf + div_boost
 
-                    if adjusted_conf < adaptive_threshold:
-                        self._log(f"{symbol}: KING pass ({adjusted_conf:.2f} < {adaptive_threshold:.2f})" + 
+                    effective_king_thresh = adaptive_threshold + mode_ov["king_offset"]
+                    if adjusted_conf < effective_king_thresh:
+                        self._log(f"{symbol}: KING pass ({adjusted_conf:.2f} < {effective_king_thresh:.2f} [mode={mode}])" + 
                                   (f" [div={divergence_type}, boost={div_boost:+.2f}]" if divergence_type != "NONE" else ""))
                         continue
 
@@ -2040,17 +2100,18 @@ class LiveBot:
 
                         self._log(f"COUNCIL CHECK: {symbol} COUNCIL={council_conf:.2f}")
 
-                        if council_conf < self.config.council_threshold:
-                            self._log(f"COUNCIL REJECTED: {symbol} ({council_conf:.2f} < {self.config.council_threshold})")
+                        effective_council_thresh = self.config.council_threshold + mode_ov["council_offset"]
+                        if council_conf < effective_council_thresh:
+                            self._log(f"COUNCIL REJECTED: {symbol} ({council_conf:.2f} < {effective_council_thresh:.2f} [mode={mode}])")
                             continue
                     else:
                          self._log(f"COUNCIL SKIPPED: {symbol}")
                          council_conf = None
 
-                    # --- Technical Filters ---
-                    filter_ok, filter_msg = self._check_signal_filters(symbol, bars)
+                    # --- Technical Filters (mode-adjusted) ---
+                    filter_ok, filter_msg = self._check_signal_filters(symbol, bars, mode_overrides=mode_ov)
                     if not filter_ok:
-                        self._log(f"FILTER REJECTED: {symbol} - {filter_msg}")
+                        self._log(f"FILTER REJECTED: {symbol} - {filter_msg} [mode={mode}]")
                         continue
 
                     # ── Feature 2: Multi-Timeframe Confirmation ──
@@ -2060,10 +2121,11 @@ class LiveBot:
                     if not mtf_ok:
                         continue
 
-                    # ── Feature 9: Signal Quality Score ──
+                    # ── Feature 9: Signal Quality Score (mode-adjusted) ──
                     quality = self._calculate_signal_quality(king_conf, council_conf, bars, regime, divergence_type)
-                    if quality < self.config.min_quality_score:
-                        self._log(f"QUALITY REJECTED: {symbol} score={quality:.1f} < {self.config.min_quality_score}")
+                    effective_quality_min = mode_ov["min_quality"]
+                    if quality < effective_quality_min:
+                        self._log(f"QUALITY REJECTED: {symbol} score={quality:.1f} < {effective_quality_min} [mode={mode}]")
                         continue
 
                     # --- RISK FIREWALL: Max Open Trades ---
@@ -2096,10 +2158,13 @@ class LiveBot:
                     # --- Dynamic Position Sizing ---
                     notional = self._calculate_position_size(symbol, cash, king_conf, council_conf, bars)
                     
-                    # Apply regime sizing adjustment
+                    # Apply regime sizing adjustment (mode-aware)
                     if regime == "SIDEWAYS":
-                        notional *= self.config.regime_sideways_size_mult
-                        self._log(f"{symbol}: SIDEWAYS regime → size reduced to ${notional:.2f}")
+                        notional *= mode_ov["sideways_size_mult"]
+                        self._log(f"{symbol}: SIDEWAYS regime → size adjusted to ${notional:.2f} [mode={mode}]")
+                    elif regime == "BEAR" and mode == "aggressive":
+                        notional *= mode_ov["bear_size_mult"]
+                        self._log(f"{symbol}: BEAR regime (aggressive) → size reduced to ${notional:.2f}")
 
                     # Apply correlation multiplier
                     notional *= corr_mult
@@ -2211,13 +2276,20 @@ class BotManager:
         except Exception as e:
             print(f"Error saving bots: {e}")
 
-    def create_bot(self, bot_id: str, name: str) -> LiveBot:
+    def create_bot(self, bot_id: str, name: str, alpaca_key_id: str = None, alpaca_secret_key: str = None) -> LiveBot:
         if bot_id in self._bots:
             raise ValueError(f"Bot ID {bot_id} already exists.")
         
         # Start with default config
         bot = LiveBot(bot_id=bot_id)
         bot.config.name = name
+        
+        # Apply custom keys if provided
+        if alpaca_key_id:
+            bot.config.alpaca_key_id = alpaca_key_id
+        if alpaca_secret_key:
+            bot.config.alpaca_secret_key = alpaca_secret_key
+            
         if self._telegram_bridge:
             bot.set_telegram_bridge(self._telegram_bridge)
             

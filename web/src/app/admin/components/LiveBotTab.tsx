@@ -39,6 +39,7 @@ interface BotConfig {
     max_open_positions: number;
     name: string;
     execution_mode: "ALPACA" | "TELEGRAM" | "BOTH";
+    trading_mode: "defensive" | "aggressive" | "hybrid";
 }
 
 interface BotListItem {
@@ -126,6 +127,8 @@ export default function LiveBotTab() {
     const [selectedBotId, setSelectedBotId] = useState<string>("primary");
     const [createBotDialogOpen, setCreateBotDialogOpen] = useState(false);
     const [newBotName, setNewBotName] = useState("");
+    const [newBotApiKey, setNewBotApiKey] = useState("");
+    const [newBotSecretKey, setNewBotSecretKey] = useState("");
     const [isCreatingBot, setIsCreatingBot] = useState(false);
     const [renameBotDialogOpen, setRenameBotDialogOpen] = useState(false);
     const [renameBotName, setRenameBotName] = useState("");
@@ -352,11 +355,18 @@ export default function LiveBotTab() {
             const res = await fetch("/api/ai_bot/create", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ bot_id, name: newBotName.trim() })
+                body: JSON.stringify({
+                    bot_id,
+                    name: newBotName.trim(),
+                    alpaca_key_id: newBotApiKey.trim() || undefined,
+                    alpaca_secret_key: newBotSecretKey.trim() || undefined
+                })
             });
             if (res.ok) {
                 toast.success(`Bot "${newBotName}" created`);
                 setNewBotName("");
+                setNewBotApiKey("");
+                setNewBotSecretKey("");
                 setCreateBotDialogOpen(false);
                 await fetchBotList();
                 setSelectedBotId(bot_id);
@@ -717,9 +727,29 @@ export default function LiveBotTab() {
                                                         type="text"
                                                         value={newBotName}
                                                         onChange={(e) => setNewBotName(e.target.value)}
-                                                        placeholder="e.g., Scalper Bot"
+                                                        placeholder="Trade ID (Optional)"
                                                         className="w-full bg-black/40 border border-white/5 rounded-xl px-4 py-3 text-sm font-bold focus:outline-none focus:border-indigo-500 transition-all"
                                                         onKeyDown={(e) => e.key === 'Enter' && handleCreateBot()}
+                                                    />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <label className="text-xs font-bold text-zinc-500 uppercase flex items-center gap-2">Alpaca Key ID </label>
+                                                    <input
+                                                        type="text"
+                                                        value={newBotApiKey}
+                                                        onChange={(e) => setNewBotApiKey(e.target.value)}
+                                                        placeholder="AKI..."
+                                                        className="w-full bg-black/40 border border-white/5 rounded-xl px-4 py-3 text-sm font-mono focus:outline-none focus:border-indigo-500 transition-all"
+                                                    />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <label className="text-xs font-bold text-zinc-500 uppercase flex items-center gap-2">Alpaca Secret Key </label>
+                                                    <input
+                                                        type="password"
+                                                        value={newBotSecretKey}
+                                                        onChange={(e) => setNewBotSecretKey(e.target.value)}
+                                                        placeholder="••••••••"
+                                                        className="w-full bg-black/40 border border-white/5 rounded-xl px-4 py-3 text-sm font-mono focus:outline-none focus:border-indigo-500 transition-all"
                                                     />
                                                 </div>
                                                 <button
@@ -867,6 +897,49 @@ export default function LiveBotTab() {
                                     <option value="ALPACA" className="bg-zinc-950 text-white">Alpaca Only (Auto-Trade)</option>
                                     <option value="TELEGRAM" className="bg-zinc-950 text-white">Telegram Only (Signal Only)</option>
                                 </select>
+                            </div>
+
+                            {/* Trading Mode Selector */}
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold text-zinc-500 uppercase flex items-center gap-2">
+                                    <ShieldCheck className="w-3.5 h-3.5" /> Trading Mode
+                                </label>
+                                <div className="grid grid-cols-3 gap-2">
+                                    {([
+                                        {
+                                            value: "defensive", emoji: "🛡️", label: "Defensive",
+                                            active: "bg-emerald-500/20 border-emerald-500 text-emerald-400 shadow-lg shadow-emerald-500/10"
+                                        },
+                                        {
+                                            value: "aggressive", emoji: "⚔️", label: "Aggressive",
+                                            active: "bg-red-500/20 border-red-500 text-red-400 shadow-lg shadow-red-500/10"
+                                        },
+                                        {
+                                            value: "hybrid", emoji: "🔄", label: "Hybrid",
+                                            active: "bg-indigo-500/20 border-indigo-500 text-indigo-400 shadow-lg shadow-indigo-500/10"
+                                        },
+                                    ] as const).map((m) => {
+                                        const isActive = (configForm.trading_mode || "hybrid") === m.value;
+                                        return (
+                                            <button
+                                                key={m.value}
+                                                onClick={() => setConfigForm({ ...configForm, trading_mode: m.value as any })}
+                                                className={`flex flex-col items-center gap-1 p-3 rounded-xl border text-center transition-all ${isActive
+                                                    ? m.active
+                                                    : "bg-black/40 border-white/5 text-zinc-500 hover:border-white/10 hover:text-zinc-300"
+                                                    }`}
+                                            >
+                                                <span className="text-lg">{m.emoji}</span>
+                                                <span className="text-[10px] font-black uppercase tracking-wider">{m.label}</span>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                                <p className="text-[9px] text-zinc-600 leading-tight">
+                                    {(configForm.trading_mode || "hybrid") === "defensive" && "🛡️ Capital preservation: strict filters, higher thresholds, smaller positions"}
+                                    {(configForm.trading_mode || "hybrid") === "aggressive" && "⚔️ Early entry: relaxed filters, lower thresholds, trades in BEAR markets"}
+                                    {(configForm.trading_mode || "hybrid") === "hybrid" && "🔄 Regime-based: adapts automatically using current config values"}
+                                </p>
                             </div>
 
                             <div className="space-y-4">
@@ -1187,22 +1260,18 @@ export default function LiveBotTab() {
 
                         {/* Model Hub Section */}
                         <div className="bg-black/40 rounded-2xl p-5 border border-white/5 space-y-4 shadow-xl">
-                            <label className="text-xs font-black text-zinc-400 uppercase tracking-[0.2em] flex items-center gap-2">
-                                <ShieldCheck className="w-3.5 h-3.5 text-purple-400" /> Model Intelligence
+                            <label className="text-xs font-black text-purple-400 uppercase tracking-[0.2em] flex items-center gap-2">
+                                <ShieldCheck className="w-3.5 h-3.5" /> Model Intelligence
                             </label>
                             <div className="space-y-4">
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">King Model Path</label>
-                                    <select
+                                    <input
+                                        type="text"
                                         value={configForm.king_model_path}
                                         onChange={(e) => setConfigForm({ ...configForm, king_model_path: e.target.value })}
                                         className="w-full bg-black/60 border border-white/5 rounded-xl px-4 py-2.5 text-xs font-mono focus:outline-none focus:border-purple-500/50 transition-all text-zinc-400"
-                                    >
-                                        <option value="">Select Model...</option>
-                                        {availableModels.map(m => (
-                                            <option key={m} value={m}>{m.split('/').pop()}</option>
-                                        ))}
-                                    </select>
+                                    />
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">King Confidence Threshold</label>
@@ -1966,7 +2035,6 @@ export default function LiveBotTab() {
                 </div>
             )}
 
-
             {/* Coin Selection Dialog */}
             <Dialog.Root open={coinDialogOpen} onOpenChange={setCoinDialogOpen}>
                 <Dialog.Portal>
@@ -2065,6 +2133,7 @@ export default function LiveBotTab() {
                     </Dialog.Content>
                 </Dialog.Portal>
             </Dialog.Root>
+
             {/* Historical Chart Modal */}
             <Dialog.Root open={!!selectedChartSymbol} onOpenChange={(open: boolean) => !open && setSelectedChartSymbol(null)}>
                 <Dialog.Portal>
@@ -2087,21 +2156,21 @@ export default function LiveBotTab() {
             </Dialog.Root>
 
             <style jsx global>{`
-                .custom-scrollbar::-webkit-scrollbar {
-                    width: 6px;
-                    height: 6px;
-                }
-                .custom-scrollbar::-webkit-scrollbar-track {
-                    background: rgba(255, 255, 255, 0.05);
-                }
-                .custom-scrollbar::-webkit-scrollbar-thumb {
-                    background: rgba(255, 255, 255, 0.1);
-                    border-radius: 10px;
-                }
-                .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-                    background: rgba(255, 255, 255, 0.2);
-                }
-            `}</style>
+                    .custom-scrollbar::-webkit-scrollbar {
+                        width: 6px;
+                        height: 6px;
+                    }
+                    .custom-scrollbar::-webkit-scrollbar-track {
+                        background: rgba(255, 255, 255, 0.05);
+                    }
+                    .custom-scrollbar::-webkit-scrollbar-thumb {
+                        background: rgba(255, 255, 255, 0.1);
+                        border-radius: 10px;
+                    }
+                    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+                        background: rgba(255, 255, 255, 0.2);
+                    }
+                `}</style>
         </div>
     )
 }

@@ -136,10 +136,10 @@ export default function ResultsComparison({
                                         </td>
                                         <td
                                             className={`px-4 py-3 text-xs font-bold ${item.result.earnPercentage != null
-                                                    ? item.result.earnPercentage >= 0
-                                                        ? "text-emerald-400"
-                                                        : "text-rose-400"
-                                                    : "text-zinc-500"
+                                                ? item.result.earnPercentage >= 0
+                                                    ? "text-emerald-400"
+                                                    : "text-rose-400"
+                                                : "text-zinc-500"
                                                 }`}
                                         >
                                             {item.result.earnPercentage != null

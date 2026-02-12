@@ -218,6 +218,7 @@ export default function AIBrainVisualizerSection({
                         <p className="text-xs text-zinc-400 leading-relaxed font-medium">
                             This surface maps the model's confidence across primary indicators.
                             <span className="text-emerald-400"> Green</span> zones represent high-probability patterns found in training.
+                            This surface plots model confidence across primary indicators. <span className="text-emerald-400">Green</span> zones represent high-probability patterns found in training.
                         </p>
                         <div className="pt-4 border-t border-indigo-500/20 grid grid-cols-2 gap-4">
                             <div className="text-center">

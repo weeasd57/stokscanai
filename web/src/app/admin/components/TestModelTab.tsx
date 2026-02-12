@@ -336,6 +336,7 @@ export default function TestModelTab() {
     try {
       const resultsMap = new Map<string, PredictResponse>();
       for (const model of modelsToTest) {
+        // Analyze Performance
         const start = performance.now();
         const res = await predictStock({
           ticker: state.selectedSymbol.symbol,
@@ -387,8 +388,9 @@ export default function TestModelTab() {
             <div className="rounded-2xl bg-gradient-to-br from-indigo-600 to-indigo-700 p-2 shadow-xl shadow-indigo-600/30">
               <Brain className="h-5 w-5 text-white" />
             </div>
-            <span>Model Test</span>
+            <span>Test Model</span>
           </h1>
+          <p className="text-zinc-500 font-bold uppercase tracking-widest text-[10px] mt-2">Validate performance against historical data</p>
         </header>
 
         <div className="grid gap-6">
@@ -455,6 +457,7 @@ export default function TestModelTab() {
           {/* Results Comparison (if multi) */}
           {state.testResults.size > 1 && (
             <section className="rounded-3xl border border-white/5 bg-zinc-900/40 backdrop-blur-xl p-6 shadow-2xl">
+              <h2 className="text-xl font-bold text-white mb-4">{multiSummaries.length} Trials</h2>
               <ResultsComparison
                 sortedMultiSummaries={sortedMultiSummaries as any}
                 multiClassificationChart={multiClassificationChart}

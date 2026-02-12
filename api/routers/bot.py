@@ -39,6 +39,7 @@ class BotConfigUpdate(BaseModel):
     max_open_positions: Optional[int] = None
     name: Optional[str] = None
     execution_mode: Optional[str] = None
+    trading_mode: Optional[str] = None
 
 class BotCreate(BaseModel):
     bot_id: str
@@ -260,6 +261,13 @@ def get_available_coins(source: Optional[str] = None, limit: int = 0, country: O
         print(f"Error fetching coins: {e}")
         return []
 
+from pydantic import BaseModel
+class BotCreate(BaseModel):
+    bot_id: str
+    name: str
+    alpaca_key_id: Optional[str] = None
+    alpaca_secret_key: Optional[str] = None
+
 @router.get("/list")
 def list_bots():
     return {"bots": bot_manager.list_bots()}
@@ -267,7 +275,12 @@ def list_bots():
 @router.post("/create")
 def create_bot(req: BotCreate):
     try:
-        bot_manager.create_bot(req.bot_id, req.name)
+        bot_manager.create_bot(
+            req.bot_id, 
+            req.name,
+            alpaca_key_id=req.alpaca_key_id,
+            alpaca_secret_key=req.alpaca_secret_key
+        )
         return {"status": "created", "bot_id": req.bot_id}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -327,7 +340,7 @@ def get_alpaca_watchlist(bot_id: str = "primary"):
 
 @router.get("/performance")
 def get_bot_performance(bot_id: str = "primary"):
-    """تحليل شامل لأداء البوت من ملفات السجلات"""
+    """Comprehensive analysis of bot performance from log files"""
     try:
         # Try to fetch from Supabase first
         _init_supabase()
@@ -401,7 +414,7 @@ def get_bot_performance(bot_id: str = "primary"):
         logs_dir = base_dir / "logs"
         state_dir = base_dir / "state"
         
-        # قراءة ملفات السجلات المختصة بهذا البوت
+        # Read log files relevant to this bot
         trades_file = logs_dir / f"{bot_id}_trades.json"
         performance_file = logs_dir / f"{bot_id}_performance.json"
         alerts_file = logs_dir / "alerts.json" # تنبيهات عامة أو يمكن تخصيصها لاحقاً
@@ -421,7 +434,7 @@ def get_bot_performance(bot_id: str = "primary"):
         alerts_data = load_json_file(alerts_file)
         state_data = load_json_file(state_file)
         
-        # تحليل الصفقات
+        # Trade analysis
         trades = trades_data.get("trades", [])
         buys = [t for t in trades if t.get("action") == "BUY"]
         sells = [t for t in trades if t.get("action") == "SELL"]
@@ -433,13 +446,13 @@ def get_bot_performance(bot_id: str = "primary"):
         avg_win = sum(t.get("pnl", 0) for t in wins) / len(wins) if wins else 0
         avg_loss = sum(t.get("pnl", 0) for t in losses) / len(losses) if losses else 0
         
-        # أسباب الخروج
+        # Exit reasons
         exit_reasons = {}
         for trade in sells:
             reason = trade.get("reason", "Unknown")
             exit_reasons[reason] = exit_reasons.get(reason, 0) + 1
         
-        # الصفقات حسب العملة
+        # Trades by symbol
         symbols_stats = {}
         for trade in sells:
             symbol = trade.get("symbol", "Unknown")
@@ -450,12 +463,12 @@ def get_bot_performance(bot_id: str = "primary"):
             if trade.get("pnl", 0) > 0:
                 symbols_stats[symbol]["wins"] += 1
         
-        # حساب win rate لكل عملة
+        # Calculate win rate for each symbol
         for symbol in symbols_stats:
             count = symbols_stats[symbol]["count"]
             symbols_stats[symbol]["win_rate"] = (symbols_stats[symbol]["wins"] / count * 100) if count > 0 else 0
         
-        # الأداء اليومي
+        # Daily performance
         daily_stats = {
             "date": performance_data.get("date", datetime.now().strftime("%Y-%m-%d")),
             "trades_count": performance_data.get("trades_count", 0),
@@ -471,7 +484,7 @@ def get_bot_performance(bot_id: str = "primary"):
         else:
             daily_stats["daily_return_pct"] = 0
         
-        # التنبيهات
+        # Alerts
         alerts = alerts_data.get("alerts", [])
         recent_alerts = alerts[-10:] if len(alerts) > 10 else alerts
         
@@ -480,7 +493,7 @@ def get_bot_performance(bot_id: str = "primary"):
             alert_type = alert.get("type", "Unknown")
             alerts_by_type[alert_type] = alerts_by_type.get(alert_type, 0) + 1
         
-        # الصفقات المفتوحة
+        # Open positions
         open_positions = []
         for symbol, pos_data in state_data.items():
             if isinstance(pos_data, dict) and "entry_price" in pos_data:
@@ -492,7 +505,7 @@ def get_bot_performance(bot_id: str = "primary"):
                     "trail_mode": pos_data.get("trail_mode", "NONE"),
                 })
         
-        # أفضل وأسوأ صفقة
+        # Best and worst trade
         best_trade = max(sells, key=lambda x: x.get("pnl", 0)) if sells else None
         worst_trade = min(sells, key=lambda x: x.get("pnl", 0)) if sells else None
         

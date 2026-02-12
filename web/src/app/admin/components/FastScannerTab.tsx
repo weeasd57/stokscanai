@@ -1398,7 +1398,7 @@ export default function FastScannerTab() {
                                             <option value="">All Neural Cores</option>
                                             {localModels.map(m => {
                                                 const name = typeof m === "string" ? m : m.name;
-                                                return <option key={name} value={name}>{name}</option>;
+                                                return <option key={name} value={name} className="bg-zinc-900">{name}</option>;
                                             })}
                                         </select>
                                     </div>

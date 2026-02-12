@@ -93,11 +93,11 @@ export default function DetailedResults({
                     <div className="text-lg font-bold text-white mt-1">{kpis.totalTests}</div>
                 </div>
                 <div className="bg-emerald-500/10 rounded-lg p-3 border border-emerald-500/20">
-                    <div className="text-[9px] text-emerald-400 uppercase tracking-wider">Buy信号</div>
+                    <div className="text-[9px] text-emerald-400 uppercase tracking-wider">Buy</div>
                     <div className="text-lg font-bold text-emerald-400 mt-1">{kpis.buySignals}</div>
                 </div>
                 <div className="bg-rose-500/10 rounded-lg p-3 border border-rose-500/20">
-                    <div className="text-[9px] text-rose-400 uppercase tracking-wider">Sell信号</div>
+                    <div className="text-[9px] text-rose-400 uppercase tracking-wider">Sell</div>
                     <div className="text-lg font-bold text-rose-400 mt-1">{kpis.sellSignals}</div>
                 </div>
                 <div className="bg-indigo-500/10 rounded-lg p-3 border border-indigo-500/20">

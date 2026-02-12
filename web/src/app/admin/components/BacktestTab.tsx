@@ -1906,164 +1906,166 @@ export default function BacktestTab() {
               </div>
             )}
           </div>
-        </div>
-      </div>
+        </div >
+      </div >
 
       {/* Results Section - Active Optimization Only */}
-      {activeMainTab === "automation" && currentOptId && (
-        <div className="relative overflow-hidden rounded-3xl border border-indigo-500/20 bg-zinc-900/60 backdrop-blur-3xl p-8 shadow-2xl animate-in fade-in slide-in-from-bottom-8 duration-700">
-          <div className="flex items-center justify-between mb-8">
-            <div className="flex items-center gap-4">
-              <div className="p-3 rounded-2xl bg-indigo-500/20 border border-indigo-500/30">
-                <Target className="h-6 w-6 text-indigo-400" />
+      {
+        activeMainTab === "automation" && currentOptId && (
+          <div className="relative overflow-hidden rounded-3xl border border-indigo-500/20 bg-zinc-900/60 backdrop-blur-3xl p-8 shadow-2xl animate-in fade-in slide-in-from-bottom-8 duration-700">
+            <div className="flex items-center justify-between mb-8">
+              <div className="flex items-center gap-4">
+                <div className="p-3 rounded-2xl bg-indigo-500/20 border border-indigo-500/30">
+                  <Target className="h-6 w-6 text-indigo-400" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-black text-white uppercase tracking-tight">
+                    Optimization Trials
+                  </h3>
+                  <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
+                    Brute-force parameter discovery
+                  </p>
+                </div>
               </div>
-              <div>
-                <h3 className="text-xl font-black text-white uppercase tracking-tight">
-                  Optimization Trials
-                </h3>
-                <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
-                  Brute-force parameter discovery
-                </p>
-              </div>
+              {selectedHistoryOptId && (
+                <button
+                  onClick={() => setSelectedHistoryOptId(null)}
+                  className="px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-xs font-bold text-zinc-400 hover:text-white hover:bg-white/10 transition-all"
+                >
+                  Close Archive
+                </button>
+              )}
             </div>
-            {selectedHistoryOptId && (
-              <button
-                onClick={() => setSelectedHistoryOptId(null)}
-                className="px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-xs font-bold text-zinc-400 hover:text-white hover:bg-white/10 transition-all"
-              >
-                Close Archive
-              </button>
-            )}
-          </div>
 
-          <div className="rounded-[2rem] border border-white/10 bg-zinc-950/40 overflow-hidden shadow-inner">
-            <div className="overflow-x-auto custom-scrollbar">
-              <table className="w-full text-[11px] text-left border-collapse">
-                <thead className="bg-zinc-950 text-zinc-500 font-black uppercase tracking-widest border-b border-white/5">
-                  <tr>
-                    <th className="px-8 py-5">Config</th>
-                    <th className="px-6 py-5 text-center">Settings (T/S)</th>
-                    <th className="px-6 py-5 text-center">Trades (Pre/Post)</th>
-                    <th className="px-6 py-5 text-center">Win Rate</th>
-                    <th className="px-6 py-5 text-right">Net Profit</th>
-                    <th className="px-8 py-5 text-center">Status</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-white/5 text-zinc-400 font-mono">
-                  {(() => {
-                    const targetId = selectedHistoryOptId || currentOptId;
-                    const latestOpt = history.find(h => h.id === targetId || (currentOptId && h.model_name?.startsWith("OPT:")));
-                    if (!latestOpt) return <tr><td colSpan={6} className="px-8 py-10 text-center text-zinc-600 font-black uppercase tracking-widest opacity-20 italic">No active optimization data stream</td></tr>;
+            <div className="rounded-[2rem] border border-white/10 bg-zinc-950/40 overflow-hidden shadow-inner">
+              <div className="overflow-x-auto custom-scrollbar">
+                <table className="w-full text-[11px] text-left border-collapse">
+                  <thead className="bg-zinc-950 text-zinc-500 font-black uppercase tracking-widest border-b border-white/5">
+                    <tr>
+                      <th className="px-8 py-5">Config</th>
+                      <th className="px-6 py-5 text-center">Settings (T/S)</th>
+                      <th className="px-6 py-5 text-center">Trades (Pre/Post)</th>
+                      <th className="px-6 py-5 text-center">Win Rate</th>
+                      <th className="px-6 py-5 text-right">Net Profit</th>
+                      <th className="px-8 py-5 text-center">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/5 text-zinc-400 font-mono">
+                    {(() => {
+                      const targetId = selectedHistoryOptId || currentOptId;
+                      const latestOpt = history.find(h => h.id === targetId || (currentOptId && h.model_name?.startsWith("OPT:")));
+                      if (!latestOpt) return <tr><td colSpan={6} className="px-8 py-10 text-center text-zinc-600 font-black uppercase tracking-widest opacity-20 italic">No active optimization data stream</td></tr>;
 
-                    let rawTrials = [];
-                    try {
-                      rawTrials = typeof latestOpt.trades_log === 'string' ? JSON.parse(latestOpt.trades_log) : (latestOpt.trades_log || []);
-                    } catch (e) { rawTrials = []; }
+                      let rawTrials = [];
+                      try {
+                        rawTrials = typeof latestOpt.trades_log === 'string' ? JSON.parse(latestOpt.trades_log) : (latestOpt.trades_log || []);
+                      } catch (e) { rawTrials = []; }
 
-                    if (!Array.isArray(rawTrials) || rawTrials.length === 0) {
-                      return <tr><td colSpan={6} className="px-8 py-10 text-center text-zinc-500 font-black uppercase tracking-widest animate-pulse">Awaiting first trial result from compute engine...</td></tr>;
-                    }
+                      if (!Array.isArray(rawTrials) || rawTrials.length === 0) {
+                        return <tr><td colSpan={6} className="px-8 py-10 text-center text-zinc-500 font-black uppercase tracking-widest animate-pulse">Awaiting first trial result from compute engine...</td></tr>;
+                      }
 
-                    return rawTrials.map((t: any, i: number) => {
-                      const profit = Number(t.profit_percent ?? t.profit ?? t.profit_pct ?? 0);
-                      const winRate = Number(t.win_rate ?? t.winrate ?? 0);
-                      const target = Number(t.target_percent ?? t.target_pct ?? t.target ?? 0);
-                      const sl = Number(t.stop_loss_percent ?? t.stop_loss_pct ?? t.stop_loss ?? 0);
-                      const meta = Number(t.wave_confluence ?? t.meta_threshold ?? t.king_threshold ?? 0);
-                      const validator = Number(t.validator_threshold ?? t.council_threshold ?? 0);
-                      const tradesCount = Number(t.total_trades ?? t.trades ?? 0);
-                      const index = i + 1;
+                      return rawTrials.map((t: any, i: number) => {
+                        const profit = Number(t.profit_percent ?? t.profit ?? t.profit_pct ?? 0);
+                        const winRate = Number(t.win_rate ?? t.winrate ?? 0);
+                        const target = Number(t.target_percent ?? t.target_pct ?? t.target ?? 0);
+                        const sl = Number(t.stop_loss_percent ?? t.stop_loss_pct ?? t.stop_loss ?? 0);
+                        const meta = Number(t.wave_confluence ?? t.meta_threshold ?? t.king_threshold ?? 0);
+                        const validator = Number(t.validator_threshold ?? t.council_threshold ?? 0);
+                        const tradesCount = Number(t.total_trades ?? t.trades ?? 0);
+                        const index = i + 1;
 
-                      return (
-                        <tr key={i} className={`group hover:bg-white/[0.03] transition-all ${t.is_best ? "bg-indigo-500/[0.08]" : ""}`}>
-                          <td className="px-8 py-5">
-                            <div className="flex flex-col gap-1">
-                              <div className="flex items-center gap-2">
-                                <span className="text-white font-black text-sm">{meta}</span>
-                                <span className="text-zinc-600">/</span>
-                                <span className="text-indigo-400 font-black">{validator}</span>
-                              </div>
-                              <span className="text-[9px] text-zinc-500 uppercase font-black tracking-tighter opacity-60">
-                                Meta Confidence / Council
-                              </span>
-                            </div>
-                          </td>
-                          <td className="px-6 py-5 text-center">
-                            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-zinc-900/50 border border-white/5">
-                              <div className="flex flex-col items-center">
-                                <span className="text-[8px] text-zinc-600 uppercase font-bold tracking-tighter">Target</span>
-                                <span className="text-emerald-400 font-black">{target}%</span>
-                              </div>
-                              <div className="w-px h-6 bg-white/10" />
-                              <div className="flex flex-col items-center">
-                                <span className="text-[8px] text-zinc-600 uppercase font-bold tracking-tighter">Stop</span>
-                                <span className="text-red-400 font-black">{sl}%</span>
-                              </div>
-                            </div>
-                          </td>
-                          <td className="px-6 py-5 text-center">
-                            <div className="flex flex-col items-center">
-                              <div className="flex items-center justify-center gap-1.5 mb-1">
-                                <span className="text-zinc-500 font-bold">{t.pre_council_trades || "-"}</span>
-                                <span className="text-zinc-700">➜</span>
-                                <span className="text-white font-black text-sm">{tradesCount}</span>
-                              </div>
-                              <div className="h-1 w-12 bg-zinc-900 rounded-full overflow-hidden">
-                                <div
-                                  className="h-full bg-indigo-500"
-                                  style={{ width: `${Math.min(100, ((tradesCount / (t.pre_council_trades || tradesCount || 1)) * 100))}%` }}
-                                />
-                              </div>
-                            </div>
-                          </td>
-                          <td className="px-6 py-5 text-center">
-                            <div className="flex flex-col items-center">
-                              <span className={`text-base font-black ${winRate >= 50 ? 'text-indigo-400' : 'text-zinc-400'}`}>
-                                {winRate.toFixed(1)}%
-                              </span>
-                            </div>
-                          </td>
-                          <td className={`px-8 py-5 text-right font-black text-base ${profit >= 0 ? "text-emerald-400" : "text-red-400"}`}>
-                            <div className="flex flex-col items-end">
-                              <span>{profit.toFixed(2)}%</span>
-                              {t.profit_cash !== undefined && (
-                                <span className="text-[10px] opacity-40 font-mono">
-                                  {Math.round(t.profit_cash).toLocaleString()} units
-                                </span>
-                              )}
-                            </div>
-                          </td>
-                          <td className="px-8 py-5 text-center">
-                            <div className="flex flex-col items-center gap-3">
-                              {t.is_best ? (
-                                <div className="flex flex-col items-center">
-                                  <span className="px-3 py-1 rounded-full bg-indigo-500 text-white text-[9px] font-black uppercase tracking-widest shadow-lg shadow-indigo-500/20 mb-2">
-                                    Best Model
-                                  </span>
+                        return (
+                          <tr key={i} className={`group hover:bg-white/[0.03] transition-all ${t.is_best ? "bg-indigo-500/[0.08]" : ""}`}>
+                            <td className="px-8 py-5">
+                              <div className="flex flex-col gap-1">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-white font-black text-sm">{meta}</span>
+                                  <span className="text-zinc-600">/</span>
+                                  <span className="text-indigo-400 font-black">{validator}</span>
                                 </div>
-                              ) : (
-                                <span className="text-[10px] text-zinc-600 font-black uppercase tracking-widest">Trial {index}</span>
-                              )}
-                              <button
-                                onClick={() => handleVerifyCandidate(t, latestOpt)}
-                                className="px-4 py-2 rounded-xl bg-white/5 hover:bg-indigo-500/20 text-zinc-500 hover:text-indigo-400 text-[10px] font-black uppercase border border-white/10 hover:border-indigo-500/30 transition-all flex items-center gap-2 group/btn"
-                                title="Load parameters into Manual Backtest"
-                              >
-                                <Eye className="h-3.5 w-3.5 transition-transform group-hover/btn:scale-110" />
-                                Load Param
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    }).reverse();
-                  })()}
-                </tbody>
-              </table>
+                                <span className="text-[9px] text-zinc-500 uppercase font-black tracking-tighter opacity-60">
+                                  Meta Confidence / Council
+                                </span>
+                              </div>
+                            </td>
+                            <td className="px-6 py-5 text-center">
+                              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-zinc-900/50 border border-white/5">
+                                <div className="flex flex-col items-center">
+                                  <span className="text-[8px] text-zinc-600 uppercase font-bold tracking-tighter">Target</span>
+                                  <span className="text-emerald-400 font-black">{target}%</span>
+                                </div>
+                                <div className="w-px h-6 bg-white/10" />
+                                <div className="flex flex-col items-center">
+                                  <span className="text-[8px] text-zinc-600 uppercase font-bold tracking-tighter">Stop</span>
+                                  <span className="text-red-400 font-black">{sl}%</span>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-6 py-5 text-center">
+                              <div className="flex flex-col items-center">
+                                <div className="flex items-center justify-center gap-1.5 mb-1">
+                                  <span className="text-zinc-500 font-bold">{t.pre_council_trades || "-"}</span>
+                                  <span className="text-zinc-700">➜</span>
+                                  <span className="text-white font-black text-sm">{tradesCount}</span>
+                                </div>
+                                <div className="h-1 w-12 bg-zinc-900 rounded-full overflow-hidden">
+                                  <div
+                                    className="h-full bg-indigo-500"
+                                    style={{ width: `${Math.min(100, ((tradesCount / (t.pre_council_trades || tradesCount || 1)) * 100))}%` }}
+                                  />
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-6 py-5 text-center">
+                              <div className="flex flex-col items-center">
+                                <span className={`text-base font-black ${winRate >= 50 ? 'text-indigo-400' : 'text-zinc-400'}`}>
+                                  {winRate.toFixed(1)}%
+                                </span>
+                              </div>
+                            </td>
+                            <td className={`px-8 py-5 text-right font-black text-base ${profit >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                              <div className="flex flex-col items-end">
+                                <span>{profit.toFixed(2)}%</span>
+                                {t.profit_cash !== undefined && (
+                                  <span className="text-[10px] opacity-40 font-mono">
+                                    {Math.round(t.profit_cash).toLocaleString()} units
+                                  </span>
+                                )}
+                              </div>
+                            </td>
+                            <td className="px-8 py-5 text-center">
+                              <div className="flex flex-col items-center gap-3">
+                                {t.is_best ? (
+                                  <div className="flex flex-col items-center">
+                                    <span className="px-3 py-1 rounded-full bg-indigo-500 text-white text-[9px] font-black uppercase tracking-widest shadow-lg shadow-indigo-500/20 mb-2">
+                                      Best Model
+                                    </span>
+                                  </div>
+                                ) : (
+                                  <span className="text-[10px] text-zinc-600 font-black uppercase tracking-widest">Trial {index}</span>
+                                )}
+                                <button
+                                  onClick={() => handleVerifyCandidate(t, latestOpt)}
+                                  className="px-4 py-2 rounded-xl bg-white/5 hover:bg-indigo-500/20 text-zinc-500 hover:text-indigo-400 text-[10px] font-black uppercase border border-white/10 hover:border-indigo-500/30 transition-all flex items-center gap-2 group/btn"
+                                  title="Load parameters into Manual Backtest"
+                                >
+                                  <Eye className="h-3.5 w-3.5 transition-transform group-hover/btn:scale-110" />
+                                  Load Param
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      }).reverse();
+                    })()}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )
+      }
 
 
 
@@ -2136,7 +2138,7 @@ export default function BacktestTab() {
                 <th className="px-6 py-4 text-center">Thresholds</th>
                 <th className="px-6 py-4 text-center">Period</th>
                 <th className="px-6 py-4 text-center">Trades</th>
-                <th className="px-6 py-4 text-center">Win Rate</th>
+                <th className="px-6 py-4 text-center">Wins</th>
                 <th className="px-6 py-4 text-right">Profit %</th>
                 <th className="px-6 py-4 text-right">Profit (Cash)</th>
                 <th className="px-6 py-4 text-right">Index Win Rate</th>
@@ -2457,6 +2459,6 @@ export default function BacktestTab() {
         onConfirm={confirmConfig.onConfirm}
         variant="danger"
       />
-    </div>
+    </div >
   );
 }

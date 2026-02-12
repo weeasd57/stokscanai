@@ -176,9 +176,9 @@ export const TradeTimeline = ({ trades }: { trades: any[] }) => {
     },
     plotOptions: {
       bar: {
-        horizontal: true, // عشان تكون أشرطة أفقية زي itch.io
+        horizontal: true, // For horizontal bars similar to itch.io
         barHeight: '70%',
-        rangeBarGroupRows: false, // كل صفقة في سطر منفصل
+        rangeBarGroupRows: false, // Each trade in a separate row
         distributed: true,
         dataLabels: {
           hideOverflowingLabels: false
@@ -186,7 +186,7 @@ export const TradeTimeline = ({ trades }: { trades: any[] }) => {
       }
     },
     xaxis: {
-      type: 'datetime', // محور الوقت
+      type: 'datetime', // Time axis
       labels: {
         style: { colors: '#9CA3AF', fontSize: '11px' },
         datetimeUTC: false

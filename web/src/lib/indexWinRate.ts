@@ -11,10 +11,10 @@ interface IndexData {
 
 export function calculateIndexWinRate(startDate: string, endDate: string): number {
   try {
-    // في بيئة التطوير، سنقوم بقراءة الملف مباشرة
-    // في بيئة الإنتاج، يجب أن تكون هذه البيانات متاحة من API
+    // In development environment, we will read the file directly
+    // In production, this data should be available from API
 
-    // محاكاة بيانات EGX30 - يجب استبدالها بالبيانات الحقيقية
+    // Simulate EGX30 data - should be replaced with real data
     const mockIndexData: IndexData[] = [
       { date: "2024-01-01", symbol: "EGX:EGX30", open: 15000, high: 15200, low: 14800, close: 15100, volume: 0, adjusted_close: 15100 },
       { date: "2024-01-31", symbol: "EGX:EGX30", open: 15100, high: 15300, low: 14900, close: 15250, volume: 0, adjusted_close: 15250 },
@@ -22,11 +22,11 @@ export function calculateIndexWinRate(startDate: string, endDate: string): numbe
       { date: "2024-02-29", symbol: "EGX:EGX30", open: 15350, high: 15500, low: 15200, close: 15480, volume: 0, adjusted_close: 15480 },
     ];
 
-    // تحويل التواريخ
+    // Convert dates
     const start = new Date(startDate);
     const end = new Date(endDate);
 
-    // تصفية البيانات للفترة المطلوبة
+    // Filter data for the requested period
     const periodData = mockIndexData.filter(item => {
       const itemDate = new Date(item.date);
       return itemDate >= start && itemDate <= end;
@@ -36,12 +36,12 @@ export function calculateIndexWinRate(startDate: string, endDate: string): numbe
       return 0.0;
     }
 
-    // حساب نسبة التغيير
+    // Calculate percent change
     const startPrice = periodData[0].close;
     const endPrice = periodData[periodData.length - 1].close;
 
     const winRate = ((endPrice - startPrice) / startPrice) * 100;
-    return Math.round(winRate * 100) / 100; // تقريب لمنزلتين عشريتين
+    return Math.round(winRate * 100) / 100; // Round to 2 decimal places
 
   } catch (error) {
     console.error('Error calculating index win rate:', error);
@@ -73,12 +73,12 @@ export async function getIndexWinRateFromAPI(startDate: string, endDate: string)
 
   } catch (error) {
     console.error('Error fetching index win rate from API:', error);
-    // الرجوع إلى الحساب المحلي في حالة فشل API
+    // Fallback to local calculation if API fails
     return calculateIndexWinRate(startDate, endDate);
   }
 }
 
-// دالة مساعدة لتحسين أداء الحساب (تم تعطيل الكاش المحلي بناءً على طلب المستخدم)
+// Helper function to improve calculation performance (local cache disabled per user request)
 export function getCachedIndexWinRate(startDate: string, endDate: string): number {
   return calculateIndexWinRate(startDate, endDate);
 }

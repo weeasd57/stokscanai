@@ -428,7 +428,7 @@ def evaluate_open_positions_history(req: EvaluatePositionsRequest):
 
 @app.get("/")
 def root():
-    """صفحة رئيسية بسيطة لحل مشكلة 404 من UptimeRobot"""
+    """Simple root page to solve 404 issue from UptimeRobot"""
     return {
         "app": "Artoro API",
         "version": "1.0.0",

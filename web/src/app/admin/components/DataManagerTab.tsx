@@ -300,7 +300,9 @@ export default function DataManagerTab({
                     {/* Country Selector */}
                     <div className="rounded-xl border border-zinc-800 bg-zinc-950 p-5 space-y-4">
                         <div className="flex items-center justify-between">
-                            <h3 className="text-sm font-medium text-zinc-100">Market Select</h3>
+                            <h3 className="text-sm font-medium text-zinc-100 flex gap-2">
+                                <span>Market Select</span>
+                            </h3>
                             <Globe className="h-4 w-4 text-zinc-500" />
                         </div>
                         <div className="flex gap-2">
@@ -311,7 +313,9 @@ export default function DataManagerTab({
                                     : "bg-zinc-900 text-zinc-400 border-zinc-800 hover:bg-zinc-800"
                                     }`}
                             >
-                                GLOBAL
+                                <div className="flex flex-col">
+                                    <span className="text-[10px] font-black uppercase tracking-wider">GLOBAL</span>
+                                </div>
                             </button>
                             <button
                                 onClick={() => setMarketMode("crypto")}
@@ -320,7 +324,9 @@ export default function DataManagerTab({
                                     : "bg-zinc-900 text-zinc-400 border-zinc-800 hover:bg-zinc-800"
                                     }`}
                             >
-                                CRYPTO
+                                <div className="flex flex-col">
+                                    <span className="text-[10px] font-black uppercase tracking-wider">CRYPTO</span>
+                                </div>
                             </button>
                         </div>
 
@@ -411,7 +417,9 @@ export default function DataManagerTab({
 
                     {/* Data Source Switcher */}
                     <div className="rounded-xl border border-zinc-800 bg-zinc-950 p-5 space-y-4">
-                        <h3 className="text-sm font-medium text-zinc-100">Data Sources</h3>
+                        <h3 className="text-sm font-medium text-zinc-100 flex gap-2">
+                            <span>Data Sources</span>
+                        </h3>
 
                         {marketMode === "global" && (
                             <>
@@ -423,7 +431,9 @@ export default function DataManagerTab({
                                             : "bg-zinc-900 text-zinc-400 border-zinc-800 hover:bg-zinc-800"
                                             }`}
                                     >
-                                        Prices
+                                        <div className="flex flex-col">
+                                            <span className="text-[10px] font-black uppercase tracking-wider">Prices</span>
+                                        </div>
                                     </button>
                                     <button
                                         onClick={() => setDataSourcesTab("funds")}
@@ -432,7 +442,9 @@ export default function DataManagerTab({
                                             : "bg-zinc-900 text-zinc-400 border-zinc-800 hover:bg-zinc-800"
                                             }`}
                                     >
-                                        Funds
+                                        <div className="flex flex-col">
+                                            <span className="text-[10px] font-black uppercase tracking-wider">Funds</span>
+                                        </div>
                                     </button>
                                 </div>
 

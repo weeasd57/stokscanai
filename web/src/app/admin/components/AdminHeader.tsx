@@ -31,7 +31,7 @@ export default function AdminHeader({ activeMainTab, setActiveMainTab }: AdminHe
                                         key={tab.id}
                                         onClick={() => setActiveMainTab(tab.id as any)}
                                         className={`
-                                            relative px-4 md:px-6 py-2.5 rounded-xl text-[10px] md:text-xs font-black tracking-wider transition-all duration-300 flex items-center justify-center flex-1
+                                            relative px-3 md:px-5 py-2.5 rounded-xl transition-all duration-300 flex flex-col items-center justify-center flex-1 min-w-[100px]
                                             ${isActive
                                                 ? "text-white shadow-[0_0_20px_rgba(99,102,241,0.3)]"
                                                 : "text-zinc-500 hover:text-zinc-300 hover:bg-white/5"
@@ -41,7 +41,7 @@ export default function AdminHeader({ activeMainTab, setActiveMainTab }: AdminHe
                                         {isActive && (
                                             <div className="absolute inset-0 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl -z-10" />
                                         )}
-                                        {tab.label}
+                                        <span className="text-[9px] md:text-[10px] font-black tracking-wider uppercase">{tab.label}</span>
                                     </button>
                                 );
                             })}

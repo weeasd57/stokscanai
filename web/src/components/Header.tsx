@@ -9,7 +9,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 
 export default function Header() {
-    const { language, setLanguage, t } = useLanguage();
+    const { t } = useLanguage();
     const { user, signOut } = useAuth();
     const pathname = usePathname();
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -19,10 +19,6 @@ export default function Header() {
         setMobileMenuOpen(false);
         setAccountMenuOpen(false);
     }, [pathname]);
-
-    const toggleLanguage = () => {
-        setLanguage(language === "en" ? "ar" : "en");
-    };
 
     const navItems = [
         { href: "/", label: t("nav.home"), icon: <BarChart2 className="w-4 h-4" /> },
@@ -86,17 +82,6 @@ export default function Header() {
 
                     {/* Desktop Actions */}
                     <div className="flex items-center gap-2">
-                        {/* Language Switcher */}
-                        <button
-                            onClick={toggleLanguage}
-                            className="group relative flex items-center gap-2 h-9 px-4 rounded-xl border border-white/5 bg-white/5 text-[10px] font-bold uppercase tracking-widest text-zinc-400 transition-all hover:bg-white/10 hover:text-white sm:flex hidden"
-                        >
-                            <Globe className="h-3.5 w-3.5 transition-transform duration-700 group-hover:rotate-180" />
-                            {language === "en" ? "AR" : "EN"}
-                        </button>
-
-                        <div className="h-4 w-px bg-white/10 mx-1 hidden sm:block" />
-
                         {user ? (
                             <div className="relative">
                                 <button
@@ -174,15 +159,7 @@ export default function Header() {
 
                             <div className="h-px bg-white/5 my-2 mx-4" />
 
-                            <div className="flex items-center justify-between p-2">
-                                <button
-                                    onClick={toggleLanguage}
-                                    className="flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold uppercase text-zinc-400 hover:text-white"
-                                >
-                                    <Globe className="h-4 w-4" />
-                                    {language === "en" ? "العربية" : "English"}
-                                </button>
-
+                            <div className="flex items-center justify-end p-2">
                                 {!user && (
                                     <Link
                                         href="/login"

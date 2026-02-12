@@ -43,7 +43,7 @@
     "data_source": "binance",
     "max_open_positions": 3,
     "enable_sells": true,
-    "target_pct": 0.1,
+    "target_pct": 0.06,
     "stop_loss_pct": 0.04,
     "hold_max_bars": 20,
     "use_trailing": true,
@@ -78,12 +78,14 @@
     "winrate_lookback": 10,
     "winrate_low_threshold": 0.3,
     "winrate_high_threshold": 0.7,
+    "cooldown_minutes": 60,
     "use_time_filter": true,
     "use_quality_score": true,
     "min_quality_score": 65.0,
     "use_partial_positions": false,
     "partial_entry_pct": 0.6,
     "partial_exit_pct": 0.5,
+    "trading_mode": "hybrid",
     "king_model_path": "api/models/KING_CRYPTO \ud83d\udc51.pkl",
     "council_model_path": "api/models/COUNCIL_CRYPTO.pkl"
   }
