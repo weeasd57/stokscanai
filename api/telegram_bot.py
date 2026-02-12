@@ -245,29 +245,57 @@ class TelegramBot:
                 hook_path = f"{webhook_url.rstrip('/')}/tg-webhook/{self.token}"
                 self._log(f"Setting webhook to: {hook_path}")
                 # We don't use run_webhook because we want uvicorn to handle the HTTP
-                # Retry the ENTIRE init+webhook sequence since DNS may
-                # not be ready when the HF container first starts.
+                # Retry the ENTIRE init+webhook sequence.
+                # HF DNS can sometimes be very slow to start up.
                 async def _set_hook():
-                    max_retries = 5
+                    import socket
+                    import os
+                    
+                    # Diagnostic: Check for proxy settings
+                    http_proxy = os.environ.get('http_proxy') or os.environ.get('HTTP_PROXY')
+                    https_proxy = os.environ.get('https_proxy') or os.environ.get('HTTPS_PROXY')
+                    if http_proxy or https_proxy:
+                        self._log(f"Proxy detected: HTTP={http_proxy}, HTTPS={https_proxy}")
+
+                    max_retries = 30 # Try for up to ~15-20 minutes if needed
+                    self._log("Waiting 15s for network baseline...")
+                    await asyncio.sleep(15)
+                    
                     for attempt in range(1, max_retries + 1):
                         try:
+                            # DNS Diagnostic
+                            try:
+                                ip = socket.gethostbyname("api.telegram.org")
+                                self._log(f"DNS Check: api.telegram.org -> {ip}")
+                            except Exception as dns_err:
+                                self._log(f"DNS Check: Resolution failed: {dns_err}")
+                            
                             self._log(f"Telegram init attempt {attempt}/{max_retries}...")
-                            await self.application.initialize()
+                            
+                            # If we survived until here, try the real init
+                            if not getattr(self.application, "_initialized", False):
+                                await self.application.initialize()
+                            
                             await self.application.start()
                             await self.application.bot.set_webhook(url=hook_path)
-                            self._log("Webhook set successfully!")
+                            self._log("SUCCESS: Telegram Bot is fully initialized and Webhook is set!")
                             return
                         except Exception as e:
                             self._log(f"Attempt {attempt} failed: {e}")
-                            # Clean up partial init before retrying
+                            # Don't shutdown the app entirely, just stop if it started
                             try:
-                                await self.application.shutdown()
-                            except Exception:
+                                if self.application.running:
+                                    await self.application.stop()
+                            except:
                                 pass
+                            
                             if attempt == max_retries:
                                 raise
-                            self._log(f"Retrying in {attempt * 5}s...")
-                            await asyncio.sleep(attempt * 5)
+                            
+                            # Exponential backoff with a cap
+                            wait_time = min(attempt * 10, 60)
+                            self._log(f"Retrying in {wait_time}s...")
+                            await asyncio.sleep(wait_time)
                 
                 self.loop.run_until_complete(_set_hook())
                 # Keep loop running for async tasks but don't poll
