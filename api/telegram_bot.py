@@ -245,11 +245,11 @@ class TelegramBot:
                 hook_path = f"{webhook_url.rstrip('/')}/tg-webhook/{self.token}"
                 self._log(f"Setting webhook to: {hook_path}")
                 # We don't use run_webhook because we want uvicorn to handle the HTTP
-                # Just set the webhook and let it be
+                # Initialize first, THEN set the webhook
                 async def _set_hook():
-                    await self.application.bot.set_webhook(url=hook_path)
                     await self.application.initialize()
                     await self.application.start()
+                    await self.application.bot.set_webhook(url=hook_path)
                 
                 self.loop.run_until_complete(_set_hook())
                 # Keep loop running for async tasks but don't poll
