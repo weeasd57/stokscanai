@@ -51,13 +51,20 @@ class TelegramBot:
     async def handle_webhook_update(self, data: dict):
         """Processes an update received via webhook."""
         if not self.application:
+            self._log("Webhook received but application is not initialized.")
             return
         
         try:
+            self._log(f"Processing webhook update: {data.get('update_id')}")
             update = Update.de_json(data, self.application.bot)
+            
+            # Ensure we are in the right loop if possible, or just await
             await self.application.process_update(update)
+            self._log(f"Successfully processed update: {data.get('update_id')}")
         except Exception as e:
             self._log(f"Webhook processing error: {e}")
+            import traceback
+            traceback.print_exc()
 
     async def start_handler(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handles /start command."""

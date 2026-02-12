@@ -80,6 +80,7 @@ async def startup_event():
     
     # Initialize Telegram Bot if token exists
     tg_token = os.getenv("ARTORO_AI_BOT", "")
+    print(f"DEBUG: STARTUP - ARTORO_AI_BOT found: {'Yes' if tg_token else 'No'}")
     if tg_token:
         try:
             from api.telegram_bot import start_telegram_bridge
@@ -88,9 +89,11 @@ async def startup_event():
             bot_manager.set_telegram_bridge(bridge)
             # Store in app state for cleanup
             app.state.telegram_bridge = bridge
-            print("Telegram Bot bridge started successfully.")
+            print("DEBUG: Telegram Bot bridge started and attached to app.state.")
         except Exception as e:
-            print(f"Failed to start Telegram Bot bridge: {e}")
+            print(f"DEBUG ERROR: Failed to start Telegram Bot bridge: {e}")
+            import traceback
+            traceback.print_exc()
 
 @app.on_event("shutdown")
 async def shutdown_event():
@@ -122,22 +125,25 @@ app.include_router(bot.router, prefix="/ai_bot")
 app.include_router(bot.router, prefix="/bot") # Compatibility Alias
 
 @app.post("/tg-webhook/{token}")
-async def telegram_webhook(token: str, request: Request):
+async def telegram_webhook(token: str, request: Request, background_tasks: BackgroundTasks):
     """Endpoint for Telegram Webhooks."""
     from api.live_bot import bot_manager
     bridge = getattr(app.state, "telegram_bridge", None) or getattr(bot_manager, "_telegram_bridge", None)
 
     if not bridge:
+        # Detailed 503 logging
+        has_state = hasattr(app.state, "telegram_bridge")
+        has_manager = bot_manager._telegram_bridge is not None
+        print(f"WEBHOOK 503: Bridge not found. State={has_state}, Manager={has_manager}")
         raise HTTPException(status_code=503, detail="Telegram bridge not active")
     
     if token != bridge.token:
+        print(f"WEBHOOK 403: Token mismatch. Received: {token[:5]}... Expected: {bridge.token[:5]}...")
         raise HTTPException(status_code=403, detail="Invalid token")
     
     data = await request.json()
     # Process in background task to avoid blocking Telegram
-    from fastapi import BackgroundTasks
-    bt = BackgroundTasks()
-    bt.add_task(bridge.handle_webhook_update, data)
+    background_tasks.add_task(bridge.handle_webhook_update, data)
     
     return {"ok": True}
 

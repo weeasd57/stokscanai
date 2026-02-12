@@ -1217,7 +1217,9 @@ class LiveBot:
         """
         try:
             positions = list(self.api.list_positions() or [])
-        except Exception:
+            self._log(f"DEBUG: Found {len(positions)} total positions in Alpaca account.")
+        except Exception as e:
+            self._log(f"DEBUG ERROR: Failed to fetch positions at startup: {e}")
             return
 
         if not positions:
@@ -1228,41 +1230,43 @@ class LiveBot:
 
         added = 0
         for p in positions:
-            sym = _format_symbol_for_bot(str(getattr(p, "symbol", "") or ""))
+            raw_sym = str(getattr(p, "symbol", "") or "")
+            sym = _format_symbol_for_bot(raw_sym)
             if not sym:
                 continue
             n = _normalize_symbol(sym)
             if n in existing_norm:
+                self._log(f"DEBUG: {sym} ({raw_sym}) already in config.")
                 continue
             existing.append(sym)
             existing_norm.add(n)
             added += 1
+            self._log(f"DEBUG: Auto-adding {sym} from open positions.")
 
         if added:
             self.config.coins = existing
-            self._log(f"Included {added} open Alpaca position(s) into coin list.")
+            self._log(f"Synced: Included {added} open Alpaca position(s) into coin list.")
 
     def _sync_pos_state(self):
         """
         Sync internal _pos_state with actual Alpaca positions.
-        Removes symbols from _pos_state that no longer have open positions in Alpaca.
-        Ensures the total_managed count used by Risk Firewall is accurate.
         """
-        # Skip sync if we are in Telegram mode (virtual positions only)
         if self.config.execution_mode == "TELEGRAM":
             return
 
         try:
-            # Check active positions
             positions = self.api.list_positions()
             current_alpaca_norms = set()
+            
+            p_list = []
             for p in positions:
                 sym = str(getattr(p, "symbol", "") or "")
                 norm = _normalize_symbol(sym)
                 current_alpaca_norms.add(norm)
+                p_list.append(norm)
                 
-                # If we have it in Alpaca but not in _pos_state, add a basic entry
                 if norm not in self._pos_state:
+                    self._log(f"Sync: New position found for {sym}. Adding to internal state.")
                     self._pos_state[norm] = {
                         "entry_price": float(getattr(p, "avg_entry_price", 0)),
                         "entry_ts": datetime.now(timezone.utc).isoformat(),
@@ -1271,22 +1275,26 @@ class LiveBot:
                         "trail_mode": "NONE",
                     }
 
-            # Check open orders (to prevent pruning symbols in-flight)
+            # Check open orders
             orders = self.api.list_orders(status="open")
             for o in orders:
                 sym = str(getattr(o, "symbol", "") or "")
                 current_alpaca_norms.add(_normalize_symbol(sym))
             
-            # Remove symbols from _pos_state that are NOT in Alpaca (positions or orders)
+            # Prune closed positions
             to_remove = [norm for norm in self._pos_state if norm not in current_alpaca_norms]
             for norm in to_remove:
-                # Extra check: don't remove if it was added in the last 60 seconds (protection for race conditions)
-                # But here we just use alpaca_norms union of pos + orders which is usually enough.
-                self._log(f"Sync: Removing {norm} from internal state (no longer in Alpaca).")
+                self._log(f"Sync: Pruning {norm} (no longer in Alpaca).")
                 self._pos_state.pop(norm, None)
                 
+            # Periodic debug log
+            if datetime.now().minute % 5 == 0: # Every 5 mins
+                 self._log(f"DEBUG POS SYNC: Alpaca({len(p_list)})={p_list} | Bot({len(self._pos_state)})={list(self._pos_state.keys())}")
+                
         except Exception as e:
-            self._log(f"Sync Error: Failed to synchronize position state: {e}")
+            self._log(f"Sync Error: {e}")
+            import traceback
+            traceback.print_exc()
 
     def _align_for_king(self, X_src: pd.DataFrame, king_artifact: object) -> pd.DataFrame:
         if not isinstance(X_src, pd.DataFrame):
