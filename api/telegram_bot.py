@@ -4,14 +4,11 @@ import threading
 import logging
 from datetime import datetime
 from typing import Optional
-import nest_asyncio
+# import nest_asyncio
 from telegram import Update, Bot
 from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters
 from pathlib import Path
 import json
-
-# nest_asyncio is often problematic in uvicorn environments on Windows
-# nest_asyncio.apply()
 
 # Configure logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)

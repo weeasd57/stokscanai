@@ -1898,16 +1898,19 @@ class LiveBot:
             if not self.config.alpaca_key_id or not self.config.alpaca_secret_key:
                  raise ValueError("Alpaca API keys missing in config/env")
 
+            self._log("DEBUG: Creating Alpaca client...")
             self.api = create_alpaca_client(
                 key_id=self.config.alpaca_key_id,
                 secret_key=self.config.alpaca_secret_key,
                 base_url=self.config.alpaca_base_url,
                 logger=self._log,
             )
+            self._log("DEBUG: Alpaca client created successfully.")
 
             self._current_activity = "Syncing positions"
-            # Auto-include open positions so sells are managed even if not in LIVE_COINS.
+            self._log("DEBUG: Entering _include_open_positions_in_coins...")
             self._include_open_positions_in_coins()
+            self._log("DEBUG: Finished initial position inclusion.")
 
             self._current_activity = "Loading models"
             self.king_obj, self.king_clf, self.validator = self._load_models()

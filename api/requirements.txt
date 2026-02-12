@@ -18,4 +18,3 @@ ta
 xgboost==2.1.3
 alpaca-py
 python-telegram-bot>=21.0
-nest-asyncio
