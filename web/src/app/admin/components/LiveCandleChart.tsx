@@ -76,27 +76,24 @@ export default function LiveCandleChart({
                     volumeSeriesRef.current.setData(volumeData);
                 }
 
-                // Update markers
-                if (data.markers && data.markers.length > 0) {
-                    // Filter markers to ensure they are within the time range of candles
-                    const candleTimes = new Set(data.candles.map((c: any) => c.time));
-                    const validMarkers = data.markers
-                        .filter((m: any) => candleTimes.has(m.time))
-                        .sort((a: any, b: any) => a.time - b.time);
+                // Update markers with snapping to candle times
+                if (data.markers && data.markers.length > 0 && data.candles.length > 0) {
+                    const candleTimes = data.candles.map((c: any) => c.time);
+                    const validMarkers = data.markers.map((m: any) => {
+                        // Find the nearest preceding candle time
+                        const nearestTime = candleTimes.reduce((prev: number, curr: number) => {
+                            return (curr <= m.time) ? curr : prev;
+                        }, candleTimes[0]);
+
+                        return {
+                            ...m,
+                            time: nearestTime
+                        };
+                    }).sort((a: any, b: any) => a.time - b.time);
 
                     candleSeriesRef.current.setMarkers(validMarkers);
-                }
-
-                // Add entry price line if exists
-                if (data.entry_price) {
-                    candleSeriesRef.current.createPriceLine({
-                        price: data.entry_price,
-                        color: "#22c55e",
-                        lineWidth: 1,
-                        lineStyle: 2,
-                        axisLabelVisible: true,
-                        title: "ENTRY",
-                    });
+                } else if (candleSeriesRef.current) {
+                    candleSeriesRef.current.setMarkers([]);
                 }
             }
             setError(null);
@@ -142,8 +139,6 @@ export default function LiveCandleChart({
             handleScale: { mouseWheel: true, pinch: true },
         });
 
-        console.log(`[Chart] Created for ${symbol}`);
-
         const candleSeries = chart.addCandlestickSeries({
             upColor: "#22c55e",
             downColor: "#ef4444",
@@ -172,7 +167,7 @@ export default function LiveCandleChart({
         if (autoRefresh) {
             interval = setInterval(() => {
                 if (chartRef.current) fetchData();
-            }, 15000);
+            }, 10000);
         }
 
         const handleResize = () => {
@@ -182,12 +177,9 @@ export default function LiveCandleChart({
         };
 
         window.addEventListener("resize", handleResize);
-
-        // Resize when maximization state changes
         const resizeTimeout = setTimeout(handleResize, 100);
 
         return () => {
-            console.log(`[Chart] Cleaning up for ${symbol}`);
             window.removeEventListener("resize", handleResize);
             clearTimeout(resizeTimeout);
             if (interval) clearInterval(interval);
@@ -199,7 +191,7 @@ export default function LiveCandleChart({
                 volumeSeriesRef.current = null;
             }
         };
-    }, [symbol, botId, autoRefresh, isMaximized]); // Added isMaximized to trigger resize
+    }, [symbol, botId, autoRefresh, isMaximized]);
 
     return (
         <div className={`relative bg-zinc-900/40 border border-zinc-800 rounded-2xl flex flex-col group transition-all ${isMaximized ? 'fixed inset-4 z-50 bg-black/95 shadow-2xl' : ''}`}

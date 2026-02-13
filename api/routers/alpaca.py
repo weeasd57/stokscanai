@@ -470,11 +470,15 @@ def get_orders(
         
         client = get_alpaca_client()
         
-        status_enum = OrderStatus.ALL
+        # Use string directly or handle OrderStatus.ALL safely
+        status_enum = None
         if status == "open":
             status_enum = OrderStatus.OPEN
         elif status == "closed":
             status_enum = OrderStatus.CLOSED
+        else:
+            # For "all", many alpaca-py versions prefer the string "all" or None
+            status_enum = "all"
             
         req = GetOrdersRequest(
             status=status_enum,

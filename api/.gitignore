@@ -7,7 +7,7 @@ __pycache__/
 .ruff_cache/
 .env
 .ipynb_checkpoints/
-models/*.pkl
+# models/*.pkl
 node_modules/
 dist/
 build/
