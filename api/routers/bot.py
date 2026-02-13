@@ -67,6 +67,17 @@ def stop_bot(bot_id: str = "primary"):
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
+@router.post("/clear_logs")
+def clear_bot_logs(bot_id: str = "primary"):
+    try:
+        bot = bot_manager.get_bot(bot_id)
+        if not bot:
+            raise HTTPException(status_code=404, detail=f"Bot {bot_id} not found")
+        bot.clear_logs()
+        return {"status": "cleared", "bot_id": bot_id}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
 @router.get("/status")
 def get_bot_status(bot_id: str = "primary"):
     try:

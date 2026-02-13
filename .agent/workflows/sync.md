@@ -1,14 +1,14 @@
 ---
-description: Mirror the root api/ folder to AI_BOT/api and validate syntax
+description: Validate api/ folder and deploy to Hugging Face Space
 ---
 
 // turbo-all
-1. Mirror the folder using robocopy
+1. Validate Python syntax in the api folder
 ```powershell
-robocopy api AI_BOT\api /MIR /XD __pycache__ .pytest_cache .mypy_cache .ruff_cache /XF *.pyc /R:1 /W:1
+cd api; py -m py_compile (Get-ChildItem -Recurse -Filter *.py | % FullName)
 ```
 
-2. Validate the mirrored Python files syntax
+2. Push updates to Hugging Face
 ```powershell
-cd "AI_BOT\api"; py -m py_compile (Get-ChildItem -Recurse -Filter *.py | % FullName)
+cd api; git add .; git commit -m "Manual sync and deploy"; git push hf master:main --force
 ```

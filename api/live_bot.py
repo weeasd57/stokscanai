@@ -1018,6 +1018,17 @@ class LiveBot:
         except Exception as e:
             print(f"Stats Error: {e}")
 
+    def clear_logs(self):
+        with self._lock:
+            self._logs.clear()
+            # Clear from Supabase if enabled
+            try:
+                from api.stock_ai import supabase
+                supabase.table("bot_logs").delete().eq("bot_id", self.bot_id).execute()
+            except Exception as e:
+                print(f"Error clearing Supabase logs: {e}")
+            self._log("Logs cleared by user (local + database).")
+
     def _log(self, msg: str):
         ts = datetime.now().strftime("%H:%M:%S")
         line = f"[{self.config.name}] [{ts}] {msg}"

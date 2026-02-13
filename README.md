@@ -91,29 +91,26 @@ This repo also supports training a lightweight validator that learns when a base
 - Use in backtest: `py api/backtest_radar.py --exchange EGX --model "collector 🎁.pkl" --validator "The_Council_Validator.pkl"`
 
 
+## � Deployment (Hugging Face Spaces)
 
+The backend is deployed as a Docker container on Hugging Face Spaces. The `api/` folder is the single source of truth.
 
+### How to Deploy Updates
 
+1. **Navigate to the API folder**:
+   ```powershell
+   cd "C:\Users\MR_CODER\Desktop\AI stocks\api"
+   ```
 
-## 🔁 Sync `api/` → `AI_BOT/api` (Local)
+2. **Commit and Push**:
+   ```powershell
+   git add .
+   git commit -m "Update API features"
+   git push hf master:main --force
+   ```
 
-Use these PowerShell commands to mirror your root `api/` folder into `AI_BOT/api` and then validate Python syntax.
-
-```powershell
-# Option A (recommended): run directly in your current PowerShell
-cd "C:\Users\MR_CODER\Desktop\AI stocks"
-robocopy api AI_BOT\api /MIR /XD __pycache__ .pytest_cache .mypy_cache .ruff_cache /XF *.pyc /R:1 /W:1
-
-cd "C:\Users\MR_CODER\Desktop\AI stocks\AI_BOT"
-py -m py_compile (Get-ChildItem -Recurse -Filter *.py | % FullName)
-
-# Option B: run as one-liners via PowerShell 7 (pwsh.exe)
-& "C:\Program Files\PowerShell\7\pwsh.exe" -NoProfile -Command "cd 'c:\Users\MR_CODER\Desktop\AI stocks'; 
-✔
-robocopy api AI_BOT\api /MIR /XD __pycache__ .pytest_cache .mypy_cache .ruff_cache /XF *.pyc /R:1 /W:1"
-
-& "C:\Program Files\PowerShell\7\pwsh.exe" -NoProfile -Command "cd 'c:\Users\MR_CODER\Desktop\AI stocks\AI_BOT'; py -m py_compile (Get-ChildItem -Recurse -Filter *.py | % FullName)"
-```
+> [!NOTE]
+> The `AI_BOT` folder was removed to avoid duplication. Always work within the root `api/` directory.
 
 
 ## 🤝 Contributing

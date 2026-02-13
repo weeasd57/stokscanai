@@ -180,6 +180,20 @@ export default function LiveBotTab() {
         });
     };
 
+    const handleClearLogs = async () => {
+        try {
+            const res = await fetch(`/api/ai_bot/clear_logs?bot_id=${selectedBotId}`, { method: "POST" });
+            if (!res.ok) throw new Error("Failed to clear logs");
+
+            // Optimistically clear local state
+            setStatus(prev => prev ? { ...prev, logs: [] } : null);
+            toast.success("Logs cleared");
+        } catch (error) {
+            console.error(error);
+            toast.error("Failed to clear logs");
+        }
+    };
+
 
     const fetchAccount = async (silent = false) => {
         if (!silent) setAlpacaAccountLoading(true);
@@ -1681,6 +1695,14 @@ export default function LiveBotTab() {
                                             title="Copy all logs"
                                         >
                                             {copyingLogs ? <CheckCheck className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                                        </button>
+
+                                        <button
+                                            onClick={handleClearLogs}
+                                            className="p-1.5 rounded-lg transition-all hover:bg-red-500/20 text-zinc-500 hover:text-red-400"
+                                            title="Clear logs"
+                                        >
+                                            <Trash2 className="w-4 h-4" />
                                         </button>
 
                                         <div className="w-[1px] h-4 bg-zinc-800 mx-1" />
