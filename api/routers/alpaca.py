@@ -60,6 +60,29 @@ class AlpacaPositionInfo(BaseModel):
     unrealized_intraday_pl: Optional[str] = None
     unrealized_pl: Optional[str] = None
 
+class AlpacaOrderInfo(BaseModel):
+    id: str
+    client_order_id: str
+    created_at: str
+    updated_at: Optional[str] = None
+    submitted_at: Optional[str] = None
+    filled_at: Optional[str] = None
+    expired_at: Optional[str] = None
+    cancel_requested_at: Optional[str] = None
+    canceled_at: Optional[str] = None
+    failed_at: Optional[str] = None
+    replaced_at: Optional[str] = None
+    order_type: str
+    side: str
+    time_in_force: str
+    limit_price: Optional[str] = None
+    stop_price: Optional[str] = None
+    filled_avg_price: Optional[str] = None
+    status: str
+    symbol: str
+    qty: str
+    filled_qty: str
+
 class SyncRequest(BaseModel):
     symbols: List[str]
     asset_class: Optional[Literal["us_equity", "crypto"]] = "us_equity"
@@ -430,6 +453,63 @@ def get_positions():
                     "unrealized_pl": str(getattr(p, "unrealized_pl", "")) if getattr(p, "unrealized_pl", None) is not None else None,
                 }
             )
+        return out
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/orders", response_model=List[AlpacaOrderInfo])
+def get_orders(
+    status: str = Query("all", description="order status: open, closed, or all"),
+    limit: int = Query(50, ge=1, le=500),
+    after: Optional[str] = Query(None, description="The response will include only orders submitted after this date"),
+    until: Optional[str] = Query(None, description="The response will include only orders submitted until this date"),
+):
+    try:
+        from alpaca.trading.requests import GetOrdersRequest
+        from alpaca.trading.enums import OrderStatus
+        
+        client = get_alpaca_client()
+        
+        status_enum = OrderStatus.ALL
+        if status == "open":
+            status_enum = OrderStatus.OPEN
+        elif status == "closed":
+            status_enum = OrderStatus.CLOSED
+            
+        req = GetOrdersRequest(
+            status=status_enum,
+            limit=limit,
+            after=_safe_dt(after),
+            until=_safe_dt(until)
+        )
+        
+        orders = client.get_orders(req)
+        out = []
+        for o in orders:
+            out.append({
+                "id": str(o.id),
+                "client_order_id": str(o.client_order_id),
+                "created_at": str(o.created_at),
+                "updated_at": str(o.updated_at) if o.updated_at else None,
+                "submitted_at": str(o.submitted_at) if o.submitted_at else None,
+                "filled_at": str(o.filled_at) if o.filled_at else None,
+                "expired_at": str(o.expired_at) if o.expired_at else None,
+                "cancel_requested_at": str(o.cancel_requested_at) if o.cancel_requested_at else None,
+                "canceled_at": str(o.canceled_at) if o.canceled_at else None,
+                "failed_at": str(o.failed_at) if o.failed_at else None,
+                "replaced_at": str(o.replaced_at) if o.replaced_at else None,
+                "order_type": str(o.order_type.value) if hasattr(o.order_type, "value") else str(o.order_type),
+                "side": str(o.side.value) if hasattr(o.side, "value") else str(o.side),
+                "time_in_force": str(o.time_in_force.value) if hasattr(o.time_in_force, "value") else str(o.time_in_force),
+                "limit_price": str(o.limit_price) if o.limit_price else None,
+                "stop_price": str(o.stop_price) if o.stop_price else None,
+                "filled_avg_price": str(o.filled_avg_price) if o.filled_avg_price else None,
+                "status": str(o.status.value) if hasattr(o.status, "value") else str(o.status),
+                "symbol": str(o.symbol),
+                "qty": str(o.qty),
+                "filled_qty": str(o.filled_qty),
+            })
+            
         return out
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

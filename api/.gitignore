@@ -1,0 +1,16 @@
+__pycache__/
+*.pyc
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.env
+.ipynb_checkpoints/
+models/*.pkl
+node_modules/
+dist/
+build/
+*.log
+.git/
+api/.git/

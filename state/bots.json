@@ -41,7 +41,7 @@
     "timeframe": "1Hour",
     "use_council": false,
     "data_source": "binance",
-    "max_open_positions": 3,
+    "max_open_positions": 5,
     "enable_sells": true,
     "target_pct": 0.06,
     "stop_loss_pct": 0.04,
@@ -50,7 +50,7 @@
     "trail_be_pct": 0.05,
     "trail_lock_trigger_pct": 0.08,
     "trail_lock_pct": 0.05,
-    "save_to_supabase": false,
+    "save_to_supabase": true,
     "save_trades_to_supabase": true,
     "daily_loss_limit": 500.0,
     "max_consecutive_losses": 3,
@@ -85,7 +85,7 @@
     "use_partial_positions": false,
     "partial_entry_pct": 0.6,
     "partial_exit_pct": 0.5,
-    "trading_mode": "hybrid",
+    "trading_mode": "aggressive",
     "king_model_path": "api/models/KING_CRYPTO \ud83d\udc51.pkl",
     "council_model_path": "api/models/COUNCIL_CRYPTO.pkl"
   }

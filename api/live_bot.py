@@ -274,6 +274,8 @@ class LiveBot:
         self._pos_state: Dict[str, Dict[str, Any]] = {}
         # Cooldown tracker
         self._cooldowns: Dict[str, datetime] = {}
+        # Track last saved bar timestamp per symbol to avoid redundant Supabase writes
+        self._last_save_bars_ts: Dict[str, str] = {}
 
         # Risk & Limits Trackers
         self._consecutive_losses = 0
@@ -1657,6 +1659,15 @@ class LiveBot:
             exchange = "CRYPTO"
             timeframe = _to_intraday_timeframe(getattr(self.config, "timeframe", "") or "")
             
+            # Logic: Only save if the latest bar's timestamp has changed.
+            # This keeps the DB storage aligned with the Timeframe, not the Poll Interval.
+            latest_bar = bars.iloc[-1]
+            latest_ts = str(latest_bar.get("timestamp") or getattr(latest_bar, "name", ""))
+            
+            if self._last_save_bars_ts.get(symbol) == latest_ts:
+                # Already saved this bar, skip redundant upsert
+                return
+                
             rows = []
             # Make sure we have timestamp
             df = bars.reset_index() if "timestamp" not in bars.columns else bars.copy()
@@ -1669,7 +1680,7 @@ class LiveBot:
                 ts_str = ts.isoformat() if hasattr(ts, "isoformat") else str(ts)
                 
                 record = {
-                    "symbol": symbol.split("/")[0],
+                    "symbol": symbol,
                     "exchange": exchange,
                     "timeframe": timeframe,
                     "ts": ts_str,
@@ -1693,6 +1704,7 @@ class LiveBot:
                 rows = list(deduped.values())
 
                 _supabase_upsert_with_retry("stock_bars_intraday", rows, on_conflict="symbol,exchange,timeframe,ts")
+                self._last_save_bars_ts[symbol] = latest_ts
                 # self._log(f"Saved {len(rows)} bars for {symbol} to DB.")
 
         except Exception as e:
@@ -1746,16 +1758,17 @@ class LiveBot:
                 "price": avg_fill,
                 "entry_price": avg_fill,
                 "pnl": 0.0,
-                "order_id": getattr(order, "id", "unknown")
+                "order_id": str(getattr(order, "id", "unknown"))
             }
             self._trades.append(trade)
             self._save_trade_persistent(trade)
             
             if self.telegram_bridge:
+                price_str = f"${avg_fill:.2f}" if avg_fill else "pending fill"
                 self.telegram_bridge.send_notification(
                     f"🟢 *BUY EXECUTED*\n\n"
                     f"Symbol: {symbol}\n"
-                    f"Price: ${avg_fill:.2f}\n"
+                    f"Price: {price_str}\n"
                     f"Amount: ${float(notional_usd):.2f}"
                 )
             return True
@@ -1798,17 +1811,18 @@ class LiveBot:
                 "price": fill_price,
                 "entry_price": entry_price,
                 "pnl": pnl,
-                "order_id": getattr(order, "id", "unknown"),
+                "order_id": str(getattr(order, "id", "unknown")),
             }
             self._trades.append(trade)
             self._save_trade_persistent(trade)
             
             if self.telegram_bridge:
                 emoji = "🟢" if pnl > 0 else "🔴"
+                exit_str = f"${fill_price:.2f}" if fill_price else "pending fill"
                 self.telegram_bridge.send_notification(
                     f"{emoji} *SELL EXECUTED*\n\n"
                     f"Symbol: {symbol}\n"
-                    f"Exit Price: ${fill_price:.2f}\n"
+                    f"Exit Price: {exit_str}\n"
                     f"PnL: ${pnl:.2f}\n"
                     f"📊 Daily PnL: ${self._daily_loss:.2f}"
                 )
@@ -1921,7 +1935,16 @@ class LiveBot:
                 current_stop = be_price
                 trail_mode = "BE"
 
-        bars_held = int(state.get("bars_held") or 0) + 1
+        # Logic: Only increment bars_held when we see a NEW bar timestamp.
+        # This ensures the hold time is based on the Timeframe (e.g. 1h) and not the Poll Interval.
+        current_ts = str(last.get("timestamp") or getattr(last, "name", ""))
+        last_held_ts = state.get("last_held_ts")
+        bars_held = int(state.get("bars_held") or 0)
+        
+        if current_ts != last_held_ts:
+            bars_held += 1
+            state["last_held_ts"] = current_ts # update for next cycle
+
         if bars_held >= int(self.config.hold_max_bars):
             self._log(f"{symbol}: SELL (TIME) qty={qty} bars={bars_held} close={close:.6f}")
             if self.config.execution_mode == "TELEGRAM":
@@ -1936,6 +1959,7 @@ class LiveBot:
             **state,
             "entry_price": entry_price,
             "bars_held": bars_held,
+            "last_held_ts": current_ts,
             "current_stop": float(current_stop),
             "trail_mode": trail_mode,
         }
@@ -2247,32 +2271,76 @@ class BotManager:
             bot.set_telegram_bridge(bridge)
 
     def _load_bots(self):
-        """Load bot configurations from state/bots.json."""
-        if self._state_file.exists():
-            try:
-                with open(self._state_file, "r", encoding="utf-8") as f:
-                    data = json.load(f)
-                    for bot_id, config_dict in data.items():
+        """Load bot configurations from Supabase (primary) or state/bots.json (fallback)."""
+        loaded_ids = set()
+        
+        # 1. Try loading from Supabase first
+        try:
+            def _fetch_configs(sb):
+                return sb.table("bot_configs").select("*").execute()
+            
+            res = _supabase_read_with_retry(_fetch_configs, table_name="bot_configs")
+            if res and res.data:
+                for row in res.data:
+                    bot_id = row.get("bot_id")
+                    config_dict = row.get("config", {})
+                    if bot_id and config_dict:
                         # Handle list to dict migration if needed
                         if "coins" in config_dict and isinstance(config_dict["coins"], str):
                             config_dict["coins"] = _parse_coins(config_dict["coins"])
                         
                         cfg = BotConfig(**config_dict)
                         self._bots[bot_id] = LiveBot(bot_id=bot_id, config=cfg)
+                        loaded_ids.add(bot_id)
+                if loaded_ids:
+                    print(f"Loaded {len(loaded_ids)} bot(s) from Supabase.")
+        except Exception as e:
+            print(f"Supabase bot load error: {e}")
+
+        # 2. Fallback to local file for any missing bots or if Supabase failed
+        if self._state_file.exists():
+            try:
+                with open(self._state_file, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                    for bot_id, config_dict in data.items():
+                        if bot_id in loaded_ids:
+                            continue # Supabase version takes precedence
+                        
+                        # Handle list to dict migration if needed
+                        if "coins" in config_dict and isinstance(config_dict["coins"], str):
+                            config_dict["coins"] = _parse_coins(config_dict["coins"])
+                        
+                        cfg = BotConfig(**config_dict)
+                        self._bots[bot_id] = LiveBot(bot_id=bot_id, config=cfg)
+                        loaded_ids.add(bot_id)
             except Exception as e:
-                print(f"Error loading bots: {e}")
+                print(f"Error loading local bots: {e}")
         
         # Ensure a 'primary' bot exists if none loaded
         if "primary" not in self._bots:
             self.create_bot("primary", "Primary Bot")
 
     def save_bots(self):
-        """Save all bot configurations."""
+        """Save all bot configurations locally and to Supabase."""
         try:
+            # 1. Save local backup
             self._state_file.parent.mkdir(exist_ok=True)
             data = {bid: asdict(bot.config) for bid, bot in self._bots.items()}
             with open(self._state_file, "w", encoding="utf-8") as f:
                 json.dump(data, f, indent=2)
+            
+            # 2. Sync to Supabase
+            records = []
+            for bid, bot in self._bots.items():
+                records.append({
+                    "bot_id": bid,
+                    "config": asdict(bot.config),
+                    "updated_at": datetime.now(timezone.utc).isoformat()
+                })
+            
+            if records:
+                _supabase_upsert_with_retry("bot_configs", records, on_conflict="bot_id")
+                
         except Exception as e:
             print(f"Error saving bots: {e}")
 

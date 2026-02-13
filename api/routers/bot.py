@@ -556,6 +556,13 @@ def get_candles(symbol: str, bot_id: str = "primary", limit: int = 200):
         if not supabase:
             raise HTTPException(status_code=503, detail="Supabase not available")
 
+        # Get the bot instance early to avoid UnboundLocalErrors
+        bot = None
+        try:
+            bot = bot_manager.get_bot(bot_id)
+        except Exception:
+            pass
+
         # Try to resolve normalized symbol (e.g. BATUSD -> BAT/USD) using bot config
         if bot and hasattr(bot.config, "coins") and bot.config.coins:
             # Create map of normalized -> original
@@ -565,55 +572,46 @@ def get_candles(symbol: str, bot_id: str = "primary", limit: int = 200):
                 symbol = norm_map[clean_sym]
                 print(f"DEBUG: Resolved {clean_sym} to {symbol}")
 
-        # The bot stores symbol as BTC (without /USD suffix) in stock_bars_intraday
-        db_symbol = symbol.split("/")[0] if "/" in symbol else symbol
+        # The bot stores crypto symbols WITH the /USD suffix in stock_bars_intraday
+        # Only split for stocks if needed, but for crypto we keep it as is (e.g. BTC/USD)
+        db_symbol = symbol
 
         # Get the bot's timeframe config so we query the right data
-        bot = bot_manager.get_bot(bot_id)
         timeframe = "15Min"
         if bot:
             raw_tf = getattr(bot.config, "timeframe", "15Min") or "15Min"
-            # Map common formats to DB format
+            # Map common formats to DB format (matching supabase keys)
             tf_map = {
-                "1min": "1Min", "5min": "5Min", "15min": "15Min", "30min": "30Min",
-                "1h": "1Hour", "1hour": "1Hour", "4h": "4Hour", "4hour": "4Hour",
-                "1d": "1Day", "1day": "1Day",
-                "1Min": "1Min", "5Min": "5Min", "15Min": "15Min", "30Min": "30Min",
-                "1Hour": "1Hour", "4Hour": "4Hour", "1Day": "1Day",
+                "1min": "1m", "5min": "5m", "15min": "15m", "30min": "30m",
+                "1h": "1h", "1hour": "1h", "4h": "4h", "4hour": "4h",
+                "1d": "1d", "1day": "1d",
             }
-            timeframe = tf_map.get(raw_tf.lower(), raw_tf) if raw_tf else "15Min"
+            timeframe = tf_map.get(raw_tf.lower(), raw_tf) if raw_tf else "15m"
 
-        # Determine exchange - simple heuristic: if it has /USD or /USDT it's crypto, 
-        # unless it's a known stock format. In this bot, Cryptos are often /USD.
-        exchange = "CRYPTO"
+        # Determine exchange - simple heuristic: if it has /USD or /USDT it's crypto.
+        # Improved: Symbols ending in USD or USDT are also likely crypto.
+        is_crypto = "/" in symbol or symbol.upper().endswith("USD") or symbol.upper().endswith("USDT")
+        
+        exchange = "CRYPTO" if is_crypto else "US"
+        
         if bot:
             ds = getattr(bot.config, "data_source", "").lower()
-            if "alpaca" in ds and "/" not in symbol:
+            # If alpaca is source but it doesn't look like crypto, assume US Stock
+            if "alpaca" in ds and not is_crypto:
                 exchange = "US"
-        elif "/" not in symbol:
-            exchange = "US"
 
-        # Query OHLC data with retry
-        MAX_RETRIES = 2
-        candles_resp = None
-        for attempt in range(MAX_RETRIES):
-            try:
-                candles_resp = supabase.table("stock_bars_intraday") \
-                    .select("ts,open,high,low,close,volume") \
-                    .eq("symbol", db_symbol) \
-                    .eq("exchange", exchange) \
-                    .eq("timeframe", timeframe) \
-                    .order("ts", desc=True) \
-                    .limit(limit) \
-                    .execute()
-                break # Success
-            except Exception as e:
-                print(f"DEBUG: Candle fetch attempt {attempt+1} failed: {e}")
-                if attempt == MAX_RETRIES - 1:
-                    pass # Allow empty result fallback or bubbling
-                else:
-                    import time # Import time for sleep
-                    time.sleep(0.5)
+        # Query OHLC data with centralized retry logic
+        def fetch_bars(sb):
+            return sb.table("stock_bars_intraday") \
+                .select("ts,open,high,low,close,volume") \
+                .eq("symbol", db_symbol) \
+                .eq("exchange", exchange) \
+                .eq("timeframe", timeframe) \
+                .order("ts", desc=True) \
+                .limit(limit) \
+                .execute()
+
+        candles_resp = _supabase_read_with_retry(fetch_bars, table_name="stock_bars_intraday")
         
         raw_candles = candles_resp.data or [] if candles_resp else []
         # Reverse to chronological order
@@ -641,13 +639,16 @@ def get_candles(symbol: str, bot_id: str = "primary", limit: int = 200):
             except Exception:
                 continue
 
-        # Query entry/exit markers from bot_trades
-        markers_resp = supabase.table("bot_trades") \
-            .select("timestamp,action,price,entry_price,pnl") \
-            .eq("bot_id", bot_id) \
-            .eq("symbol", symbol) \
-            .order("timestamp", desc=False) \
-            .execute()
+        # Query entry/exit markers from bot_trades with retry logic
+        def fetch_markers(sb):
+            return sb.table("bot_trades") \
+                .select("timestamp,action,price,entry_price,pnl") \
+                .eq("bot_id", bot_id) \
+                .eq("symbol", symbol) \
+                .order("timestamp", desc=False) \
+                .execute()
+
+        markers_resp = _supabase_read_with_retry(fetch_markers, table_name="bot_trades")
 
         raw_markers = markers_resp.data or []
         print(f"DEBUG: /candles for {symbol} - Found {len(raw_candles)} candles and {len(raw_markers)} markers")

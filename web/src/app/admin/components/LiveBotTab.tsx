@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Play, Square, Activity, Settings, Terminal, RefreshCw, Save, Coins, ShieldCheck, ShieldAlert, Plus, X, Search, Check, BarChart3, PieChart, ArrowUpRight, ArrowDownRight, Clock, Globe, Target, Trash2, History as HistoryIcon, Maximize2 } from "lucide-react";
+import { Play, Square, Activity, Settings, Terminal, RefreshCw, Save, Coins, ShieldCheck, ShieldAlert, Plus, X, Search, Check, BarChart3, PieChart, ArrowUpRight, ArrowDownRight, Clock, Globe, Target, Trash2, History as HistoryIcon, Maximize2, ChevronDown, ChevronUp, Copy, CheckCheck, LayoutGrid, Cpu, Zap, BarChartHorizontal } from "lucide-react";
 import { useRef } from "react";
 import { toast } from "sonner";
 import { getAlpacaAccount, getAlpacaPositions, type AlpacaAccountInfo, type AlpacaPositionInfo } from "@/lib/api";
@@ -79,6 +79,7 @@ interface Trade {
     entry_price?: number;
     pnl?: number;
     order_id: string;
+    status?: string;
 }
 
 interface BotStatus {
@@ -134,6 +135,9 @@ export default function LiveBotTab() {
     const [renameBotName, setRenameBotName] = useState("");
     const [isRenamingBot, setIsRenamingBot] = useState(false);
 
+    const [alpacaOrders, setAlpacaOrders] = useState<any[]>([]);
+    const [alpacaOrdersLoading, setAlpacaOrdersLoading] = useState(false);
+
     // Command States
     const [isStarting, setIsStarting] = useState(false);
     const [isStopping, setIsStopping] = useState(false);
@@ -159,6 +163,23 @@ export default function LiveBotTab() {
     // Logs & Analytics State
     const [selectedChartSymbol, setSelectedChartSymbol] = useState<string | null>(null);
     const [thresholdStats, setThresholdStats] = useState<Record<string, number>>({});
+    const [logsCollapsed, setLogsCollapsed] = useState(false);
+    const [marketDataCollapsed, setMarketDataCollapsed] = useState(false);
+    const [copyingLogs, setCopyingLogs] = useState(false);
+
+    const handleCopyLogs = () => {
+        if (!status?.logs) return;
+        const logText = status.logs.join("\n");
+        navigator.clipboard.writeText(logText).then(() => {
+            setCopyingLogs(true);
+            toast.success("Logs copied to clipboard");
+            setTimeout(() => setCopyingLogs(false), 2000);
+        }).catch(err => {
+            toast.error("Failed to copy logs");
+            console.error(err);
+        });
+    };
+
 
     const fetchAccount = async (silent = false) => {
         if (!silent) setAlpacaAccountLoading(true);
@@ -186,11 +207,28 @@ export default function LiveBotTab() {
         }
     };
 
+    const fetchOrders = async (silent = false) => {
+        if (!silent) setAlpacaOrdersLoading(true);
+        try {
+            // Using direct fetch since we couldn't update api library
+            const res = await fetch("/api/alpaca/orders?status=all&limit=50", { cache: "no-store" });
+            if (!res.ok) throw new Error("Failed to fetch Alpaca orders");
+            const data = await res.json();
+            setAlpacaOrders(Array.isArray(data) ? data : []);
+        } catch (error) {
+            console.error(error);
+            if (!silent) toast.error("Failed to fetch Alpaca orders");
+        } finally {
+            if (!silent) setAlpacaOrdersLoading(false);
+        }
+    };
+
     useEffect(() => {
         fetchBotList();
         fetchStatus();
         fetchAccount(true);
         fetchPositions(true);
+        fetchOrders(true);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selectedBotId]);
 
@@ -457,6 +495,7 @@ export default function LiveBotTab() {
                 fetchStatus(true);
                 fetchAccount(true);
                 fetchPositions(true);
+                fetchOrders(true);
                 fetchPerformance(true);
             }
         }, 3000); // Fixed 3s refresh
@@ -647,203 +686,282 @@ export default function LiveBotTab() {
     const useCouncil = configForm.use_council ?? true;
 
     return (
-        <div className="space-y-6 max-w-[1600px] mx-auto animate-in fade-in zoom-in-95 duration-500">
-            {/* Multi-Bot Management Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-black/40 border border-white/5 rounded-3xl p-6 backdrop-blur-xl">
-                <div className="flex items-center gap-4">
-                    <div className="bg-indigo-500/10 p-3 rounded-2xl border border-indigo-500/20">
-                        <Activity className="w-6 h-6 text-indigo-400" />
-                    </div>
-                    <div>
-                        <h1 className="text-xl font-black text-white tracking-tighter flex items-center gap-3">
-                            AI TRADING TERMINAL
-                            <div className="flex items-center gap-2">
-                                <span className="text-[10px] bg-indigo-500/20 text-indigo-400 px-2 py-0.5 rounded-full border border-indigo-500/30">V2.0 MULTI-BOT</span>
-                                {status?.status === 'running' && (
-                                    <>
-                                        <div className="flex items-center gap-1.5 px-2 py-0.5 bg-emerald-500/10 border border-emerald-500/20 rounded-full animate-in fade-in duration-500">
-                                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                                            <span className="text-[10px] font-black text-emerald-400 font-mono tracking-wider">UP: {uptime}</span>
-                                        </div>
-                                        <div className="flex items-center gap-1.5 px-2 py-0.5 bg-blue-500/10 border border-blue-500/20 rounded-full animate-in fade-in duration-500">
-                                            <Activity className="w-3 h-3 text-blue-400" />
-                                            <span className="text-[10px] font-black text-blue-400 font-mono tracking-wider">
-                                                POS: {status.active_positions_count || 0}/{status.config?.max_open_positions || 3}
-                                            </span>
-                                        </div>
-                                        <div className="flex items-center gap-1.5 px-2 py-0.5 bg-indigo-500/10 border border-indigo-500/20 rounded-full animate-in fade-in duration-500 max-w-[200px] overflow-hidden whitespace-nowrap">
-                                            <Terminal className="w-3 h-3 text-indigo-400" />
-                                            <span className="text-[10px] font-black text-indigo-400 font-mono tracking-wider truncate">
-                                                {status.current_activity?.toUpperCase() || "IDLE"}
-                                            </span>
-                                        </div>
-                                    </>
-                                )}
+        <div className="space-y-6 max-w-[1600px] mx-auto animate-in fade-in zoom-in-95 duration-500 pb-20">
+            {/* NEW REDESIGNED COMMAND CENTER */}
+            <div className="grid grid-cols-1 xl:grid-cols-4 gap-4 items-stretch">
+                {/* Main Terminal Identity Card */}
+                <div className="xl:col-span-1 bg-gradient-to-br from-indigo-900/40 to-purple-900/40 border border-white/10 rounded-3xl p-6 backdrop-blur-xl flex flex-col justify-between group relative overflow-hidden shadow-2xl">
+                    <div className="absolute top-0 right-0 p-8 bg-indigo-500/10 rounded-full blur-3xl group-hover:bg-indigo-500/20 transition-all duration-700" />
+
+                    <div className="relative z-10">
+                        <div className="flex items-center gap-4 mb-4">
+                            <div className="bg-indigo-500 p-3 rounded-2xl shadow-lg shadow-indigo-500/40">
+                                <Cpu className="w-6 h-6 text-white" />
                             </div>
-                        </h1>
-                        <div className="flex items-center gap-2 mt-1">
-                            {botList.map(bot => (
-                                <div key={bot.id} className="group relative flex items-center">
-                                    <button
-                                        onClick={() => setSelectedBotId(bot.id)}
-                                        className={`flex-1 px-3 py-1 rounded-lg text-xs font-bold transition-all border text-left ${selectedBotId === bot.id
-                                            ? "bg-indigo-500 text-white border-indigo-400 shadow-lg shadow-indigo-500/20"
-                                            : "bg-black/40 text-zinc-500 border-white/5 hover:border-white/10"
-                                            }`}
-                                    >
-                                        {bot.name}
-                                    </button>
-                                    {bot.id !== "primary" && (
-                                        <button
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                handleDeleteBot(bot.id, bot.name);
-                                            }}
-                                            className="absolute -right-2 top-0 p-1 rounded-full bg-red-500/10 text-red-500 border border-red-500/20 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500 hover:text-white z-10"
-                                        >
-                                            <X className="w-2.5 h-2.5" />
-                                        </button>
-                                    )}
-                                </div>
-                            ))}
-                            <Dialog.Root open={createBotDialogOpen} onOpenChange={setCreateBotDialogOpen}>
-                                <Dialog.Trigger asChild>
-                                    <button className="p-1 px-2 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20 transition-all">
-                                        <Plus className="w-4 h-4" />
-                                    </button>
-                                </Dialog.Trigger>
-                                <Dialog.Portal>
-                                    <Dialog.Overlay className="fixed inset-0 bg-black/80 backdrop-blur-sm animate-in fade-in duration-300 z-50" />
-                                    <Dialog.Content className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-zinc-950 border border-zinc-800 p-8 rounded-3xl shadow-2xl animate-in zoom-in-95 duration-300 z-50">
-                                        <div className="space-y-6">
-                                            <div className="space-y-2">
-                                                <h2 className="text-xl font-black text-white">Create New Bot</h2>
-                                                <p className="text-sm text-zinc-500 font-medium">Add a new specialized trading instance.</p>
-                                            </div>
-                                            <div className="space-y-4">
-                                                <div className="space-y-2">
-                                                    <label className="text-xs font-bold text-zinc-500 uppercase">Bot Name</label>
-                                                    <input
-                                                        type="text"
-                                                        value={newBotName}
-                                                        onChange={(e) => setNewBotName(e.target.value)}
-                                                        placeholder="Trade ID (Optional)"
-                                                        className="w-full bg-black/40 border border-white/5 rounded-xl px-4 py-3 text-sm font-bold focus:outline-none focus:border-indigo-500 transition-all"
-                                                        onKeyDown={(e) => e.key === 'Enter' && handleCreateBot()}
-                                                    />
-                                                </div>
-                                                <div className="space-y-2">
-                                                    <label className="text-xs font-bold text-zinc-500 uppercase flex items-center gap-2">Alpaca Key ID </label>
-                                                    <input
-                                                        type="text"
-                                                        value={newBotApiKey}
-                                                        onChange={(e) => setNewBotApiKey(e.target.value)}
-                                                        placeholder="AKI..."
-                                                        className="w-full bg-black/40 border border-white/5 rounded-xl px-4 py-3 text-sm font-mono focus:outline-none focus:border-indigo-500 transition-all"
-                                                    />
-                                                </div>
-                                                <div className="space-y-2">
-                                                    <label className="text-xs font-bold text-zinc-500 uppercase flex items-center gap-2">Alpaca Secret Key </label>
-                                                    <input
-                                                        type="password"
-                                                        value={newBotSecretKey}
-                                                        onChange={(e) => setNewBotSecretKey(e.target.value)}
-                                                        placeholder="••••••••"
-                                                        className="w-full bg-black/40 border border-white/5 rounded-xl px-4 py-3 text-sm font-mono focus:outline-none focus:border-indigo-500 transition-all"
-                                                    />
-                                                </div>
-                                                <button
-                                                    onClick={handleCreateBot}
-                                                    disabled={isCreatingBot || !newBotName.trim()}
-                                                    className="w-full bg-indigo-500 hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-black py-4 rounded-xl shadow-lg shadow-indigo-500/20 transition-all"
-                                                >
-                                                    {isCreatingBot ? <RefreshCw className="w-5 h-5 animate-spin mx-auto" /> : "INITIALIZE BOT"}
-                                                </button>
-                                            </div>
+                            <div>
+                                <h1 className="text-xl font-black text-white tracking-tighter leading-none">
+                                    AI TRADING<br />TERMINAL
+                                </h1>
+                                <span className="text-[10px] font-bold text-indigo-300 tracking-widest uppercase">Precision Engine V2</span>
+                            </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 mb-6">
+                            <span className="px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-[9px] font-bold text-zinc-400 uppercase tracking-widest">
+                                Instance: {status?.config?.name || "PRIMARY"}
+                            </span>
+                            <div className={`w-2 h-2 rounded-full ${isRunning ? "bg-emerald-500 animate-pulse shadow-[0_0_12px_rgba(16,185,129,0.5)]" : "bg-zinc-600"}`} />
+                        </div>
+                    </div>
+
+                    <div className="relative z-10 flex gap-2 pt-4">
+                        <button
+                            onClick={() => fetchStatus()}
+                            disabled={refreshing}
+                            className="p-3 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all group/refresh"
+                            title="Refresh Status"
+                        >
+                            <RefreshCw className={`w-4 h-4 text-zinc-400 group-hover/refresh:text-white transition-colors ${refreshing ? "animate-spin" : ""}`} />
+                        </button>
+                        <Dialog.Root open={renameBotDialogOpen} onOpenChange={(open: boolean) => {
+                            if (open && status?.config?.name) setRenameBotName(status.config.name);
+                            setRenameBotDialogOpen(open);
+                        }}>
+                            <Dialog.Trigger asChild>
+                                <button className="p-3 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all group/settings" title="Bot Configuration">
+                                    <Settings className="w-4 h-4 text-zinc-400 group-hover/settings:text-white" />
+                                </button>
+                            </Dialog.Trigger>
+                            <Dialog.Portal>
+                                <Dialog.Overlay className="fixed inset-0 bg-black/80 backdrop-blur-sm animate-in fade-in duration-300 z-50" />
+                                <Dialog.Content className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-zinc-950 border border-zinc-800 p-8 rounded-3xl shadow-2xl animate-in zoom-in-95 duration-300 z-50">
+                                    <div className="space-y-6">
+                                        <div className="space-y-2">
+                                            <h2 className="text-xl font-black text-white">Rename Bot</h2>
+                                            <p className="text-sm text-zinc-500 font-medium">Update the display name for this instance.</p>
                                         </div>
-                                    </Dialog.Content>
-                                </Dialog.Portal>
-                            </Dialog.Root>
+                                        <div className="space-y-4">
+                                            <div className="space-y-2">
+                                                <label className="text-xs font-bold text-zinc-500 uppercase">New Name</label>
+                                                <input
+                                                    type="text"
+                                                    value={renameBotName}
+                                                    onChange={(e) => setRenameBotName(e.target.value)}
+                                                    placeholder="e.g., Scalper Pro"
+                                                    className="w-full bg-black/40 border border-white/5 rounded-xl px-4 py-3 text-sm font-bold focus:outline-none focus:border-indigo-500 transition-all"
+                                                    onKeyDown={(e) => e.key === 'Enter' && handleRenameBot()}
+                                                />
+                                            </div>
+                                            <button
+                                                onClick={handleRenameBot}
+                                                disabled={isRenamingBot || !renameBotName.trim()}
+                                                className="w-full bg-indigo-500 hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-black py-4 rounded-xl shadow-lg shadow-indigo-500/20 transition-all"
+                                            >
+                                                {isRenamingBot ? <RefreshCw className="w-5 h-5 animate-spin mx-auto" /> : "UPDATE NAME"}
+                                            </button>
+                                        </div>
+                                    </div>
+                                </Dialog.Content>
+                            </Dialog.Portal>
+                        </Dialog.Root>
+
+                        <div className="flex bg-black/60 p-1 rounded-2xl border border-white/5 shadow-inner flex-1">
+                            <button
+                                onClick={handleStart}
+                                disabled={isRunning || isStarting}
+                                className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs font-black transition-all ${isRunning || isStarting
+                                    ? "text-emerald-500/30 cursor-not-allowed"
+                                    : "text-emerald-400 hover:bg-emerald-500/10 hover:text-emerald-300"
+                                    }`}
+                            >
+                                <Play className={`w-3.5 h-3.5 ${isStarting ? "animate-pulse" : ""}`} />
+                                {isStarting ? "BUSY" : "START"}
+                            </button>
+                            <button
+                                onClick={handleStop}
+                                disabled={!isRunning || isStopping}
+                                className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs font-black transition-all ${!isRunning || isStopping
+                                    ? "text-red-500/30 cursor-not-allowed"
+                                    : "text-red-400 hover:bg-red-500/10 hover:text-red-300"
+                                    }`}
+                            >
+                                <Square className={`w-3.5 h-3.5 ${isStopping ? "animate-pulse" : ""}`} />
+                                STOP
+                            </button>
                         </div>
                     </div>
                 </div>
 
-                <div className="flex items-center gap-3">
-                    <Dialog.Root open={renameBotDialogOpen} onOpenChange={(open: boolean) => {
-                        if (open && status?.config?.name) setRenameBotName(status.config.name);
-                        setRenameBotDialogOpen(open);
-                    }}>
-                        <Dialog.Trigger asChild>
-                            <button className="p-3 rounded-2xl bg-zinc-900/50 border border-white/5 hover:bg-white/10 transition-all group" title="Rename Bot">
-                                <Settings className="w-4 h-4 text-zinc-400 group-hover:text-white" />
-                            </button>
-                        </Dialog.Trigger>
-                        <Dialog.Portal>
-                            <Dialog.Overlay className="fixed inset-0 bg-black/80 backdrop-blur-sm animate-in fade-in duration-300 z-50" />
-                            <Dialog.Content className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-zinc-950 border border-zinc-800 p-8 rounded-3xl shadow-2xl animate-in zoom-in-95 duration-300 z-50">
-                                <div className="space-y-6">
-                                    <div className="space-y-2">
-                                        <h2 className="text-xl font-black text-white">Rename Bot</h2>
-                                        <p className="text-sm text-zinc-500 font-medium">Update the display name for this instance.</p>
-                                    </div>
-                                    <div className="space-y-4">
-                                        <div className="space-y-2">
-                                            <label className="text-xs font-bold text-zinc-500 uppercase">New Name</label>
-                                            <input
-                                                type="text"
-                                                value={renameBotName}
-                                                onChange={(e) => setRenameBotName(e.target.value)}
-                                                placeholder="e.g., Scalper Pro"
-                                                className="w-full bg-black/40 border border-white/5 rounded-xl px-4 py-3 text-sm font-bold focus:outline-none focus:border-indigo-500 transition-all"
-                                                onKeyDown={(e) => e.key === 'Enter' && handleRenameBot()}
-                                            />
-                                        </div>
-                                        <button
-                                            onClick={handleRenameBot}
-                                            disabled={isRenamingBot || !renameBotName.trim()}
-                                            className="w-full bg-indigo-500 hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-black py-4 rounded-xl shadow-lg shadow-indigo-500/20 transition-all"
-                                        >
-                                            {isRenamingBot ? <RefreshCw className="w-5 h-5 animate-spin mx-auto" /> : "UPDATE NAME"}
-                                        </button>
-                                    </div>
+                {/* Status Cards Grid */}
+                <div className="xl:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {/* BOT HEALTH CARD */}
+                    <div className="bg-black/40 border border-white/5 rounded-3xl p-6 backdrop-blur-xl relative overflow-hidden group/card shadow-xl flex flex-col justify-between">
+                        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-500/50 to-transparent" />
+                        <div className="flex items-center justify-between mb-8">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
+                                    <Zap className="w-4 h-4 text-emerald-400" />
                                 </div>
-                            </Dialog.Content>
-                        </Dialog.Portal>
-                    </Dialog.Root>
+                                <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Bot Health</span>
+                            </div>
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${isRunning ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" : "bg-zinc-800 text-zinc-500"}`}>
+                                {status?.status?.toUpperCase() || "OFFLINE"}
+                            </span>
+                        </div>
+                        <div className="space-y-1">
+                            <div className="text-3xl font-black text-white font-mono tracking-tighter">
+                                {isRunning ? uptime : "00:00:00"}
+                            </div>
+                            <div className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">Continuous Uptime</div>
+                        </div>
+                        <div className="mt-4 pt-4 border-t border-white/5 flex items-center justify-between text-[10px]">
+                            <span className="text-zinc-600 font-bold">SYSTEM THREADS</span>
+                            <span className="text-emerald-400/80 font-mono">ACTIVE</span>
+                        </div>
+                    </div>
 
-                    <button
-                        onClick={() => fetchStatus()}
-                        disabled={refreshing}
-                        className="p-3 rounded-2xl bg-zinc-900/50 border border-white/5 hover:bg-white/10 transition-all group"
-                    >
-                        <RefreshCw className={`w-4 h-4 text-zinc-400 group-hover:text-white transition-colors ${refreshing ? "animate-spin" : ""}`} />
-                    </button>
+                    {/* ACTIVE EXPOSURE CARD */}
+                    <div className="bg-black/40 border border-white/5 rounded-3xl p-6 backdrop-blur-xl relative overflow-hidden group/card shadow-xl flex flex-col justify-between">
+                        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-500/50 to-transparent" />
+                        <div className="flex items-center justify-between mb-8">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 rounded-xl bg-indigo-500/10 border border-indigo-500/20">
+                                    <BarChartHorizontal className="w-4 h-4 text-indigo-400" />
+                                </div>
+                                <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Active Exposure</span>
+                            </div>
+                            <span className="text-[10px] font-bold text-zinc-400 bg-zinc-800 px-2 py-0.5 rounded-full">
+                                LIMIT: {status?.config?.max_open_positions || 3}
+                            </span>
+                        </div>
+                        <div className="space-y-1">
+                            <div className="text-3xl font-black text-white font-mono tracking-tighter flex items-baseline gap-2">
+                                {status?.active_positions_count || 0}
+                                <span className="text-sm text-zinc-600">POSITIONS</span>
+                            </div>
+                            <div className="h-1.5 w-full bg-zinc-900 rounded-full mt-2 overflow-hidden border border-white/5">
+                                <div
+                                    className="h-full bg-indigo-500 transition-all duration-1000 shadow-[0_0_10px_rgba(99,102,241,0.5)]"
+                                    style={{ width: `${Math.min(((status?.active_positions_count || 0) / (status?.config?.max_open_positions || 1)) * 100, 100)}%` }}
+                                />
+                            </div>
+                        </div>
+                        <div className="mt-4 pt-4 border-t border-white/5 flex items-center justify-between text-[10px]">
+                            <span className="text-zinc-600 font-bold">MODE</span>
+                            <span className="text-indigo-400/80 font-bold uppercase tracking-widest">{configForm.trading_mode || "HYBRID"}</span>
+                        </div>
+                    </div>
 
-                    <div className="flex bg-black/60 p-1 rounded-2xl border border-white/5 shadow-inner">
-                        <button
-                            onClick={handleStart}
-                            disabled={isRunning || isStarting}
-                            className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-black transition-all ${isRunning || isStarting
-                                ? "text-emerald-500/30 cursor-not-allowed"
-                                : "text-emerald-400 hover:bg-emerald-500/10 hover:text-emerald-300"
-                                }`}
-                        >
-                            <Play className={`w-3.5 h-3.5 ${isStarting ? "animate-pulse" : ""}`} />
-                            {isStarting ? "STARTING..." : "START"}
-                        </button>
-                        <button
-                            onClick={handleStop}
-                            disabled={!isRunning || isStopping}
-                            className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-black transition-all ${!isRunning || isStopping
-                                ? "text-red-500/30 cursor-not-allowed"
-                                : "text-red-400 hover:bg-red-500/10 hover:text-red-300"
-                                }`}
-                        >
-                            <Square className={`w-3.5 h-3.5 ${isStopping ? "animate-pulse" : ""}`} />
-                            {isStopping ? "STOP" : "STOP"}
-                        </button>
+                    {/* SCANNER ENGINE CARD */}
+                    <div className="bg-black/40 border border-white/5 rounded-3xl p-6 backdrop-blur-xl relative overflow-hidden group/card shadow-xl flex flex-col justify-between">
+                        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-500/50 to-transparent" />
+                        <div className="flex items-center justify-between mb-8">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 rounded-xl bg-purple-500/10 border border-purple-500/20">
+                                    <Terminal className="w-4 h-4 text-purple-400" />
+                                </div>
+                                <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Scanner Engine</span>
+                            </div>
+                            <div className="flex items-center gap-1.5 p-1 bg-zinc-900 rounded-lg">
+                                <div className={`w-1.5 h-1.5 rounded-full ${isRunning ? "bg-purple-500 animate-pulse" : "bg-zinc-700"}`} />
+                            </div>
+                        </div>
+                        <div className="space-y-1 overflow-hidden">
+                            <div className="text-xs font-black text-white truncate uppercase tracking-tight">
+                                {status?.current_activity || "IDLE ENGINE"}
+                            </div>
+                            <div className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mt-2 flex items-center gap-2">
+                                <Clock className="w-3 h-3" />
+                                Next Scan: ~{status?.config?.poll_seconds || 0}s
+                            </div>
+                        </div>
+                        <div className="mt-4 pt-4 border-t border-white/5 flex items-center justify-between text-[10px]">
+                            <span className="text-zinc-600 font-bold">SOURCE</span>
+                            <span className="text-purple-400/80 font-bold truncate max-w-[100px] text-right uppercase">{status?.config?.data_source || "ALPACA"}</span>
+                        </div>
                     </div>
                 </div>
+            </div>
+
+            {/* BOT SELECTOR TABS */}
+            <div className="flex items-center gap-2 p-1 bg-black/40 border border-white/5 rounded-3xl w-full backdrop-blur-sm overflow-x-auto no-scrollbar">
+                {botList.map(bot => {
+                    const isActive = selectedBotId === bot.id;
+                    return (
+                        <button
+                            key={bot.id}
+                            onClick={() => setSelectedBotId(bot.id)}
+                            className={`flex-none px-6 py-2.5 rounded-[22px] text-xs font-black transition-all flex items-center gap-2 border ${isActive
+                                ? "bg-white text-black border-white shadow-xl shadow-white/5"
+                                : "text-zinc-500 border-transparent hover:text-zinc-300 hover:bg-white/5"
+                                }`}
+                        >
+                            <LayoutGrid className={`w-3.5 h-3.5 ${isActive ? "text-indigo-600 font-black" : "text-zinc-600"}`} />
+                            {bot.name.toUpperCase()}
+                            {isActive && (
+                                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse ml-1" />
+                            )}
+                        </button>
+                    )
+                })}
+                <Dialog.Root open={createBotDialogOpen} onOpenChange={setCreateBotDialogOpen}>
+                    <Dialog.Trigger asChild>
+                        <button className="flex-none p-2.5 rounded-[22px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20 transition-all ml-auto mr-1">
+                            <Plus className="w-4 h-4" />
+                        </button>
+                    </Dialog.Trigger>
+                    <Dialog.Portal>
+                        <Dialog.Overlay className="fixed inset-0 bg-black/80 backdrop-blur-sm animate-in fade-in duration-300 z-50" />
+                        <Dialog.Content className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-zinc-950 border border-zinc-800 p-8 rounded-3xl shadow-2xl animate-in zoom-in-95 duration-300 z-50">
+                            <div className="space-y-6">
+                                <div className="space-y-2">
+                                    <h2 className="text-xl font-black text-white">Create New Bot</h2>
+                                    <p className="text-sm text-zinc-500 font-medium">Add a new specialized trading instance.</p>
+                                </div>
+                                <div className="space-y-4">
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-bold text-zinc-500 uppercase">Bot Name</label>
+                                        <input
+                                            type="text"
+                                            value={newBotName}
+                                            onChange={(e) => setNewBotName(e.target.value)}
+                                            placeholder="Trade ID (Optional)"
+                                            className="w-full bg-black/40 border border-white/5 rounded-xl px-4 py-3 text-sm font-bold focus:outline-none focus:border-indigo-500 transition-all"
+                                            onKeyDown={(e) => e.key === 'Enter' && handleCreateBot()}
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-bold text-zinc-500 uppercase flex items-center gap-2">Alpaca Key ID </label>
+                                        <input
+                                            type="text"
+                                            value={newBotApiKey}
+                                            onChange={(e) => setNewBotApiKey(e.target.value)}
+                                            placeholder="AKI..."
+                                            className="w-full bg-black/40 border border-white/5 rounded-xl px-4 py-3 text-sm font-mono focus:outline-none focus:border-indigo-500 transition-all"
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-bold text-zinc-500 uppercase flex items-center gap-2">Alpaca Secret Key </label>
+                                        <input
+                                            type="password"
+                                            value={newBotSecretKey}
+                                            onChange={(e) => setNewBotSecretKey(e.target.value)}
+                                            placeholder="••••••••"
+                                            className="w-full bg-black/40 border border-white/5 rounded-xl px-4 py-3 text-sm font-mono focus:outline-none focus:border-indigo-500 transition-all"
+                                        />
+                                    </div>
+                                    <button
+                                        onClick={handleCreateBot}
+                                        disabled={isCreatingBot || !newBotName.trim()}
+                                        className="w-full bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-black py-4 rounded-xl shadow-lg shadow-emerald-500/20 transition-all"
+                                    >
+                                        {isCreatingBot ? <RefreshCw className="w-5 h-5 animate-spin mx-auto" /> : "INITIALIZE BOT"}
+                                    </button>
+                                </div>
+                            </div>
+                        </Dialog.Content>
+                    </Dialog.Portal>
+                </Dialog.Root>
             </div>
 
             {/* Tabs Navigation */}
@@ -1541,71 +1659,98 @@ export default function LiveBotTab() {
                     {/* Right Column: Logs & Trades */}
                     <div className="lg:col-span-2 flex flex-col gap-6 h-full">
                         {/* Live Logs */}
-                        <div className="flex-1 bg-black border border-zinc-800 rounded-3xl p-1 shadow-2xl overflow-hidden flex flex-col min-h-[600px]">
-                            <div className="flex items-center justify-between px-6 py-4 bg-zinc-900/50 border-b border-zinc-800">
+                        <div className={`flex-1 bg-black border border-zinc-800 rounded-3xl shadow-2xl overflow-hidden flex flex-col transition-all duration-500 ease-in-out ${logsCollapsed ? "min-h-[64px] h-[64px] flex-none" : "min-h-[600px]"}`}>
+                            <div
+                                className="flex items-center justify-between px-6 py-4 bg-zinc-900/50 border-b border-zinc-800 cursor-pointer hover:bg-zinc-900/70 transition-colors"
+                                onClick={() => setLogsCollapsed(!logsCollapsed)}
+                            >
                                 <div className="flex items-center gap-3">
                                     <Terminal className="w-5 h-5 text-emerald-400" />
                                     <h2 className="text-sm font-bold tracking-widest text-zinc-300">SYSTEM LOGS</h2>
-                                </div>
-                                <div className="flex gap-2">
-                                    {(['ALL', 'ACCEPTED', 'REJECTED', 'ERROR'] as const).map(f => (
-                                        <button
-                                            key={f}
-                                            onClick={() => setLogFilter(f)}
-                                            className={`px-3 py-1 rounded-full text-[10px] font-bold transition-all ${logFilter === f
-                                                ? 'bg-white text-black shadow-lg shadow-white/10'
-                                                : 'bg-zinc-800 text-zinc-500 hover:bg-zinc-700'
-                                                }`}
-                                        >
-                                            {f}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-
-                            {/* Threshold Dashboard */}
-                            <div className="px-6 py-3 border-b border-zinc-800 bg-black/40 flex items-center justify-between gap-4 overflow-x-auto">
-                                {Object.entries(thresholdStats).sort((a, b) => parseFloat(a[0]) - parseFloat(b[0])).map(([thresh, count]) => (
-                                    <div key={thresh} className="flex flex-col items-center min-w-[3rem]">
-                                        <span className="text-[9px] font-black text-zinc-600 uppercase">TH {thresh}</span>
-                                        <span className={`text-xs font-mono font-bold ${count > 0 ? 'text-indigo-400' : 'text-zinc-700'}`}>
-                                            {count}
+                                    {logsCollapsed && (
+                                        <span className="text-[10px] text-zinc-500 font-mono animate-pulse">
+                                            {status?.current_activity || "IDLE"}
                                         </span>
+                                    )}
+                                </div>
+                                <div className="flex items-center gap-4">
+                                    <div className="flex gap-2 items-center" onClick={(e) => e.stopPropagation()}>
+                                        <button
+                                            onClick={handleCopyLogs}
+                                            className={`p-1.5 rounded-lg transition-all ${copyingLogs ? 'bg-emerald-500/20 text-emerald-400' : 'hover:bg-white/10 text-zinc-500'}`}
+                                            title="Copy all logs"
+                                        >
+                                            {copyingLogs ? <CheckCheck className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                                        </button>
+
+                                        <div className="w-[1px] h-4 bg-zinc-800 mx-1" />
+
+                                        {(['ALL', 'ACCEPTED', 'REJECTED', 'ERROR'] as const).map(f => (
+                                            <button
+                                                key={f}
+                                                onClick={() => setLogFilter(f)}
+                                                className={`px-3 py-1 rounded-full text-[10px] font-bold transition-all ${logFilter === f
+                                                    ? 'bg-white text-black shadow-lg shadow-white/10'
+                                                    : 'bg-zinc-800 text-zinc-500 hover:bg-zinc-700'
+                                                    }`}
+                                            >
+                                                {f}
+                                            </button>
+                                        ))}
                                     </div>
-                                ))}
+                                    <div className="p-1 hover:bg-white/10 rounded-lg transition-colors">
+                                        {logsCollapsed ? <ChevronDown className="w-5 h-5 text-zinc-500" /> : <ChevronUp className="w-5 h-5 text-zinc-500" />}
+                                    </div>
+                                </div>
                             </div>
 
-                            <div className="flex-1 p-6 overflow-y-auto font-mono text-xs space-y-1.5 custom-scrollbar max-h-[1200px]">
-                                {status?.logs && status.logs.length > 0 ? (
-                                    status.logs
-                                        .filter(log => {
-                                            if (logFilter === 'ALL') return true;
-                                            if (logFilter === 'ACCEPTED') return log.includes("ACCEPTED") || log.includes("BUY");
-                                            if (logFilter === 'REJECTED') return log.includes("REJECTED");
-                                            if (logFilter === 'ERROR') return log.includes("ERROR") || log.includes("Exception");
-                                            return true;
-                                        })
-                                        .map((log, i) => {
-                                            const parts = log.split("]");
-                                            const header = parts.slice(0, 2).join("]") + (parts.length > 1 ? "]" : "");
-                                            const message = parts.slice(2).join("]");
-                                            return (
-                                                <div key={i} className={`break-all border-l-2 pl-3 py-0.5 ${log.includes("BUY") ? "border-emerald-500 text-emerald-400 bg-emerald-500/5" :
-                                                    log.includes("ERROR") || log.includes("DATA ERROR") ? "border-red-500 text-red-500 bg-red-500/5" :
-                                                        log.includes("SIGNAL") ? "border-indigo-500 text-indigo-300" :
-                                                            log.includes("DEBUG") ? "border-zinc-700 text-zinc-500 text-[10px]" :
-                                                                "border-zinc-800 text-zinc-400"
-                                                    }`}>
-                                                    <span className="opacity-50 mr-2 font-bold">{header}</span>
-                                                    {message}
-                                                </div>
-                                            );
-                                        })
-                                ) : (
-                                    <div className="text-zinc-700 italic flex items-center justify-center h-full">Waiting for data stream...</div>
-                                )}
-                                <div ref={logsEndRef} />
-                            </div>
+                            {!logsCollapsed && (
+                                <>
+                                    {/* Threshold Dashboard */}
+                                    <div className="px-6 py-3 border-b border-zinc-800 bg-black/40 flex items-center justify-between gap-4 overflow-x-auto animate-in slide-in-from-top-2 duration-300">
+                                        {Object.entries(thresholdStats).sort((a, b) => parseFloat(a[0]) - parseFloat(b[0])).map(([thresh, count]) => (
+                                            <div key={thresh} className="flex flex-col items-center min-w-[3rem]">
+                                                <span className="text-[9px] font-black text-zinc-600 uppercase">TH {thresh}</span>
+                                                <span className={`text-xs font-mono font-bold ${count > 0 ? 'text-indigo-400' : 'text-zinc-700'}`}>
+                                                    {count}
+                                                </span>
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    <div className="flex-1 p-6 overflow-y-auto font-mono text-xs space-y-1.5 custom-scrollbar max-h-[1200px] animate-in fade-in duration-500">
+                                        {status?.logs && status.logs.length > 0 ? (
+                                            status.logs
+                                                .filter(log => {
+                                                    if (logFilter === 'ALL') return true;
+                                                    if (logFilter === 'ACCEPTED') return log.includes("ACCEPTED") || log.includes("BUY");
+                                                    if (logFilter === 'REJECTED') return log.includes("REJECTED");
+                                                    if (logFilter === 'ERROR') return log.includes("ERROR") || log.includes("Exception");
+                                                    return true;
+                                                })
+                                                .map((log, i) => {
+                                                    const parts = log.split("]");
+                                                    const header = parts.slice(0, 2).join("]") + (parts.length > 1 ? "]" : "");
+                                                    const message = parts.slice(2).join("]");
+                                                    return (
+                                                        <div key={i} className={`break-all border-l-2 pl-3 py-0.5 ${log.includes("BUY") ? "border-emerald-500 text-emerald-400 bg-emerald-500/5" :
+                                                            log.includes("ERROR") || log.includes("DATA ERROR") ? "border-red-500 text-red-500 bg-red-500/5" :
+                                                                log.includes("SIGNAL") ? "border-indigo-500 text-indigo-300" :
+                                                                    log.includes("DEBUG") ? "border-zinc-700 text-zinc-500 text-[10px]" :
+                                                                        "border-zinc-800 text-zinc-400"
+                                                            }`}>
+                                                            <span className="opacity-50 mr-2 font-bold">{header}</span>
+                                                            {message}
+                                                        </div>
+                                                    );
+                                                })
+                                        ) : (
+                                            <div className="text-zinc-700 italic flex items-center justify-center h-full">Waiting for data stream...</div>
+                                        )}
+                                        <div ref={logsEndRef} />
+                                    </div>
+                                </>
+                            )}
                         </div>
 
                         {/* ACTIVE CHARTS SECTION */}
@@ -1652,14 +1797,31 @@ export default function LiveBotTab() {
                                                 <th className="px-4 py-3">Time</th>
                                                 <th className="px-4 py-3">Symbol</th>
                                                 <th className="px-4 py-3">Price</th>
+                                                <th className="px-4 py-3">Total P/L ($)</th>
                                                 <th className="px-4 py-3">Status</th>
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-white/5 font-mono">
                                             {(() => {
                                                 // Prioritize Supabase performance trades, fallback to live status trades
-                                                const allTrades = performance?.trades || status?.trades || [];
-                                                const buyTrades = allTrades.filter(t => t.action === 'BUY' || t.action === 'SIGNAL');
+                                                const botTrades = performance?.trades || status?.trades || [];
+
+                                                // Convert Alpaca orders to Trade format for merging
+                                                const alpacaBuyOrders: Trade[] = alpacaOrders
+                                                    .filter(o => o.side === 'buy')
+                                                    .map(o => ({
+                                                        timestamp: o.filled_at || o.submitted_at || o.created_at,
+                                                        symbol: o.symbol,
+                                                        action: o.status === 'filled' ? 'BUY' : `ALPACA:${o.status.toUpperCase()}`,
+                                                        price: parseFloat(o.filled_avg_price || o.limit_price || '0'),
+                                                        amount: parseFloat(o.qty),
+                                                        order_id: o.id,
+                                                        status: o.status
+                                                    }));
+
+                                                // Merge and deduplicate
+                                                const allTrades = [...botTrades, ...alpacaBuyOrders];
+                                                const buyTrades = allTrades.filter(t => t.action === 'BUY' || t.action === 'SIGNAL' || t.action.startsWith('ALPACA:'));
 
                                                 console.log(`[Dashboard] Buy Table - Displaying from ${performance?.trades ? 'Performance (Supabase)' : 'Status (Memory)'}`);
 
@@ -1686,7 +1848,22 @@ export default function LiveBotTab() {
                                                             </td>
                                                             <td className="px-4 py-3 text-zinc-400">${(trade.price || 0).toFixed(2)}</td>
                                                             <td className="px-4 py-3">
-                                                                <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase ${trade.action === 'BUY' ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/10' : 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/10'}`}>
+                                                                {(() => {
+                                                                    const pos = positionsBySymbol.get(normalizePosKey(trade.symbol));
+                                                                    const pl = pos ? parseFloat(pos.unrealized_pl || "0") : (trade.pnl || 0);
+                                                                    if (pl === 0 && !isActive) return <span className="text-zinc-600">--</span>;
+                                                                    return (
+                                                                        <span className={`font-mono font-bold ${pl >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                                                                            {pl >= 0 ? '+' : ''}${pl.toFixed(2)}
+                                                                        </span>
+                                                                    );
+                                                                })()}
+                                                            </td>
+                                                            <td className="px-4 py-3">
+                                                                <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase ${trade.action === 'BUY' ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/10' :
+                                                                    trade.action.startsWith('ALPACA:') ? 'bg-orange-500/10 text-orange-400 border border-orange-500/10' :
+                                                                        'bg-indigo-500/10 text-indigo-400 border border-indigo-500/10'
+                                                                    }`}>
                                                                     {trade.action}
                                                                 </span>
                                                             </td>
@@ -1754,69 +1931,78 @@ export default function LiveBotTab() {
                         </div>
 
                         {/* Market Data Stream - moved below BUY/SELL tables */}
-                        <div className="bg-black/80 border border-zinc-800 rounded-3xl p-1 shadow-2xl flex flex-col min-h-[250px] relative group/stream">
-                            <div className="flex items-center justify-between px-6 py-4 bg-zinc-900/30 border-b border-zinc-800">
+                        <div className={`bg-black/80 border border-zinc-800 rounded-3xl shadow-2xl flex flex-col transition-all duration-500 ease-in-out relative group/stream ${marketDataCollapsed ? "min-h-[64px] h-[64px]" : "min-h-[250px]"}`}>
+                            <div
+                                className="flex items-center justify-between px-6 py-4 bg-zinc-900/30 border-b border-zinc-800 cursor-pointer hover:bg-zinc-900/50 transition-colors"
+                                onClick={() => setMarketDataCollapsed(!marketDataCollapsed)}
+                            >
                                 <div className="flex items-center gap-3">
                                     <Globe className="w-5 h-5 text-indigo-400" />
                                     <h2 className="text-sm font-bold tracking-widest text-zinc-300">MARKET DATA STREAM</h2>
                                 </div>
-                                <div className="text-[10px] font-black text-emerald-500/70 uppercase flex items-center gap-1.5 backdrop-blur-md bg-emerald-500/5 px-3 py-1 rounded-full border border-emerald-500/10">
-                                    <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
-                                    Live Processing
+                                <div className="flex items-center gap-4">
+                                    <div className="text-[10px] font-black text-emerald-500/70 uppercase flex items-center gap-1.5 backdrop-blur-md bg-emerald-500/5 px-3 py-1 rounded-full border border-emerald-500/10">
+                                        <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
+                                        Live Processing
+                                    </div>
+                                    {marketDataCollapsed ? <ChevronDown className="w-5 h-5 text-zinc-500" /> : <ChevronUp className="w-5 h-5 text-zinc-500" />}
                                 </div>
                             </div>
-                            <div className="flex-1 overflow-x-auto">
-                                <table className="w-full text-[11px] text-left border-collapse">
-                                    <thead className="bg-zinc-900/50 text-[10px] font-black text-zinc-500 uppercase tracking-wider border-b border-zinc-800">
-                                        <tr>
-                                            <th className="px-6 py-3">Symbol</th>
-                                            <th className="px-6 py-3">Source</th>
-                                            <th className="px-6 py-3">Bars</th>
-                                            <th className="px-6 py-3">Volume</th>
-                                            <th className="px-6 py-3">Status</th>
-                                            <th className="px-6 py-3 text-right">Last Update</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-white/5 font-mono">
-                                        {status?.data_stream && Object.keys(status.data_stream).length > 0 ? (
-                                            Object.entries(status.data_stream).map(([sym, data]: [string, any]) => (
-                                                <tr key={sym} className="hover:bg-indigo-500/5 transition-colors font-mono">
-                                                    <td className="px-6 py-3 font-bold text-zinc-200">{sym}</td>
-                                                    <td className="px-6 py-3 text-zinc-500">{data.source}</td>
-                                                    <td className="px-6 py-3">
-                                                        <span className={data.count > 0 ? "text-emerald-400 font-bold" : "text-red-400 font-bold"}>{data.count}</span>
-                                                    </td>
-                                                    <td className="px-6 py-3">
-                                                        {data.has_volume ? (
-                                                            <span className="text-emerald-500 flex items-center gap-1">
-                                                                <Check className="w-3 h-3" /> YES
-                                                            </span>
-                                                        ) : (
-                                                            <span className="text-red-500 flex items-center gap-1">
-                                                                <X className="w-3 h-3" /> NO
-                                                            </span>
-                                                        )}
-                                                    </td>
-                                                    <td className="px-6 py-3">
-                                                        <span className={`px-2 py-0.5 rounded-full text-[9px] font-black ${data.status === 'OK' ? 'bg-emerald-500/10 text-emerald-500' :
-                                                            data.status === 'EMPTY' ? 'bg-amber-500/10 text-amber-500' : 'bg-red-500/10 text-red-500'
-                                                            }`}>
-                                                            {data.status}
-                                                        </span>
-                                                    </td>
-                                                    <td className="px-6 py-3 text-right text-zinc-600">
-                                                        {data.timestamp ? new Date(data.timestamp).toLocaleTimeString() : 'N/A'}
-                                                    </td>
-                                                </tr>
-                                            ))
-                                        ) : (
+
+                            {!marketDataCollapsed && (
+                                <div className="flex-1 overflow-x-auto animate-in slide-in-from-top-2 duration-500">
+                                    <table className="w-full text-[11px] text-left border-collapse">
+                                        <thead className="bg-zinc-900/50 text-[10px] font-black text-zinc-500 uppercase tracking-wider border-b border-zinc-800">
                                             <tr>
-                                                <td colSpan={6} className="px-6 py-8 text-center text-zinc-700 italic">No data stream initialized</td>
+                                                <th className="px-6 py-3">Symbol</th>
+                                                <th className="px-6 py-3">Source</th>
+                                                <th className="px-6 py-3">Bars</th>
+                                                <th className="px-6 py-3">Volume</th>
+                                                <th className="px-6 py-3">Status</th>
+                                                <th className="px-6 py-3 text-right">Last Update</th>
                                             </tr>
-                                        )}
-                                    </tbody>
-                                </table>
-                            </div>
+                                        </thead>
+                                        <tbody className="divide-y divide-white/5 font-mono">
+                                            {status?.data_stream && Object.keys(status.data_stream).length > 0 ? (
+                                                Object.entries(status.data_stream).map(([sym, data]: [string, any]) => (
+                                                    <tr key={sym} className="hover:bg-indigo-500/5 transition-colors font-mono">
+                                                        <td className="px-6 py-3 font-bold text-zinc-200">{sym}</td>
+                                                        <td className="px-6 py-3 text-zinc-500">{data.source}</td>
+                                                        <td className="px-6 py-3">
+                                                            <span className={data.count > 0 ? "text-emerald-400 font-bold" : "text-red-400 font-bold"}>{data.count}</span>
+                                                        </td>
+                                                        <td className="px-6 py-3">
+                                                            {data.has_volume ? (
+                                                                <span className="text-emerald-500 flex items-center gap-1">
+                                                                    <Check className="w-3 h-3" /> YES
+                                                                </span>
+                                                            ) : (
+                                                                <span className="text-red-500 flex items-center gap-1">
+                                                                    <X className="w-3 h-3" /> NO
+                                                                </span>
+                                                            )}
+                                                        </td>
+                                                        <td className="px-6 py-3">
+                                                            <span className={`px-2 py-0.5 rounded-full text-[9px] font-black ${data.status === 'OK' ? 'bg-emerald-500/10 text-emerald-500' :
+                                                                data.status === 'EMPTY' ? 'bg-amber-500/10 text-amber-500' : 'bg-red-500/10 text-red-500'
+                                                                }`}>
+                                                                {data.status}
+                                                            </span>
+                                                        </td>
+                                                        <td className="px-6 py-3 text-right text-zinc-600">
+                                                            {data.timestamp ? new Date(data.timestamp).toLocaleTimeString() : 'N/A'}
+                                                        </td>
+                                                    </tr>
+                                                ))
+                                            ) : (
+                                                <tr>
+                                                    <td colSpan={6} className="px-6 py-8 text-center text-zinc-700 italic">No data stream initialized</td>
+                                                </tr>
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -1953,12 +2139,12 @@ export default function LiveBotTab() {
                                                                 </td>
                                                                 <td className="px-4 py-3 text-center text-zinc-400">{stats.trades}</td>
                                                                 <td className="px-4 py-3 text-center">
-                                                                    <span className={stats.win_rate >= 50 ? 'text-emerald-400' : 'text-zinc-500'}>
-                                                                        {stats.win_rate.toFixed(0)}%
+                                                                    <span className={(stats.win_rate || 0) >= 50 ? 'text-emerald-400' : 'text-zinc-500'}>
+                                                                        {(stats.win_rate || 0).toFixed(0)}%
                                                                     </span>
                                                                 </td>
-                                                                <td className={`px-4 py-3 text-right font-bold ${stats.profit >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                                                                    {stats.profit >= 0 ? '+' : ''}{stats.profit.toFixed(2)}
+                                                                <td className={`px-4 py-3 text-right font-bold ${(stats.profit || 0) >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                                                                    {(stats.profit || 0) >= 0 ? '+' : ''}{(stats.profit || 0).toFixed(2)}
                                                                 </td>
                                                             </tr>
                                                         ))
