@@ -42,3 +42,6 @@ web/tsconfig.tsbuildinfo
 
 # Hugging Face Space repo clone (keep separate)
 AI_BOT/
+
+# Models are tracked in the api/ sub-repo, exclude from root repo to save LFS budget
+api/models/*.pkl
