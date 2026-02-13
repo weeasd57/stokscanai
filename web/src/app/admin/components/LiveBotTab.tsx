@@ -687,9 +687,7 @@ export default function LiveBotTab() {
     };
 
     useEffect(() => {
-        if (activeTab === 'performance') {
-            fetchPerformance();
-        }
+        fetchPerformance(true); // Fetch silently on tab change to keep dashboard cards fresh
     }, [activeTab]);
 
     if (loading && !status) {
@@ -1670,8 +1668,44 @@ export default function LiveBotTab() {
                         </div>
                     </div>
 
-                    {/* Right Column: Logs & Trades */}
+                    {/* Right Column: Performance Cards + Logs & Trades */}
                     <div className="lg:col-span-2 flex flex-col gap-6 h-full">
+                        {/* Performance Cards */}
+                        <div className="grid grid-cols-2 gap-4">
+                            {/* Total Profit Card */}
+                            <div className="bg-zinc-900/40 border border-white/5 rounded-2xl p-5 backdrop-blur-xl group hover:border-emerald-500/30 transition-all">
+                                <div className="flex items-center justify-between mb-3">
+                                    <div className="p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
+                                        <BarChart3 className="w-4 h-4" />
+                                    </div>
+                                    <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest">Total Profit</span>
+                                </div>
+                                <div className={`text-2xl font-black ${(performance?.profit_loss || 0) >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                                    ${(performance?.profit_loss || 0).toFixed(2)}
+                                </div>
+                                <div className="mt-2 text-[10px] text-zinc-500 flex items-center gap-1">
+                                    <ArrowUpRight className="w-3 h-3" />
+                                    {performance?.total_trades || 0} trades
+                                </div>
+                            </div>
+
+                            {/* Win Rate Card */}
+                            <div className="bg-zinc-900/40 border border-white/5 rounded-2xl p-5 backdrop-blur-xl group hover:border-indigo-500/30 transition-all">
+                                <div className="flex items-center justify-between mb-3">
+                                    <div className="p-2 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-indigo-400">
+                                        <PieChart className="w-4 h-4" />
+                                    </div>
+                                    <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest">Win Rate</span>
+                                </div>
+                                <div className="text-2xl font-black text-indigo-400">
+                                    {(performance?.win_rate || 0).toFixed(1)}%
+                                </div>
+                                <div className="mt-2 text-[10px] text-zinc-500">
+                                    Consensus Alpha
+                                </div>
+                            </div>
+                        </div>
+
                         {/* Live Logs */}
                         <div className={`flex-1 bg-black border border-zinc-800 rounded-3xl shadow-2xl overflow-hidden flex flex-col transition-all duration-500 ease-in-out ${logsCollapsed ? "min-h-[64px] h-[64px] flex-none" : "min-h-[600px]"}`}>
                             <div
@@ -1935,7 +1969,16 @@ export default function LiveBotTab() {
                                                             <td className="px-4 py-3 text-zinc-600 whitespace-nowrap text-[10px]">
                                                                 {new Date(trade.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                                             </td>
-                                                            <td className={`px-4 py-3 font-bold transition-all ${isActive ? 'text-indigo-400 drop-shadow-[0_0_8px_rgba(129,140,248,0.3)]' : 'text-zinc-300'}`}>
+                                                            <td
+                                                                className={`px-4 py-3 font-bold transition-all cursor-pointer hover:scale-105 ${isActive ? 'text-indigo-400 drop-shadow-[0_0_8px_rgba(129,140,248,0.3)]' : 'text-zinc-300 hover:text-indigo-400'}`}
+                                                                onClick={() => {
+                                                                    // Set the chart symbol to show trade details
+                                                                    setSelectedChartSymbol(trade.symbol);
+                                                                    // Scroll to chart section
+                                                                    document.getElementById('live-chart-section')?.scrollIntoView({ behavior: 'smooth' });
+                                                                }}
+                                                                title={`Click to view ${trade.symbol} trade chart`}
+                                                            >
                                                                 {trade.symbol}
                                                             </td>
                                                             <td className={`px-4 py-3 text-right font-black ${pnl >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>

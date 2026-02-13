@@ -361,13 +361,35 @@ def get_bot_performance(bot_id: str = "primary"):
                 response = supabase.table("bot_trades").select("*").eq("bot_id", bot_id).order("timestamp", desc=True).execute()
                 trades = response.data or []
                 
+                print(f"[Performance] Fetched {len(trades)} total trades for bot {bot_id}")
+                
                 buys = [t for t in trades if t.get("action") == "BUY"]
                 sells = [t for t in trades if t.get("action") == "SELL"]
                 
-                wins = [t for t in sells if (t.get("pnl") or 0) > 0]
-                losses = [t for t in sells if (t.get("pnl") or 0) <= 0]
+                print(f"[Performance] BUY trades: {len(buys)}, SELL trades: {len(sells)}")
                 
-                total_pnl = sum((t.get("pnl") or 0) for t in sells)
+                # Convert PNL to float to handle string/number inconsistencies
+                def safe_float(val):
+                    if val is None:
+                        return 0.0
+                    try:
+                        return float(val)
+                    except (ValueError, TypeError):
+                        return 0.0
+                
+                # Calculate wins/losses with proper type conversion
+                wins = []
+                losses = []
+                for t in sells:
+                    pnl = safe_float(t.get("pnl"))
+                    if pnl > 0:
+                        wins.append(t)
+                    else:
+                        losses.append(t)
+                
+                total_pnl = sum(safe_float(t.get("pnl")) for t in sells)
+                
+                print(f"[Performance] Wins: {len(wins)}, Losses: {len(losses)}, Total P/L: ${total_pnl:.2f}")
                 
                 # Exit reasons from Supabase metadata or action
                 exit_reasons = {}
@@ -380,10 +402,11 @@ def get_bot_performance(bot_id: str = "primary"):
                 for trade in sells:
                     symbol = trade.get("symbol", "Unknown")
                     if symbol not in symbols_stats:
-                        symbols_stats[symbol] = {"count": 0, "pnl": 0, "wins": 0}
+                        symbols_stats[symbol] = {"count": 0, "pnl": 0.0, "wins": 0}
                     symbols_stats[symbol]["count"] += 1
-                    symbols_stats[symbol]["pnl"] += (trade.get("pnl") or 0)
-                    if (trade.get("pnl") or 0) > 0:
+                    pnl = safe_float(trade.get("pnl"))
+                    symbols_stats[symbol]["pnl"] += pnl
+                    if pnl > 0:
                         symbols_stats[symbol]["wins"] += 1
                 
                 for s in symbols_stats:
@@ -402,12 +425,17 @@ def get_bot_performance(bot_id: str = "primary"):
                             "trail_mode": pos_data.get("trail_mode", "NONE"),
                         })
 
-                return {
+                win_rate = (len(wins) / len(sells) * 100) if sells else 0.0
+                avg_profit = (total_pnl / len(sells)) if sells else 0.0
+                
+                print(f"[Performance] Win Rate: {win_rate:.1f}%, Avg Profit: ${avg_profit:.2f}")
+
+                result = {
                     "total_trades": len(buys),
-                    "win_rate": (len(wins) / len(sells) * 100) if sells else 0,
-                    "profit_loss": total_pnl,
+                    "win_rate": round(win_rate, 2),
+                    "profit_loss": round(total_pnl, 2),
                     "profit_loss_pct": 0, # Could be calculated if balance is tracked in DB
-                    "avg_trade_profit": (total_pnl / len(sells)) if sells else 0,
+                    "avg_trade_profit": round(avg_profit, 2),
                     "exit_reasons": exit_reasons,
                     "symbol_performance": symbols_stats,
                     "open_positions": open_positions,
@@ -415,6 +443,10 @@ def get_bot_performance(bot_id: str = "primary"):
                     "last_updated": datetime.now().isoformat(),
                     "source": "supabase"
                 }
+                
+                print(f"[Performance] Returning: total_trades={result['total_trades']}, win_rate={result['win_rate']}%, profit_loss=${result['profit_loss']}")
+                
+                return result
             except Exception as e:
                 print(f"Supabase performance fetch error: {e}")
                 import traceback
