@@ -78,6 +78,24 @@ def clear_bot_logs(bot_id: str = "primary"):
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
+@router.post("/test_notification")
+def send_test_notification(notify_type: str, bot_id: str = "primary"):
+    """Trigger a mock notification for testing purposes."""
+    try:
+        bot = bot_manager.get_bot(bot_id)
+        if not bot:
+            raise HTTPException(status_code=404, detail=f"Bot {bot_id} not found")
+        
+        ok, msg = bot.send_test_notification(notify_type)
+        if not ok:
+            raise HTTPException(status_code=400, detail=msg)
+            
+        return {"status": "sent", "detail": msg}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @router.get("/status")
 def get_bot_status(bot_id: str = "primary"):
     try:
@@ -363,8 +381,8 @@ def get_bot_performance(bot_id: str = "primary"):
                 
                 print(f"[Performance] Fetched {len(trades)} total trades for bot {bot_id}")
                 
-                buys = [t for t in trades if t.get("action") == "BUY"]
-                sells = [t for t in trades if t.get("action") == "SELL"]
+                buys = [t for t in trades if str(t.get("action") or "").upper() == "BUY"]
+                sells = [t for t in trades if str(t.get("action") or "").upper() == "SELL"]
                 
                 print(f"[Performance] BUY trades: {len(buys)}, SELL trades: {len(sells)}")
                 
@@ -402,27 +420,47 @@ def get_bot_performance(bot_id: str = "primary"):
                 for trade in sells:
                     symbol = trade.get("symbol", "Unknown")
                     if symbol not in symbols_stats:
-                        symbols_stats[symbol] = {"count": 0, "pnl": 0.0, "wins": 0}
-                    symbols_stats[symbol]["count"] += 1
+                        symbols_stats[symbol] = {"trades": 0, "profit": 0.0, "wins": 0}
+                    symbols_stats[symbol]["trades"] += 1
                     pnl = safe_float(trade.get("pnl"))
-                    symbols_stats[symbol]["pnl"] += pnl
+                    symbols_stats[symbol]["profit"] += pnl
                     if pnl > 0:
                         symbols_stats[symbol]["wins"] += 1
                 
                 for s in symbols_stats:
-                    symbols_stats[s]["win_rate"] = (symbols_stats[s]["wins"] / symbols_stats[s]["count"] * 100) if symbols_stats[s]["count"] > 0 else 0
+                    symbols_stats[s]["win_rate"] = (symbols_stats[s]["wins"] / symbols_stats[s]["trades"] * 100) if symbols_stats[s]["trades"] > 0 else 0
 
                 # Open positions from bot state (real-time)
                 bot = bot_manager.get_bot(bot_id)
                 open_positions = []
                 if bot:
                     for s, pos_data in bot._pos_state.items():
+                         # Get actual current price from Alpaca
+                         current_price = safe_float(pos_data.get("entry_price")) # Default
+                         try:
+                             if bot.api:
+                                 # Format symbol for Alpaca if needed (e.g. BTC/USD -> BTCUSD)
+                                 alpaca_sym = s.replace("/", "")
+                                 latest_trade = bot.api.get_latest_crypto_trade(alpaca_sym)
+                                 if latest_trade:
+                                     current_price = float(latest_trade.price)
+                         except Exception as e:
+                             print(f"[Performance] Error fetching latest price for {s}: {e}")
+                         
+                         entry_price = safe_float(pos_data.get("entry_price"))
+                         pl_pct = ((current_price / entry_price) - 1) * 100 if entry_price > 0 else 0
+                         pl_usd = (current_price - entry_price) * safe_float(pos_data.get("amount", 0))
+
                          open_positions.append({
                             "symbol": s,
-                            "entry_price": pos_data.get("entry_price"),
+                            "entry_price": entry_price,
+                            "current_price": current_price,
+                            "pl_pct": pl_pct,
+                            "pl_usd": pl_usd,
                             "entry_time": pos_data.get("entry_time"),
                             "bars_held": pos_data.get("bars_held", 0),
                             "trail_mode": pos_data.get("trail_mode", "NONE"),
+                            "amount": safe_float(pos_data.get("amount", 0))
                         })
 
                 win_rate = (len(wins) / len(sells) * 100) if sells else 0.0
@@ -695,7 +733,9 @@ def get_candles(symbol: str, bot_id: str = "primary", limit: int = 200):
 
         raw_markers = markers_resp.data or []
         print(f"DEBUG: /candles for {symbol} - Found {len(raw_candles)} candles and {len(raw_markers)} markers")
-        markers = []
+        
+        # Deduplicate markers by time, giving priority to BUY/SELL over SIGNAL
+        temp_markers = {} # unix_ts -> marker
         for m in raw_markers:
             try:
                 ts = m.get("timestamp", "")
@@ -708,42 +748,74 @@ def get_candles(symbol: str, bot_id: str = "primary", limit: int = 200):
                 action = m.get("action", "").upper()
                 price = float(m.get("price", 0) or 0)
                 pnl = m.get("pnl")
-
+                
+                # Simple priority: BUY/SELL override SIGNAL/PARTIAL_SELL at the same timestamp
+                marker_type = "REAL" if action in ("BUY", "SELL") else "SIGNAL"
+                
+                if unix_ts in temp_markers:
+                    existing = temp_markers[unix_ts]
+                    if marker_type == "SIGNAL" and existing["type"] == "REAL":
+                        continue # Keep the real one
+                
+                marker_obj = {
+                    "time": unix_ts,
+                    "type": marker_type,
+                    "action": action,
+                    "price": price,
+                    "pnl": pnl
+                }
+                
                 if action in ("BUY", "SIGNAL"):
-                    markers.append({
-                        "time": unix_ts,
+                    marker_obj.update({
                         "position": "belowBar",
                         "color": "#22c55e",
                         "shape": "arrowUp",
-                        "text": f"BUY ${price:.2f}",
-                        "price": price,
+                        "text": f"BUY ${price:.2f}" if action == "BUY" else f"SIG ${price:.2f}",
                     })
                 elif action == "SELL":
                     pnl_txt = f" P&L: ${float(pnl):.2f}" if pnl is not None else ""
-                    markers.append({
-                        "time": unix_ts,
+                    marker_obj.update({
                         "position": "aboveBar",
                         "color": "#ef4444" if (pnl or 0) <= 0 else "#22c55e",
                         "shape": "arrowDown",
                         "text": f"SELL ${price:.2f}{pnl_txt}",
-                        "price": price,
                     })
+                else:
+                    continue # Skip partials or unknowns to keep it clean
+                
+                temp_markers[unix_ts] = marker_obj
             except Exception:
                 continue
+        
+        markers = sorted(temp_markers.values(), key=lambda x: x["time"])
 
-        # Get current entry price if position is open
+        # Get current entry/exit levels if position is open
         entry_price = None
+        target_price = None
+        stop_price = None
+        
         if bot:
             from api.live_bot import _normalize_symbol
             pos = bot._pos_state.get(_normalize_symbol(symbol))
             if pos:
-                entry_price = pos.get("entry_price")
+                entry_price = safe_float(pos.get("entry_price"))
+                
+                # Fetch bars for ATR calculation
+                bars_limit = getattr(bot.config, "bars_limit", 200)
+                bars = bot._get_bars(symbol, limit=bars_limit)
+                if not bars.empty:
+                    tp, sl = bot._calculate_atr_exits(bars, entry_price)
+                    target_price = tp
+                    # Use current_stop if available (trailing), else calculated SL
+                    stop_price = safe_float(pos.get("current_stop")) or sl
 
         return {
             "symbol": symbol,
             "candles": candles,
             "markers": markers,
             "entry_price": entry_price,
+            "target_price": target_price,
+            "stop_price": stop_price,
             "timeframe": timeframe,
             "count": len(candles),
         }

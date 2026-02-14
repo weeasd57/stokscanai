@@ -614,6 +614,20 @@ export default function LiveBotTab() {
         }
     };
 
+    const handleTestNotification = async (type: string) => {
+        try {
+            const res = await fetch(`/api/ai_bot/test_notification?notify_type=${type}&bot_id=${selectedBotId}`, { method: "POST" });
+            if (res.ok) {
+                toast.success(`Test ${type} notification sent`);
+            } else {
+                const err = await res.json();
+                toast.error(err.detail || "Failed to send test notification");
+            }
+        } catch (error) {
+            toast.error("Network error");
+        }
+    };
+
 
     const handleUpdateConfig = async (silent: boolean = false) => {
         try {
@@ -798,8 +812,36 @@ export default function LiveBotTab() {
                                     }`}
                             >
                                 <Square className={`w-3.5 h-3.5 ${isStopping ? "animate-pulse" : ""}`} />
-                                STOP
+                                {isStopping ? "HALTING" : "STOP"}
                             </button>
+                        </div>
+
+                        {/* Test Notification Section */}
+                        <div className="mt-4 pt-4 border-t border-white/5 space-y-2">
+                            <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest block mb-2">Notification Testing</span>
+                            <div className="flex bg-black/60 p-1 rounded-2xl border border-white/5 shadow-inner">
+                                <button
+                                    onClick={() => handleTestNotification("buy")}
+                                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black text-emerald-500 hover:bg-emerald-500/10 hover:text-emerald-400 transition-all group/test"
+                                >
+                                    <ArrowUpRight className="w-3.5 h-3.5 group-hover/test:scale-110 transition-transform" />
+                                    BUY
+                                </button>
+                                <button
+                                    onClick={() => handleTestNotification("sell")}
+                                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black text-rose-500 hover:bg-rose-500/10 hover:text-rose-400 transition-all group/test"
+                                >
+                                    <ArrowDownRight className="w-3.5 h-3.5 group-hover/test:scale-110 transition-transform" />
+                                    SELL
+                                </button>
+                                <button
+                                    onClick={() => handleTestNotification("signal")}
+                                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black text-indigo-500 hover:bg-indigo-500/10 hover:text-indigo-400 transition-all group/test"
+                                >
+                                    <Zap className="w-3.5 h-3.5 group-hover/test:scale-110 transition-transform" />
+                                    SIGNAL
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1830,6 +1872,7 @@ export default function LiveBotTab() {
                                             height={350}
                                             showControls={true}
                                             autoRefresh={true}
+                                            paused={!!selectedChartSymbol}
                                         />
                                     ))}
                                 </div>
@@ -2395,7 +2438,7 @@ export default function LiveBotTab() {
                                 <LiveCandleChart
                                     symbol={selectedChartSymbol}
                                     botId={selectedBotId}
-                                    height={Infinity} // Will use flex-1
+                                    height="100%"
                                     onClose={() => setSelectedChartSymbol(null)}
                                     showControls={true}
                                     autoRefresh={false} // Static historical view

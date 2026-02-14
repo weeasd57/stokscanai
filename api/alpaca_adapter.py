@@ -270,7 +270,7 @@ class AlpacaPyAdapter:
         # Submit order
         try:
             if self._logger:
-                self._logger(f"Submitting {side} order for {symbol}")
+                self._logger(f"⚡ Submitting {side.upper()} order for {symbol}...")
             return self._trading.submit_order(order_data=req)
         except Exception as e:
             if self._logger:

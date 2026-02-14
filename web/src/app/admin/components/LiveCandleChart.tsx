@@ -25,10 +25,11 @@ interface Marker {
 interface LiveCandleChartProps {
     symbol: string;
     botId?: string;
-    height?: number;
+    height?: number | string;
     onClose?: () => void;
     showControls?: boolean;
     autoRefresh?: boolean;
+    paused?: boolean;
 }
 
 export default function LiveCandleChart({
@@ -37,15 +38,67 @@ export default function LiveCandleChart({
     height = 300,
     onClose,
     showControls = true,
-    autoRefresh = true
+    autoRefresh = true,
+    paused = false
 }: LiveCandleChartProps) {
     const chartContainerRef = useRef<HTMLDivElement>(null);
     const chartRef = useRef<IChartApi | null>(null);
     const candleSeriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
     const volumeSeriesRef = useRef<ISeriesApi<"Histogram"> | null>(null);
+
+    // Refs for horizontal price lines to allow updates/removals
+    const entryLineRef = useRef<any>(null);
+    const targetLineRef = useRef<any>(null);
+    const stopLineRef = useRef<any>(null);
+
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [isMaximized, setIsMaximized] = useState(false);
+
+    const updatePriceLines = (data: any) => {
+        if (!candleSeriesRef.current) return;
+
+        // Remove old lines if they exist
+        if (entryLineRef.current) candleSeriesRef.current.removePriceLine(entryLineRef.current);
+        if (targetLineRef.current) candleSeriesRef.current.removePriceLine(targetLineRef.current);
+        if (stopLineRef.current) candleSeriesRef.current.removePriceLine(stopLineRef.current);
+
+        // Entry Price (Blue dashed)
+        if (data.entry_price) {
+            entryLineRef.current = candleSeriesRef.current.createPriceLine({
+                price: data.entry_price,
+                color: "#3b82f6",
+                lineWidth: 1,
+                lineStyle: 1, // Dashed
+                axisLabelVisible: true,
+                title: "ENTRY",
+            });
+        }
+
+        // Target Price (Green solid)
+        if (data.target_price) {
+            targetLineRef.current = candleSeriesRef.current.createPriceLine({
+                price: data.target_price,
+                color: "#22c55e",
+                lineWidth: 2,
+                lineStyle: 0, // Solid
+                axisLabelVisible: true,
+                title: "TARGET",
+            });
+        }
+
+        // Stop Price (Red solid)
+        if (data.stop_price) {
+            stopLineRef.current = candleSeriesRef.current.createPriceLine({
+                price: data.stop_price,
+                color: "#ef4444",
+                lineWidth: 2,
+                lineStyle: 0, // Solid
+                axisLabelVisible: true,
+                title: "STOP",
+            });
+        }
+    };
 
     const fetchData = async () => {
         try {
@@ -76,21 +129,33 @@ export default function LiveCandleChart({
                     volumeSeriesRef.current.setData(volumeData);
                 }
 
-                // Update markers with snapping to candle times
+                // Update price lines (Entry, Target, Stop)
+                updatePriceLines(data);
+
+                // Update markers with snapping to candle times and post-snapping deduplication
                 if (data.markers && data.markers.length > 0 && data.candles.length > 0) {
                     const candleTimes = data.candles.map((c: any) => c.time);
-                    const validMarkers = data.markers.map((m: any) => {
-                        // Find the nearest preceding candle time
+
+                    // 1. Snap to nearest candle time
+                    const snappedMarkers = data.markers.map((m: any) => {
                         const nearestTime = candleTimes.reduce((prev: number, curr: number) => {
                             return (curr <= m.time) ? curr : prev;
                         }, candleTimes[0]);
 
-                        return {
-                            ...m,
-                            time: nearestTime
-                        };
-                    }).sort((a: any, b: any) => a.time - b.time);
+                        return { ...m, time: nearestTime };
+                    });
 
+                    // 2. Deduplicate: Only one marker per candle time
+                    const finalMarkersMap = new Map();
+                    snappedMarkers.forEach((m: any) => {
+                        const existing = finalMarkersMap.get(m.time);
+                        // Priority: REAL > SIGNAL
+                        if (!existing || (m.type === 'REAL' && existing.type !== 'REAL')) {
+                            finalMarkersMap.set(m.time, m);
+                        }
+                    });
+
+                    const validMarkers = Array.from(finalMarkersMap.values()).sort((a: any, b: any) => a.time - b.time);
                     candleSeriesRef.current.setMarkers(validMarkers);
                 } else if (candleSeriesRef.current) {
                     candleSeriesRef.current.setMarkers([]);
@@ -161,10 +226,15 @@ export default function LiveCandleChart({
         candleSeriesRef.current = candleSeries;
         volumeSeriesRef.current = volumeSeries;
 
+        if (paused) {
+            setLoading(false);
+            return;
+        }
+
         fetchData();
 
         let interval: NodeJS.Timeout;
-        if (autoRefresh) {
+        if (autoRefresh && !paused) {
             interval = setInterval(() => {
                 if (chartRef.current) fetchData();
             }, 10000);
@@ -191,7 +261,7 @@ export default function LiveCandleChart({
                 volumeSeriesRef.current = null;
             }
         };
-    }, [symbol, botId, autoRefresh, isMaximized]);
+    }, [symbol, botId, autoRefresh, isMaximized, height, paused]);
 
     return (
         <div className={`relative bg-zinc-900/40 border border-zinc-800 rounded-2xl flex flex-col group transition-all ${isMaximized ? 'fixed inset-4 z-50 bg-black/95 shadow-2xl' : ''}`}

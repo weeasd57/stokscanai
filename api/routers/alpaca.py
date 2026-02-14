@@ -498,7 +498,7 @@ def get_orders(
                 "submitted_at": str(o.submitted_at) if o.submitted_at else None,
                 "filled_at": str(o.filled_at) if o.filled_at else None,
                 "expired_at": str(o.expired_at) if o.expired_at else None,
-                "cancel_requested_at": str(o.cancel_requested_at) if o.cancel_requested_at else None,
+                "cancel_requested_at": str(getattr(o, "cancel_requested_at", None)) if getattr(o, "cancel_requested_at", None) else None,
                 "canceled_at": str(o.canceled_at) if o.canceled_at else None,
                 "failed_at": str(o.failed_at) if o.failed_at else None,
                 "replaced_at": str(o.replaced_at) if o.replaced_at else None,

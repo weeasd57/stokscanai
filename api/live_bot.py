@@ -1049,7 +1049,7 @@ class LiveBot:
         self.telegram_bridge = bridge
 
     def _send_telegram_signal(self, symbol: str, price: float, notional: float, king_conf: float, council_conf: Optional[float] = None):
-        """Send a professional looking trade signal to Telegram."""
+        """Send a professional looking trade signal to Telegram (Cornix compatible)."""
         if not self.telegram_bridge or self.config.execution_mode not in ["TELEGRAM", "BOTH"]:
             return
             
@@ -1061,13 +1061,14 @@ class LiveBot:
         if self.config.execution_mode == "TELEGRAM":
             title += " (Signal Only)"
         
+        # Cornix compatible format keywords
         msg = (
             f"{title}\n"
             f"━━━━━━━━━━━━━━━\n"
-            f"💎 *Symbol:* `{symbol}`\n"
+            f"💎 *Pair:* `{symbol}`\n"
             f"💰 *Entry Price:* `${price:,.4f}`\n"
-            f"📈 *Target (TP):* `${target_price:,.4f}` (+{self.config.target_pct*100:.1f}%)\n"
-            f"📉 *Stop Loss (SL):* `${stop_price:,.4f}` (-{self.config.stop_loss_pct*100:.1f}%)\n"
+            f"🎯 *Targets (TP):* `${target_price:,.4f}`\n"
+            f"🛑 *Stop Loss:* `${stop_price:,.4f}`\n"
             f"💵 *Amount:* `${notional:,.2f}`\n"
             f"━━━━━━━━━━━━━━━\n"
             f"👑 *KING Conf:* `{king_conf:.2f}`\n"
@@ -1102,6 +1103,61 @@ class LiveBot:
         self._trades.append(trade)
         self._save_trade_persistent(trade)
         self._log(f"{action} SIGNAL RECORDED: {symbol} @ {price:.4f}")
+
+    def send_test_notification(self, notify_type: str):
+        """Send a mock notification to Telegram for testing purposes."""
+        if not self.telegram_bridge:
+            return False, "Telegram bridge not initialized"
+        
+        symbol = "TEST/USD"
+        price = 1234.56
+        amount = 500.0
+        
+        if notify_type == "buy":
+             msg = (
+                f"🟢 *TEST BUY EXECUTED*\n"
+                f"━━━━━━━━━━━━━━━\n"
+                f"💎 *Symbol:* `{symbol}`\n"
+                f"💰 *Price:* `${price:,.2f}`\n"
+                f"💵 *Amount:* `${amount:,.2f}`\n"
+                f"📊 *Regime:* `BULL`\n"
+                f"🎯 *Quality:* `85`\n"
+                f"━━━━━━━━━━━━━━━\n"
+                f"🤖 *Bot:* `{self.config.name} (TEST)`"
+            )
+        elif notify_type == "sell":
+            pnl = 25.50
+            pnl_pct = 5.10
+            msg = (
+                f"🔴 *TEST SELL EXECUTED*\n"
+                f"━━━━━━━━━━━━━━━\n"
+                f"💎 *Symbol:* `{symbol}`\n"
+                f"💰 *Exit Price:* `${price:,.2f}` ({pnl_pct:+.2f}%)\n"
+                f"💵 *PnL:* `${pnl:,.2f}`\n"
+                f"📈 *Daily PnL:* `$125.00`\n"
+                f"━━━━━━━━━━━━━━━\n"
+                f"🤖 *Bot:* `{self.config.name} (TEST)`"
+            )
+        elif notify_type == "signal":
+            target = price * 1.15
+            stop = price * 0.95
+            msg = (
+                f"🔵 *TEST TRADE SIGNAL*\n"
+                f"━━━━━━━━━━━━━━━\n"
+                f"💎 *Pair:* `{symbol}`\n"
+                f"💰 *Entry Price:* `${price:,.2f}`\n"
+                f"🎯 *Targets (TP):* `${target:,.2f}`\n"
+                f"🛑 *Stop Loss:* `${stop:,.2f}`\n"
+                f"💵 *Amount:* `${amount:,.2f}`\n"
+                f"━━━━━━━━━━━━━━━\n"
+                f"👑 *KING Conf:* `0.92`\n"
+                f"🤖 *Bot:* `{self.config.name} (TEST)`"
+            )
+        else:
+            return False, f"Unknown notification type: {notify_type}"
+            
+        self.telegram_bridge.send_notification(msg)
+        return True, "Notification sent"
 
     def _build_default_config(self) -> BotConfig:
         coins = _parse_coins(
@@ -1775,13 +1831,21 @@ class LiveBot:
             self._save_trade_persistent(trade)
             
             if self.telegram_bridge:
-                price_str = f"${avg_fill:.2f}" if avg_fill else "pending fill"
-                self.telegram_bridge.send_notification(
-                    f"🟢 *BUY EXECUTED*\n\n"
-                    f"Symbol: {symbol}\n"
-                    f"Price: {price_str}\n"
-                    f"Amount: ${float(notional_usd):.2f}"
+                price_str = f"`${avg_fill:,.2f}`" if avg_fill else "`pending fill`"
+                state = self._pos_state.get(_normalize_symbol(symbol), {})
+                
+                msg = (
+                    f"🟢 *BUY EXECUTED*\n"
+                    f"━━━━━━━━━━━━━━━\n"
+                    f"💎 *Symbol:* `{symbol}`\n"
+                    f"💰 *Price:* {price_str}\n"
+                    f"💵 *Amount:* `${float(notional_usd):,.2f}`\n"
+                    f"📊 *Regime:* `{state.get('regime', 'N/A')}`\n"
+                    f"🎯 *Quality:* `{state.get('quality_score', 0):.0f}`\n"
+                    f"━━━━━━━━━━━━━━━\n"
+                    f"🤖 *Bot:* `{self.config.name}`"
                 )
+                self.telegram_bridge.send_notification(msg)
             return True
         except Exception as e:
             self._log(f"Buy failed for {symbol}: {e}")
@@ -1829,14 +1893,23 @@ class LiveBot:
             
             if self.telegram_bridge:
                 emoji = "🟢" if pnl > 0 else "🔴"
-                exit_str = f"${fill_price:.2f}" if fill_price else "pending fill"
-                self.telegram_bridge.send_notification(
-                    f"{emoji} *SELL EXECUTED*\n\n"
-                    f"Symbol: {symbol}\n"
-                    f"Exit Price: {exit_str}\n"
-                    f"PnL: ${pnl:.2f}\n"
-                    f"📊 Daily PnL: ${self._daily_loss:.2f}"
+                exit_str = f"`${fill_price:,.2f}`" if fill_price else "`pending fill`"
+                
+                pnl_pct = 0.0
+                if entry_price and fill_price:
+                    pnl_pct = ((fill_price / entry_price) - 1) * 100
+                
+                msg = (
+                    f"{emoji} *SELL EXECUTED*\n"
+                    f"━━━━━━━━━━━━━━━\n"
+                    f"💎 *Symbol:* `{symbol}`\n"
+                    f"💰 *Exit Price:* {exit_str} ({pnl_pct:+.2f}%)\n"
+                    f"💵 *PnL:* `${pnl:,.2f}`\n"
+                    f"📈 *Daily PnL:* `${self._daily_loss:,.2f}`\n"
+                    f"━━━━━━━━━━━━━━━\n"
+                    f"🤖 *Bot:* `{self.config.name}`"
                 )
+                self.telegram_bridge.send_notification(msg)
             
             self._pos_state.pop(_normalize_symbol(symbol), None)
             

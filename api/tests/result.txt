@@ -1,0 +1,36 @@
+BUY Message:
+🟢 *TEST BUY EXECUTED*
+━━━━━━━━━━━━━━━
+💎 *Symbol:* `TEST/USD`
+💰 *Price:* `$1,234.56`
+💵 *Amount:* `$500.00`
+📊 *Regime:* `BULL`
+🎯 *Quality:* `85`
+━━━━━━━━━━━━━━━
+🤖 *Bot:* `Primary Bot (TEST)`
+
+==================================================
+
+SELL Message:
+🔴 *TEST SELL EXECUTED*
+━━━━━━━━━━━━━━━
+💎 *Symbol:* `TEST/USD`
+💰 *Exit Price:* `$1,234.56` (+5.10%)
+💵 *PnL:* `$25.50`
+📈 *Daily PnL:* `$125.00`
+━━━━━━━━━━━━━━━
+🤖 *Bot:* `Primary Bot (TEST)`
+
+==================================================
+
+SIGNAL Message:
+🔵 *TEST TRADE SIGNAL*
+━━━━━━━━━━━━━━━
+💎 *Pair:* `TEST/USD`
+💰 *Entry Price:* `$1,234.56`
+🎯 *Targets (TP):* `$1,419.74`
+🛑 *Stop Loss:* `$1,172.83`
+💵 *Amount:* `$500.00`
+━━━━━━━━━━━━━━━
+👑 *KING Conf:* `0.92`
+🤖 *Bot:* `Primary Bot (TEST)`
