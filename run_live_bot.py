@@ -229,26 +229,26 @@ def _build_config() -> BotConfig:
         coins=coins,
         
         # عتبات النماذج
-        king_threshold=_parse_float(_read_env("KING_THRESHOLD", "0.60"), 0.60),
-        council_threshold=_parse_float(_read_env("COUNCIL_THRESHOLD", "0.35"), 0.35),
+        king_threshold=_parse_float(_read_env("KING_THRESHOLD", "0.45"), 0.45),
+        council_threshold=_parse_float(_read_env("COUNCIL_THRESHOLD", "0.25"), 0.25),
         
         # إدارة رأس المال - محسّن
-        max_notional_usd=_parse_float(_read_env("MAX_NOTIONAL_USD", "500"), 500.0),
-        pct_cash_per_trade=_parse_float(_read_env("PCT_CASH_PER_TRADE", "0.10"), 0.10),
+        max_notional_usd=_parse_float(_read_env("MAX_NOTIONAL_USD", "1000"), 1000.0),
+        pct_cash_per_trade=_parse_float(_read_env("PCT_CASH_PER_TRADE", "0.15"), 0.15),
         max_total_exposure_usd=_parse_float(_read_env("MAX_TOTAL_EXPOSURE_USD", "2000"), 2000.0),
-        max_positions=_parse_int(_read_env("MAX_POSITIONS", "5"), 5),
+        max_open_positions=_parse_int(_read_env("MAX_POSITIONS", "8"), 8),
         min_trade_size_usd=_parse_float(_read_env("MIN_TRADE_SIZE_USD", "10"), 10.0),
         
         # البيانات
         bars_limit=_parse_int(_read_env("BARS_LIMIT", "200"), 200),
-        poll_seconds=_parse_int(_read_env("POLL_SECONDS", "300"), 300),
+        poll_seconds=_parse_int(_read_env("POLL_SECONDS", "120"), 120),
         timeframe=str(_read_env("TIMEFRAME", "1Hour") or "1Hour"),
         
         # إدارة المخاطر الأساسية
         enable_sells=_parse_bool(_read_env("LIVE_ENABLE_SELLS", "1"), True),
-        target_pct=_parse_float(_read_env("LIVE_TARGET_PCT", "0.10"), 0.10),
-        stop_loss_pct=_parse_float(_read_env("LIVE_STOP_LOSS_PCT", "0.05"), 0.05),
-        hold_max_bars=_parse_int(_read_env("LIVE_HOLD_MAX_BARS", "20"), 20),
+        target_pct=_parse_float(_read_env("LIVE_TARGET_PCT", "0.15"), 0.15),
+        stop_loss_pct=_parse_float(_read_env("LIVE_STOP_LOSS_PCT", "0.07"), 0.07),
+        hold_max_bars=_parse_int(_read_env("LIVE_HOLD_MAX_BARS", "30"), 30),
         
         # الوقف المتحرك
         use_trailing=_parse_bool(_read_env("LIVE_USE_TRAILING", "1"), True),
@@ -257,10 +257,15 @@ def _build_config() -> BotConfig:
         trail_lock_pct=_parse_float(_read_env("LIVE_TRAIL_LOCK_PCT", "0.05"), 0.05),
         
         # حماية متقدمة - جديد
-        max_daily_trades=_parse_int(_read_env("MAX_DAILY_TRADES", "20"), 20),
-        max_daily_loss_pct=_parse_float(_read_env("MAX_DAILY_LOSS_PCT", "0.10"), 0.10),
-        circuit_breaker_loss_pct=_parse_float(_read_env("CIRCUIT_BREAKER_LOSS_PCT", "0.15"), 0.15),
-        require_complete_bars=_parse_bool(_read_env("REQUIRE_COMPLETE_BARS", "1"), True),
+        daily_loss_limit=_parse_float(_read_env("DAILY_LOSS_LIMIT", "1000.0"), 1000.0),
+        max_consecutive_losses=_parse_int(_read_env("MAX_CONSECUTIVE_LOSSES", "5"), 5),
+        max_risk_per_trade_pct=_parse_float(_read_env("MAX_RISK_PER_TRADE_PCT", "0.04"), 0.04),
+        cooldown_minutes=_parse_int(_read_env("COOLDOWN_MINUTES", "30"), 30),
+        use_trend_filter=_parse_bool(_read_env("USE_TREND_FILTER", "0"), False),
+        use_time_filter=_parse_bool(_read_env("USE_TIME_FILTER", "0"), False),
+        min_quality_score=_parse_float(_read_env("MIN_QUALITY_SCORE", "50.0"), 50.0),
+        regime_adx_threshold=_parse_float(_read_env("REGIME_ADX_THRESHOLD", "14.0"), 14.0),
+        trading_mode=str(_read_env("TRADING_MODE", "aggressive") or "aggressive").strip().lower(),
         
         # فلاتر إضافية - جديد
         min_volume_usd=_parse_float(_read_env("MIN_VOLUME_USD", "100000"), 100000.0),

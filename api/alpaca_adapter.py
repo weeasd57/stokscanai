@@ -5,8 +5,8 @@ from typing import Any, Optional, Protocol, List
 # Import Alpaca modules at the top level where possible
 try:
     from alpaca.data.timeframe import TimeFrame, TimeFrameUnit
-    from alpaca.data.historical import CryptoHistoricalDataClient
-    from alpaca.data.requests import CryptoBarsRequest
+    from alpaca.data.historical import CryptoHistoricalDataClient, StockHistoricalDataClient
+    from alpaca.data.requests import CryptoBarsRequest, CryptoLatestTradeRequest, StockLatestTradeRequest
     from alpaca.trading.client import TradingClient
     from alpaca.trading.enums import OrderSide, OrderType, TimeInForce, OrderStatus
     from alpaca.trading.requests import MarketOrderRequest, GetOrdersRequest
@@ -147,8 +147,60 @@ class AlpacaPyAdapter:
                 secret_key=secret_key,
                 raw_data=False,
             )
+            self._stock_data = StockHistoricalDataClient(
+                api_key=key_id,
+                secret_key=secret_key,
+                raw_data=False,
+            )
         except Exception as e:
             raise AlpacaClientError(f"Failed to initialize data client: {e}")
+
+    def get_latest_trade(self, symbol: str) -> Any:
+        """
+        Get the latest stock trade.
+        
+        Args:
+            symbol: Trading symbol (e.g., "AAPL")
+            
+        Returns:
+            Latest trade information
+            
+        Raises:
+            AlpacaClientError: If request fails
+        """
+        try:
+            request_params = StockLatestTradeRequest(symbol_or_symbols=symbol)
+            trade = self._stock_data.get_stock_latest_trade(request_params)
+            return trade[symbol]
+        except Exception as e:
+            if self._logger:
+                self._logger(f"Error fetching latest stock trade for {symbol}: {e}")
+            raise AlpacaClientError(f"Failed to get latest stock trade: {e}")
+
+    def get_latest_crypto_trade(self, symbol: str) -> Any:
+        """
+        Get the latest crypto trade.
+        
+        Args:
+            symbol: Trading symbol (e.g., "BTC/USD")
+            
+        Returns:
+            Latest trade information
+            
+        Raises:
+            AlpacaClientError: If request fails
+        """
+        try:
+            # alpaca-py expects normalized symbols for crypto fetching usually (e.g. BTCUSD)
+            # but sometimes works with / if the request object handles it.
+            clean_sym = symbol.replace("/", "")
+            request_params = CryptoLatestTradeRequest(symbol_or_symbols=clean_sym)
+            trade = self._data.get_crypto_latest_trade(request_params)
+            return trade[clean_sym]
+        except Exception as e:
+            if self._logger:
+                self._logger(f"Error fetching latest crypto trade for {symbol}: {e}")
+            raise AlpacaClientError(f"Failed to get latest crypto trade: {e}")
 
     def list_positions(self) -> List[Any]:
         """Get all current positions."""

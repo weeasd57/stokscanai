@@ -36,22 +36,22 @@ class BotConfig:
     alpaca_secret_key: str = ""
     alpaca_base_url: str = "https://paper-api.alpaca.markets"
     coins: list[str] = None
-    king_threshold: float = 0.60
-    council_threshold: float = 0.35
-    max_notional_usd: float = 500.0
-    pct_cash_per_trade: float = 0.10
+    king_threshold: float = 0.45
+    council_threshold: float = 0.25
+    max_notional_usd: float = 1000.0
+    pct_cash_per_trade: float = 0.15
     bars_limit: int = 200
-    poll_seconds: int = 300
+    poll_seconds: int = 120
     timeframe: str = "1Hour"
     use_council: bool = True
     data_source: str = "binance"
 
     # Risk
-    max_open_positions: int = 5
+    max_open_positions: int = 8
     enable_sells: bool = True
-    target_pct: float = 0.10
-    stop_loss_pct: float = 0.05
-    hold_max_bars: int = 20
+    target_pct: float = 0.15
+    stop_loss_pct: float = 0.07
+    hold_max_bars: int = 30
     use_trailing: bool = True
     trail_be_pct: float = 0.05
     trail_lock_trigger_pct: float = 0.08
@@ -62,18 +62,18 @@ class BotConfig:
     save_trades_to_supabase: bool = True  # NEW: Save trade logs to Supabase
     
     # ===== Advanced Risk & Strategy =====
-    daily_loss_limit: float = 500.0
-    max_consecutive_losses: int = 3
+    daily_loss_limit: float = 1000.0
+    max_consecutive_losses: int = 5
     min_volume_ratio: float = 0.5
     use_rsi_filter: bool = True
-    use_trend_filter: bool = True
+    use_trend_filter: bool = False
     use_dynamic_sizing: bool = True
-    max_risk_per_trade_pct: float = 0.02
+    max_risk_per_trade_pct: float = 0.04
     
     # ===== Smart Bot Features =====
     # 1. Market Regime Detection
     use_market_regime: bool = True
-    regime_adx_threshold: float = 18.0  # ADX > this = trending (Default loosened from 25.0)
+    regime_adx_threshold: float = 14.0  # ADX > this = trending (Default loosened from 25.0)
     regime_sideways_size_mult: float = 0.5  # Reduce size in sideways
     
     # 2. Multi-Timeframe Confirmation
@@ -83,7 +83,6 @@ class BotConfig:
     # 3. Dynamic ATR-based TP/SL
     use_atr_exits: bool = True
     atr_sl_multiplier: float = 1.5
-    atr_tp_multiplier: float = 2.5
     atr_tp_multiplier: float = 2.5
     atr_period: int = 14
     
@@ -106,14 +105,14 @@ class BotConfig:
     winrate_high_threshold: float = 0.70
     
     # 8. Cooldown Mechanism
-    cooldown_minutes: int = 60  # Minutes to wait before re-entering the same symbol
+    cooldown_minutes: int = 30  # Minutes to wait before re-entering the same symbol
 
     # 9. Time-of-Day Filter
-    use_time_filter: bool = True
+    use_time_filter: bool = False
     
     # 9. Signal Quality Score
     use_quality_score: bool = True
-    min_quality_score: float = 65.0
+    min_quality_score: float = 50.0
     
     # 10. Partial Position Management
     use_partial_positions: bool = False  # Off by default (advanced)
@@ -121,7 +120,7 @@ class BotConfig:
     partial_exit_pct: float = 0.50
     
     # Trading Mode
-    trading_mode: str = "hybrid"  # "defensive" | "aggressive" | "hybrid"
+    trading_mode: str = "aggressive"  # "defensive" | "aggressive" | "hybrid"
 
     # Model Paths
     king_model_path: str = "api/models/KING_CRYPTO 👑.pkl"
@@ -1176,12 +1175,12 @@ class LiveBot:
             alpaca_secret_key=str(_read_first_env(["ALPACA_SECRET_KEY"], "") or ""),
             alpaca_base_url=str(_read_env("ALPACA_BASE_URL", "https://paper-api.alpaca.markets")),
             coins=coins,
-            king_threshold=_parse_float(_read_env("KING_THRESHOLD", "0.60"), 0.60),
-            council_threshold=_parse_float(_read_env("COUNCIL_THRESHOLD", "0.35"), 0.35),
-            max_notional_usd=_parse_float(_read_env("MAX_NOTIONAL_USD", "500"), 500.0),
-            pct_cash_per_trade=_parse_float(_read_env("PCT_CASH_PER_TRADE", "0.10"), 0.10),
+            king_threshold=_parse_float(_read_env("KING_THRESHOLD", "0.45"), 0.45),
+            council_threshold=_parse_float(_read_env("COUNCIL_THRESHOLD", "0.25"), 0.25),
+            max_notional_usd=_parse_float(_read_env("MAX_NOTIONAL_USD", "1000.0"), 1000.0),
+            pct_cash_per_trade=_parse_float(_read_env("PCT_CASH_PER_TRADE", "0.15"), 0.15),
             bars_limit=int(float(_read_env("BARS_LIMIT", "200") or 200)),
-            poll_seconds=int(float(_read_env("POLL_SECONDS", "300") or 300)),
+            poll_seconds=int(float(_read_env("POLL_SECONDS", "120") or 120)),
             timeframe=str(_read_env("TIMEFRAME", "1Hour")),
             data_source=str(_read_env("LIVE_DATA_SOURCE", "binance") or "binance").strip().lower(),
             enable_sells=_parse_bool(_read_env("LIVE_ENABLE_SELLS", "1"), True),
@@ -1193,21 +1192,26 @@ class LiveBot:
             
             # --- New Advanced Risk & Strategy ---
             target_pct=_parse_float(_read_env("LIVE_TARGET_PCT", "0.15"), 0.15),
-            stop_loss_pct=_parse_float(_read_env("LIVE_STOP_LOSS_PCT", "0.08"), 0.08),
+            stop_loss_pct=_parse_float(_read_env("LIVE_STOP_LOSS_PCT", "0.07"), 0.07),
             hold_max_bars=int(float(_read_env("LIVE_HOLD_MAX_BARS", "30") or 30)),
-            daily_loss_limit=_parse_float(_read_env("DAILY_LOSS_LIMIT", "500"), 500.0),
-            max_consecutive_losses=int(float(_read_env("MAX_CONSECUTIVE_LOSSES", "3") or 3)),
-            min_volume_ratio=_parse_float(_read_env("MIN_VOLUME_RATIO", "0.7"), 0.7),
+            daily_loss_limit=_parse_float(_read_env("DAILY_LOSS_LIMIT", "1000.0"), 1000.0),
+            max_consecutive_losses=int(float(_read_env("MAX_CONSECUTIVE_LOSSES", "5") or 5)),
+            min_volume_ratio=_parse_float(_read_env("MIN_VOLUME_RATIO", "0.5"), 0.5),
             use_rsi_filter=_parse_bool(_read_env("USE_RSI_FILTER", "1"), True),
-            use_trend_filter=_parse_bool(_read_env("USE_TREND_FILTER", "1"), True),
+            use_trend_filter=_parse_bool(_read_env("USE_TREND_FILTER", "0"), False),
             use_dynamic_sizing=_parse_bool(_read_env("USE_DYNAMIC_SIZING", "1"), True),
-            max_risk_per_trade_pct=_parse_float(_read_env("MAX_RISK_PER_TRADE_PCT", "0.02"), 0.02),
+            max_risk_per_trade_pct=_parse_float(_read_env("MAX_RISK_PER_TRADE_PCT", "0.04"), 0.04),
 
-            trading_mode=str(_read_env("TRADING_MODE", "hybrid") or "hybrid").strip().lower(),
+            trading_mode=str(_read_env("TRADING_MODE", "aggressive") or "aggressive").strip().lower(),
 
             king_model_path=str(_read_env("LIVE_KING_MODEL_PATH", "api/models/KING_CRYPTO 👑.pkl")),
             council_model_path=str(_read_env("LIVE_COUNCIL_MODEL_PATH", "api/models/COUNCIL_CRYPTO.pkl")),
-            max_open_positions=int(float(_read_env("LIVE_MAX_OPEN_POSITIONS", "5") or 5)),
+            max_open_positions=int(float(_read_env("LIVE_MAX_OPEN_POSITIONS", "8") or 8)),
+            
+            cooldown_minutes=int(float(_read_env("COOLDOWN_MINUTES", "30") or 30)),
+            use_time_filter=_parse_bool(_read_env("USE_TIME_FILTER", "0"), False),
+            min_quality_score=_parse_float(_read_env("MIN_QUALITY_SCORE", "50.0"), 50.0),
+            regime_adx_threshold=_parse_float(_read_env("REGIME_ADX_THRESHOLD", "14.0"), 14.0),
         )
 
     def update_config(self, updates: Dict[str, Any]):
