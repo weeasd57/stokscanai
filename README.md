@@ -118,3 +118,26 @@ Contributions are welcome! Please create a Pull Request for any bug fixes or new
 
 ## 📄 License
 MIT License.
+
+## Aggressive Mode Defaults
+
+| الإعداد | القديم | الجديد |
+|---|---|---|
+| `trading_mode` | hybrid | **aggressive** |
+| `king_threshold` | 0.60 | **0.45** |
+| `council_threshold` | 0.35 | **0.25** |
+| `max_notional_usd` | $500 | **$1,000** |
+| `pct_cash_per_trade` | 10% | **15%** |
+| `poll_seconds` | 300s (5 دقائق) | **120s (دقيقتين)** |
+| `max_open_positions` | 5 | **8** |
+| `target_pct` | 10% | **15%** |
+| `stop_loss_pct` | 5% | **7%** |
+| `hold_max_bars` | 20 | **30** |
+| `daily_loss_limit` | $500 | **$1,000** |
+| `max_consecutive_losses` | 3 | **5** |
+| `max_risk_per_trade_pct` | 2% | **4%** |
+| `cooldown_minutes` | 60 | **30** |
+| `use_trend_filter` | ✅ | **❌** |
+| `use_time_filter` | ✅ | **❌** |
+| `min_quality_score` | 65 | **50** |
+| `regime_adx_threshold` | 18 | **14** |

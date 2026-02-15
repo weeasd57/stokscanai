@@ -11,6 +11,15 @@ from api.stock_ai import get_cached_tickers, _supabase_read_with_retry, supabase
 
 router = APIRouter(tags=["AI_BOT"])
 
+def safe_float(val):
+    if val is None:
+        return 0.0
+    try:
+        return float(val)
+    except (ValueError, TypeError):
+        return 0.0
+
+
 class BotConfigUpdate(BaseModel):
     alpaca_key_id: Optional[str] = None
     alpaca_secret_key: Optional[str] = None
@@ -385,15 +394,6 @@ def get_bot_performance(bot_id: str = "primary"):
                 sells = [t for t in trades if str(t.get("action") or "").upper() == "SELL"]
                 
                 print(f"[Performance] BUY trades: {len(buys)}, SELL trades: {len(sells)}")
-                
-                # Convert PNL to float to handle string/number inconsistencies
-                def safe_float(val):
-                    if val is None:
-                        return 0.0
-                    try:
-                        return float(val)
-                    except (ValueError, TypeError):
-                        return 0.0
                 
                 # Calculate wins/losses with proper type conversion
                 wins = []
