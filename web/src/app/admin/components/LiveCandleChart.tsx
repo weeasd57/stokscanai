@@ -55,6 +55,11 @@ export default function LiveCandleChart({
     const [error, setError] = useState<string | null>(null);
     const [isMaximized, setIsMaximized] = useState(false);
 
+    const toValidPrice = (value: any): number | null => {
+        const n = Number(value);
+        return Number.isFinite(n) && n > 0 ? n : null;
+    };
+
     const updatePriceLines = (data: any) => {
         if (!candleSeriesRef.current) return;
 
@@ -63,37 +68,41 @@ export default function LiveCandleChart({
         if (targetLineRef.current) candleSeriesRef.current.removePriceLine(targetLineRef.current);
         if (stopLineRef.current) candleSeriesRef.current.removePriceLine(stopLineRef.current);
 
+        const entryPrice = toValidPrice(data.entry_price);
+        const targetPrice = toValidPrice(data.target_price);
+        const stopPrice = toValidPrice(data.stop_price);
+
         // Entry Price (Blue dashed)
-        if (data.entry_price) {
+        if (entryPrice !== null) {
             entryLineRef.current = candleSeriesRef.current.createPriceLine({
-                price: data.entry_price,
+                price: entryPrice,
                 color: "#3b82f6",
-                lineWidth: 1,
+                lineWidth: 2,
                 lineStyle: 1, // Dashed
                 axisLabelVisible: true,
                 title: "ENTRY",
             });
         }
 
-        // Target Price (Green solid)
-        if (data.target_price) {
+        // Target Price (Green dotted)
+        if (targetPrice !== null) {
             targetLineRef.current = candleSeriesRef.current.createPriceLine({
-                price: data.target_price,
+                price: targetPrice,
                 color: "#22c55e",
                 lineWidth: 2,
-                lineStyle: 0, // Solid
+                lineStyle: 2, // Dotted
                 axisLabelVisible: true,
                 title: "TARGET",
             });
         }
 
-        // Stop Price (Red solid)
-        if (data.stop_price) {
+        // Stop Price (Red dashed)
+        if (stopPrice !== null) {
             stopLineRef.current = candleSeriesRef.current.createPriceLine({
-                price: data.stop_price,
+                price: stopPrice,
                 color: "#ef4444",
                 lineWidth: 2,
-                lineStyle: 0, // Solid
+                lineStyle: 1, // Dashed
                 axisLabelVisible: true,
                 title: "STOP",
             });
@@ -170,6 +179,26 @@ export default function LiveCandleChart({
         }
     };
 
+
+    // Initial data fetch
+    useEffect(() => {
+        if (!paused) {
+            fetchData();
+        }
+    }, [symbol, botId]); // Only fetch when symbol/botId changes
+
+    // Polling interval
+    useEffect(() => {
+        if (!autoRefresh || paused) return;
+
+        const interval = setInterval(() => {
+            if (chartRef.current) fetchData();
+        }, 30000); // 30s refresh
+
+        return () => clearInterval(interval);
+    }, [autoRefresh, paused, symbol, botId]);
+
+    // Chart initialization and resize handling
     useEffect(() => {
         if (!chartContainerRef.current) return;
 
@@ -226,20 +255,6 @@ export default function LiveCandleChart({
         candleSeriesRef.current = candleSeries;
         volumeSeriesRef.current = volumeSeries;
 
-        if (paused) {
-            setLoading(false);
-            return;
-        }
-
-        fetchData();
-
-        let interval: NodeJS.Timeout;
-        if (autoRefresh && !paused) {
-            interval = setInterval(() => {
-                if (chartRef.current) fetchData();
-            }, 10000);
-        }
-
         const handleResize = () => {
             if (chartContainerRef.current && chartRef.current) {
                 chartRef.current.applyOptions({ width: chartContainerRef.current.clientWidth });
@@ -252,7 +267,6 @@ export default function LiveCandleChart({
         return () => {
             window.removeEventListener("resize", handleResize);
             clearTimeout(resizeTimeout);
-            if (interval) clearInterval(interval);
 
             if (chartRef.current) {
                 chartRef.current.remove();
@@ -261,7 +275,7 @@ export default function LiveCandleChart({
                 volumeSeriesRef.current = null;
             }
         };
-    }, [symbol, botId, autoRefresh, isMaximized, height, paused]);
+    }, [symbol, isMaximized, height]);
 
     return (
         <div className={`relative bg-zinc-900/40 border border-zinc-800 rounded-2xl flex flex-col group transition-all ${isMaximized ? 'fixed inset-4 z-50 bg-black/95 shadow-2xl' : ''}`}

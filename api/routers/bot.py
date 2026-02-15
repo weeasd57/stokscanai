@@ -390,6 +390,58 @@ def get_bot_performance(bot_id: str = "primary"):
                 
                 print(f"[Performance] Fetched {len(trades)} total trades for bot {bot_id}")
                 
+                # Normalize trade values using Alpaca closed orders so legacy rows with
+                # missing fill price/PnL don't appear as +0.00/$0.00 in analytics.
+                bot = bot_manager.get_bot(bot_id)
+                closed_order_by_id: Dict[str, Dict[str, Any]] = {}
+                if bot and getattr(bot, "api", None):
+                    try:
+                        for o in (bot.api.list_orders(status="closed") or []):
+                            oid = str(getattr(o, "id", "") or "")
+                            if not oid:
+                                continue
+                            closed_order_by_id[oid] = {
+                                "price": safe_float(getattr(o, "filled_avg_price", 0)),
+                                "qty": safe_float(getattr(o, "filled_qty", 0)),
+                                "symbol": str(getattr(o, "symbol", "") or ""),
+                            }
+                    except Exception as e:
+                        print(f"[Performance] Closed-orders enrichment skipped: {e}")
+
+                normalized_trades: List[Dict[str, Any]] = []
+                for t in trades:
+                    trade = dict(t)
+                    action = str(trade.get("action") or "").upper()
+                    if action not in ("BUY", "SELL"):
+                        normalized_trades.append(trade)
+                        continue
+
+                    order_id = str(trade.get("order_id") or "")
+                    linked = closed_order_by_id.get(order_id) if order_id else None
+
+                    price = safe_float(trade.get("price"))
+                    if price <= 0 and linked:
+                        price = safe_float(linked.get("price"))
+                    if price > 0:
+                        trade["price"] = price
+
+                    if action == "SELL":
+                        qty = safe_float(trade.get("amount"))
+                        if qty <= 0 and linked:
+                            qty = safe_float(linked.get("qty"))
+
+                        entry = safe_float(trade.get("entry_price"))
+                        pnl = safe_float(trade.get("pnl"))
+                        if entry > 0 and price > 0 and qty > 0:
+                            derived_pnl = (price - entry) * qty
+                            # Prefer derived value when stored pnl is missing/zero-like.
+                            if abs(pnl) < 1e-12:
+                                pnl = derived_pnl
+                            trade["pnl"] = pnl
+
+                    normalized_trades.append(trade)
+
+                trades = normalized_trades
                 buys = [t for t in trades if str(t.get("action") or "").upper() == "BUY"]
                 sells = [t for t in trades if str(t.get("action") or "").upper() == "SELL"]
                 
@@ -431,7 +483,6 @@ def get_bot_performance(bot_id: str = "primary"):
                     symbols_stats[s]["win_rate"] = (symbols_stats[s]["wins"] / symbols_stats[s]["trades"] * 100) if symbols_stats[s]["trades"] > 0 else 0
 
                 # Open positions from bot state (real-time)
-                bot = bot_manager.get_bot(bot_id)
                 open_positions = []
                 if bot:
                     for s, pos_data in bot._pos_state.items():
@@ -455,6 +506,8 @@ def get_bot_performance(bot_id: str = "primary"):
                             "symbol": s,
                             "entry_price": entry_price,
                             "current_price": current_price,
+                            "target_price": safe_float(pos_data.get("target_price")),
+                            "stop_price": safe_float(pos_data.get("current_stop")),
                             "pl_pct": pl_pct,
                             "pl_usd": pl_usd,
                             "entry_time": pos_data.get("entry_time"),
@@ -629,10 +682,22 @@ def get_bot_logs(bot_id: str = "primary", lines: int = 100):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+# Simple cache for candles
+candle_cache = {} # (symbol, bot_id, limit): (timestamp, data)
+
 @router.get("/candles")
-def get_candles(symbol: str, bot_id: str = "primary", limit: int = 200):
+def get_candles(symbol: str, bot_id: str = "primary", limit: int = 150):
     """Fetch OHLC candle data + entry/exit markers for a symbol."""
     try:
+        now = datetime.now()
+        cache_key = (symbol, bot_id, limit)
+        
+        # Check cache (2 second window)
+        if cache_key in candle_cache:
+            ts, cached_data = candle_cache[cache_key]
+            if (now - ts).total_seconds() < 2:
+                return cached_data
+
         _init_supabase()
         if not supabase:
             raise HTTPException(status_code=503, detail="Supabase not available")
@@ -796,20 +861,47 @@ def get_candles(symbol: str, bot_id: str = "primary", limit: int = 200):
         
         if bot:
             from api.live_bot import _normalize_symbol
-            pos = bot._pos_state.get(_normalize_symbol(symbol))
+            symbol_norm = _normalize_symbol(symbol)
+            pos = bot._pos_state.get(symbol_norm)
             if pos:
                 entry_price = safe_float(pos.get("entry_price"))
-                
-                # Fetch bars for ATR calculation
+                target_price = safe_float(pos.get("target_price"))
+                stop_price = safe_float(pos.get("current_stop"))
+
+            # Fallback: if entry wasn't stored yet, read from live Alpaca position
+            if entry_price <= 0:
+                try:
+                    live_pos = bot._get_open_position(symbol)
+                    if live_pos is not None:
+                        entry_price = safe_float(getattr(live_pos, "avg_entry_price", 0))
+                except Exception:
+                    pass
+
+            if entry_price > 0 and (target_price <= 0 or stop_price <= 0):
                 bars_limit = getattr(bot.config, "bars_limit", 200)
                 bars = bot._get_bars(symbol, limit=bars_limit)
                 if not bars.empty:
                     tp, sl = bot._calculate_atr_exits(bars, entry_price)
-                    target_price = tp
-                    # Use current_stop if available (trailing), else calculated SL
-                    stop_price = safe_float(pos.get("current_stop")) or sl
+                else:
+                    # Fallback to config percentages if ATR bars are unavailable
+                    target_pct = float(getattr(bot.config, "target_pct", 0.03) or 0.03)
+                    stop_loss_pct = float(getattr(bot.config, "stop_loss_pct", 0.02) or 0.02)
+                    tp = float(entry_price) * (1 + target_pct)
+                    sl = float(entry_price) * (1 - stop_loss_pct)
 
-        return {
+                if target_price <= 0:
+                    target_price = safe_float(tp)
+                if stop_price <= 0:
+                    stop_price = safe_float(sl)
+
+        if entry_price <= 0:
+            entry_price = None
+        if target_price <= 0:
+            target_price = None
+        if stop_price <= 0:
+            stop_price = None
+
+        result = {
             "symbol": symbol,
             "candles": candles,
             "markers": markers,
@@ -819,6 +911,8 @@ def get_candles(symbol: str, bot_id: str = "primary", limit: int = 200):
             "timeframe": timeframe,
             "count": len(candles),
         }
+        candle_cache[cache_key] = (now, result)
+        return result
     except HTTPException:
         raise
     except Exception as e:

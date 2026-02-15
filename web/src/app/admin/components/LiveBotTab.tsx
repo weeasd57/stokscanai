@@ -66,7 +66,19 @@ interface PerformanceData {
         profit: number;
         win_rate: number;
     }>;
-    open_positions: any[];
+    open_positions: Array<{
+        symbol: string;
+        entry_price: number;
+        current_price: number;
+        target_price?: number;
+        stop_price?: number;
+        pl_pct: number;
+        pl_usd: number;
+        entry_time?: string;
+        bars_held: number;
+        trail_mode: string;
+        amount: number;
+    }>;
     trades?: Trade[];
 }
 
@@ -502,6 +514,24 @@ export default function LiveBotTab() {
         (alpacaPositions || []).map((p) => [normalizePosKey(p.symbol), p])
     );
 
+    const toNum = (v: any): number | null => {
+        const n = Number(v);
+        return Number.isFinite(n) ? n : null;
+    };
+
+    const computeSellPnl = (trade: Trade): number | null => {
+        const direct = toNum(trade.pnl);
+        if (direct !== null && Math.abs(direct) > 1e-12) return direct;
+
+        const price = toNum(trade.price);
+        const entry = toNum(trade.entry_price);
+        const qty = toNum(trade.amount);
+        if (price !== null && entry !== null && qty !== null && qty > 0) {
+            return (price - entry) * qty;
+        }
+        return direct;
+    };
+
     // Auto-refresh when running (Fixed 3s interval for UI responsiveness)
     useEffect(() => {
         const interval = setInterval(() => {
@@ -512,7 +542,7 @@ export default function LiveBotTab() {
                 fetchOrders(true);
                 fetchPerformance(true);
             }
-        }, 3000); // Fixed 3s refresh
+        }, 8000); // Increased to 8s for lower load
         return () => clearInterval(interval);
     }, [status?.status, selectedBotId]); // Refresh when botId changes as well
 
@@ -961,345 +991,376 @@ export default function LiveBotTab() {
                 </div>
             </div>
 
-        {/* BOT SELECTOR TABS */ }
-    <div className="flex items-center gap-2 p-1 bg-black/40 border border-white/5 rounded-3xl w-full backdrop-blur-sm overflow-x-auto no-scrollbar">
-        {botList.map(bot => {
-            const isActive = selectedBotId === bot.id;
-            return (
+            {/* BOT SELECTOR TABS */}
+            <div className="flex items-center gap-2 p-1 bg-black/40 border border-white/5 rounded-3xl w-full backdrop-blur-sm overflow-x-auto no-scrollbar">
+                {botList.map(bot => {
+                    const isActive = selectedBotId === bot.id;
+                    return (
+                        <button
+                            key={bot.id}
+                            onClick={() => setSelectedBotId(bot.id)}
+                            className={`flex-none px-6 py-2.5 rounded-[22px] text-xs font-black transition-all flex items-center gap-2 border ${isActive
+                                ? "bg-white text-black border-white shadow-xl shadow-white/5"
+                                : "text-zinc-500 border-transparent hover:text-zinc-300 hover:bg-white/5"
+                                }`}
+                        >
+                            <LayoutGrid className={`w-3.5 h-3.5 ${isActive ? "text-indigo-600 font-black" : "text-zinc-600"}`} />
+                            {bot.name.toUpperCase()}
+                            {isActive && (
+                                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse ml-1" />
+                            )}
+                        </button>
+                    )
+                })}
+                <Dialog.Root open={createBotDialogOpen} onOpenChange={setCreateBotDialogOpen}>
+                    <Dialog.Trigger asChild>
+                        <button className="flex-none p-2.5 rounded-[22px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20 transition-all ml-auto mr-1">
+                            <Plus className="w-4 h-4" />
+                        </button>
+                    </Dialog.Trigger>
+                    <Dialog.Portal>
+                        <Dialog.Overlay className="fixed inset-0 bg-black/80 backdrop-blur-sm animate-in fade-in duration-300 z-50" />
+                        <Dialog.Content className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-zinc-950 border border-zinc-800 p-8 rounded-3xl shadow-2xl animate-in zoom-in-95 duration-300 z-50">
+                            <div className="space-y-6">
+                                <div className="space-y-2">
+                                    <h2 className="text-xl font-black text-white">Create New Bot</h2>
+                                    <p className="text-sm text-zinc-500 font-medium">Add a new specialized trading instance.</p>
+                                </div>
+                                <div className="space-y-4">
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-bold text-zinc-500 uppercase">Bot Name</label>
+                                        <input
+                                            type="text"
+                                            value={newBotName}
+                                            onChange={(e) => setNewBotName(e.target.value)}
+                                            placeholder="Trade ID (Optional)"
+                                            className="w-full bg-black/40 border border-white/5 rounded-xl px-4 py-3 text-sm font-bold focus:outline-none focus:border-indigo-500 transition-all"
+                                            onKeyDown={(e) => e.key === 'Enter' && handleCreateBot()}
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-bold text-zinc-500 uppercase flex items-center gap-2">Alpaca Key ID </label>
+                                        <input
+                                            type="text"
+                                            value={newBotApiKey}
+                                            onChange={(e) => setNewBotApiKey(e.target.value)}
+                                            placeholder="AKI..."
+                                            className="w-full bg-black/40 border border-white/5 rounded-xl px-4 py-3 text-sm font-mono focus:outline-none focus:border-indigo-500 transition-all"
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-bold text-zinc-500 uppercase flex items-center gap-2">Alpaca Secret Key </label>
+                                        <input
+                                            type="password"
+                                            value={newBotSecretKey}
+                                            onChange={(e) => setNewBotSecretKey(e.target.value)}
+                                            placeholder="••••••••"
+                                            className="w-full bg-black/40 border border-white/5 rounded-xl px-4 py-3 text-sm font-mono focus:outline-none focus:border-indigo-500 transition-all"
+                                        />
+                                    </div>
+                                    <button
+                                        onClick={handleCreateBot}
+                                        disabled={isCreatingBot || !newBotName.trim()}
+                                        className="w-full bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-black py-4 rounded-xl shadow-lg shadow-emerald-500/20 transition-all"
+                                    >
+                                        {isCreatingBot ? <RefreshCw className="w-5 h-5 animate-spin mx-auto" /> : "INITIALIZE BOT"}
+                                    </button>
+                                </div>
+                            </div>
+                        </Dialog.Content>
+                    </Dialog.Portal>
+                </Dialog.Root>
+            </div>
+
+            {/* Tabs Navigation */}
+            <div className="flex items-center gap-2 p-1.5 bg-zinc-900/50 border border-white/5 rounded-2xl w-full">
                 <button
-                    key={bot.id}
-                    onClick={() => setSelectedBotId(bot.id)}
-                    className={`flex-none px-6 py-2.5 rounded-[22px] text-xs font-black transition-all flex items-center gap-2 border ${isActive
-                        ? "bg-white text-black border-white shadow-xl shadow-white/5"
-                        : "text-zinc-500 border-transparent hover:text-zinc-300 hover:bg-white/5"
+                    onClick={() => setActiveTab('control')}
+                    className={`flex-1 px-6 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 ${activeTab === 'control'
+                        ? 'bg-white text-black shadow-lg shadow-white/5'
+                        : 'text-zinc-500 hover:text-zinc-300'
                         }`}
                 >
-                    <LayoutGrid className={`w-3.5 h-3.5 ${isActive ? "text-indigo-600 font-black" : "text-zinc-600"}`} />
-                    {bot.name.toUpperCase()}
-                    {isActive && (
-                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse ml-1" />
-                    )}
+                    <Settings className="w-4 h-4" />
+                    System Control
                 </button>
-            )
-        })}
-        <Dialog.Root open={createBotDialogOpen} onOpenChange={setCreateBotDialogOpen}>
-            <Dialog.Trigger asChild>
-                <button className="flex-none p-2.5 rounded-[22px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20 transition-all ml-auto mr-1">
-                    <Plus className="w-4 h-4" />
+                <button
+                    onClick={() => setActiveTab('performance')}
+                    className={`flex-1 px-6 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 ${activeTab === 'performance'
+                        ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20'
+                        : 'text-zinc-500 hover:text-zinc-300'
+                        }`}
+                >
+                    <Activity className="w-4 h-4" />
+                    Performance Analytics
                 </button>
-            </Dialog.Trigger>
-            <Dialog.Portal>
-                <Dialog.Overlay className="fixed inset-0 bg-black/80 backdrop-blur-sm animate-in fade-in duration-300 z-50" />
-                <Dialog.Content className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-zinc-950 border border-zinc-800 p-8 rounded-3xl shadow-2xl animate-in zoom-in-95 duration-300 z-50">
-                    <div className="space-y-6">
-                        <div className="space-y-2">
-                            <h2 className="text-xl font-black text-white">Create New Bot</h2>
-                            <p className="text-sm text-zinc-500 font-medium">Add a new specialized trading instance.</p>
-                        </div>
-                        <div className="space-y-4">
-                            <div className="space-y-2">
-                                <label className="text-xs font-bold text-zinc-500 uppercase">Bot Name</label>
-                                <input
-                                    type="text"
-                                    value={newBotName}
-                                    onChange={(e) => setNewBotName(e.target.value)}
-                                    placeholder="Trade ID (Optional)"
-                                    className="w-full bg-black/40 border border-white/5 rounded-xl px-4 py-3 text-sm font-bold focus:outline-none focus:border-indigo-500 transition-all"
-                                    onKeyDown={(e) => e.key === 'Enter' && handleCreateBot()}
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-xs font-bold text-zinc-500 uppercase flex items-center gap-2">Alpaca Key ID </label>
-                                <input
-                                    type="text"
-                                    value={newBotApiKey}
-                                    onChange={(e) => setNewBotApiKey(e.target.value)}
-                                    placeholder="AKI..."
-                                    className="w-full bg-black/40 border border-white/5 rounded-xl px-4 py-3 text-sm font-mono focus:outline-none focus:border-indigo-500 transition-all"
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-xs font-bold text-zinc-500 uppercase flex items-center gap-2">Alpaca Secret Key </label>
-                                <input
-                                    type="password"
-                                    value={newBotSecretKey}
-                                    onChange={(e) => setNewBotSecretKey(e.target.value)}
-                                    placeholder="••••••••"
-                                    className="w-full bg-black/40 border border-white/5 rounded-xl px-4 py-3 text-sm font-mono focus:outline-none focus:border-indigo-500 transition-all"
-                                />
-                            </div>
-                            <button
-                                onClick={handleCreateBot}
-                                disabled={isCreatingBot || !newBotName.trim()}
-                                className="w-full bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-black py-4 rounded-xl shadow-lg shadow-emerald-500/20 transition-all"
-                            >
-                                {isCreatingBot ? <RefreshCw className="w-5 h-5 animate-spin mx-auto" /> : "INITIALIZE BOT"}
-                            </button>
-                        </div>
-                    </div>
-                </Dialog.Content>
-            </Dialog.Portal>
-        </Dialog.Root>
-    </div>
+            </div>
 
-    {/* Tabs Navigation */ }
-    <div className="flex items-center gap-2 p-1.5 bg-zinc-900/50 border border-white/5 rounded-2xl w-full">
-        <button
-            onClick={() => setActiveTab('control')}
-            className={`flex-1 px-6 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 ${activeTab === 'control'
-                ? 'bg-white text-black shadow-lg shadow-white/5'
-                : 'text-zinc-500 hover:text-zinc-300'
-                }`}
-        >
-            <Settings className="w-4 h-4" />
-            System Control
-        </button>
-        <button
-            onClick={() => setActiveTab('performance')}
-            className={`flex-1 px-6 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 ${activeTab === 'performance'
-                ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20'
-                : 'text-zinc-500 hover:text-zinc-300'
-                }`}
-        >
-            <Activity className="w-4 h-4" />
-            Performance Analytics
-        </button>
-    </div>
+            {
+                activeTab === 'control' ? (
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        {/* Configuration Panel */}
+                        <div className="bg-zinc-900/40 border border-white/5 rounded-3xl p-6 backdrop-blur-xl lg:col-span-1 shadow-2xl relative overflow-hidden group">
+                            <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 via-transparent to-purple-500/5 pointer-events-none" />
 
-    {
-        activeTab === 'control' ? (
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                {/* Configuration Panel */}
-                <div className="bg-zinc-900/40 border border-white/5 rounded-3xl p-6 backdrop-blur-xl lg:col-span-1 shadow-2xl relative overflow-hidden group">
-                    <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 via-transparent to-purple-500/5 pointer-events-none" />
-
-                    <div className="flex items-center gap-3 mb-8 relative z-10">
-                        <div className="p-2.5 rounded-xl bg-indigo-500/10 border border-indigo-500/20">
-                            <Settings className="w-5 h-5 text-indigo-400" />
-                        </div>
-                        <h2 className="text-xl font-bold tracking-tight text-white">SYSTEM CONFIGURATION</h2>
-                    </div>
-
-                    <div className="space-y-6 relative z-10">
-                        {/* Coins Selection */}
-                        {/* Asset Selection Panel */}
-                        <div className="space-y-2">
-                            <label className="text-xs font-bold text-zinc-500 uppercase">Execution Mode</label>
-                            <select
-                                value={configForm.execution_mode || "BOTH"}
-                                onChange={(e) => setConfigForm({ ...configForm, execution_mode: e.target.value as any })}
-                                className="w-full bg-black/40 border border-white/5 rounded-xl px-4 py-3 text-sm font-mono focus:outline-none focus:border-indigo-500/50 transition-all text-white border-white/10"
-                            >
-                                <option value="BOTH" className="bg-zinc-950 text-white">Together (Alpaca + Telegram)</option>
-                                <option value="ALPACA" className="bg-zinc-950 text-white">Alpaca Only (Auto-Trade)</option>
-                                <option value="TELEGRAM" className="bg-zinc-950 text-white">Telegram Only (Signal Only)</option>
-                            </select>
-                        </div>
-
-                        {/* Trading Mode Selector */}
-                        <div className="space-y-2">
-                            <label className="text-xs font-bold text-zinc-500 uppercase flex items-center gap-2">
-                                <ShieldCheck className="w-3.5 h-3.5" /> Trading Mode
-                            </label>
-                            <div className="grid grid-cols-3 gap-2">
-                                {([
-                                    {
-                                        value: "defensive", emoji: "🛡️", label: "Defensive",
-                                        active: "bg-emerald-500/20 border-emerald-500 text-emerald-400 shadow-lg shadow-emerald-500/10"
-                                    },
-                                    {
-                                        value: "aggressive", emoji: "⚔️", label: "Aggressive",
-                                        active: "bg-red-500/20 border-red-500 text-red-400 shadow-lg shadow-red-500/10"
-                                    },
-                                    {
-                                        value: "hybrid", emoji: "🔄", label: "Hybrid",
-                                        active: "bg-indigo-500/20 border-indigo-500 text-indigo-400 shadow-lg shadow-indigo-500/10"
-                                    },
-                                ] as const).map((m) => {
-                                    const isActive = (configForm.trading_mode || "hybrid") === m.value;
-                                    return (
-                                        <button
-                                            key={m.value}
-                                            onClick={() => setConfigForm({ ...configForm, trading_mode: m.value as any })}
-                                            className={`flex flex-col items-center gap-1 p-3 rounded-xl border text-center transition-all ${isActive
-                                                ? m.active
-                                                : "bg-black/40 border-white/5 text-zinc-500 hover:border-white/10 hover:text-zinc-300"
-                                                }`}
-                                        >
-                                            <span className="text-lg">{m.emoji}</span>
-                                            <span className="text-[10px] font-black uppercase tracking-wider">{m.label}</span>
-                                        </button>
-                                    );
-                                })}
-                            </div>
-                            <p className="text-[9px] text-zinc-600 leading-tight">
-                                {(configForm.trading_mode || "hybrid") === "defensive" && "🛡️ Capital preservation: strict filters, higher thresholds, smaller positions"}
-                                {(configForm.trading_mode || "hybrid") === "aggressive" && "⚔️ Early entry: relaxed filters, lower thresholds, trades in BEAR markets"}
-                                {(configForm.trading_mode || "hybrid") === "hybrid" && "🔄 Regime-based: adapts automatically using current config values"}
-                            </p>
-                        </div>
-
-                        <div className="space-y-4">
-                            <div className="flex items-center justify-between">
-                                <label className="text-xs font-bold text-zinc-500 uppercase flex items-center gap-2">
-                                    <Target className="w-3.5 h-3.5" /> Target Assets
-                                </label>
-                                <div className="flex bg-black/40 rounded-lg p-0.5 border border-white/5">
-                                    <button
-                                        onClick={() => setAssetTab("CRYPTO")}
-                                        className={`px-3 py-1 rounded-md text-[10px] font-bold transition-all ${assetTab === "CRYPTO" ? "bg-indigo-500 text-white shadow-lg" : "text-zinc-500 hover:text-zinc-300"}`}
-                                    >
-                                        CRYPTO
-                                    </button>
-                                    <button
-                                        onClick={() => setAssetTab("STOCKS")}
-                                        className={`px-3 py-1 rounded-md text-[10px] font-bold transition-all ${assetTab === "STOCKS" ? "bg-indigo-500 text-white shadow-lg" : "text-zinc-500 hover:text-zinc-300"}`}
-                                    >
-                                        US STOCKS
-                                    </button>
-                                    <button
-                                        onClick={() => setAssetTab("GLOBAL")}
-                                        className={`px-3 py-1 rounded-md text-[10px] font-bold transition-all ${assetTab === "GLOBAL" ? "bg-indigo-500 text-white shadow-lg" : "text-zinc-500 hover:text-zinc-300"}`}
-                                    >
-                                        GLOBAL
-                                    </button>
+                            <div className="flex items-center gap-3 mb-8 relative z-10">
+                                <div className="p-2.5 rounded-xl bg-indigo-500/10 border border-indigo-500/20">
+                                    <Settings className="w-5 h-5 text-indigo-400" />
                                 </div>
+                                <h2 className="text-xl font-bold tracking-tight text-white">SYSTEM CONFIGURATION</h2>
                             </div>
 
-                            {/* Asset Filters */}
-
-
-                            {assetTab === "STOCKS" && (
-                                <div className="p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-xl text-xs text-yellow-200 flex items-center gap-2">
-                                    <Globe className="w-4 h-4" />
-                                    <span>US Stock Market (Alpaca)</span>
+                            <div className="space-y-6 relative z-10">
+                                {/* Coins Selection */}
+                                {/* Asset Selection Panel */}
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-zinc-500 uppercase">Execution Mode</label>
+                                    <select
+                                        value={configForm.execution_mode || "BOTH"}
+                                        onChange={(e) => setConfigForm({ ...configForm, execution_mode: e.target.value as any })}
+                                        className="w-full bg-black/40 border border-white/5 rounded-xl px-4 py-3 text-sm font-mono focus:outline-none focus:border-indigo-500/50 transition-all text-white border-white/10"
+                                    >
+                                        <option value="BOTH" className="bg-zinc-950 text-white">Together (Alpaca + Telegram)</option>
+                                        <option value="ALPACA" className="bg-zinc-950 text-white">Alpaca Only (Auto-Trade)</option>
+                                        <option value="TELEGRAM" className="bg-zinc-950 text-white">Telegram Only (Signal Only)</option>
+                                    </select>
                                 </div>
-                            )}
 
-                            <div className="flex items-center gap-2">
-                                <button
-                                    onClick={() => setConfigForm({ ...configForm, coins: [] })}
-                                    disabled={isRunning || (configForm.coins || []).length === 0}
-                                    className="text-[10px] font-bold text-red-400 hover:text-red-300 disabled:opacity-30 transition-colors"
-                                >
-                                    CLEAR ALL
-                                </button>
-                                {assetTab === "GLOBAL" ? (
-                                    <button
-                                        onClick={() => {
-                                            if (availableCoins.length > 0) {
-                                                setConfigForm({ ...configForm, coins: availableCoins });
-                                                toast.success(`Added all ${availableCoins.length} symbols for ${selectedCountry}`);
-                                            }
-                                        }}
-                                        disabled={isRunning || availableCoins.length === 0}
-                                        className="text-[10px] font-black bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-1 rounded hover:bg-emerald-500/20 transition-all disabled:opacity-50"
-                                    >
-                                        SYNC ALL {selectedCountry}
-                                    </button>
-                                ) : (
-                                    <button
-                                        onClick={handleSyncAlpaca}
-                                        disabled={syncingAlpaca || isRunning}
-                                        className="text-[10px] font-black bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-2 py-1 rounded hover:bg-indigo-500/20 transition-all disabled:opacity-50"
-                                    >
-                                        {syncingAlpaca ? "SYNC" : assetTab === "STOCKS" ? "SYNC WATCHLIST" : "SYNC ALPACA"}
-                                    </button>
-                                )}
-                            </div>
-                        </div>
-
-                        {/* Smart Add Interface */}
-                        <div className="bg-black/40 border border-white/5 rounded-xl p-3 space-y-3">
-                            {/* Source & Filter Controls */}
-                            <div className="flex flex-wrap items-center gap-2">
-                                {assetTab === "CRYPTO" ? (
-                                    <div className="flex bg-black/40 rounded-lg p-0.5 border border-white/5">
-                                        <button
-                                            onClick={() => setCoinSource("database")}
-                                            className={`px-3 py-1 text-[10px] font-bold rounded-md transition-all ${coinSource === "database" ? "bg-indigo-600 text-white" : "text-zinc-500 hover:text-zinc-300"}`}
-                                        >
-                                            MY ASSETS
-                                        </button>
-                                        <button
-                                            onClick={() => setCoinSource("alpaca")}
-                                            className={`px-3 py-1 text-[10px] font-bold rounded-md transition-all ${coinSource === "alpaca" ? "bg-indigo-600 text-white" : "text-zinc-500 hover:text-zinc-300"}`}
-                                        >
-                                            ALPACA
-                                        </button>
-                                    </div>
-                                ) : null}
-
-                                {assetTab === "CRYPTO" && (
-                                    <select
-                                        value={cryptoFilter}
-                                        onChange={(e) => setCryptoFilter(e.target.value as any)}
-                                        className="bg-zinc-900 border border-zinc-800 rounded-lg px-2 py-1 text-[10px] font-bold text-zinc-400 focus:outline-none focus:border-indigo-500 transition-colors"
-                                    >
-                                        <option value="ALL">All Pairs</option>
-                                        <option value="USD">USD Pairs</option>
-                                        <option value="USDT">USDT Pairs</option>
-                                    </select>
-                                )}
-
-                                {assetTab === "GLOBAL" && (
-                                    <select
-                                        value={selectedCountry}
-                                        onChange={(e) => setSelectedCountry(e.target.value)}
-                                        className="bg-zinc-900 border border-zinc-800 rounded-lg px-2 py-1 text-[10px] font-bold text-zinc-400 focus:outline-none focus:border-indigo-500 transition-colors"
-                                    >
-                                        {countries.map(c => (
-                                            <option key={c.name} value={c.name}>{c.name} ({c.count})</option>
-                                        ))}
-                                    </select>
-                                )}
-
-                                {coinSource === "alpaca" && (
-                                    <div className="flex items-center gap-1 overflow-x-auto custom-scrollbar pb-1 max-w-full">
-                                        {[10, 50, 100, 0].map(lim => {
-                                            const countryObj = countries.find(c => c.name === selectedCountry);
-                                            const totalCount = countryObj?.count || 0;
-                                            const isHuge = assetTab === "GLOBAL" && lim === 0 && totalCount > 1000;
-
+                                {/* Trading Mode Selector */}
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-zinc-500 uppercase flex items-center gap-2">
+                                        <ShieldCheck className="w-3.5 h-3.5" /> Trading Mode
+                                    </label>
+                                    <div className="grid grid-cols-3 gap-2">
+                                        {([
+                                            {
+                                                value: "defensive", emoji: "🛡️", label: "Defensive",
+                                                active: "bg-emerald-500/20 border-emerald-500 text-emerald-400 shadow-lg shadow-emerald-500/10"
+                                            },
+                                            {
+                                                value: "aggressive", emoji: "⚔️", label: "Aggressive",
+                                                active: "bg-red-500/20 border-red-500 text-red-400 shadow-lg shadow-red-500/10"
+                                            },
+                                            {
+                                                value: "hybrid", emoji: "🔄", label: "Hybrid",
+                                                active: "bg-indigo-500/20 border-indigo-500 text-indigo-400 shadow-lg shadow-indigo-500/10"
+                                            },
+                                        ] as const).map((m) => {
+                                            const isActive = (configForm.trading_mode || "hybrid") === m.value;
                                             return (
                                                 <button
-                                                    key={lim}
-                                                    onClick={() => {
-                                                        if (isHuge) {
-                                                            toast.error(`Too many symbols (${totalCount}). Please use search or Top limits.`);
-                                                            return;
-                                                        }
-                                                        autoSelectRef.current = true;
-                                                        setCoinLimit(lim);
-                                                    }}
-                                                    className={`px-2 py-1 text-[9px] font-bold rounded-md border whitespace-nowrap transition-all ${coinLimit === lim
-                                                        ? "bg-emerald-500/20 border-emerald-500 text-emerald-400"
-                                                        : "bg-zinc-800 border-zinc-800 text-zinc-500 hover:border-zinc-600"
+                                                    key={m.value}
+                                                    onClick={() => setConfigForm({ ...configForm, trading_mode: m.value as any })}
+                                                    className={`flex flex-col items-center gap-1 p-3 rounded-xl border text-center transition-all ${isActive
+                                                        ? m.active
+                                                        : "bg-black/40 border-white/5 text-zinc-500 hover:border-white/10 hover:text-zinc-300"
                                                         }`}
                                                 >
-                                                    {lim === 0 ? "ALL" : `TOP ${lim}`}
+                                                    <span className="text-lg">{m.emoji}</span>
+                                                    <span className="text-[10px] font-black uppercase tracking-wider">{m.label}</span>
                                                 </button>
                                             );
                                         })}
                                     </div>
-                                )}
-                            </div>
+                                    <p className="text-[9px] text-zinc-600 leading-tight">
+                                        {(configForm.trading_mode || "hybrid") === "defensive" && "🛡️ Capital preservation: strict filters, higher thresholds, smaller positions"}
+                                        {(configForm.trading_mode || "hybrid") === "aggressive" && "⚔️ Early entry: relaxed filters, lower thresholds, trades in BEAR markets"}
+                                        {(configForm.trading_mode || "hybrid") === "hybrid" && "🔄 Regime-based: adapts automatically using current config values"}
+                                    </p>
+                                </div>
 
-                            {/* Search & Bulk Add */}
-                            <div className="relative group">
-                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500 group-focus-within:text-indigo-400 transition-colors" />
-                                <input
-                                    type="text"
-                                    placeholder={`Search to add from ${availableCoins.length} available...`}
-                                    value={coinSearch}
-                                    onChange={(e) => setCoinSearch(e.target.value)}
-                                    className="w-full bg-black/40 border border-zinc-800 rounded-lg pl-9 pr-32 py-2.5 text-xs font-mono focus:outline-none focus:border-indigo-500 transition-all text-white placeholder:text-zinc-600"
-                                />
-                                <div className="absolute right-1 top-1/2 -translate-y-1/2">
-                                    {coinSearch && (
+                                <div className="space-y-4">
+                                    <div className="flex items-center justify-between">
+                                        <label className="text-xs font-bold text-zinc-500 uppercase flex items-center gap-2">
+                                            <Target className="w-3.5 h-3.5" /> Target Assets
+                                        </label>
+                                        <div className="flex bg-black/40 rounded-lg p-0.5 border border-white/5">
+                                            <button
+                                                onClick={() => setAssetTab("CRYPTO")}
+                                                className={`px-3 py-1 rounded-md text-[10px] font-bold transition-all ${assetTab === "CRYPTO" ? "bg-indigo-500 text-white shadow-lg" : "text-zinc-500 hover:text-zinc-300"}`}
+                                            >
+                                                CRYPTO
+                                            </button>
+                                            <button
+                                                onClick={() => setAssetTab("STOCKS")}
+                                                className={`px-3 py-1 rounded-md text-[10px] font-bold transition-all ${assetTab === "STOCKS" ? "bg-indigo-500 text-white shadow-lg" : "text-zinc-500 hover:text-zinc-300"}`}
+                                            >
+                                                US STOCKS
+                                            </button>
+                                            <button
+                                                onClick={() => setAssetTab("GLOBAL")}
+                                                className={`px-3 py-1 rounded-md text-[10px] font-bold transition-all ${assetTab === "GLOBAL" ? "bg-indigo-500 text-white shadow-lg" : "text-zinc-500 hover:text-zinc-300"}`}
+                                            >
+                                                GLOBAL
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    {/* Asset Filters */}
+
+
+                                    {assetTab === "STOCKS" && (
+                                        <div className="p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-xl text-xs text-yellow-200 flex items-center gap-2">
+                                            <Globe className="w-4 h-4" />
+                                            <span>US Stock Market (Alpaca)</span>
+                                        </div>
+                                    )}
+
+                                    <div className="flex items-center gap-2">
                                         <button
-                                            onClick={() => {
-                                                const filtered = availableCoins.filter(c => {
+                                            onClick={() => setConfigForm({ ...configForm, coins: [] })}
+                                            disabled={isRunning || (configForm.coins || []).length === 0}
+                                            className="text-[10px] font-bold text-red-400 hover:text-red-300 disabled:opacity-30 transition-colors"
+                                        >
+                                            CLEAR ALL
+                                        </button>
+                                        {assetTab === "GLOBAL" ? (
+                                            <button
+                                                onClick={() => {
+                                                    if (availableCoins.length > 0) {
+                                                        setConfigForm({ ...configForm, coins: availableCoins });
+                                                        toast.success(`Added all ${availableCoins.length} symbols for ${selectedCountry}`);
+                                                    }
+                                                }}
+                                                disabled={isRunning || availableCoins.length === 0}
+                                                className="text-[10px] font-black bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-1 rounded hover:bg-emerald-500/20 transition-all disabled:opacity-50"
+                                            >
+                                                SYNC ALL {selectedCountry}
+                                            </button>
+                                        ) : (
+                                            <button
+                                                onClick={handleSyncAlpaca}
+                                                disabled={syncingAlpaca || isRunning}
+                                                className="text-[10px] font-black bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-2 py-1 rounded hover:bg-indigo-500/20 transition-all disabled:opacity-50"
+                                            >
+                                                {syncingAlpaca ? "SYNC" : assetTab === "STOCKS" ? "SYNC WATCHLIST" : "SYNC ALPACA"}
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Smart Add Interface */}
+                                <div className="bg-black/40 border border-white/5 rounded-xl p-3 space-y-3">
+                                    {/* Source & Filter Controls */}
+                                    <div className="flex flex-wrap items-center gap-2">
+                                        {assetTab === "CRYPTO" ? (
+                                            <div className="flex bg-black/40 rounded-lg p-0.5 border border-white/5">
+                                                <button
+                                                    onClick={() => setCoinSource("database")}
+                                                    className={`px-3 py-1 text-[10px] font-bold rounded-md transition-all ${coinSource === "database" ? "bg-indigo-600 text-white" : "text-zinc-500 hover:text-zinc-300"}`}
+                                                >
+                                                    MY ASSETS
+                                                </button>
+                                                <button
+                                                    onClick={() => setCoinSource("alpaca")}
+                                                    className={`px-3 py-1 text-[10px] font-bold rounded-md transition-all ${coinSource === "alpaca" ? "bg-indigo-600 text-white" : "text-zinc-500 hover:text-zinc-300"}`}
+                                                >
+                                                    ALPACA
+                                                </button>
+                                            </div>
+                                        ) : null}
+
+                                        {assetTab === "CRYPTO" && (
+                                            <select
+                                                value={cryptoFilter}
+                                                onChange={(e) => setCryptoFilter(e.target.value as any)}
+                                                className="bg-zinc-900 border border-zinc-800 rounded-lg px-2 py-1 text-[10px] font-bold text-zinc-400 focus:outline-none focus:border-indigo-500 transition-colors"
+                                            >
+                                                <option value="ALL">All Pairs</option>
+                                                <option value="USD">USD Pairs</option>
+                                                <option value="USDT">USDT Pairs</option>
+                                            </select>
+                                        )}
+
+                                        {assetTab === "GLOBAL" && (
+                                            <select
+                                                value={selectedCountry}
+                                                onChange={(e) => setSelectedCountry(e.target.value)}
+                                                className="bg-zinc-900 border border-zinc-800 rounded-lg px-2 py-1 text-[10px] font-bold text-zinc-400 focus:outline-none focus:border-indigo-500 transition-colors"
+                                            >
+                                                {countries.map(c => (
+                                                    <option key={c.name} value={c.name}>{c.name} ({c.count})</option>
+                                                ))}
+                                            </select>
+                                        )}
+
+                                        {coinSource === "alpaca" && (
+                                            <div className="flex items-center gap-1 overflow-x-auto custom-scrollbar pb-1 max-w-full">
+                                                {[10, 50, 100, 0].map(lim => {
+                                                    const countryObj = countries.find(c => c.name === selectedCountry);
+                                                    const totalCount = countryObj?.count || 0;
+                                                    const isHuge = assetTab === "GLOBAL" && lim === 0 && totalCount > 1000;
+
+                                                    return (
+                                                        <button
+                                                            key={lim}
+                                                            onClick={() => {
+                                                                if (isHuge) {
+                                                                    toast.error(`Too many symbols (${totalCount}). Please use search or Top limits.`);
+                                                                    return;
+                                                                }
+                                                                autoSelectRef.current = true;
+                                                                setCoinLimit(lim);
+                                                            }}
+                                                            className={`px-2 py-1 text-[9px] font-bold rounded-md border whitespace-nowrap transition-all ${coinLimit === lim
+                                                                ? "bg-emerald-500/20 border-emerald-500 text-emerald-400"
+                                                                : "bg-zinc-800 border-zinc-800 text-zinc-500 hover:border-zinc-600"
+                                                                }`}
+                                                        >
+                                                            {lim === 0 ? "ALL" : `TOP ${lim}`}
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Search & Bulk Add */}
+                                    <div className="relative group">
+                                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500 group-focus-within:text-indigo-400 transition-colors" />
+                                        <input
+                                            type="text"
+                                            placeholder={`Search to add from ${availableCoins.length} available...`}
+                                            value={coinSearch}
+                                            onChange={(e) => setCoinSearch(e.target.value)}
+                                            className="w-full bg-black/40 border border-zinc-800 rounded-lg pl-9 pr-32 py-2.5 text-xs font-mono focus:outline-none focus:border-indigo-500 transition-all text-white placeholder:text-zinc-600"
+                                        />
+                                        <div className="absolute right-1 top-1/2 -translate-y-1/2">
+                                            {coinSearch && (
+                                                <button
+                                                    onClick={() => {
+                                                        const filtered = availableCoins.filter(c => {
+                                                            const matchesSearch = c.toLowerCase().includes(coinSearch.toLowerCase());
+                                                            if (assetTab === "CRYPTO") {
+                                                                if (!c.includes("/")) return false;
+                                                                if (cryptoFilter === "USD" && !c.endsWith("/USD")) return false;
+                                                                if (cryptoFilter === "USDT" && !c.endsWith("/USDT")) return false;
+                                                            } else if (assetTab === "STOCKS") {
+                                                                if (c.includes("/")) return false;
+                                                            } else if (assetTab === "GLOBAL") {
+                                                                // Assuming global assets might have a country prefix or suffix, or are just symbols
+                                                                // For now, no specific filtering logic beyond search for global, as `availableCoins` should already be filtered by country
+                                                            }
+                                                            return matchesSearch;
+                                                        });
+                                                        const current = new Set(configForm.coins || []);
+                                                        const toAdd = filtered.filter(c => !current.has(c));
+                                                        if (toAdd.length > 0) {
+                                                            setConfigForm(prev => ({ ...prev, coins: [...(prev.coins || []), ...toAdd] }));
+                                                            setCoinSearch(""); // Clear on add
+                                                        }
+                                                    }}
+                                                    className="px-2 py-1 text-[9px] font-bold bg-indigo-500/20 text-indigo-300 rounded border border-indigo-500/20 hover:bg-indigo-500 hover:text-white transition-all"
+                                                >
+                                                    ADD FILTERED
+                                                </button>
+                                            )}
+                                        </div>
+
+                                        {/* Autocomplete Dropdown */}
+                                        {coinSearch && (
+                                            <div className="absolute top-full left-0 right-0 mt-2 bg-zinc-900 border border-zinc-800 rounded-lg shadow-2xl z-50 max-h-48 overflow-y-auto custom-scrollbar">
+                                                {availableCoins.filter(c => {
                                                     const matchesSearch = c.toLowerCase().includes(coinSearch.toLowerCase());
                                                     if (assetTab === "CRYPTO") {
                                                         if (!c.includes("/")) return false;
@@ -1308,1153 +1369,1137 @@ export default function LiveBotTab() {
                                                     } else if (assetTab === "STOCKS") {
                                                         if (c.includes("/")) return false;
                                                     } else if (assetTab === "GLOBAL") {
-                                                        // Assuming global assets might have a country prefix or suffix, or are just symbols
-                                                        // For now, no specific filtering logic beyond search for global, as `availableCoins` should already be filtered by country
+                                                        // For global, we assume any symbol returned by the backend is fine
+                                                        // Usually global symbols don't have a slash
+                                                        if (c.includes("/")) return false;
                                                     }
                                                     return matchesSearch;
-                                                });
-                                                const current = new Set(configForm.coins || []);
-                                                const toAdd = filtered.filter(c => !current.has(c));
-                                                if (toAdd.length > 0) {
-                                                    setConfigForm(prev => ({ ...prev, coins: [...(prev.coins || []), ...toAdd] }));
-                                                    setCoinSearch(""); // Clear on add
-                                                }
-                                            }}
-                                            className="px-2 py-1 text-[9px] font-bold bg-indigo-500/20 text-indigo-300 rounded border border-indigo-500/20 hover:bg-indigo-500 hover:text-white transition-all"
-                                        >
-                                            ADD FILTERED
-                                        </button>
-                                    )}
+                                                }).slice(0, 50).map(coin => {
+                                                    const isSelected = (configForm.coins || []).includes(coin);
+                                                    return (
+                                                        <button
+                                                            key={coin}
+                                                            disabled={isSelected}
+                                                            onClick={() => {
+                                                                if (!isSelected) {
+                                                                    setConfigForm(prev => ({ ...prev, coins: [...(prev.coins || []), coin] }));
+                                                                    setCoinSearch("");
+                                                                }
+                                                            }}
+                                                            className={`w-full text-left px-4 py-2 text-xs font-mono flex items-center justify-between hover:bg-white/5 transition-colors ${isSelected ? "opacity-50 cursor-default" : ""}`}
+                                                        >
+                                                            <span className={isSelected ? "text-indigo-400" : "text-white"}>{coin}</span>
+                                                            {isSelected && <Check className="w-3 h-3 text-indigo-500" />}
+                                                        </button>
+                                                    )
+                                                })}
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
 
-                                {/* Autocomplete Dropdown */}
-                                {coinSearch && (
-                                    <div className="absolute top-full left-0 right-0 mt-2 bg-zinc-900 border border-zinc-800 rounded-lg shadow-2xl z-50 max-h-48 overflow-y-auto custom-scrollbar">
-                                        {availableCoins.filter(c => {
-                                            const matchesSearch = c.toLowerCase().includes(coinSearch.toLowerCase());
-                                            if (assetTab === "CRYPTO") {
-                                                if (!c.includes("/")) return false;
-                                                if (cryptoFilter === "USD" && !c.endsWith("/USD")) return false;
-                                                if (cryptoFilter === "USDT" && !c.endsWith("/USDT")) return false;
-                                            } else if (assetTab === "STOCKS") {
-                                                if (c.includes("/")) return false;
-                                            } else if (assetTab === "GLOBAL") {
-                                                // For global, we assume any symbol returned by the backend is fine
-                                                // Usually global symbols don't have a slash
-                                                if (c.includes("/")) return false;
-                                            }
-                                            return matchesSearch;
-                                        }).slice(0, 50).map(coin => {
-                                            const isSelected = (configForm.coins || []).includes(coin);
-                                            return (
-                                                <button
-                                                    key={coin}
-                                                    disabled={isSelected}
-                                                    onClick={() => {
-                                                        if (!isSelected) {
-                                                            setConfigForm(prev => ({ ...prev, coins: [...(prev.coins || []), coin] }));
-                                                            setCoinSearch("");
-                                                        }
-                                                    }}
-                                                    className={`w-full text-left px-4 py-2 text-xs font-mono flex items-center justify-between hover:bg-white/5 transition-colors ${isSelected ? "opacity-50 cursor-default" : ""}`}
-                                                >
-                                                    <span className={isSelected ? "text-indigo-400" : "text-white"}>{coin}</span>
-                                                    {isSelected && <Check className="w-3 h-3 text-indigo-500" />}
-                                                </button>
-                                            )
-                                        })}
+                                {/* Active Assets Grid */}
+                                <div className="bg-black/20 rounded-xl p-3 border border-white/5 min-h-[80px]">
+                                    {(configForm.coins || []).length === 0 ? (
+                                        <div className="h-full flex flex-col items-center justify-center text-zinc-600 gap-2 py-4">
+                                            <Target className="w-8 h-8 opacity-20" />
+                                            <span className="text-xs font-bold opacity-50">NO ASSETS TARGETED</span>
+                                            <span className="text-[10px] opacity-40">Search and add symbols above</span>
+                                        </div>
+                                    ) : (
+                                        <div className="flex flex-wrap gap-2">
+                                            {(configForm.coins || [])
+                                                .filter(coin => {
+                                                    if (assetTab === "CRYPTO") {
+                                                        if (cryptoFilter === "USD" && !coin.endsWith("/USD")) return false;
+                                                        if (cryptoFilter === "USDT" && !coin.endsWith("/USDT")) return false;
+                                                    } else if (assetTab === "STOCKS") {
+                                                        if (coin.includes("/")) return false;
+                                                    } else if (assetTab === "GLOBAL") {
+                                                        if (coin.includes("/")) return false;
+                                                        // ideally we'd check if it's in the global list, but this is a good first pass
+                                                    }
+                                                    return true;
+                                                })
+                                                .slice().reverse().map(coin => (
+                                                    <span key={coin} className="group px-2.5 py-1.5 rounded-lg bg-indigo-500/10 text-indigo-300 text-xs font-bold border border-indigo-500/10 flex items-center gap-2 hover:bg-indigo-500/20 transition-all select-none">
+                                                        {coin}
+                                                        <button
+                                                            onClick={() => toggleCoin(coin)}
+                                                            className="text-indigo-400/50 hover:text-white transition-colors p-0.5 rounded-md hover:bg-white/10"
+                                                        >
+                                                            <X className="w-3 h-3" />
+                                                        </button>
+                                                    </span>
+                                                ))}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+
+                            {/* Council Validation Section */}
+                            <div className="bg-black/40 rounded-2xl p-5 border border-white/5 space-y-4 shadow-xl">
+                                <div className="flex items-center justify-between">
+                                    <div className="space-y-1">
+                                        <label className="text-sm font-black text-white flex items-center gap-2 tracking-tight">
+                                            {useCouncil ? <ShieldCheck className="w-4 h-4 text-emerald-400" /> : <ShieldAlert className="w-4 h-4 text-zinc-500" />}
+                                            COUNCIL VALIDATION
+                                        </label>
+                                        <p className="text-[10px] text-zinc-500 uppercase font-bold tracking-widest">Multi-model consensus</p>
+                                    </div>
+                                    <Switch.Root
+                                        checked={useCouncil}
+                                        onCheckedChange={(c: boolean) => setConfigForm({ ...configForm, use_council: c })}
+                                        className={`w-12 h-6 rounded-full relative shadow-inner transition-colors duration-300 ${useCouncil ? 'bg-emerald-600' : 'bg-zinc-700'}`}
+                                    >
+                                        <Switch.Thumb className={`block w-4 h-4 rounded-full bg-white shadow-lg transition-transform duration-300 transform translate-y-1 ${useCouncil ? 'translate-x-7' : 'translate-x-1'}`} />
+                                    </Switch.Root>
+                                </div>
+
+                                {useCouncil && (
+                                    <div className="space-y-4 pt-2 border-t border-white/5 animate-in fade-in duration-300">
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Council Threshold</label>
+                                            <input
+                                                type="number" step="0.01"
+                                                value={configForm.council_threshold}
+                                                onChange={(e) => setConfigForm({ ...configForm, council_threshold: parseFloat(e.target.value) })}
+                                                className="w-full bg-black/60 border border-white/5 rounded-xl px-4 py-2.5 text-sm font-mono focus:outline-none focus:border-indigo-500/50 transition-all text-indigo-200"
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Council Validator Path</label>
+                                            <select
+                                                value={configForm.council_model_path}
+                                                onChange={(e) => setConfigForm({ ...configForm, council_model_path: e.target.value })}
+                                                className="w-full bg-black/60 border border-white/5 rounded-xl px-4 py-2.5 text-xs font-mono focus:outline-none focus:border-indigo-500/50 transition-all text-zinc-400"
+                                            >
+                                                <option value="">Select Model...</option>
+                                                {availableModels.map(m => (
+                                                    <option key={m} value={m}>{m.split('/').pop()}</option>
+                                                ))}
+                                            </select>
+                                        </div>
                                     </div>
                                 )}
                             </div>
-                        </div>
 
-                        {/* Active Assets Grid */}
-                        <div className="bg-black/20 rounded-xl p-3 border border-white/5 min-h-[80px]">
-                            {(configForm.coins || []).length === 0 ? (
-                                <div className="h-full flex flex-col items-center justify-center text-zinc-600 gap-2 py-4">
-                                    <Target className="w-8 h-8 opacity-20" />
-                                    <span className="text-xs font-bold opacity-50">NO ASSETS TARGETED</span>
-                                    <span className="text-[10px] opacity-40">Search and add symbols above</span>
-                                </div>
-                            ) : (
-                                <div className="flex flex-wrap gap-2">
-                                    {(configForm.coins || [])
-                                        .filter(coin => {
-                                            if (assetTab === "CRYPTO") {
-                                                if (cryptoFilter === "USD" && !coin.endsWith("/USD")) return false;
-                                                if (cryptoFilter === "USDT" && !coin.endsWith("/USDT")) return false;
-                                            } else if (assetTab === "STOCKS") {
-                                                if (coin.includes("/")) return false;
-                                            } else if (assetTab === "GLOBAL") {
-                                                if (coin.includes("/")) return false;
-                                                // ideally we'd check if it's in the global list, but this is a good first pass
-                                            }
-                                            return true;
-                                        })
-                                        .slice().reverse().map(coin => (
-                                            <span key={coin} className="group px-2.5 py-1.5 rounded-lg bg-indigo-500/10 text-indigo-300 text-xs font-bold border border-indigo-500/10 flex items-center gap-2 hover:bg-indigo-500/20 transition-all select-none">
-                                                {coin}
-                                                <button
-                                                    onClick={() => toggleCoin(coin)}
-                                                    className="text-indigo-400/50 hover:text-white transition-colors p-0.5 rounded-md hover:bg-white/10"
-                                                >
-                                                    <X className="w-3 h-3" />
-                                                </button>
-                                            </span>
-                                        ))}
-                                </div>
-                            )}
-                        </div>
-                    </div>
-
-
-                    {/* Council Validation Section */}
-                    <div className="bg-black/40 rounded-2xl p-5 border border-white/5 space-y-4 shadow-xl">
-                        <div className="flex items-center justify-between">
-                            <div className="space-y-1">
-                                <label className="text-sm font-black text-white flex items-center gap-2 tracking-tight">
-                                    {useCouncil ? <ShieldCheck className="w-4 h-4 text-emerald-400" /> : <ShieldAlert className="w-4 h-4 text-zinc-500" />}
-                                    COUNCIL VALIDATION
+                            {/* Model Hub Section */}
+                            <div className="bg-black/40 rounded-2xl p-5 border border-white/5 space-y-4 shadow-xl">
+                                <label className="text-xs font-black text-purple-400 uppercase tracking-[0.2em] flex items-center gap-2">
+                                    <ShieldCheck className="w-3.5 h-3.5" /> Model Intelligence
                                 </label>
-                                <p className="text-[10px] text-zinc-500 uppercase font-bold tracking-widest">Multi-model consensus</p>
-                            </div>
-                            <Switch.Root
-                                checked={useCouncil}
-                                onCheckedChange={(c: boolean) => setConfigForm({ ...configForm, use_council: c })}
-                                className={`w-12 h-6 rounded-full relative shadow-inner transition-colors duration-300 ${useCouncil ? 'bg-emerald-600' : 'bg-zinc-700'}`}
-                            >
-                                <Switch.Thumb className={`block w-4 h-4 rounded-full bg-white shadow-lg transition-transform duration-300 transform translate-y-1 ${useCouncil ? 'translate-x-7' : 'translate-x-1'}`} />
-                            </Switch.Root>
-                        </div>
-
-                        {useCouncil && (
-                            <div className="space-y-4 pt-2 border-t border-white/5 animate-in fade-in duration-300">
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Council Threshold</label>
-                                    <input
-                                        type="number" step="0.01"
-                                        value={configForm.council_threshold}
-                                        onChange={(e) => setConfigForm({ ...configForm, council_threshold: parseFloat(e.target.value) })}
-                                        className="w-full bg-black/60 border border-white/5 rounded-xl px-4 py-2.5 text-sm font-mono focus:outline-none focus:border-indigo-500/50 transition-all text-indigo-200"
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Council Validator Path</label>
-                                    <select
-                                        value={configForm.council_model_path}
-                                        onChange={(e) => setConfigForm({ ...configForm, council_model_path: e.target.value })}
-                                        className="w-full bg-black/60 border border-white/5 rounded-xl px-4 py-2.5 text-xs font-mono focus:outline-none focus:border-indigo-500/50 transition-all text-zinc-400"
-                                    >
-                                        <option value="">Select Model...</option>
-                                        {availableModels.map(m => (
-                                            <option key={m} value={m}>{m.split('/').pop()}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Model Hub Section */}
-                    <div className="bg-black/40 rounded-2xl p-5 border border-white/5 space-y-4 shadow-xl">
-                        <label className="text-xs font-black text-purple-400 uppercase tracking-[0.2em] flex items-center gap-2">
-                            <ShieldCheck className="w-3.5 h-3.5" /> Model Intelligence
-                        </label>
-                        <div className="space-y-4">
-                            <div className="space-y-2">
-                                <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">King Model Path</label>
-                                <input
-                                    type="text"
-                                    value={configForm.king_model_path}
-                                    onChange={(e) => setConfigForm({ ...configForm, king_model_path: e.target.value })}
-                                    className="w-full bg-black/60 border border-white/5 rounded-xl px-4 py-2.5 text-xs font-mono focus:outline-none focus:border-purple-500/50 transition-all text-zinc-400"
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">King Confidence Threshold</label>
-                                <input
-                                    type="number" step="0.01"
-                                    value={configForm.king_threshold}
-                                    onChange={(e) => setConfigForm({ ...configForm, king_threshold: parseFloat(e.target.value) })}
-                                    className="w-full bg-black/60 border border-white/5 rounded-xl px-4 py-2.5 text-sm font-mono focus:outline-none focus:border-purple-500/50 transition-all text-purple-200"
-                                />
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Exit Strategy Section */}
-                    <div className="bg-black/40 rounded-2xl p-5 border border-white/5 space-y-5 shadow-xl">
-                        <div className="flex items-center justify-between">
-                            <div className="space-y-1">
-                                <label className="text-sm font-black text-white tracking-tight flex items-center gap-2">
-                                    <ArrowDownRight className="w-4 h-4 text-orange-400" /> EXIT STRATEGY
-                                </label>
-                                <p className="text-[10px] text-zinc-500 uppercase font-bold tracking-widest">Auto-sell logic</p>
-                            </div>
-                            <Switch.Root
-                                checked={Boolean(configForm.enable_sells ?? true)}
-                                onCheckedChange={(c: boolean) => setConfigForm({ ...configForm, enable_sells: c })}
-                                className={`w-12 h-6 rounded-full relative shadow-inner transition-colors duration-300 ${(configForm.enable_sells ?? true) ? 'bg-orange-600' : 'bg-zinc-700'}`}
-                            >
-                                <Switch.Thumb className={`block w-4 h-4 rounded-full bg-white shadow-lg transition-transform duration-300 transform translate-y-1 ${(configForm.enable_sells ?? true) ? 'translate-x-7' : 'translate-x-1'}`} />
-                            </Switch.Root>
-                        </div>
-
-                        {configForm.enable_sells && (
-                            <div className="space-y-5 animate-in fade-in duration-300">
-                                <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-4">
                                     <div className="space-y-2">
-                                        <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Target %</label>
-                                        <input
-                                            type="number" step="0.1"
-                                            value={Math.round((configForm.target_pct || 0) * 100 * 100) / 100}
-                                            onChange={(e) => setConfigForm({ ...configForm, target_pct: parseFloat(e.target.value) / 100 })}
-                                            className="w-full bg-black/60 border border-white/5 rounded-xl px-4 py-2.5 text-sm font-mono focus:outline-none focus:border-emerald-500/50 transition-all text-emerald-200"
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Stop Loss %</label>
-                                        <input
-                                            type="number" step="0.1"
-                                            value={Math.round((configForm.stop_loss_pct || 0) * 100 * 100) / 100}
-                                            onChange={(e) => setConfigForm({ ...configForm, stop_loss_pct: parseFloat(e.target.value) / 100 })}
-                                            className="w-full bg-black/60 border border-white/5 rounded-xl px-4 py-2.5 text-sm font-mono focus:outline-none focus:border-red-500/50 transition-all text-red-200"
-                                        />
-                                    </div>
-                                </div>
-
-                                <div className="space-y-4 pt-4 border-t border-white/5">
-                                    <div className="flex items-center justify-between">
-                                        <div className="space-y-1">
-                                            <label className="text-xs font-bold text-white tracking-wider flex items-center gap-2">
-                                                <Activity className="w-3 h-3 text-blue-400" /> Trailing Stop
-                                            </label>
-                                        </div>
-                                        <Switch.Root
-                                            checked={Boolean(configForm.use_trailing ?? true)}
-                                            onCheckedChange={(c: boolean) => setConfigForm({ ...configForm, use_trailing: c })}
-                                            className={`w-10 h-5 rounded-full relative shadow-inner transition-colors duration-300 ${(configForm.use_trailing ?? true) ? 'bg-blue-600' : 'bg-zinc-700'}`}
+                                        <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">King Model Path</label>
+                                        <select
+                                            value={configForm.king_model_path}
+                                            onChange={(e) => setConfigForm({ ...configForm, king_model_path: e.target.value })}
+                                            className="w-full bg-black/60 border border-white/5 rounded-xl px-4 py-2.5 text-xs font-mono focus:outline-none focus:border-purple-500/50 transition-all text-zinc-400"
                                         >
-                                            <Switch.Thumb className={`block w-3 h-3 rounded-full bg-white shadow-lg transition-transform duration-300 transform translate-y-1 ${(configForm.use_trailing ?? true) ? 'translate-x-6' : 'translate-x-1'}`} />
-                                        </Switch.Root>
+                                            <option value="">Select Model...</option>
+                                            {availableModels.map(m => (
+                                                <option key={m} value={m}>{m.split('/').pop()}</option>
+                                            ))}
+                                        </select>
                                     </div>
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">King Confidence Threshold</label>
+                                        <input
+                                            type="number" step="0.01"
+                                            value={configForm.king_threshold}
+                                            onChange={(e) => setConfigForm({ ...configForm, king_threshold: parseFloat(e.target.value) })}
+                                            className="w-full bg-black/60 border border-white/5 rounded-xl px-4 py-2.5 text-sm font-mono focus:outline-none focus:border-purple-500/50 transition-all text-purple-200"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
 
-                                    {configForm.use_trailing && (
-                                        <div className="grid grid-cols-3 gap-2 animate-in slide-in-from-top-2 duration-300">
-                                            <div className="space-y-1">
-                                                <label className="text-[8px] font-black text-zinc-600 uppercase">BE %</label>
+                            {/* Exit Strategy Section */}
+                            <div className="bg-black/40 rounded-2xl p-5 border border-white/5 space-y-5 shadow-xl">
+                                <div className="flex items-center justify-between">
+                                    <div className="space-y-1">
+                                        <label className="text-sm font-black text-white tracking-tight flex items-center gap-2">
+                                            <ArrowDownRight className="w-4 h-4 text-orange-400" /> EXIT STRATEGY
+                                        </label>
+                                        <p className="text-[10px] text-zinc-500 uppercase font-bold tracking-widest">Auto-sell logic</p>
+                                    </div>
+                                    <Switch.Root
+                                        checked={Boolean(configForm.enable_sells ?? true)}
+                                        onCheckedChange={(c: boolean) => setConfigForm({ ...configForm, enable_sells: c })}
+                                        className={`w-12 h-6 rounded-full relative shadow-inner transition-colors duration-300 ${(configForm.enable_sells ?? true) ? 'bg-orange-600' : 'bg-zinc-700'}`}
+                                    >
+                                        <Switch.Thumb className={`block w-4 h-4 rounded-full bg-white shadow-lg transition-transform duration-300 transform translate-y-1 ${(configForm.enable_sells ?? true) ? 'translate-x-7' : 'translate-x-1'}`} />
+                                    </Switch.Root>
+                                </div>
+
+                                {configForm.enable_sells && (
+                                    <div className="space-y-5 animate-in fade-in duration-300">
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="space-y-2">
+                                                <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Target %</label>
                                                 <input
                                                     type="number" step="0.1"
-                                                    value={Math.round((configForm.trail_be_pct || 0) * 100 * 100) / 100}
-                                                    onChange={(e) => setConfigForm({ ...configForm, trail_be_pct: parseFloat(e.target.value) / 100 })}
-                                                    className="w-full bg-black/60 border border-white/5 rounded-lg px-2 py-1.5 text-[10px] font-mono focus:outline-none transition-all"
+                                                    value={Math.round((configForm.target_pct || 0) * 100 * 100) / 100}
+                                                    onChange={(e) => setConfigForm({ ...configForm, target_pct: parseFloat(e.target.value) / 100 })}
+                                                    className="w-full bg-black/60 border border-white/5 rounded-xl px-4 py-2.5 text-sm font-mono focus:outline-none focus:border-emerald-500/50 transition-all text-emerald-200"
                                                 />
                                             </div>
-                                            <div className="space-y-1">
-                                                <label className="text-[8px] font-black text-zinc-600 uppercase">Lock Trigg %</label>
+                                            <div className="space-y-2">
+                                                <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Stop Loss %</label>
                                                 <input
                                                     type="number" step="0.1"
-                                                    value={Math.round((configForm.trail_lock_trigger_pct || 0) * 100 * 100) / 100}
-                                                    onChange={(e) => setConfigForm({ ...configForm, trail_lock_trigger_pct: parseFloat(e.target.value) / 100 })}
-                                                    className="w-full bg-black/60 border border-white/5 rounded-lg px-2 py-1.5 text-[10px] font-mono focus:outline-none transition-all"
-                                                />
-                                            </div>
-                                            <div className="space-y-1">
-                                                <label className="text-[8px] font-black text-zinc-600 uppercase">Lock Profit %</label>
-                                                <input
-                                                    type="number" step="0.1"
-                                                    value={Math.round((configForm.trail_lock_pct || 0) * 100 * 100) / 100}
-                                                    onChange={(e) => setConfigForm({ ...configForm, trail_lock_pct: parseFloat(e.target.value) / 100 })}
-                                                    className="w-full bg-black/60 border border-white/5 rounded-lg px-2 py-1.5 text-[10px] font-mono focus:outline-none transition-all"
+                                                    value={Math.round((configForm.stop_loss_pct || 0) * 100 * 100) / 100}
+                                                    onChange={(e) => setConfigForm({ ...configForm, stop_loss_pct: parseFloat(e.target.value) / 100 })}
+                                                    className="w-full bg-black/60 border border-white/5 rounded-xl px-4 py-2.5 text-sm font-mono focus:outline-none focus:border-red-500/50 transition-all text-red-200"
                                                 />
                                             </div>
                                         </div>
-                                    )}
+
+                                        <div className="space-y-4 pt-4 border-t border-white/5">
+                                            <div className="flex items-center justify-between">
+                                                <div className="space-y-1">
+                                                    <label className="text-xs font-bold text-white tracking-wider flex items-center gap-2">
+                                                        <Activity className="w-3 h-3 text-blue-400" /> Trailing Stop
+                                                    </label>
+                                                </div>
+                                                <Switch.Root
+                                                    checked={Boolean(configForm.use_trailing ?? true)}
+                                                    onCheckedChange={(c: boolean) => setConfigForm({ ...configForm, use_trailing: c })}
+                                                    className={`w-10 h-5 rounded-full relative shadow-inner transition-colors duration-300 ${(configForm.use_trailing ?? true) ? 'bg-blue-600' : 'bg-zinc-700'}`}
+                                                >
+                                                    <Switch.Thumb className={`block w-3 h-3 rounded-full bg-white shadow-lg transition-transform duration-300 transform translate-y-1 ${(configForm.use_trailing ?? true) ? 'translate-x-6' : 'translate-x-1'}`} />
+                                                </Switch.Root>
+                                            </div>
+
+                                            {configForm.use_trailing && (
+                                                <div className="grid grid-cols-3 gap-2 animate-in slide-in-from-top-2 duration-300">
+                                                    <div className="space-y-1">
+                                                        <label className="text-[8px] font-black text-zinc-600 uppercase">BE %</label>
+                                                        <input
+                                                            type="number" step="0.1"
+                                                            value={Math.round((configForm.trail_be_pct || 0) * 100 * 100) / 100}
+                                                            onChange={(e) => setConfigForm({ ...configForm, trail_be_pct: parseFloat(e.target.value) / 100 })}
+                                                            className="w-full bg-black/60 border border-white/5 rounded-lg px-2 py-1.5 text-[10px] font-mono focus:outline-none transition-all"
+                                                        />
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        <label className="text-[8px] font-black text-zinc-600 uppercase">Lock Trigg %</label>
+                                                        <input
+                                                            type="number" step="0.1"
+                                                            value={Math.round((configForm.trail_lock_trigger_pct || 0) * 100 * 100) / 100}
+                                                            onChange={(e) => setConfigForm({ ...configForm, trail_lock_trigger_pct: parseFloat(e.target.value) / 100 })}
+                                                            className="w-full bg-black/60 border border-white/5 rounded-lg px-2 py-1.5 text-[10px] font-mono focus:outline-none transition-all"
+                                                        />
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        <label className="text-[8px] font-black text-zinc-600 uppercase">Lock Profit %</label>
+                                                        <input
+                                                            type="number" step="0.1"
+                                                            value={Math.round((configForm.trail_lock_pct || 0) * 100 * 100) / 100}
+                                                            onChange={(e) => setConfigForm({ ...configForm, trail_lock_pct: parseFloat(e.target.value) / 100 })}
+                                                            className="w-full bg-black/60 border border-white/5 rounded-lg px-2 py-1.5 text-[10px] font-mono focus:outline-none transition-all"
+                                                        />
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Hold Max Bars</label>
+                                            <input
+                                                type="number" min={1}
+                                                value={configForm.hold_max_bars}
+                                                onChange={(e) => setConfigForm({ ...configForm, hold_max_bars: parseInt(e.target.value) })}
+                                                className="w-full bg-black/60 border border-white/5 rounded-xl px-4 py-2.5 text-sm font-mono focus:outline-none border-white/5 transition-all"
+                                            />
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Risk Management Section */}
+                            <div className="bg-black/40 rounded-2xl p-5 border border-white/5 space-y-5 shadow-xl font-mono">
+                                <label className="text-xs font-black text-red-400 uppercase tracking-[0.2em] flex items-center gap-2">
+                                    <ShieldAlert className="w-3.5 h-3.5" /> Risk Firewall
+                                </label>
+                                <div className="space-y-4">
+                                    <div className="flex justify-between items-center bg-red-500/5 rounded-xl p-3 border border-red-500/10">
+                                        <label className="text-[10px] font-black text-red-500/70 uppercase">Max Open Trades</label>
+                                        <input
+                                            type="number" min={1}
+                                            value={configForm.max_open_positions}
+                                            onChange={(e) => setConfigForm({ ...configForm, max_open_positions: parseInt(e.target.value) })}
+                                            className="w-16 bg-transparent text-right text-sm font-black text-red-400 focus:outline-none"
+                                        />
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black text-zinc-600 uppercase">Per-Trade Notional ($)</label>
+                                            <input
+                                                type="number"
+                                                value={configForm.max_notional_usd}
+                                                onChange={(e) => setConfigForm({ ...configForm, max_notional_usd: parseFloat(e.target.value) })}
+                                                className="w-full bg-black/40 border border-white/5 rounded-xl px-3 py-2 text-sm text-zinc-300 focus:outline-none border-white/10"
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black text-zinc-600 uppercase">% Cash Allocate</label>
+                                            <input
+                                                type="number" step="0.1"
+                                                value={Math.round((configForm.pct_cash_per_trade || 0) * 100 * 100) / 100}
+                                                onChange={(e) => setConfigForm({ ...configForm, pct_cash_per_trade: parseFloat(e.target.value) / 100 })}
+                                                className="w-full bg-black/40 border border-white/5 rounded-xl px-3 py-2 text-sm text-zinc-300 focus:outline-none border-white/10"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="space-y-4">
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-zinc-500 uppercase">Poll Interval</label>
+                                    <div className="flex gap-2">
+                                        <input
+                                            type="number"
+                                            min={1}
+                                            value={pollIntervalValue}
+                                            onChange={(e) => setPollSecondsFromParts(Number(e.target.value), pollIntervalUnit)}
+                                            className="flex-1 min-w-0 bg-black/40 border border-white/5 rounded-xl px-3 py-2 text-sm font-mono focus:outline-none focus:border-white/20 transition-all"
+                                        />
+                                        <select
+                                            value={pollIntervalUnit}
+                                            onChange={(e) => {
+                                                const nextUnit = e.target.value as PollUnit;
+                                                setPollSecondsFromParts(pollIntervalValue, nextUnit);
+                                            }}
+                                            className="shrink-0 w-[5.5rem] bg-black/40 border border-white/5 rounded-xl px-3 py-2 text-sm font-mono focus:outline-none focus:border-white/20 transition-all text-white"
+                                        >
+                                            <option value="s" className="bg-zinc-950 text-white">sec</option>
+                                            <option value="m" className="bg-zinc-950 text-white">min</option>
+                                            <option value="h" className="bg-zinc-950 text-white">hour</option>
+                                        </select>
+                                    </div>
                                 </div>
 
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Hold Max Bars</label>
-                                    <input
-                                        type="number" min={1}
-                                        value={configForm.hold_max_bars}
-                                        onChange={(e) => setConfigForm({ ...configForm, hold_max_bars: parseInt(e.target.value) })}
-                                        className="w-full bg-black/60 border border-white/5 rounded-xl px-4 py-2.5 text-sm font-mono focus:outline-none border-white/5 transition-all"
-                                    />
-                                </div>
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Risk Management Section */}
-                    <div className="bg-black/40 rounded-2xl p-5 border border-white/5 space-y-5 shadow-xl font-mono">
-                        <label className="text-xs font-black text-red-400 uppercase tracking-[0.2em] flex items-center gap-2">
-                            <ShieldAlert className="w-3.5 h-3.5" /> Risk Firewall
-                        </label>
-                        <div className="space-y-4">
-                            <div className="flex justify-between items-center bg-red-500/5 rounded-xl p-3 border border-red-500/10">
-                                <label className="text-[10px] font-black text-red-500/70 uppercase">Max Open Trades</label>
-                                <input
-                                    type="number" min={1}
-                                    value={configForm.max_open_positions}
-                                    onChange={(e) => setConfigForm({ ...configForm, max_open_positions: parseInt(e.target.value) })}
-                                    className="w-16 bg-transparent text-right text-sm font-black text-red-400 focus:outline-none"
-                                />
-                            </div>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-zinc-600 uppercase">Per-Trade Notional ($)</label>
+                                    <label className="text-xs font-bold text-zinc-500 uppercase">Bars Limit</label>
                                     <input
                                         type="number"
-                                        value={configForm.max_notional_usd}
-                                        onChange={(e) => setConfigForm({ ...configForm, max_notional_usd: parseFloat(e.target.value) })}
-                                        className="w-full bg-black/40 border border-white/5 rounded-xl px-3 py-2 text-sm text-zinc-300 focus:outline-none border-white/10"
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-zinc-600 uppercase">% Cash Allocate</label>
-                                    <input
-                                        type="number" step="0.1"
-                                        value={Math.round((configForm.pct_cash_per_trade || 0) * 100 * 100) / 100}
-                                        onChange={(e) => setConfigForm({ ...configForm, pct_cash_per_trade: parseFloat(e.target.value) / 100 })}
-                                        className="w-full bg-black/40 border border-white/5 rounded-xl px-3 py-2 text-sm text-zinc-300 focus:outline-none border-white/10"
+                                        value={configForm.bars_limit}
+                                        onChange={(e) => setConfigForm({ ...configForm, bars_limit: parseInt(e.target.value) })}
+                                        className="w-full bg-black/40 border border-white/5 rounded-xl px-3 py-2 text-sm font-mono focus:outline-none focus:border-white/20 transition-all"
                                     />
                                 </div>
                             </div>
-                        </div>
-                    </div>
 
-                    <div className="space-y-4">
-                        <div className="space-y-2">
-                            <label className="text-xs font-bold text-zinc-500 uppercase">Poll Interval</label>
-                            <div className="flex gap-2">
-                                <input
-                                    type="number"
-                                    min={1}
-                                    value={pollIntervalValue}
-                                    onChange={(e) => setPollSecondsFromParts(Number(e.target.value), pollIntervalUnit)}
-                                    className="flex-1 min-w-0 bg-black/40 border border-white/5 rounded-xl px-3 py-2 text-sm font-mono focus:outline-none focus:border-white/20 transition-all"
-                                />
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold text-zinc-500 uppercase">Timeframe</label>
+                                <div className="relative">
+                                    <select
+                                        value={configForm.timeframe || "1Hour"}
+                                        onChange={(e) => setConfigForm({ ...configForm, timeframe: e.target.value })}
+                                        className="w-full bg-black/40 border border-white/5 rounded-xl px-4 py-3 text-sm font-mono focus:outline-none focus:border-indigo-500/50 focus:bg-indigo-500/5 transition-all appearance-none cursor-pointer text-white"
+                                    >
+                                        <option value="1Min" className="bg-zinc-950 text-white">1 Minute</option>
+                                        <option value="5Min" className="bg-zinc-950 text-white">5 Minutes</option>
+                                        <option value="15Min" className="bg-zinc-950 text-white">15 Minutes</option>
+                                        <option value="30Min" className="bg-zinc-950 text-white">30 Minutes</option>
+                                        <option value="1Hour" className="bg-zinc-950 text-white">1 Hour (Default)</option>
+                                        <option value="4Hour" className="bg-zinc-950 text-white">4 Hours</option>
+                                        <option value="1Day" className="bg-zinc-950 text-white">1 Day</option>
+                                    </select>
+                                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-500">
+                                        <Settings className="w-4 h-4" />
+                                    </div>
+                                </div>
+                            </div>
+
+
+
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold text-zinc-500 uppercase">Data Source</label>
                                 <select
-                                    value={pollIntervalUnit}
-                                    onChange={(e) => {
-                                        const nextUnit = e.target.value as PollUnit;
-                                        setPollSecondsFromParts(pollIntervalValue, nextUnit);
-                                    }}
-                                    className="shrink-0 w-[5.5rem] bg-black/40 border border-white/5 rounded-xl px-3 py-2 text-sm font-mono focus:outline-none focus:border-white/20 transition-all text-white"
+                                    value={(configForm.data_source as string) || "alpaca"}
+                                    onChange={(e) => setConfigForm({ ...configForm, data_source: e.target.value })}
+                                    className="w-full bg-black/40 border border-white/5 rounded-xl px-4 py-3 text-sm font-mono focus:outline-none focus:border-white/20 transition-all text-white"
                                 >
-                                    <option value="s" className="bg-zinc-950 text-white">sec</option>
-                                    <option value="m" className="bg-zinc-950 text-white">min</option>
-                                    <option value="h" className="bg-zinc-950 text-white">hour</option>
+                                    <option value="alpaca" className="bg-zinc-950 text-white">Alpaca</option>
+                                    <option value="binance" className="bg-zinc-950 text-white">Binance</option>
+                                    {assetTab === "GLOBAL" && (
+                                        <option value="tvdata" className="bg-zinc-950 text-white">TradingView (tvdata)</option>
+                                    )}
                                 </select>
                             </div>
-                        </div>
 
-                        <div className="space-y-2">
-                            <label className="text-xs font-bold text-zinc-500 uppercase">Bars Limit</label>
-                            <input
-                                type="number"
-                                value={configForm.bars_limit}
-                                onChange={(e) => setConfigForm({ ...configForm, bars_limit: parseInt(e.target.value) })}
-                                className="w-full bg-black/40 border border-white/5 rounded-xl px-3 py-2 text-sm font-mono focus:outline-none focus:border-white/20 transition-all"
-                            />
-                        </div>
-                    </div>
-
-                    <div className="space-y-2">
-                        <label className="text-xs font-bold text-zinc-500 uppercase">Timeframe</label>
-                        <div className="relative">
-                            <select
-                                value={configForm.timeframe || "1Hour"}
-                                onChange={(e) => setConfigForm({ ...configForm, timeframe: e.target.value })}
-                                className="w-full bg-black/40 border border-white/5 rounded-xl px-4 py-3 text-sm font-mono focus:outline-none focus:border-indigo-500/50 focus:bg-indigo-500/5 transition-all appearance-none cursor-pointer text-white"
-                            >
-                                <option value="1Min" className="bg-zinc-950 text-white">1 Minute</option>
-                                <option value="5Min" className="bg-zinc-950 text-white">5 Minutes</option>
-                                <option value="15Min" className="bg-zinc-950 text-white">15 Minutes</option>
-                                <option value="30Min" className="bg-zinc-950 text-white">30 Minutes</option>
-                                <option value="1Hour" className="bg-zinc-950 text-white">1 Hour (Default)</option>
-                                <option value="4Hour" className="bg-zinc-950 text-white">4 Hours</option>
-                                <option value="1Day" className="bg-zinc-950 text-white">1 Day</option>
-                            </select>
-                            <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-500">
-                                <Settings className="w-4 h-4" />
-                            </div>
-                        </div>
-                    </div>
-
-
-
-                    <div className="space-y-2">
-                        <label className="text-xs font-bold text-zinc-500 uppercase">Data Source</label>
-                        <select
-                            value={(configForm.data_source as string) || "alpaca"}
-                            onChange={(e) => setConfigForm({ ...configForm, data_source: e.target.value })}
-                            className="w-full bg-black/40 border border-white/5 rounded-xl px-4 py-3 text-sm font-mono focus:outline-none focus:border-white/20 transition-all text-white"
-                        >
-                            <option value="alpaca" className="bg-zinc-950 text-white">Alpaca</option>
-                            <option value="binance" className="bg-zinc-950 text-white">Binance</option>
-                            {assetTab === "GLOBAL" && (
-                                <option value="tvdata" className="bg-zinc-950 text-white">TradingView (tvdata)</option>
+                            {selectedBotId !== "primary" && (
+                                <div className="pt-4 border-t border-white/5">
+                                    <button
+                                        onClick={() => handleDeleteBot(selectedBotId, configForm.name || "Bot")}
+                                        className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 transition-all text-xs font-black uppercase tracking-widest group"
+                                    >
+                                        <Trash2 className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                                        Delete Bot Instance
+                                    </button>
+                                </div>
                             )}
-                        </select>
-                    </div>
 
-                    {selectedBotId !== "primary" && (
-                        <div className="pt-4 border-t border-white/5">
-                            <button
-                                onClick={() => handleDeleteBot(selectedBotId, configForm.name || "Bot")}
-                                className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 transition-all text-xs font-black uppercase tracking-widest group"
-                            >
-                                <Trash2 className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                                Delete Bot Instance
-                            </button>
-                        </div>
-                    )}
-
-                    {/* Save to Supabase Toggle */}
-                    <div className="bg-black/20 rounded-xl p-4 border border-white/5 flex items-center justify-between">
-                        <div className="space-y-1">
-                            <label className="text-sm font-bold text-white flex items-center gap-2">
-                                <Save className="w-4 h-4 text-indigo-400" />
-                                Save to Supabase
-                            </label>
-                            <p className="text-xs text-zinc-500">Persist poll data to DB</p>
-                        </div>
-                        <Switch.Root
-                            checked={configForm.save_to_supabase ?? true}
-                            onCheckedChange={(c: boolean) => setConfigForm({ ...configForm, save_to_supabase: c })}
-                            className={`w-12 h-6 rounded-full relative shadow-inner transition-colors duration-300 ${configForm.save_to_supabase !== false ? 'bg-indigo-600' : 'bg-zinc-700'}`}
-                        >
-                            <Switch.Thumb className={`block w-4 h-4 rounded-full bg-white shadow-lg transition-transform duration-300 transform translate-y-1 ${configForm.save_to_supabase !== false ? 'translate-x-7' : 'translate-x-1'}`} />
-                        </Switch.Root>
-                    </div>
-
-                    <div className="flex items-center justify-center gap-2 w-full py-4 rounded-xl bg-zinc-900/50 border border-white/5 text-xs font-bold text-zinc-500 uppercase tracking-widest">
-                        <div className={`w-2 h-2 rounded-full ${isRunning ? "bg-zinc-700" : "bg-emerald-500 animate-pulse"}`} />
-                        {isRunning ? "Stop to Edit Config" : "Configuration Auto-Saves"}
-                    </div>
-                </div>
-
-                {/* Right Column: Performance Cards + Logs & Trades */}
-                <div className="lg:col-span-2 flex flex-col gap-6 h-full">
-                    {/* Performance Cards */}
-                    <div className="grid grid-cols-2 gap-4">
-                        {/* Total Profit Card */}
-                        <div className="bg-zinc-900/40 border border-white/5 rounded-2xl p-5 backdrop-blur-xl group hover:border-emerald-500/30 transition-all">
-                            <div className="flex items-center justify-between mb-3">
-                                <div className="p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
-                                    <BarChart3 className="w-4 h-4" />
+                            {/* Save to Supabase Toggle */}
+                            <div className="bg-black/20 rounded-xl p-4 border border-white/5 flex items-center justify-between">
+                                <div className="space-y-1">
+                                    <label className="text-sm font-bold text-white flex items-center gap-2">
+                                        <Save className="w-4 h-4 text-indigo-400" />
+                                        Save to Supabase
+                                    </label>
+                                    <p className="text-xs text-zinc-500">Persist poll data to DB</p>
                                 </div>
-                                <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest">Total Profit</span>
+                                <Switch.Root
+                                    checked={configForm.save_to_supabase ?? true}
+                                    onCheckedChange={(c: boolean) => setConfigForm({ ...configForm, save_to_supabase: c })}
+                                    className={`w-12 h-6 rounded-full relative shadow-inner transition-colors duration-300 ${configForm.save_to_supabase !== false ? 'bg-indigo-600' : 'bg-zinc-700'}`}
+                                >
+                                    <Switch.Thumb className={`block w-4 h-4 rounded-full bg-white shadow-lg transition-transform duration-300 transform translate-y-1 ${configForm.save_to_supabase !== false ? 'translate-x-7' : 'translate-x-1'}`} />
+                                </Switch.Root>
                             </div>
-                            <div className={`text-2xl font-black ${(performance?.profit_loss || 0) >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                                ${(performance?.profit_loss || 0).toFixed(2)}
-                            </div>
-                            <div className="mt-2 text-[10px] text-zinc-500 flex items-center gap-1">
-                                <ArrowUpRight className="w-3 h-3" />
-                                {performance?.total_trades || 0} trades
+
+                            <div className="flex items-center justify-center gap-2 w-full py-4 rounded-xl bg-zinc-900/50 border border-white/5 text-xs font-bold text-zinc-500 uppercase tracking-widest">
+                                <div className={`w-2 h-2 rounded-full ${isRunning ? "bg-zinc-700" : "bg-emerald-500 animate-pulse"}`} />
+                                {isRunning ? "Stop to Edit Config" : "Configuration Auto-Saves"}
                             </div>
                         </div>
 
-                        {/* Win Rate Card */}
-                        <div className="bg-zinc-900/40 border border-white/5 rounded-2xl p-5 backdrop-blur-xl group hover:border-indigo-500/30 transition-all">
-                            <div className="flex items-center justify-between mb-3">
-                                <div className="p-2 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-indigo-400">
-                                    <PieChart className="w-4 h-4" />
+                        {/* Right Column: Performance Cards + Logs & Trades */}
+                        <div className="lg:col-span-2 flex flex-col gap-6 h-full">
+                            {/* Performance Cards */}
+                            <div className="grid grid-cols-2 gap-4">
+                                {/* Total Profit Card */}
+                                <div className="bg-zinc-900/40 border border-white/5 rounded-2xl p-5 backdrop-blur-xl group hover:border-emerald-500/30 transition-all">
+                                    <div className="flex items-center justify-between mb-3">
+                                        <div className="p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
+                                            <BarChart3 className="w-4 h-4" />
+                                        </div>
+                                        <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest">Total Profit</span>
+                                    </div>
+                                    <div className={`text-2xl font-black ${(performance?.profit_loss || 0) >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                                        ${(performance?.profit_loss || 0).toFixed(2)}
+                                    </div>
+                                    <div className="mt-2 text-[10px] text-zinc-500 flex items-center gap-1">
+                                        <ArrowUpRight className="w-3 h-3" />
+                                        {performance?.total_trades || 0} trades
+                                    </div>
                                 </div>
-                                <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest">Win Rate</span>
-                            </div>
-                            <div className="text-2xl font-black text-indigo-400">
-                                {(performance?.win_rate || 0).toFixed(1)}%
-                            </div>
-                            <div className="mt-2 text-[10px] text-zinc-500">
-                                Consensus Alpha
-                            </div>
-                        </div>
-                    </div>
 
-                    {/* Live Logs */}
-                    <div className={`flex-1 bg-black border border-zinc-800 rounded-3xl shadow-2xl overflow-hidden flex flex-col transition-all duration-500 ease-in-out ${logsCollapsed ? "min-h-[64px] h-[64px] flex-none" : "min-h-[600px]"}`}>
-                        <div
-                            className="flex items-center justify-between px-6 py-4 bg-zinc-900/50 border-b border-zinc-800 cursor-pointer hover:bg-zinc-900/70 transition-colors"
-                            onClick={() => setLogsCollapsed(!logsCollapsed)}
-                        >
-                            <div className="flex items-center gap-3">
-                                <Terminal className="w-5 h-5 text-emerald-400" />
-                                <h2 className="text-sm font-bold tracking-widest text-zinc-300">SYSTEM LOGS</h2>
-                                {logsCollapsed && (
-                                    <span className="text-[10px] text-zinc-500 font-mono animate-pulse">
-                                        {status?.current_activity || "IDLE"}
-                                    </span>
+                                {/* Win Rate Card */}
+                                <div className="bg-zinc-900/40 border border-white/5 rounded-2xl p-5 backdrop-blur-xl group hover:border-indigo-500/30 transition-all">
+                                    <div className="flex items-center justify-between mb-3">
+                                        <div className="p-2 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-indigo-400">
+                                            <PieChart className="w-4 h-4" />
+                                        </div>
+                                        <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest">Win Rate</span>
+                                    </div>
+                                    <div className="text-2xl font-black text-indigo-400">
+                                        {(performance?.win_rate || 0).toFixed(1)}%
+                                    </div>
+                                    <div className="mt-2 text-[10px] text-zinc-500">
+                                        Consensus Alpha
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Live Logs */}
+                            <div className={`flex-1 bg-black border border-zinc-800 rounded-3xl shadow-2xl overflow-hidden flex flex-col transition-all duration-500 ease-in-out ${logsCollapsed ? "min-h-[64px] h-[64px] flex-none" : "min-h-[600px]"}`}>
+                                <div
+                                    className="flex items-center justify-between px-6 py-4 bg-zinc-900/50 border-b border-zinc-800 cursor-pointer hover:bg-zinc-900/70 transition-colors"
+                                    onClick={() => setLogsCollapsed(!logsCollapsed)}
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <Terminal className="w-5 h-5 text-emerald-400" />
+                                        <h2 className="text-sm font-bold tracking-widest text-zinc-300">SYSTEM LOGS</h2>
+                                        {logsCollapsed && (
+                                            <span className="text-[10px] text-zinc-500 font-mono animate-pulse">
+                                                {status?.current_activity || "IDLE"}
+                                            </span>
+                                        )}
+                                    </div>
+                                    <div className="flex items-center gap-4">
+                                        <div className="flex gap-2 items-center" onClick={(e) => e.stopPropagation()}>
+                                            <button
+                                                onClick={handleCopyLogs}
+                                                className={`p-1.5 rounded-lg transition-all ${copyingLogs ? 'bg-emerald-500/20 text-emerald-400' : 'hover:bg-white/10 text-zinc-500'}`}
+                                                title="Copy all logs"
+                                            >
+                                                {copyingLogs ? <CheckCheck className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                                            </button>
+
+                                            <button
+                                                onClick={handleClearLogs}
+                                                className="p-1.5 rounded-lg transition-all hover:bg-red-500/20 text-zinc-500 hover:text-red-400"
+                                                title="Clear logs"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
+
+                                            <div className="w-[1px] h-4 bg-zinc-800 mx-1" />
+
+                                            {(['ALL', 'ACCEPTED', 'REJECTED', 'ERROR'] as const).map(f => (
+                                                <button
+                                                    key={f}
+                                                    onClick={() => setLogFilter(f)}
+                                                    className={`px-3 py-1 rounded-full text-[10px] font-bold transition-all ${logFilter === f
+                                                        ? 'bg-white text-black shadow-lg shadow-white/10'
+                                                        : 'bg-zinc-800 text-zinc-500 hover:bg-zinc-700'
+                                                        }`}
+                                                >
+                                                    {f}
+                                                </button>
+                                            ))}
+                                        </div>
+                                        <div className="p-1 hover:bg-white/10 rounded-lg transition-colors">
+                                            {logsCollapsed ? <ChevronDown className="w-5 h-5 text-zinc-500" /> : <ChevronUp className="w-5 h-5 text-zinc-500" />}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {!logsCollapsed && (
+                                    <>
+                                        {/* Threshold Dashboard */}
+                                        <div className="px-6 py-3 border-b border-zinc-800 bg-black/40 flex items-center justify-between gap-4 overflow-x-auto animate-in slide-in-from-top-2 duration-300">
+                                            {Object.entries(thresholdStats).sort((a, b) => parseFloat(a[0]) - parseFloat(b[0])).map(([thresh, count]) => (
+                                                <div key={thresh} className="flex flex-col items-center min-w-[3rem]">
+                                                    <span className="text-[9px] font-black text-zinc-600 uppercase">TH {thresh}</span>
+                                                    <span className={`text-xs font-mono font-bold ${count > 0 ? 'text-indigo-400' : 'text-zinc-700'}`}>
+                                                        {count}
+                                                    </span>
+                                                </div>
+                                            ))}
+                                        </div>
+
+                                        <div className="flex-1 p-6 overflow-y-auto font-mono text-xs space-y-1.5 custom-scrollbar max-h-[1200px] animate-in fade-in duration-500">
+                                            {status?.logs && status.logs.length > 0 ? (
+                                                status?.logs
+                                                    .filter(log => {
+                                                        if (logFilter === 'ALL') return true;
+                                                        if (logFilter === 'ACCEPTED') return log.includes("ACCEPTED") || log.includes("BUY");
+                                                        if (logFilter === 'REJECTED') return log.includes("REJECTED");
+                                                        if (logFilter === 'ERROR') return log.includes("ERROR") || log.includes("Exception");
+                                                        return true;
+                                                    })
+                                                    .map((log, i) => {
+                                                        const parts = log.split("]");
+                                                        const header = parts.slice(0, 2).join("]") + (parts.length > 1 ? "]" : "");
+                                                        const message = parts.slice(2).join("]");
+                                                        return (
+                                                            <div key={i} className={`break-all border-l-2 pl-3 py-0.5 ${log.includes("BUY") ? "border-emerald-500 text-emerald-400 bg-emerald-500/5" :
+                                                                log.includes("ERROR") || log.includes("DATA ERROR") ? "border-red-500 text-red-500 bg-red-500/5" :
+                                                                    log.includes("SIGNAL") ? "border-indigo-500 text-indigo-300" :
+                                                                        log.includes("DEBUG") ? "border-zinc-700 text-zinc-500 text-[10px]" :
+                                                                            "border-zinc-800 text-zinc-400"
+                                                                }`}>
+                                                                <span className="opacity-50 mr-2 font-bold">{header}</span>
+                                                                {message}
+                                                            </div>
+                                                        );
+                                                    })
+                                            ) : (
+                                                <div className="text-zinc-700 italic flex items-center justify-center h-full">Waiting for data stream...</div>
+                                            )}
+                                            <div ref={logsEndRef} />
+                                        </div>
+                                    </>
                                 )}
                             </div>
-                            <div className="flex items-center gap-4">
-                                <div className="flex gap-2 items-center" onClick={(e) => e.stopPropagation()}>
-                                    <button
-                                        onClick={handleCopyLogs}
-                                        className={`p-1.5 rounded-lg transition-all ${copyingLogs ? 'bg-emerald-500/20 text-emerald-400' : 'hover:bg-white/10 text-zinc-500'}`}
-                                        title="Copy all logs"
-                                    >
-                                        {copyingLogs ? <CheckCheck className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                                    </button>
 
-                                    <button
-                                        onClick={handleClearLogs}
-                                        className="p-1.5 rounded-lg transition-all hover:bg-red-500/20 text-zinc-500 hover:text-red-400"
-                                        title="Clear logs"
-                                    >
-                                        <Trash2 className="w-4 h-4" />
-                                    </button>
-
-                                    <div className="w-[1px] h-4 bg-zinc-800 mx-1" />
-
-                                    {(['ALL', 'ACCEPTED', 'REJECTED', 'ERROR'] as const).map(f => (
-                                        <button
-                                            key={f}
-                                            onClick={() => setLogFilter(f)}
-                                            className={`px-3 py-1 rounded-full text-[10px] font-bold transition-all ${logFilter === f
-                                                ? 'bg-white text-black shadow-lg shadow-white/10'
-                                                : 'bg-zinc-800 text-zinc-500 hover:bg-zinc-700'
-                                                }`}
-                                        >
-                                            {f}
-                                        </button>
-                                    ))}
+                            {/* ACTIVE CHARTS SECTION */}
+                            {positionsBySymbol.size > 0 && (
+                                <div className="space-y-4 animate-in fade-in slide-in-from-top-4 duration-700">
+                                    <div className="flex items-center justify-between px-2">
+                                        <div className="flex items-center gap-3">
+                                            <Activity className="w-5 h-5 text-indigo-400" />
+                                            <h2 className="text-[10px] font-black tracking-[0.2em] text-zinc-400 uppercase">Active Position Monitors</h2>
+                                        </div>
+                                        <div className="px-3 py-1 bg-indigo-500/10 border border-indigo-500/20 rounded-full text-[9px] font-black text-indigo-400 uppercase tracking-widest">
+                                            {positionsBySymbol.size} Active
+                                        </div>
+                                    </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-4">
+                                        {Array.from(positionsBySymbol.values()).map((pos) => (
+                                            <LiveCandleChart
+                                                key={pos.symbol}
+                                                symbol={pos.symbol}
+                                                botId={selectedBotId}
+                                                height={350}
+                                                showControls={true}
+                                                autoRefresh={true}
+                                                paused={!!selectedChartSymbol}
+                                            />
+                                        ))}
+                                    </div>
                                 </div>
-                                <div className="p-1 hover:bg-white/10 rounded-lg transition-colors">
-                                    {logsCollapsed ? <ChevronDown className="w-5 h-5 text-zinc-500" /> : <ChevronUp className="w-5 h-5 text-zinc-500" />}
+                            )}
+
+                            {/* Recent Executions Section - Twin Tables */}
+                            <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+                                {/* BUY SIGNALS & ORDERS */}
+                                <div className="bg-black/80 border border-zinc-800 rounded-3xl p-1 shadow-2xl flex flex-col min-h-[400px]">
+                                    <div className="flex items-center justify-between px-6 py-4 bg-zinc-900/50 border-b border-zinc-800">
+                                        <div className="flex items-center gap-3">
+                                            <ArrowUpRight className="w-5 h-5 text-emerald-400" />
+                                            <h2 className="text-[10px] font-black tracking-[0.2em] text-zinc-400">BUY SIGNALS & ORDERS</h2>
+                                        </div>
+                                    </div>
+                                    <div className="flex-1 overflow-x-auto">
+                                        <table className="w-full text-[11px] text-left border-collapse">
+                                            <thead className="bg-zinc-900/50 text-[10px] font-black text-zinc-500 uppercase tracking-wider border-b border-zinc-800">
+                                                <tr>
+                                                    <th className="px-4 py-3">Time</th>
+                                                    <th className="px-4 py-3">Symbol</th>
+                                                    <th className="px-4 py-3">Price</th>
+                                                    <th className="px-4 py-3">Total P/L ($)</th>
+                                                    <th className="px-4 py-3">Status</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-white/5 font-mono">
+                                                {(() => {
+                                                    // Prioritize Supabase performance trades, fallback to live status trades
+                                                    const botTrades = performance?.trades || status?.trades || [];
+
+                                                    // Convert Alpaca orders to Trade format for merging
+                                                    const alpacaBuyOrders: Trade[] = alpacaOrders
+                                                        .filter(o => o.side === 'buy')
+                                                        .map(o => ({
+                                                            timestamp: o.filled_at || o.submitted_at || o.created_at,
+                                                            symbol: o.symbol,
+                                                            action: o.status === 'filled' ? 'BUY' : `ALPACA:${o.status.toUpperCase()}`,
+                                                            price: parseFloat(o.filled_avg_price || o.limit_price || '0'),
+                                                            amount: parseFloat(o.qty),
+                                                            order_id: o.id,
+                                                            status: o.status
+                                                        }));
+
+                                                    // Merge and deduplicate
+                                                    const allTrades = [...botTrades, ...alpacaBuyOrders];
+                                                    const buyTrades = allTrades.filter(t => t.action === 'BUY' || t.action === 'SIGNAL' || t.action.startsWith('ALPACA:'));
+
+                                                    console.log(`[Dashboard] Buy Table - Displaying from ${performance?.trades ? 'Performance (Supabase)' : 'Status (Memory)'}`);
+
+                                                    // Deduplicate: keep only the latest trade per symbol
+                                                    const seen = new Set<string>();
+                                                    const deduped = buyTrades.slice().reverse().filter(t => {
+                                                        const key = normalizePosKey(t.symbol);
+                                                        if (seen.has(key)) return false;
+                                                        seen.add(key);
+                                                        return true;
+                                                    });
+                                                    if (deduped.length === 0) {
+                                                        return <tr><td colSpan={4} className="px-4 py-8 text-center text-zinc-700 italic">No buy signals recorded</td></tr>;
+                                                    }
+                                                    return deduped.slice(0, 30).map((trade, i) => {
+                                                        const isActive = positionsBySymbol.has(normalizePosKey(trade.symbol));
+                                                        return (
+                                                            <tr key={i} className={`hover:bg-white/5 transition-colors group ${isActive ? 'bg-emerald-500/5' : ''}`}>
+                                                                <td className="px-4 py-3 text-zinc-600 whitespace-nowrap text-[10px]">
+                                                                    {new Date(trade.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                                </td>
+                                                                <td className={`px-4 py-3 font-bold transition-all ${isActive ? 'text-emerald-400 drop-shadow-[0_0_8px_rgba(52,211,153,0.3)]' : 'text-zinc-300'}`}>
+                                                                    {trade.symbol}
+                                                                </td>
+                                                                <td className="px-4 py-3 text-zinc-400">${(trade.price || 0).toFixed(2)}</td>
+                                                                <td className="px-4 py-3">
+                                                                    {(() => {
+                                                                        const pos = positionsBySymbol.get(normalizePosKey(trade.symbol));
+                                                                        const pl = pos ? parseFloat(pos.unrealized_pl || "0") : (trade.pnl || 0);
+                                                                        if (pl === 0 && !isActive) return <span className="text-zinc-600">--</span>;
+                                                                        return (
+                                                                            <span className={`font-mono font-bold ${pl >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                                                                                {pl >= 0 ? '+' : ''}${pl.toFixed(2)}
+                                                                            </span>
+                                                                        );
+                                                                    })()}
+                                                                </td>
+                                                                <td className="px-4 py-3">
+                                                                    <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase ${trade.action === 'BUY' ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/10' :
+                                                                        trade.action.startsWith('ALPACA:') ? 'bg-orange-500/10 text-orange-400 border border-orange-500/10' :
+                                                                            'bg-indigo-500/10 text-indigo-400 border border-indigo-500/10'
+                                                                        }`}>
+                                                                        {trade.action}
+                                                                    </span>
+                                                                </td>
+                                                            </tr>
+                                                        );
+                                                    });
+                                                })()}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+
+                                {/* SELL EXECUTIONS & PROFITS */}
+                                <div className="bg-black/80 border border-zinc-800 rounded-3xl p-1 shadow-2xl flex flex-col min-h-[400px]">
+                                    <div className="flex items-center justify-between px-6 py-4 bg-zinc-900/50 border-b border-zinc-800">
+                                        <div className="flex items-center gap-3">
+                                            <ArrowDownRight className="w-5 h-5 text-red-400" />
+                                            <h2 className="text-[10px] font-black tracking-[0.2em] text-zinc-400">SELL EXECUTIONS & PROFITS</h2>
+                                        </div>
+                                    </div>
+                                    <div className="flex-1 overflow-x-auto">
+                                        <table className="w-full text-[11px] text-left border-collapse">
+                                            <thead className="bg-zinc-900/50 text-[10px] font-black text-zinc-500 uppercase tracking-wider border-b border-zinc-800">
+                                                <tr>
+                                                    <th className="px-4 py-3">Time</th>
+                                                    <th className="px-4 py-3">Symbol</th>
+                                                    <th className="px-4 py-3 text-right">Profit</th>
+                                                    <th className="px-4 py-3 text-right">Price</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-white/5 font-mono">
+                                                {(() => {
+                                                    const allTrades = performance?.trades || status?.trades || [];
+                                                    const sellTrades = allTrades.filter(t => t.action === 'SELL');
+
+                                                    console.log(`[Dashboard] Sell Table - Displaying from ${performance?.trades ? 'Performance (Supabase)' : 'Status (Memory)'}`);
+
+                                                    if (sellTrades.length === 0) {
+                                                        return <tr><td colSpan={4} className="px-4 py-8 text-center text-zinc-700 italic">No sell executions yet</td></tr>;
+                                                    }
+
+                                                    return sellTrades.slice().reverse().slice(0, 30).map((trade, i) => {
+                                                        const pnl = computeSellPnl(trade);
+                                                        const price = toNum(trade.price);
+                                                        const isActive = positionsBySymbol.has(normalizePosKey(trade.symbol));
+                                                        return (
+                                                            <tr key={i} className={`hover:bg-white/5 transition-colors group ${isActive ? 'bg-indigo-500/5' : ''}`}>
+                                                                <td className="px-4 py-3 text-zinc-600 whitespace-nowrap text-[10px]">
+                                                                    {new Date(trade.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                                </td>
+                                                                <td
+                                                                    className={`px-4 py-3 font-bold transition-all cursor-pointer hover:scale-105 ${isActive ? 'text-indigo-400 drop-shadow-[0_0_8px_rgba(129,140,248,0.3)]' : 'text-zinc-300 hover:text-indigo-400'}`}
+                                                                    onClick={() => {
+                                                                        // Set the chart symbol to show trade details
+                                                                        setSelectedChartSymbol(trade.symbol);
+                                                                        // Scroll to chart section
+                                                                        document.getElementById('live-chart-section')?.scrollIntoView({ behavior: 'smooth' });
+                                                                    }}
+                                                                    title={`Click to view ${trade.symbol} trade chart`}
+                                                                >
+                                                                    {trade.symbol}
+                                                                </td>
+                                                                <td className={`px-4 py-3 text-right font-black ${(pnl || 0) >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                                                                    {pnl === null ? <span className="text-zinc-600">--</span> : `${pnl >= 0 ? '+' : ''}${pnl.toFixed(2)}`}
+                                                                </td>
+                                                                <td className="px-4 py-3 text-right text-zinc-500">
+                                                                    {price === null || Math.abs(price) < 1e-12 ? <span className="text-zinc-600">--</span> : `$${price.toFixed(2)}`}
+                                                                </td>
+                                                            </tr>
+                                                        );
+                                                    });
+                                                })()}
+                                            </tbody>
+                                        </table>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
 
-                        {!logsCollapsed && (
-                            <>
-                                {/* Threshold Dashboard */}
-                                <div className="px-6 py-3 border-b border-zinc-800 bg-black/40 flex items-center justify-between gap-4 overflow-x-auto animate-in slide-in-from-top-2 duration-300">
-                                    {Object.entries(thresholdStats).sort((a, b) => parseFloat(a[0]) - parseFloat(b[0])).map(([thresh, count]) => (
-                                        <div key={thresh} className="flex flex-col items-center min-w-[3rem]">
-                                            <span className="text-[9px] font-black text-zinc-600 uppercase">TH {thresh}</span>
-                                            <span className={`text-xs font-mono font-bold ${count > 0 ? 'text-indigo-400' : 'text-zinc-700'}`}>
-                                                {count}
-                                            </span>
+                            {/* Market Data Stream - moved below BUY/SELL tables */}
+                            <div className={`bg-black/80 border border-zinc-800 rounded-3xl shadow-2xl flex flex-col transition-all duration-500 ease-in-out relative group/stream ${marketDataCollapsed ? "min-h-[64px] h-[64px]" : "min-h-[250px]"}`}>
+                                <div
+                                    className="flex items-center justify-between px-6 py-4 bg-zinc-900/30 border-b border-zinc-800 cursor-pointer hover:bg-zinc-900/50 transition-colors"
+                                    onClick={() => setMarketDataCollapsed(!marketDataCollapsed)}
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <Globe className="w-5 h-5 text-indigo-400" />
+                                        <h2 className="text-sm font-bold tracking-widest text-zinc-300">MARKET DATA STREAM</h2>
+                                    </div>
+                                    <div className="flex items-center gap-4">
+                                        <div className="text-[10px] font-black text-emerald-500/70 uppercase flex items-center gap-1.5 backdrop-blur-md bg-emerald-500/5 px-3 py-1 rounded-full border border-emerald-500/10">
+                                            <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
+                                            Live Processing
                                         </div>
-                                    ))}
+                                        {marketDataCollapsed ? <ChevronDown className="w-5 h-5 text-zinc-500" /> : <ChevronUp className="w-5 h-5 text-zinc-500" />}
+                                    </div>
                                 </div>
 
-                                <div className="flex-1 p-6 overflow-y-auto font-mono text-xs space-y-1.5 custom-scrollbar max-h-[1200px] animate-in fade-in duration-500">
-                                    {status?.logs && status.logs.length > 0 ? (
-                                        status?.logs
-                                            .filter(log => {
-                                                if (logFilter === 'ALL') return true;
-                                                if (logFilter === 'ACCEPTED') return log.includes("ACCEPTED") || log.includes("BUY");
-                                                if (logFilter === 'REJECTED') return log.includes("REJECTED");
-                                                if (logFilter === 'ERROR') return log.includes("ERROR") || log.includes("Exception");
-                                                return true;
-                                            })
-                                            .map((log, i) => {
-                                                const parts = log.split("]");
-                                                const header = parts.slice(0, 2).join("]") + (parts.length > 1 ? "]" : "");
-                                                const message = parts.slice(2).join("]");
-                                                return (
-                                                    <div key={i} className={`break-all border-l-2 pl-3 py-0.5 ${log.includes("BUY") ? "border-emerald-500 text-emerald-400 bg-emerald-500/5" :
-                                                        log.includes("ERROR") || log.includes("DATA ERROR") ? "border-red-500 text-red-500 bg-red-500/5" :
-                                                            log.includes("SIGNAL") ? "border-indigo-500 text-indigo-300" :
-                                                                log.includes("DEBUG") ? "border-zinc-700 text-zinc-500 text-[10px]" :
-                                                                    "border-zinc-800 text-zinc-400"
-                                                        }`}>
-                                                        <span className="opacity-50 mr-2 font-bold">{header}</span>
-                                                        {message}
-                                                    </div>
-                                                );
-                                            })
-                                    ) : (
-                                        <div className="text-zinc-700 italic flex items-center justify-center h-full">Waiting for data stream...</div>
-                                    )}
-                                    <div ref={logsEndRef} />
+                                {!marketDataCollapsed && (
+                                    <div className="flex-1 overflow-x-auto animate-in slide-in-from-top-2 duration-500">
+                                        <table className="w-full text-[11px] text-left border-collapse">
+                                            <thead className="bg-zinc-900/50 text-[10px] font-black text-zinc-500 uppercase tracking-wider border-b border-zinc-800">
+                                                <tr>
+                                                    <th className="px-6 py-3">Symbol</th>
+                                                    <th className="px-6 py-3">Source</th>
+                                                    <th className="px-6 py-3">Bars</th>
+                                                    <th className="px-6 py-3">Volume</th>
+                                                    <th className="px-6 py-3">Status</th>
+                                                    <th className="px-6 py-3 text-right">Last Update</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-white/5 font-mono">
+                                                {status?.data_stream && Object.keys(status.data_stream).length > 0 ? (
+                                                    Object.entries(status?.data_stream || {}).map(([sym, data]: [string, any]) => (
+                                                        <tr key={sym} className="hover:bg-indigo-500/5 transition-colors font-mono">
+                                                            <td className="px-6 py-3 font-bold text-zinc-200">{sym}</td>
+                                                            <td className="px-6 py-3 text-zinc-500">{data.source}</td>
+                                                            <td className="px-6 py-3">
+                                                                <span className={data.count > 0 ? "text-emerald-400 font-bold" : "text-red-400 font-bold"}>{data.count}</span>
+                                                            </td>
+                                                            <td className="px-6 py-3">
+                                                                {data.has_volume ? (
+                                                                    <span className="text-emerald-500 flex items-center gap-1">
+                                                                        <Check className="w-3 h-3" /> YES
+                                                                    </span>
+                                                                ) : (
+                                                                    <span className="text-red-500 flex items-center gap-1">
+                                                                        <X className="w-3 h-3" /> NO
+                                                                    </span>
+                                                                )}
+                                                            </td>
+                                                            <td className="px-6 py-3">
+                                                                <span className={`px-2 py-0.5 rounded-full text-[9px] font-black ${data.status === 'OK' ? 'bg-emerald-500/10 text-emerald-500' :
+                                                                    data.status === 'EMPTY' ? 'bg-amber-500/10 text-amber-500' : 'bg-red-500/10 text-red-500'
+                                                                    }`}>
+                                                                    {data.status}
+                                                                </span>
+                                                            </td>
+                                                            <td className="px-6 py-3 text-right text-zinc-600">
+                                                                {data.timestamp ? new Date(data.timestamp).toLocaleTimeString() : 'N/A'}
+                                                            </td>
+                                                        </tr>
+                                                    ))
+                                                ) : (
+                                                    <tr>
+                                                        <td colSpan={6} className="px-6 py-8 text-center text-zinc-700 italic">No data stream initialized</td>
+                                                    </tr>
+                                                )}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                ) : (
+                    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        {performanceLoading && !performance ? (
+                            <div className="flex flex-col items-center justify-center h-96 space-y-4">
+                                <RefreshCw className="w-10 h-10 text-indigo-500 animate-spin" />
+                                <p className="text-zinc-500 font-mono text-sm tracking-widest">ANALYZING MARKET DATA...</p>
+                            </div>
+                        ) : (
+                            <>
+                                {/* Summary Cards */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                                    <div className="bg-zinc-900/40 border border-white/5 rounded-3xl p-6 backdrop-blur-xl group hover:border-indigo-500/30 transition-all">
+                                        <div className="flex items-center justify-between mb-4">
+                                            <div className="p-2.5 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400">
+                                                <Activity className="w-5 h-5" />
+                                            </div>
+                                            <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Total Trades</span>
+                                        </div>
+                                        <div className="text-3xl font-black text-white">{performance?.total_trades || 0}</div>
+                                        <div className="mt-2 text-xs text-zinc-500">System executions</div>
+                                    </div>
+
+                                    <div className="bg-zinc-900/40 border border-white/5 rounded-3xl p-6 backdrop-blur-xl group hover:border-emerald-500/30 transition-all">
+                                        <div className="flex items-center justify-between mb-4">
+                                            <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
+                                                <BarChart3 className="w-5 h-5" />
+                                            </div>
+                                            <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Win Rate</span>
+                                        </div>
+                                        <div className="text-3xl font-black text-emerald-400">{(performance?.win_rate || 0).toFixed(1)}%</div>
+                                        <div className="mt-2 flex items-center gap-1 text-xs text-zinc-500">
+                                            <ArrowUpRight className="w-3 h-3" /> Consensus Alpha
+                                        </div>
+                                    </div>
+
+                                    <div className="bg-zinc-900/40 border border-white/5 rounded-3xl p-6 backdrop-blur-xl group hover:border-indigo-500/30 transition-all">
+                                        <div className="flex items-center justify-between mb-4">
+                                            <div className="p-2.5 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400">
+                                                <PieChart className="w-5 h-5" />
+                                            </div>
+                                            <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Total P/L</span>
+                                        </div>
+                                        <div className={`text-3xl font-black ${(performance?.profit_loss || 0) >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                                            ${(performance?.profit_loss || 0).toFixed(2)}
+                                        </div>
+                                        <div className={`mt-2 text-xs font-bold ${(performance?.profit_loss_pct || 0) >= 0 ? "text-emerald-500/70" : "text-red-500/70"}`}>
+                                            {(performance?.profit_loss_pct || 0).toFixed(2)}% ROI
+                                        </div>
+                                    </div>
+
+                                    <div className="bg-zinc-900/40 border border-white/5 rounded-3xl p-6 backdrop-blur-xl group hover:border-indigo-500/30 transition-all">
+                                        <div className="flex items-center justify-between mb-4">
+                                            <div className="p-2.5 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400">
+                                                <Activity className="w-5 h-5" />
+                                            </div>
+                                            <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Avg Profit</span>
+                                        </div>
+                                        <div className={`text-3xl font-black ${(performance?.avg_trade_profit || 0) >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                                            ${(performance?.avg_trade_profit || 0).toFixed(2)}
+                                        </div>
+                                        <div className="mt-2 text-xs text-zinc-500">Per trade average</div>
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                                    {/* Exit Reasons */}
+                                    <div className="bg-zinc-900/40 border border-white/5 rounded-3xl p-6 backdrop-blur-xl">
+                                        <div className="flex items-center gap-3 mb-6">
+                                            <PieChart className="w-5 h-5 text-indigo-400" />
+                                            <h2 className="text-lg font-bold text-white tracking-tight">EXIT REASONS</h2>
+                                        </div>
+                                        <div className="space-y-4">
+                                            {performance?.exit_reasons && Object.entries(performance!.exit_reasons).length > 0 ? (
+                                                Object.entries(performance!.exit_reasons).map(([reason, count]) => {
+                                                    const total = Object.values(performance!.exit_reasons).reduce((a, b) => a + b, 0);
+                                                    const pct = (count / total) * 100;
+                                                    return (
+                                                        <div key={reason} className="space-y-1.5">
+                                                            <div className="flex justify-between text-xs font-bold uppercase tracking-wider">
+                                                                <span className="text-zinc-400">{reason.replace(/_/g, ' ')}</span>
+                                                                <span className="text-white">{count} ({pct.toFixed(0)}%)</span>
+                                                            </div>
+                                                            <div className="h-1.5 bg-black/40 rounded-full overflow-hidden border border-white/5">
+                                                                <div
+                                                                    className={`h-full rounded-full transition-all duration-1000 ${reason.includes('target') ? 'bg-emerald-500' :
+                                                                        reason.includes('stop') ? 'bg-red-500' :
+                                                                            'bg-indigo-500'
+                                                                        }`}
+                                                                    style={{ width: `${pct}%` }}
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })
+                                            ) : (
+                                                <div className="text-center py-12 text-zinc-600 italic">No exit data recorded</div>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* Asset Performance */}
+                                    <div className="bg-zinc-900/40 border border-white/5 rounded-3xl p-6 backdrop-blur-xl">
+                                        <div className="flex items-center gap-3 mb-6">
+                                            <BarChart3 className="w-5 h-5 text-emerald-400" />
+                                            <h2 className="text-lg font-bold text-white tracking-tight">ASSET PERFORMANCE</h2>
+                                        </div>
+                                        <div className="overflow-hidden rounded-2xl border border-white/5">
+                                            <table className="w-full text-left text-sm">
+                                                <thead className="bg-black/40 text-[10px] font-black text-zinc-500 uppercase tracking-widest">
+                                                    <tr>
+                                                        <th className="px-4 py-3">Symbol</th>
+                                                        <th className="px-4 py-3 text-center">Trades</th>
+                                                        <th className="px-4 py-3 text-center">Win Rate</th>
+                                                        <th className="px-4 py-3 text-right">Profit ($)</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-white/5 font-mono text-xs">
+                                                    {performance?.symbol_performance && Object.entries(performance!.symbol_performance).length > 0 ? (
+                                                        Object.entries(performance!.symbol_performance)
+                                                            .sort(([, a], [, b]) => b.profit - a.profit)
+                                                            .map(([symbol, stats]) => (
+                                                                <tr key={symbol} className="hover:bg-white/5 transition-colors group">
+                                                                    <td className="px-4 py-3">
+                                                                        <button
+                                                                            onClick={() => setSelectedChartSymbol(symbol)}
+                                                                            className="flex items-center gap-2 font-bold text-zinc-300 hover:text-indigo-400 transition-colors group/btn"
+                                                                        >
+                                                                            {symbol}
+                                                                            <Maximize2 className="w-3 h-3 opacity-0 group-hover/btn:opacity-100" />
+                                                                        </button>
+                                                                    </td>
+                                                                    <td className="px-4 py-3 text-center text-zinc-400">{stats.trades}</td>
+                                                                    <td className="px-4 py-3 text-center">
+                                                                        <span className={(stats.win_rate || 0) >= 50 ? 'text-emerald-400' : 'text-zinc-500'}>
+                                                                            {(stats.win_rate || 0).toFixed(0)}%
+                                                                        </span>
+                                                                    </td>
+                                                                    <td className={`px-4 py-3 text-right font-bold ${(stats.profit || 0) >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                                                                        {(stats.profit || 0) >= 0 ? '+' : ''}{(stats.profit || 0).toFixed(2)}
+                                                                    </td>
+                                                                </tr>
+                                                            ))
+                                                    ) : (
+                                                        <tr>
+                                                            <td colSpan={4} className="px-4 py-12 text-center text-zinc-600 italic">No asset data available</td>
+                                                        </tr>
+                                                    )}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Open Positions */}
+                                <div className="bg-zinc-900/40 border border-white/5 rounded-3xl p-6 backdrop-blur-xl">
+                                    <div className="flex items-center gap-3 mb-6">
+                                        <ArrowUpRight className="w-5 h-5 text-indigo-400" />
+                                        <h2 className="text-lg font-bold text-white tracking-tight">ACTIVE POSITIONS</h2>
+                                    </div>
+                                    <div className="overflow-x-auto rounded-2xl border border-white/5">
+                                        <table className="w-full text-left text-sm">
+                                            <thead className="bg-black/40 text-[10px] font-black text-zinc-500 uppercase tracking-widest">
+                                                <tr>
+                                                    <th className="px-4 py-4">Symbol</th>
+                                                    <th className="px-4 py-4">Status</th>
+                                                    <th className="px-4 py-4 text-center">Entry</th>
+                                                    <th className="px-4 py-4 text-center">Target</th>
+                                                    <th className="px-4 py-4 text-center">Current</th>
+                                                    <th className="px-4 py-4 text-center">Stop</th>
+                                                    <th className="px-4 py-4 text-center">P/L %</th>
+                                                    <th className="px-4 py-4 text-right">P/L $</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-white/5 font-mono text-xs">
+                                                {performance?.open_positions && performance!.open_positions.length > 0 ? (
+                                                    performance!.open_positions.map((pos, i) => (
+                                                        <tr key={i} className="hover:bg-white/5 transition-colors group">
+                                                            <td className="px-4 py-4 font-bold text-white">
+                                                                <button
+                                                                    onClick={() => setSelectedChartSymbol(pos.symbol)}
+                                                                    className="flex items-center gap-2 font-bold text-zinc-300 hover:text-indigo-400 transition-colors group/btn"
+                                                                >
+                                                                    {pos.symbol}
+                                                                    <Maximize2 className="w-3 h-3 opacity-0 group-hover/btn:opacity-100" />
+                                                                </button>
+                                                            </td>
+                                                            <td className="px-4 py-4">
+                                                                <span className="px-2 py-1 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/10 text-[10px] font-black uppercase tracking-tighter">
+                                                                    In Progress
+                                                                </span>
+                                                            </td>
+                                                            <td className="px-4 py-4 text-zinc-400 text-center">${(pos.entry_price || 0).toFixed(4)}</td>
+                                                            <td className="px-4 py-4 text-emerald-400 font-bold text-center">
+                                                                {pos.target_price ? `$${pos.target_price.toFixed(4)}` : '--'}
+                                                            </td>
+                                                            <td className="px-4 py-4 text-white text-center">${(pos.current_price || 0).toFixed(4)}</td>
+                                                            <td className="px-4 py-4 text-red-400 font-bold text-center">
+                                                                {pos.stop_price ? `$${pos.stop_price.toFixed(4)}` : '--'}
+                                                            </td>
+                                                            <td className={`px-4 py-4 text-center font-bold ${(pos.pl_pct || 0) >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                                                                {pos.pl_pct !== undefined ? (pos.pl_pct >= 0 ? '+' : '') + pos.pl_pct.toFixed(2) + '%' : 'N/A'}
+                                                            </td>
+                                                            <td className={`px-4 py-4 text-right font-bold ${(pos.pl_usd || 0) >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                                                                ${(pos.pl_usd || 0).toFixed(2)}
+                                                            </td>
+                                                        </tr>
+                                                    ))
+                                                ) : (
+                                                    <tr>
+                                                        <td colSpan={8} className="px-4 py-12 text-center text-zinc-600 italic font-mono uppercase tracking-[0.2em] text-[10px]">
+                                                            Scan in progress... No active targets locked.
+                                                        </td>
+                                                    </tr>
+                                                )}
+                                            </tbody>
+                                        </table>
+                                    </div>
                                 </div>
                             </>
                         )}
                     </div>
+                )
+            }
 
-                    {/* ACTIVE CHARTS SECTION */}
-                    {positionsBySymbol.size > 0 && (
-                        <div className="space-y-4 animate-in fade-in slide-in-from-top-4 duration-700">
-                            <div className="flex items-center justify-between px-2">
-                                <div className="flex items-center gap-3">
-                                    <Activity className="w-5 h-5 text-indigo-400" />
-                                    <h2 className="text-[10px] font-black tracking-[0.2em] text-zinc-400 uppercase">Active Position Monitors</h2>
-                                </div>
-                                <div className="px-3 py-1 bg-indigo-500/10 border border-indigo-500/20 rounded-full text-[9px] font-black text-indigo-400 uppercase tracking-widest">
-                                    {positionsBySymbol.size} Active
-                                </div>
-                            </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-4">
-                                {Array.from(positionsBySymbol.values()).map((pos) => (
-                                    <LiveCandleChart
-                                        key={pos.symbol}
-                                        symbol={pos.symbol}
-                                        botId={selectedBotId}
-                                        height={350}
-                                        showControls={true}
-                                        autoRefresh={true}
-                                        paused={!!selectedChartSymbol}
-                                    />
-                                ))}
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Recent Executions Section - Twin Tables */}
-                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
-                        {/* BUY SIGNALS & ORDERS */}
-                        <div className="bg-black/80 border border-zinc-800 rounded-3xl p-1 shadow-2xl flex flex-col min-h-[400px]">
-                            <div className="flex items-center justify-between px-6 py-4 bg-zinc-900/50 border-b border-zinc-800">
-                                <div className="flex items-center gap-3">
-                                    <ArrowUpRight className="w-5 h-5 text-emerald-400" />
-                                    <h2 className="text-[10px] font-black tracking-[0.2em] text-zinc-400">BUY SIGNALS & ORDERS</h2>
-                                </div>
-                            </div>
-                            <div className="flex-1 overflow-x-auto">
-                                <table className="w-full text-[11px] text-left border-collapse">
-                                    <thead className="bg-zinc-900/50 text-[10px] font-black text-zinc-500 uppercase tracking-wider border-b border-zinc-800">
-                                        <tr>
-                                            <th className="px-4 py-3">Time</th>
-                                            <th className="px-4 py-3">Symbol</th>
-                                            <th className="px-4 py-3">Price</th>
-                                            <th className="px-4 py-3">Total P/L ($)</th>
-                                            <th className="px-4 py-3">Status</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-white/5 font-mono">
-                                        {(() => {
-                                            // Prioritize Supabase performance trades, fallback to live status trades
-                                            const botTrades = performance?.trades || status?.trades || [];
-
-                                            // Convert Alpaca orders to Trade format for merging
-                                            const alpacaBuyOrders: Trade[] = alpacaOrders
-                                                .filter(o => o.side === 'buy')
-                                                .map(o => ({
-                                                    timestamp: o.filled_at || o.submitted_at || o.created_at,
-                                                    symbol: o.symbol,
-                                                    action: o.status === 'filled' ? 'BUY' : `ALPACA:${o.status.toUpperCase()}`,
-                                                    price: parseFloat(o.filled_avg_price || o.limit_price || '0'),
-                                                    amount: parseFloat(o.qty),
-                                                    order_id: o.id,
-                                                    status: o.status
-                                                }));
-
-                                            // Merge and deduplicate
-                                            const allTrades = [...botTrades, ...alpacaBuyOrders];
-                                            const buyTrades = allTrades.filter(t => t.action === 'BUY' || t.action === 'SIGNAL' || t.action.startsWith('ALPACA:'));
-
-                                            console.log(`[Dashboard] Buy Table - Displaying from ${performance?.trades ? 'Performance (Supabase)' : 'Status (Memory)'}`);
-
-                                            // Deduplicate: keep only the latest trade per symbol
-                                            const seen = new Set<string>();
-                                            const deduped = buyTrades.slice().reverse().filter(t => {
-                                                const key = normalizePosKey(t.symbol);
-                                                if (seen.has(key)) return false;
-                                                seen.add(key);
-                                                return true;
-                                            });
-                                            if (deduped.length === 0) {
-                                                return <tr><td colSpan={4} className="px-4 py-8 text-center text-zinc-700 italic">No buy signals recorded</td></tr>;
-                                            }
-                                            return deduped.slice(0, 30).map((trade, i) => {
-                                                const isActive = positionsBySymbol.has(normalizePosKey(trade.symbol));
-                                                return (
-                                                    <tr key={i} className={`hover:bg-white/5 transition-colors group ${isActive ? 'bg-emerald-500/5' : ''}`}>
-                                                        <td className="px-4 py-3 text-zinc-600 whitespace-nowrap text-[10px]">
-                                                            {new Date(trade.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                                        </td>
-                                                        <td className={`px-4 py-3 font-bold transition-all ${isActive ? 'text-emerald-400 drop-shadow-[0_0_8px_rgba(52,211,153,0.3)]' : 'text-zinc-300'}`}>
-                                                            {trade.symbol}
-                                                        </td>
-                                                        <td className="px-4 py-3 text-zinc-400">${(trade.price || 0).toFixed(2)}</td>
-                                                        <td className="px-4 py-3">
-                                                            {(() => {
-                                                                const pos = positionsBySymbol.get(normalizePosKey(trade.symbol));
-                                                                const pl = pos ? parseFloat(pos.unrealized_pl || "0") : (trade.pnl || 0);
-                                                                if (pl === 0 && !isActive) return <span className="text-zinc-600">--</span>;
-                                                                return (
-                                                                    <span className={`font-mono font-bold ${pl >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                                                                        {pl >= 0 ? '+' : ''}${pl.toFixed(2)}
-                                                                    </span>
-                                                                );
-                                                            })()}
-                                                        </td>
-                                                        <td className="px-4 py-3">
-                                                            <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase ${trade.action === 'BUY' ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/10' :
-                                                                trade.action.startsWith('ALPACA:') ? 'bg-orange-500/10 text-orange-400 border border-orange-500/10' :
-                                                                    'bg-indigo-500/10 text-indigo-400 border border-indigo-500/10'
-                                                                }`}>
-                                                                {trade.action}
-                                                            </span>
-                                                        </td>
-                                                    </tr>
-                                                );
-                                            });
-                                        })()}
-                                    </tbody>
-                                </table>
-                            </div>
+            {/* Coin Selection Dialog */}
+            <Dialog.Root open={coinDialogOpen} onOpenChange={setCoinDialogOpen}>
+                <Dialog.Portal>
+                    <Dialog.Overlay className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 transition-opacity" />
+                    <Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-lg bg-zinc-900 border border-zinc-800 rounded-3xl p-6 z-50 shadow-2xl">
+                        <div className="flex items-center justify-between mb-6">
+                            <Dialog.Title className="text-xl font-bold text-white flex items-center gap-2">
+                                <Coins className="w-6 h-6 text-indigo-500" />
+                                Manage Assets
+                            </Dialog.Title>
+                            <Dialog.Close className="p-2 rounded-full hover:bg-white/10 text-zinc-400 hover:text-white transition-colors">
+                                <X className="w-5 h-5" />
+                            </Dialog.Close>
                         </div>
 
-                        {/* SELL EXECUTIONS & PROFITS */}
-                        <div className="bg-black/80 border border-zinc-800 rounded-3xl p-1 shadow-2xl flex flex-col min-h-[400px]">
-                            <div className="flex items-center justify-between px-6 py-4 bg-zinc-900/50 border-b border-zinc-800">
-                                <div className="flex items-center gap-3">
-                                    <ArrowDownRight className="w-5 h-5 text-red-400" />
-                                    <h2 className="text-[10px] font-black tracking-[0.2em] text-zinc-400">SELL EXECUTIONS & PROFITS</h2>
-                                </div>
-                            </div>
-                            <div className="flex-1 overflow-x-auto">
-                                <table className="w-full text-[11px] text-left border-collapse">
-                                    <thead className="bg-zinc-900/50 text-[10px] font-black text-zinc-500 uppercase tracking-wider border-b border-zinc-800">
-                                        <tr>
-                                            <th className="px-4 py-3">Time</th>
-                                            <th className="px-4 py-3">Symbol</th>
-                                            <th className="px-4 py-3 text-right">Profit</th>
-                                            <th className="px-4 py-3 text-right">Price</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-white/5 font-mono">
-                                        {(() => {
-                                            const allTrades = performance?.trades || status?.trades || [];
-                                            const sellTrades = allTrades.filter(t => t.action === 'SELL');
-
-                                            console.log(`[Dashboard] Sell Table - Displaying from ${performance?.trades ? 'Performance (Supabase)' : 'Status (Memory)'}`);
-
-                                            if (sellTrades.length === 0) {
-                                                return <tr><td colSpan={4} className="px-4 py-8 text-center text-zinc-700 italic">No sell executions yet</td></tr>;
-                                            }
-
-                                            return sellTrades.slice().reverse().slice(0, 30).map((trade, i) => {
-                                                const pnl = trade.pnl || 0;
-                                                const isActive = positionsBySymbol.has(normalizePosKey(trade.symbol));
-                                                return (
-                                                    <tr key={i} className={`hover:bg-white/5 transition-colors group ${isActive ? 'bg-indigo-500/5' : ''}`}>
-                                                        <td className="px-4 py-3 text-zinc-600 whitespace-nowrap text-[10px]">
-                                                            {new Date(trade.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                                        </td>
-                                                        <td
-                                                            className={`px-4 py-3 font-bold transition-all cursor-pointer hover:scale-105 ${isActive ? 'text-indigo-400 drop-shadow-[0_0_8px_rgba(129,140,248,0.3)]' : 'text-zinc-300 hover:text-indigo-400'}`}
-                                                            onClick={() => {
-                                                                // Set the chart symbol to show trade details
-                                                                setSelectedChartSymbol(trade.symbol);
-                                                                // Scroll to chart section
-                                                                document.getElementById('live-chart-section')?.scrollIntoView({ behavior: 'smooth' });
-                                                            }}
-                                                            title={`Click to view ${trade.symbol} trade chart`}
-                                                        >
-                                                            {trade.symbol}
-                                                        </td>
-                                                        <td className={`px-4 py-3 text-right font-black ${pnl >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                                                            {pnl >= 0 ? '+' : ''}{pnl.toFixed(2)}
-                                                        </td>
-                                                        <td className="px-4 py-3 text-right text-zinc-500">${(trade.price || 0).toFixed(2)}</td>
-                                                    </tr>
-                                                );
-                                            });
-                                        })()}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Market Data Stream - moved below BUY/SELL tables */}
-                    <div className={`bg-black/80 border border-zinc-800 rounded-3xl shadow-2xl flex flex-col transition-all duration-500 ease-in-out relative group/stream ${marketDataCollapsed ? "min-h-[64px] h-[64px]" : "min-h-[250px]"}`}>
-                        <div
-                            className="flex items-center justify-between px-6 py-4 bg-zinc-900/30 border-b border-zinc-800 cursor-pointer hover:bg-zinc-900/50 transition-colors"
-                            onClick={() => setMarketDataCollapsed(!marketDataCollapsed)}
-                        >
-                            <div className="flex items-center gap-3">
-                                <Globe className="w-5 h-5 text-indigo-400" />
-                                <h2 className="text-sm font-bold tracking-widest text-zinc-300">MARKET DATA STREAM</h2>
-                            </div>
-                            <div className="flex items-center gap-4">
-                                <div className="text-[10px] font-black text-emerald-500/70 uppercase flex items-center gap-1.5 backdrop-blur-md bg-emerald-500/5 px-3 py-1 rounded-full border border-emerald-500/10">
-                                    <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
-                                    Live Processing
-                                </div>
-                                {marketDataCollapsed ? <ChevronDown className="w-5 h-5 text-zinc-500" /> : <ChevronUp className="w-5 h-5 text-zinc-500" />}
-                            </div>
+                        <div className="relative mb-4">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+                            <input
+                                type="text"
+                                placeholder="Search coins..."
+                                value={coinSearch}
+                                onChange={(e) => setCoinSearch(e.target.value)}
+                                className="w-full bg-black/50 border border-zinc-800 rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:border-indigo-500 transition-colors"
+                            />
                         </div>
 
-                        {!marketDataCollapsed && (
-                            <div className="flex-1 overflow-x-auto animate-in slide-in-from-top-2 duration-500">
-                                <table className="w-full text-[11px] text-left border-collapse">
-                                    <thead className="bg-zinc-900/50 text-[10px] font-black text-zinc-500 uppercase tracking-wider border-b border-zinc-800">
-                                        <tr>
-                                            <th className="px-6 py-3">Symbol</th>
-                                            <th className="px-6 py-3">Source</th>
-                                            <th className="px-6 py-3">Bars</th>
-                                            <th className="px-6 py-3">Volume</th>
-                                            <th className="px-6 py-3">Status</th>
-                                            <th className="px-6 py-3 text-right">Last Update</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-white/5 font-mono">
-                                        {status?.data_stream && Object.keys(status.data_stream).length > 0 ? (
-                                            Object.entries(status?.data_stream || {}).map(([sym, data]: [string, any]) => (
-                                                <tr key={sym} className="hover:bg-indigo-500/5 transition-colors font-mono">
-                                                    <td className="px-6 py-3 font-bold text-zinc-200">{sym}</td>
-                                                    <td className="px-6 py-3 text-zinc-500">{data.source}</td>
-                                                    <td className="px-6 py-3">
-                                                        <span className={data.count > 0 ? "text-emerald-400 font-bold" : "text-red-400 font-bold"}>{data.count}</span>
-                                                    </td>
-                                                    <td className="px-6 py-3">
-                                                        {data.has_volume ? (
-                                                            <span className="text-emerald-500 flex items-center gap-1">
-                                                                <Check className="w-3 h-3" /> YES
-                                                            </span>
-                                                        ) : (
-                                                            <span className="text-red-500 flex items-center gap-1">
-                                                                <X className="w-3 h-3" /> NO
-                                                            </span>
-                                                        )}
-                                                    </td>
-                                                    <td className="px-6 py-3">
-                                                        <span className={`px-2 py-0.5 rounded-full text-[9px] font-black ${data.status === 'OK' ? 'bg-emerald-500/10 text-emerald-500' :
-                                                            data.status === 'EMPTY' ? 'bg-amber-500/10 text-amber-500' : 'bg-red-500/10 text-red-500'
-                                                            }`}>
-                                                            {data.status}
-                                                        </span>
-                                                    </td>
-                                                    <td className="px-6 py-3 text-right text-zinc-600">
-                                                        {data.timestamp ? new Date(data.timestamp).toLocaleTimeString() : 'N/A'}
-                                                    </td>
-                                                </tr>
-                                            ))
-                                        ) : (
-                                            <tr>
-                                                <td colSpan={6} className="px-6 py-8 text-center text-zinc-700 italic">No data stream initialized</td>
-                                            </tr>
-                                        )}
-                                    </tbody>
-                                </table>
+                        <div className="flex gap-2 mb-4 p-1 bg-black/40 rounded-lg border border-white/5">
+                            <button
+                                onClick={() => setCoinSource("database")}
+                                className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-all ${coinSource === "database"
+                                    ? "bg-indigo-500 text-white shadow-lg shadow-indigo-500/20"
+                                    : "text-zinc-500 hover:text-zinc-300"
+                                    }`}
+                            >
+                                My Symbols
+                            </button>
+                            <button
+                                onClick={() => setCoinSource("alpaca")}
+                                className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-all ${coinSource === "alpaca"
+                                    ? "bg-indigo-500 text-white shadow-lg shadow-indigo-500/20"
+                                    : "text-zinc-500 hover:text-zinc-300"
+                                    }`}
+                            >
+                                All Alpaca
+                            </button>
+                        </div>
+
+                        {coinSource === "alpaca" && (
+                            <div className="mb-4 p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-[10px] text-amber-200/70 leading-relaxed animate-in fade-in duration-500">
+                                <Activity className="w-3 h-3 mb-1 text-amber-500" />
+                                <strong>Important:</strong> Trading <code>/USDC</code> or <code>/USDT</code> pairs requires having those specific assets. If you only have USD, please use <code>/USD</code> pairs (recommended).
                             </div>
                         )}
-                    </div>
-                </div>
-            </div>
-        ) : (
-            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                {performanceLoading && !performance ? (
-                    <div className="flex flex-col items-center justify-center h-96 space-y-4">
-                        <RefreshCw className="w-10 h-10 text-indigo-500 animate-spin" />
-                        <p className="text-zinc-500 font-mono text-sm tracking-widest">ANALYZING MARKET DATA...</p>
-                    </div>
-                ) : (
-                    <>
-                        {/* Summary Cards */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                            <div className="bg-zinc-900/40 border border-white/5 rounded-3xl p-6 backdrop-blur-xl group hover:border-indigo-500/30 transition-all">
-                                <div className="flex items-center justify-between mb-4">
-                                    <div className="p-2.5 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400">
-                                        <Activity className="w-5 h-5" />
-                                    </div>
-                                    <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Total Trades</span>
-                                </div>
-                                <div className="text-3xl font-black text-white">{performance?.total_trades || 0}</div>
-                                <div className="mt-2 text-xs text-zinc-500">System executions</div>
-                            </div>
 
-                            <div className="bg-zinc-900/40 border border-white/5 rounded-3xl p-6 backdrop-blur-xl group hover:border-emerald-500/30 transition-all">
-                                <div className="flex items-center justify-between mb-4">
-                                    <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
-                                        <BarChart3 className="w-5 h-5" />
-                                    </div>
-                                    <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Win Rate</span>
-                                </div>
-                                <div className="text-3xl font-black text-emerald-400">{(performance?.win_rate || 0).toFixed(1)}%</div>
-                                <div className="mt-2 flex items-center gap-1 text-xs text-zinc-500">
-                                    <ArrowUpRight className="w-3 h-3" /> Consensus Alpha
-                                </div>
+                        {coinSource === "alpaca" && (
+                            <div className="flex gap-2 mb-4 overflow-x-auto custom-scrollbar pb-2">
+                                {[10, 20, 50, 100, 200, 500, 1000, 0].map(lim => (
+                                    <button
+                                        key={lim}
+                                        onClick={() => setCoinLimit(lim)}
+                                        className={`px-3 py-1 text-[10px] font-bold rounded-full whitespace-nowrap transition-all border ${coinLimit === lim
+                                            ? "bg-emerald-500/20 border-emerald-500 text-emerald-400"
+                                            : "bg-zinc-800 border-zinc-700 text-zinc-400 hover:border-zinc-500"
+                                            }`}
+                                    >
+                                        {lim === 0 ? "ALL" : `Top ${lim}`}
+                                    </button>
+                                ))}
                             </div>
+                        )}
 
-                            <div className="bg-zinc-900/40 border border-white/5 rounded-3xl p-6 backdrop-blur-xl group hover:border-indigo-500/30 transition-all">
-                                <div className="flex items-center justify-between mb-4">
-                                    <div className="p-2.5 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400">
-                                        <PieChart className="w-5 h-5" />
-                                    </div>
-                                    <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Total P/L</span>
-                                </div>
-                                <div className={`text-3xl font-black ${(performance?.profit_loss || 0) >= 0 ? "text-emerald-400" : "text-red-400"}`}>
-                                    ${(performance?.profit_loss || 0).toFixed(2)}
-                                </div>
-                                <div className={`mt-2 text-xs font-bold ${(performance?.profit_loss_pct || 0) >= 0 ? "text-emerald-500/70" : "text-red-500/70"}`}>
-                                    {(performance?.profit_loss_pct || 0).toFixed(2)}% ROI
-                                </div>
-                            </div>
-
-                            <div className="bg-zinc-900/40 border border-white/5 rounded-3xl p-6 backdrop-blur-xl group hover:border-indigo-500/30 transition-all">
-                                <div className="flex items-center justify-between mb-4">
-                                    <div className="p-2.5 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400">
-                                        <Activity className="w-5 h-5" />
-                                    </div>
-                                    <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Avg Profit</span>
-                                </div>
-                                <div className={`text-3xl font-black ${(performance?.avg_trade_profit || 0) >= 0 ? "text-emerald-400" : "text-red-400"}`}>
-                                    ${(performance?.avg_trade_profit || 0).toFixed(2)}
-                                </div>
-                                <div className="mt-2 text-xs text-zinc-500">Per trade average</div>
-                            </div>
+                        <div className="grid grid-cols-2 gap-2 max-h-[300px] overflow-y-auto custom-scrollbar pr-2">
+                            {(availableCoins.length > 0 ? availableCoins : COMMON_COINS).filter(c => c && typeof c === "string" && c.toLowerCase().includes(coinSearch.toLowerCase())).map(coin => {
+                                const active = (configForm.coins || []).includes(coin);
+                                return (
+                                    <button
+                                        key={coin}
+                                        onClick={() => toggleCoin(coin)}
+                                        className={`px-4 py-3 rounded-xl border flex items-center justify-between group transition-all ${active
+                                            ? "bg-indigo-600 border-indigo-500 text-white shadow-lg shadow-indigo-500/20"
+                                            : "bg-zinc-800/50 border-transparent text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200"
+                                            }`}
+                                    >
+                                        <span className="font-bold text-sm">{coin}</span>
+                                        {active && <Check className="w-4 h-4" />}
+                                    </button>
+                                )
+                            })}
                         </div>
 
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                            {/* Exit Reasons */}
-                            <div className="bg-zinc-900/40 border border-white/5 rounded-3xl p-6 backdrop-blur-xl">
-                                <div className="flex items-center gap-3 mb-6">
-                                    <PieChart className="w-5 h-5 text-indigo-400" />
-                                    <h2 className="text-lg font-bold text-white tracking-tight">EXIT REASONS</h2>
-                                </div>
-                                <div className="space-y-4">
-                                    {performance?.exit_reasons && Object.entries(performance!.exit_reasons).length > 0 ? (
-                                        Object.entries(performance!.exit_reasons).map(([reason, count]) => {
-                                            const total = Object.values(performance!.exit_reasons).reduce((a, b) => a + b, 0);
-                                            const pct = (count / total) * 100;
-                                            return (
-                                                <div key={reason} className="space-y-1.5">
-                                                    <div className="flex justify-between text-xs font-bold uppercase tracking-wider">
-                                                        <span className="text-zinc-400">{reason.replace(/_/g, ' ')}</span>
-                                                        <span className="text-white">{count} ({pct.toFixed(0)}%)</span>
-                                                    </div>
-                                                    <div className="h-1.5 bg-black/40 rounded-full overflow-hidden border border-white/5">
-                                                        <div
-                                                            className={`h-full rounded-full transition-all duration-1000 ${reason.includes('target') ? 'bg-emerald-500' :
-                                                                reason.includes('stop') ? 'bg-red-500' :
-                                                                    'bg-indigo-500'
-                                                                }`}
-                                                            style={{ width: `${pct}%` }}
-                                                        />
-                                                    </div>
-                                                </div>
-                                            );
-                                        })
-                                    ) : (
-                                        <div className="text-center py-12 text-zinc-600 italic">No exit data recorded</div>
-                                    )}
-                                </div>
-                            </div>
-
-                            {/* Asset Performance */}
-                            <div className="bg-zinc-900/40 border border-white/5 rounded-3xl p-6 backdrop-blur-xl">
-                                <div className="flex items-center gap-3 mb-6">
-                                    <BarChart3 className="w-5 h-5 text-emerald-400" />
-                                    <h2 className="text-lg font-bold text-white tracking-tight">ASSET PERFORMANCE</h2>
-                                </div>
-                                <div className="overflow-hidden rounded-2xl border border-white/5">
-                                    <table className="w-full text-left text-sm">
-                                        <thead className="bg-black/40 text-[10px] font-black text-zinc-500 uppercase tracking-widest">
-                                            <tr>
-                                                <th className="px-4 py-3">Symbol</th>
-                                                <th className="px-4 py-3 text-center">Trades</th>
-                                                <th className="px-4 py-3 text-center">Win Rate</th>
-                                                <th className="px-4 py-3 text-right">Profit ($)</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-white/5 font-mono text-xs">
-                                            {performance?.symbol_performance && Object.entries(performance!.symbol_performance).length > 0 ? (
-                                                Object.entries(performance!.symbol_performance)
-                                                    .sort(([, a], [, b]) => b.profit - a.profit)
-                                                    .map(([symbol, stats]) => (
-                                                        <tr key={symbol} className="hover:bg-white/5 transition-colors group">
-                                                            <td className="px-4 py-3">
-                                                                <button
-                                                                    onClick={() => setSelectedChartSymbol(symbol)}
-                                                                    className="flex items-center gap-2 font-bold text-zinc-300 hover:text-indigo-400 transition-colors group/btn"
-                                                                >
-                                                                    {symbol}
-                                                                    <Maximize2 className="w-3 h-3 opacity-0 group-hover/btn:opacity-100" />
-                                                                </button>
-                                                            </td>
-                                                            <td className="px-4 py-3 text-center text-zinc-400">{stats.trades}</td>
-                                                            <td className="px-4 py-3 text-center">
-                                                                <span className={(stats.win_rate || 0) >= 50 ? 'text-emerald-400' : 'text-zinc-500'}>
-                                                                    {(stats.win_rate || 0).toFixed(0)}%
-                                                                </span>
-                                                            </td>
-                                                            <td className={`px-4 py-3 text-right font-bold ${(stats.profit || 0) >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                                                                {(stats.profit || 0) >= 0 ? '+' : ''}{(stats.profit || 0).toFixed(2)}
-                                                            </td>
-                                                        </tr>
-                                                    ))
-                                            ) : (
-                                                <tr>
-                                                    <td colSpan={4} className="px-4 py-12 text-center text-zinc-600 italic">No asset data available</td>
-                                                </tr>
-                                            )}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
+                        <div className="mt-6 flex justify-end">
+                            <Dialog.Close className="px-6 py-2.5 rounded-xl bg-white text-black font-bold hover:bg-zinc-200 transition-colors">
+                                Done
+                            </Dialog.Close>
                         </div>
+                    </Dialog.Content>
+                </Dialog.Portal>
+            </Dialog.Root>
 
-                        {/* Open Positions */}
-                        <div className="bg-zinc-900/40 border border-white/5 rounded-3xl p-6 backdrop-blur-xl">
-                            <div className="flex items-center gap-3 mb-6">
-                                <ArrowUpRight className="w-5 h-5 text-indigo-400" />
-                                <h2 className="text-lg font-bold text-white tracking-tight">ACTIVE POSITIONS</h2>
-                            </div>
-                            <div className="overflow-x-auto rounded-2xl border border-white/5">
-                                <table className="w-full text-left text-sm">
-                                    <thead className="bg-black/40 text-[10px] font-black text-zinc-500 uppercase tracking-widest">
-                                        <tr>
-                                            <th className="px-4 py-4">Symbol</th>
-                                            <th className="px-4 py-4">Status</th>
-                                            <th className="px-4 py-4">Entry</th>
-                                            <th className="px-4 py-4">Current</th>
-                                            <th className="px-4 py-4">P/L %</th>
-                                            <th className="px-4 py-4 text-right">P/L $</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-white/5 font-mono text-xs">
-                                        {performance?.open_positions && performance!.open_positions.length > 0 ? (
-                                            performance!.open_positions.map((pos, i) => (
-                                                <tr key={i} className="hover:bg-white/5 transition-colors group">
-                                                    <td className="px-4 py-4 font-bold text-white">
-                                                        <button
-                                                            onClick={() => setSelectedChartSymbol(pos.symbol)}
-                                                            className="flex items-center gap-2 font-bold text-zinc-300 hover:text-indigo-400 transition-colors group/btn"
-                                                        >
-                                                            {pos.symbol}
-                                                            <Maximize2 className="w-3 h-3 opacity-0 group-hover/btn:opacity-100" />
-                                                        </button>
-                                                    </td>
-                                                    <td className="px-4 py-4">
-                                                        <span className="px-2 py-1 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/10 text-[10px] font-black uppercase tracking-tighter">
-                                                            In Progress
-                                                        </span>
-                                                    </td>
-                                                    <td className="px-4 py-4 text-zinc-400">${(pos.entry_price || 0).toFixed(4)}</td>
-                                                    <td className="px-4 py-4 text-white">${(pos.current_price || 0).toFixed(4)}</td>
-                                                    <td className={`px-4 py-4 font-bold ${(pos.pl_pct || 0) >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                                                        {pos.pl_pct !== undefined ? (pos.pl_pct >= 0 ? '+' : '') + pos.pl_pct.toFixed(2) + '%' : 'N/A'}
-                                                    </td>
-                                                    <td className={`px-4 py-4 text-right font-bold ${(pos.pl_usd || 0) >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                                                        ${(pos.pl_usd || 0).toFixed(2)}
-                                                    </td>
-                                                </tr>
-                                            ))
-                                        ) : (
-                                            <tr>
-                                                <td colSpan={6} className="px-4 py-12 text-center text-zinc-600 italic font-mono uppercase tracking-[0.2em] text-[10px]">
-                                                    Scan in progress... No active targets locked.
-                                                </td>
-                                            </tr>
-                                        )}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </>
-                )}
-            </div>
-        )
-    }
-
-    {/* Coin Selection Dialog */ }
-    <Dialog.Root open={coinDialogOpen} onOpenChange={setCoinDialogOpen}>
-        <Dialog.Portal>
-            <Dialog.Overlay className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 transition-opacity" />
-            <Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-lg bg-zinc-900 border border-zinc-800 rounded-3xl p-6 z-50 shadow-2xl">
-                <div className="flex items-center justify-between mb-6">
-                    <Dialog.Title className="text-xl font-bold text-white flex items-center gap-2">
-                        <Coins className="w-6 h-6 text-indigo-500" />
-                        Manage Assets
-                    </Dialog.Title>
-                    <Dialog.Close className="p-2 rounded-full hover:bg-white/10 text-zinc-400 hover:text-white transition-colors">
-                        <X className="w-5 h-5" />
-                    </Dialog.Close>
-                </div>
-
-                <div className="relative mb-4">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
-                    <input
-                        type="text"
-                        placeholder="Search coins..."
-                        value={coinSearch}
-                        onChange={(e) => setCoinSearch(e.target.value)}
-                        className="w-full bg-black/50 border border-zinc-800 rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:border-indigo-500 transition-colors"
-                    />
-                </div>
-
-                <div className="flex gap-2 mb-4 p-1 bg-black/40 rounded-lg border border-white/5">
-                    <button
-                        onClick={() => setCoinSource("database")}
-                        className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-all ${coinSource === "database"
-                            ? "bg-indigo-500 text-white shadow-lg shadow-indigo-500/20"
-                            : "text-zinc-500 hover:text-zinc-300"
-                            }`}
-                    >
-                        My Symbols
-                    </button>
-                    <button
-                        onClick={() => setCoinSource("alpaca")}
-                        className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-all ${coinSource === "alpaca"
-                            ? "bg-indigo-500 text-white shadow-lg shadow-indigo-500/20"
-                            : "text-zinc-500 hover:text-zinc-300"
-                            }`}
-                    >
-                        All Alpaca
-                    </button>
-                </div>
-
-                {coinSource === "alpaca" && (
-                    <div className="mb-4 p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-[10px] text-amber-200/70 leading-relaxed animate-in fade-in duration-500">
-                        <Activity className="w-3 h-3 mb-1 text-amber-500" />
-                        <strong>Important:</strong> Trading <code>/USDC</code> or <code>/USDT</code> pairs requires having those specific assets. If you only have USD, please use <code>/USD</code> pairs (recommended).
-                    </div>
-                )}
-
-                {coinSource === "alpaca" && (
-                    <div className="flex gap-2 mb-4 overflow-x-auto custom-scrollbar pb-2">
-                        {[10, 20, 50, 100, 200, 500, 1000, 0].map(lim => (
-                            <button
-                                key={lim}
-                                onClick={() => setCoinLimit(lim)}
-                                className={`px-3 py-1 text-[10px] font-bold rounded-full whitespace-nowrap transition-all border ${coinLimit === lim
-                                    ? "bg-emerald-500/20 border-emerald-500 text-emerald-400"
-                                    : "bg-zinc-800 border-zinc-700 text-zinc-400 hover:border-zinc-500"
-                                    }`}
-                            >
-                                {lim === 0 ? "ALL" : `Top ${lim}`}
-                            </button>
-                        ))}
-                    </div>
-                )}
-
-                <div className="grid grid-cols-2 gap-2 max-h-[300px] overflow-y-auto custom-scrollbar pr-2">
-                    {(availableCoins.length > 0 ? availableCoins : COMMON_COINS).filter(c => c && typeof c === "string" && c.toLowerCase().includes(coinSearch.toLowerCase())).map(coin => {
-                        const active = (configForm.coins || []).includes(coin);
-                        return (
-                            <button
-                                key={coin}
-                                onClick={() => toggleCoin(coin)}
-                                className={`px-4 py-3 rounded-xl border flex items-center justify-between group transition-all ${active
-                                    ? "bg-indigo-600 border-indigo-500 text-white shadow-lg shadow-indigo-500/20"
-                                    : "bg-zinc-800/50 border-transparent text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200"
-                                    }`}
-                            >
-                                <span className="font-bold text-sm">{coin}</span>
-                                {active && <Check className="w-4 h-4" />}
-                            </button>
-                        )
-                    })}
-                </div>
-
-                <div className="mt-6 flex justify-end">
-                    <Dialog.Close className="px-6 py-2.5 rounded-xl bg-white text-black font-bold hover:bg-zinc-200 transition-colors">
-                        Done
-                    </Dialog.Close>
-                </div>
-            </Dialog.Content>
-        </Dialog.Portal>
-    </Dialog.Root>
-
-    {/* Historical Chart Modal */ }
+            {/* Historical Chart Modal */}
             <Dialog.Root open={!!selectedChartSymbol} onOpenChange={(open: boolean) => !open && setSelectedChartSymbol(null)}>
                 <Dialog.Portal>
                     <Dialog.Overlay className="fixed inset-0 bg-black/80 backdrop-blur-md z-[100] transition-opacity" />

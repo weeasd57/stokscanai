@@ -1355,6 +1355,11 @@ class LiveBot:
 
         existing = list(self.config.coins or [])
         existing_norm = {_normalize_symbol(c) for c in existing}
+        if existing_norm:
+            self._log(
+                "DEBUG: Skipping auto-include of account positions because bot coin list is explicitly configured."
+            )
+            return
 
         added = 0
         for p in positions:
@@ -1375,6 +1380,17 @@ class LiveBot:
             self.config.coins = existing
             self._log(f"Synced: Included {added} open Alpaca position(s) into coin list.")
 
+    def _get_bot_coin_norms(self) -> set:
+        """
+        Normalized symbols configured for this bot only.
+        Used to isolate shared Alpaca accounts across multiple bots.
+        """
+        return {
+            _normalize_symbol(str(sym))
+            for sym in (self.config.coins or [])
+            if str(sym).strip()
+        }
+
     def _sync_pos_state(self):
         """
         Sync internal _pos_state with actual Alpaca positions.
@@ -1383,6 +1399,7 @@ class LiveBot:
             return
 
         try:
+            allowed_norms = self._get_bot_coin_norms()
             positions = self.api.list_positions()
             current_alpaca_norms = set()
             
@@ -1390,6 +1407,8 @@ class LiveBot:
             for p in positions:
                 sym = str(getattr(p, "symbol", "") or "")
                 norm = _normalize_symbol(sym)
+                if allowed_norms and norm not in allowed_norms:
+                    continue
                 current_alpaca_norms.add(norm)
                 p_list.append(norm)
                 
@@ -1399,6 +1418,7 @@ class LiveBot:
                         "entry_price": float(getattr(p, "avg_entry_price", 0)),
                         "entry_ts": datetime.now(timezone.utc).isoformat(),
                         "bars_held": 0,
+                        "target_price": None,
                         "current_stop": None,
                         "trail_mode": "NONE",
                     }
@@ -1407,17 +1427,29 @@ class LiveBot:
             orders = self.api.list_orders(status="open")
             for o in orders:
                 sym = str(getattr(o, "symbol", "") or "")
-                current_alpaca_norms.add(_normalize_symbol(sym))
+                norm = _normalize_symbol(sym)
+                if allowed_norms and norm not in allowed_norms:
+                    continue
+                current_alpaca_norms.add(norm)
             
             # Prune closed positions
-            to_remove = [norm for norm in self._pos_state if norm not in current_alpaca_norms]
+            to_remove = [
+                norm
+                for norm in self._pos_state
+                if (allowed_norms and norm not in allowed_norms) or norm not in current_alpaca_norms
+            ]
             for norm in to_remove:
                 self._log(f"Sync: Pruning {norm} (no longer in Alpaca).")
                 self._pos_state.pop(norm, None)
                 
             # Periodic debug log
             if datetime.now().minute % 5 == 0: # Every 5 mins
-                 self._log(f"DEBUG POS SYNC: Alpaca({len(p_list)})={p_list} | Bot({len(self._pos_state)})={list(self._pos_state.keys())}")
+                 self._log(
+                     f"DEBUG POS SYNC [{self.bot_id}]: "
+                     f"Allowed({len(allowed_norms)})={sorted(list(allowed_norms))} | "
+                     f"AlpacaFiltered({len(p_list)})={p_list} | "
+                     f"Bot({len(self._pos_state)})={list(self._pos_state.keys())}"
+                 )
                 
         except Exception as e:
             self._log(f"Sync Error: {e}")
@@ -2316,6 +2348,7 @@ class LiveBot:
                         "entry_price": last_price,
                         "entry_ts": datetime.now(timezone.utc).isoformat(),
                         "bars_held": 0,
+                        "target_price": atr_tp,
                         "current_stop": atr_sl,
                         "trail_mode": "NONE",
                         "notional": notional,
