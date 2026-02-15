@@ -490,9 +490,19 @@ def get_bot_performance(bot_id: str = "primary"):
                          current_price = safe_float(pos_data.get("entry_price")) # Default
                          try:
                              if bot.api:
-                                 # Format symbol for Alpaca if needed (e.g. BTC/USD -> BTCUSD)
-                                 alpaca_sym = s.replace("/", "")
-                                 latest_trade = bot.api.get_latest_crypto_trade(alpaca_sym)
+                                 # Alpaca crypto latest-trade expects BASE/QUOTE format (e.g. BTC/USD).
+                                 # _pos_state keys are often normalized like BTCUSD, so convert safely.
+                                 raw_sym = str(s or "").upper().replace("-", "").replace("_", "")
+                                 if "/" in raw_sym:
+                                     req_sym = raw_sym
+                                 elif raw_sym.endswith("USDT") and len(raw_sym) > 4:
+                                     req_sym = f"{raw_sym[:-4]}/USDT"
+                                 elif raw_sym.endswith("USD") and len(raw_sym) > 3:
+                                     req_sym = f"{raw_sym[:-3]}/USD"
+                                 else:
+                                     req_sym = raw_sym
+
+                                 latest_trade = bot.api.get_latest_crypto_trade(req_sym)
                                  if latest_trade:
                                      current_price = float(latest_trade.price)
                          except Exception as e:
