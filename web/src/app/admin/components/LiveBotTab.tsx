@@ -960,6 +960,7 @@ export default function LiveBotTab() {
                     </div>
                 </div>
             </div>
+        </div>
 
             {/* BOT SELECTOR TABS */}
             <div className="flex items-center gap-2 p-1 bg-black/40 border border-white/5 rounded-3xl w-full backdrop-blur-sm overflow-x-auto no-scrollbar">
@@ -2462,7 +2463,7 @@ export default function LiveBotTab() {
                         <div className="flex-1 min-h-0">
                             {selectedChartSymbol && (
                                 <LiveCandleChart
-                                    symbol={selectedChartSymbol}
+                                    symbol={selectedChartSymbol!}
                                     botId={selectedBotId}
                                     height="100%"
                                     onClose={() => setSelectedChartSymbol(null)}
@@ -2491,6 +2492,6 @@ export default function LiveBotTab() {
                         background: rgba(255, 255, 255, 0.2);
                     }
                 `}</style>
-        </div >
+        </div>
     )
 }
