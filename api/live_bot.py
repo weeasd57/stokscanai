@@ -36,44 +36,44 @@ class BotConfig:
     alpaca_secret_key: str = ""
     alpaca_base_url: str = "https://paper-api.alpaca.markets"
     coins: list[str] = None
-    king_threshold: float = 0.45
-    council_threshold: float = 0.25
-    max_notional_usd: float = 1000.0
-    pct_cash_per_trade: float = 0.15
+    king_threshold: float = 0.60
+    council_threshold: float = 0.35
+    max_notional_usd: float = 500.0
+    pct_cash_per_trade: float = 0.10
     bars_limit: int = 200
-    poll_seconds: int = 120
+    poll_seconds: int = 300
     timeframe: str = "1Hour"
     use_council: bool = True
     data_source: str = "binance"
 
     # Risk
-    max_open_positions: int = 8
+    max_open_positions: int = 5
     enable_sells: bool = True
-    target_pct: float = 0.15
-    stop_loss_pct: float = 0.07
-    hold_max_bars: int = 30
+    target_pct: float = 0.10
+    stop_loss_pct: float = 0.05
+    hold_max_bars: int = 20
     use_trailing: bool = True
-    trail_be_pct: float = 0.04
-    trail_lock_trigger_pct: float = 0.06
-    trail_lock_pct: float = 0.04
+    trail_be_pct: float = 0.05
+    trail_lock_trigger_pct: float = 0.08
+    trail_lock_pct: float = 0.05
     
     # Supabase integration
     save_to_supabase: bool = False  # Save polling data to Supabase
     save_trades_to_supabase: bool = True  # NEW: Save trade logs to Supabase
     
     # ===== Advanced Risk & Strategy =====
-    daily_loss_limit: float = 1000.0
-    max_consecutive_losses: int = 5
-    min_volume_ratio: float = 0.3
+    daily_loss_limit: float = 500.0
+    max_consecutive_losses: int = 3
+    min_volume_ratio: float = 0.5
     use_rsi_filter: bool = True
-    use_trend_filter: bool = False
+    use_trend_filter: bool = True
     use_dynamic_sizing: bool = True
-    max_risk_per_trade_pct: float = 0.04
+    max_risk_per_trade_pct: float = 0.02
     
     # ===== Smart Bot Features =====
     # 1. Market Regime Detection
     use_market_regime: bool = True
-    regime_adx_threshold: float = 14.0  # ADX > this = trending (Loosened for aggressive mode)
+    regime_adx_threshold: float = 18.0  # ADX > this = trending (Default loosened from 25.0)
     regime_sideways_size_mult: float = 0.5  # Reduce size in sideways
     
     # 2. Multi-Timeframe Confirmation
@@ -106,14 +106,14 @@ class BotConfig:
     winrate_high_threshold: float = 0.70
     
     # 8. Cooldown Mechanism
-    cooldown_minutes: int = 30  # Minutes to wait before re-entering the same symbol
+    cooldown_minutes: int = 60  # Minutes to wait before re-entering the same symbol
 
     # 9. Time-of-Day Filter
-    use_time_filter: bool = False
+    use_time_filter: bool = True
     
     # 9. Signal Quality Score
     use_quality_score: bool = True
-    min_quality_score: float = 50.0
+    min_quality_score: float = 65.0
     
     # 10. Partial Position Management
     use_partial_positions: bool = False  # Off by default (advanced)
@@ -121,7 +121,7 @@ class BotConfig:
     partial_exit_pct: float = 0.50
     
     # Trading Mode
-    trading_mode: str = "aggressive"  # "defensive" | "aggressive" | "hybrid"
+    trading_mode: str = "hybrid"  # "defensive" | "aggressive" | "hybrid"
 
     # Model Paths
     king_model_path: str = "api/models/KING_CRYPTO 👑.pkl"
@@ -1791,25 +1791,6 @@ class LiveBot:
         except Exception:
             return False
 
-    def _wait_for_fill(self, order_id: str, timeout_seconds: int = 10) -> Optional[float]:
-        """Poll Alpaca for order fill status and return the average fill price."""
-        start_time = time.time()
-        while time.time() - start_time < timeout_seconds:
-            try:
-                order = self.api.get_order(order_id)
-                if order.status == "filled":
-                    return float(order.filled_avg_price)
-                elif order.status in ["canceled", "expired", "rejected"]:
-                    self._log(f"Order {order_id} failed with status: {order.status}")
-                    return None
-            except Exception as e:
-                self._log(f"Error checking fill for {order_id}: {e}")
-            
-            time.sleep(1)
-        
-        self._log(f"Timed out waiting for fill of order {order_id}")
-        return None
-
     def _get_open_position(self, symbol: str):
         try:
             norm = _normalize_symbol(symbol)
@@ -1829,12 +1810,10 @@ class LiveBot:
                 type="market",
                 time_in_force="gtc",
             )
-            order_id = str(getattr(order, "id", "unknown"))
-            self._log(f"Buy order submitted: {symbol} (${notional_usd:.2f}) - ID: {order_id}")
-            
-            # Wait for fill to get accurate entry price
-            avg_fill = self._wait_for_fill(order_id)
-            
+            try:
+                avg_fill = float(getattr(order, "filled_avg_price", 0) or 0) or None
+            except Exception:
+                avg_fill = None
             self._pos_state[_normalize_symbol(symbol)] = {
                 "entry_price": avg_fill,
                 "entry_ts": datetime.now(timezone.utc).isoformat(),
@@ -1850,13 +1829,13 @@ class LiveBot:
                 "price": avg_fill,
                 "entry_price": avg_fill,
                 "pnl": 0.0,
-                "order_id": order_id
+                "order_id": str(getattr(order, "id", "unknown"))
             }
             self._trades.append(trade)
             self._save_trade_persistent(trade)
             
             if self.telegram_bridge:
-                price_str = f"`${avg_fill:,.4f}`" if avg_fill else "`pending fill`"
+                price_str = f"`${avg_fill:,.2f}`" if avg_fill else "`pending fill`"
                 state = self._pos_state.get(_normalize_symbol(symbol), {})
                 
                 msg = (
@@ -1893,15 +1872,14 @@ class LiveBot:
                 type="market",
                 time_in_force="gtc",
             )
-            order_id = str(getattr(order, "id", "unknown"))
-            self._log(f"Sell order submitted: {symbol} ({qty}) - ID: {order_id}")
-            
-            # Wait for fill to get accurate exit price
-            fill_price = self._wait_for_fill(order_id)
-            
             # Calculate PnL and Track Limits
             pnl = 0.0
             entry_price = self._pos_state.get(_normalize_symbol(symbol), {}).get("entry_price")
+            fill_price = None
+            try:
+                fill_price = float(getattr(order, "filled_avg_price", 0) or 0) or None
+            except:
+                pass
                 
             if entry_price and fill_price:
                 qty_sold = float(qty)
@@ -1920,14 +1898,14 @@ class LiveBot:
                 "price": fill_price,
                 "entry_price": entry_price,
                 "pnl": pnl,
-                "order_id": order_id,
+                "order_id": str(getattr(order, "id", "unknown")),
             }
             self._trades.append(trade)
             self._save_trade_persistent(trade)
             
             if self.telegram_bridge:
                 emoji = "🟢" if pnl > 0 else "🔴"
-                exit_str = f"`${fill_price:,.4f}`" if fill_price else "`pending fill`"
+                exit_str = f"`${fill_price:,.2f}`" if fill_price else "`pending fill`"
                 
                 pnl_pct = 0.0
                 if entry_price and fill_price:
