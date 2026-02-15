@@ -190,17 +190,39 @@ class AlpacaPyAdapter:
         Raises:
             AlpacaClientError: If request fails
         """
-        try:
-            # alpaca-py expects normalized symbols for crypto fetching usually (e.g. BTCUSD)
-            # but sometimes works with / if the request object handles it.
-            clean_sym = symbol.replace("/", "")
-            request_params = CryptoLatestTradeRequest(symbol_or_symbols=clean_sym)
-            trade = self._data.get_crypto_latest_trade(request_params)
-            return trade[clean_sym]
-        except Exception as e:
-            if self._logger:
-                self._logger(f"Error fetching latest crypto trade for {symbol}: {e}")
-            raise AlpacaClientError(f"Failed to get latest crypto trade: {e}")
+        raw = (symbol or "").strip().upper()
+        if not raw:
+            raise AlpacaClientError("symbol is required")
+
+        # Prefer BASE/QUOTE format (e.g. BTC/USD) for Alpaca crypto market-data requests.
+        if "/" in raw:
+            slash_sym = raw
+        elif raw.endswith("USDT") and len(raw) > 4:
+            slash_sym = f"{raw[:-4]}/USDT"
+        elif raw.endswith("USD") and len(raw) > 3:
+            slash_sym = f"{raw[:-3]}/USD"
+        else:
+            slash_sym = raw
+
+        clean_sym = slash_sym.replace("/", "")
+        attempts = [slash_sym]
+        if clean_sym != slash_sym:
+            attempts.append(clean_sym)
+
+        last_err: Optional[Exception] = None
+        for req_sym in attempts:
+            try:
+                request_params = CryptoLatestTradeRequest(symbol_or_symbols=req_sym)
+                trade = self._data.get_crypto_latest_trade(request_params)
+                if isinstance(trade, dict):
+                    return trade.get(req_sym) or trade.get(slash_sym) or trade.get(clean_sym)
+                return trade
+            except Exception as e:
+                last_err = e
+
+        if self._logger:
+            self._logger(f"Error fetching latest crypto trade for {symbol}: {last_err}")
+        raise AlpacaClientError(f"Failed to get latest crypto trade: {last_err}")
 
     def list_positions(self) -> List[Any]:
         """Get all current positions."""

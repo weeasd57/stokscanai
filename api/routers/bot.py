@@ -486,6 +486,7 @@ def get_bot_performance(bot_id: str = "primary"):
                 open_positions = []
                 if bot:
                     for s, pos_data in bot._pos_state.items():
+                         display_symbol = str(s)
                          # Get actual current price from Alpaca
                          current_price = safe_float(pos_data.get("entry_price")) # Default
                          try:
@@ -501,8 +502,12 @@ def get_bot_performance(bot_id: str = "primary"):
                                      req_sym = f"{raw_sym[:-3]}/USD"
                                  else:
                                      req_sym = raw_sym
+                                 display_symbol = req_sym
 
-                                 latest_trade = bot.api.get_latest_crypto_trade(req_sym)
+                                 if "/" in req_sym:
+                                     latest_trade = bot.api.get_latest_crypto_trade(req_sym)
+                                 else:
+                                     latest_trade = bot.api.get_latest_trade(req_sym)
                                  if latest_trade:
                                      current_price = float(latest_trade.price)
                          except Exception as e:
@@ -513,7 +518,7 @@ def get_bot_performance(bot_id: str = "primary"):
                          pl_usd = (current_price - entry_price) * safe_float(pos_data.get("amount", 0))
 
                          open_positions.append({
-                            "symbol": s,
+                            "symbol": display_symbol,
                             "entry_price": entry_price,
                             "current_price": current_price,
                             "target_price": safe_float(pos_data.get("target_price")),

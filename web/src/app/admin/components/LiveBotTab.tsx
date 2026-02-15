@@ -510,8 +510,24 @@ export default function LiveBotTab() {
 
     const normalizePosKey = (s: string) => (s || "").toUpperCase().replace("/", "").replace("-", "").replace("_", "");
 
-    const positionsBySymbol = new Map<string, AlpacaPositionInfo>(
-        (alpacaPositions || []).map((p) => [normalizePosKey(p.symbol), p])
+    const configuredBotCoins = ((configForm.coins && configForm.coins.length > 0)
+        ? configForm.coins
+        : (status?.config?.coins || [])) as string[];
+    const botCoinNorms = new Set(configuredBotCoins.map(normalizePosKey));
+    const isBotSymbol = (symbol: string) => {
+        const n = normalizePosKey(symbol);
+        return !n || botCoinNorms.size === 0 || botCoinNorms.has(n);
+    };
+
+    const scopedOpenPositions = (performance?.open_positions || [])
+        .filter(p => isBotSymbol(p.symbol))
+        .map(p => ({
+            symbol: p.symbol,
+            unrealized_pl: String(p.pl_usd ?? 0),
+        }));
+
+    const positionsBySymbol = new Map<string, { symbol: string; unrealized_pl: string }>(
+        scopedOpenPositions.map((p) => [normalizePosKey(p.symbol), p])
     );
 
     const toNum = (v: any): number | null => {
@@ -1961,25 +1977,11 @@ export default function LiveBotTab() {
                                             </thead>
                                             <tbody className="divide-y divide-white/5 font-mono">
                                                 {(() => {
-                                                    // Prioritize Supabase performance trades, fallback to live status trades
-                                                    const botTrades = performance?.trades || status?.trades || [];
-
-                                                    // Convert Alpaca orders to Trade format for merging
-                                                    const alpacaBuyOrders: Trade[] = alpacaOrders
-                                                        .filter(o => o.side === 'buy')
-                                                        .map(o => ({
-                                                            timestamp: o.filled_at || o.submitted_at || o.created_at,
-                                                            symbol: o.symbol,
-                                                            action: o.status === 'filled' ? 'BUY' : `ALPACA:${o.status.toUpperCase()}`,
-                                                            price: parseFloat(o.filled_avg_price || o.limit_price || '0'),
-                                                            amount: parseFloat(o.qty),
-                                                            order_id: o.id,
-                                                            status: o.status
-                                                        }));
-
-                                                    // Merge and deduplicate
-                                                    const allTrades = [...botTrades, ...alpacaBuyOrders];
-                                                    const buyTrades = allTrades.filter(t => t.action === 'BUY' || t.action === 'SIGNAL' || t.action.startsWith('ALPACA:'));
+                                                    // Bot-scoped trades only (no account-wide Alpaca merge).
+                                                    const botTrades = (performance?.trades || status?.trades || [])
+                                                        .filter(t => isBotSymbol(t.symbol));
+                                                    const buyTrades = botTrades
+                                                        .filter(t => t.action === 'BUY' || t.action === 'SIGNAL' || t.action.startsWith('ALPACA:'));
 
                                                     console.log(`[Dashboard] Buy Table - Displaying from ${performance?.trades ? 'Performance (Supabase)' : 'Status (Memory)'}`);
 
@@ -2054,7 +2056,8 @@ export default function LiveBotTab() {
                                             </thead>
                                             <tbody className="divide-y divide-white/5 font-mono">
                                                 {(() => {
-                                                    const allTrades = performance?.trades || status?.trades || [];
+                                                    const allTrades = (performance?.trades || status?.trades || [])
+                                                        .filter(t => isBotSymbol(t.symbol));
                                                     const sellTrades = allTrades.filter(t => t.action === 'SELL');
 
                                                     console.log(`[Dashboard] Sell Table - Displaying from ${performance?.trades ? 'Performance (Supabase)' : 'Status (Memory)'}`);

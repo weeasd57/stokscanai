@@ -1431,6 +1431,24 @@ class LiveBot:
                 if allowed_norms and norm not in allowed_norms:
                     continue
                 current_alpaca_norms.add(norm)
+                side_obj = getattr(o, "side", "")
+                side = str(getattr(side_obj, "value", side_obj) or "").lower()
+                if side == "buy" and norm not in self._pos_state:
+                    limit_price = getattr(o, "limit_price", None)
+                    try:
+                        entry_px = float(limit_price) if limit_price is not None else None
+                    except Exception:
+                        entry_px = None
+                    self._log(f"Sync: Open BUY order detected for {sym}. Reserving slot in internal state.")
+                    self._pos_state[norm] = {
+                        "entry_price": entry_px,
+                        "entry_ts": datetime.now(timezone.utc).isoformat(),
+                        "bars_held": 0,
+                        "target_price": None,
+                        "current_stop": None,
+                        "trail_mode": "NONE",
+                        "pending_order": True,
+                    }
             
             # Prune closed positions
             to_remove = [
