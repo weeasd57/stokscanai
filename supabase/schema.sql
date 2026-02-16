@@ -1146,3 +1146,30 @@ create index if not exists idx_bot_trades_timestamp on public.bot_trades(timesta
 alter table public.bot_trades enable row level security;
 create policy "allow_read_all_bot_trades" on public.bot_trades for select using (true);
 grant select, insert on public.bot_trades to anon, authenticated, service_role;
+
+
+-- Create bot_configs table
+create table if not exists public.bot_configs (
+    bot_id text primary key,
+    config jsonb not null default '{}'::jsonb,
+    updated_at timestamptz not null default now()
+);
+
+create index if not exists idx_bot_configs_bot_id on public.bot_configs(bot_id);
+
+alter table public.bot_configs enable row level security;
+create policy "allow_read_all_bot_configs" on public.bot_configs for select using (true);
+grant select, insert, update, delete on public.bot_configs to anon, authenticated, service_role;
+
+-- Create bot_states table
+create table if not exists public.bot_states (
+    bot_id text primary key,
+    state jsonb not null default '{}'::jsonb,
+    updated_at timestamptz not null default now()
+);
+
+create index if not exists idx_bot_states_bot_id on public.bot_states(bot_id);
+
+alter table public.bot_states enable row level security;
+create policy "allow_read_all_bot_states" on public.bot_states for select using (true);
+grant select, insert, update, delete on public.bot_states to anon, authenticated, service_role;

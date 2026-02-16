@@ -29,6 +29,9 @@ interface BotConfig {
     target_pct: number;
     stop_loss_pct: number;
     hold_max_bars: number;
+    use_quality_score?: boolean;
+    min_quality_score?: number;
+    use_auto_tune?: boolean;
     use_trailing: boolean;
     trail_be_pct: number;
     trail_lock_trigger_pct: number;
@@ -146,6 +149,7 @@ export default function LiveBotTab() {
     const [renameBotDialogOpen, setRenameBotDialogOpen] = useState(false);
     const [renameBotName, setRenameBotName] = useState("");
     const [isRenamingBot, setIsRenamingBot] = useState(false);
+    const [modelHubOpen, setModelHubOpen] = useState(true);
 
     const [alpacaOrders, setAlpacaOrders] = useState<any[]>([]);
     const [alpacaOrdersLoading, setAlpacaOrdersLoading] = useState(false);
@@ -477,9 +481,16 @@ export default function LiveBotTab() {
             toast.error("Cannot delete primary bot");
             return;
         }
-        if (!confirm(`Are you sure you want to delete bot "${name}"?`)) return;
+        const running = status?.status === "running" && selectedBotId === id;
+        const prompt = running
+            ? `Bot "${name}" is running.\n\nStop and delete it?`
+            : `Are you sure you want to delete bot "${name}"?`;
+        if (!confirm(prompt)) return;
 
         try {
+            if (running) {
+                await fetch(`/api/ai_bot/stop?bot_id=${id}`, { method: "POST" });
+            }
             const res = await fetch(`/api/ai_bot/delete/${id}`, { method: "DELETE" });
             if (res.ok) {
                 toast.success("Bot deleted");
@@ -1028,6 +1039,15 @@ export default function LiveBotTab() {
                         </button>
                     )
                 })}
+                {selectedBotId !== "primary" && (
+                    <button
+                        onClick={() => handleDeleteBot(selectedBotId, (configForm.name || status?.config?.name || "Bot"))}
+                        className="flex-none p-2.5 rounded-[22px] bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 transition-all"
+                        title="Delete bot"
+                    >
+                        <Trash2 className="w-4 h-4" />
+                    </button>
+                )}
                 <Dialog.Root open={createBotDialogOpen} onOpenChange={setCreateBotDialogOpen}>
                     <Dialog.Trigger asChild>
                         <button className="flex-none p-2.5 rounded-[22px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20 transition-all ml-auto mr-1">
@@ -1503,10 +1523,20 @@ export default function LiveBotTab() {
 
                             {/* Model Hub Section */}
                             <div className="bg-black/40 rounded-2xl p-5 border border-white/5 space-y-4 shadow-xl">
-                                <label className="text-xs font-black text-purple-400 uppercase tracking-[0.2em] flex items-center gap-2">
-                                    <ShieldCheck className="w-3.5 h-3.5" /> Model Intelligence
-                                </label>
-                                <div className="space-y-4">
+                                <button
+                                    type="button"
+                                    onClick={() => setModelHubOpen(v => !v)}
+                                    className="w-full flex items-center justify-between"
+                                >
+                                    <span className="text-xs font-black text-purple-400 uppercase tracking-[0.2em] flex items-center gap-2">
+                                        <ShieldCheck className="w-3.5 h-3.5" /> Model Intelligence
+                                    </span>
+                                    <span className="text-zinc-500">
+                                        {modelHubOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                                    </span>
+                                </button>
+                                {modelHubOpen && (
+                                <div className="space-y-4 animate-in fade-in duration-200">
                                     <div className="space-y-2">
                                         <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">King Model Path</label>
                                         <select
@@ -1529,7 +1559,23 @@ export default function LiveBotTab() {
                                             className="w-full bg-black/60 border border-white/5 rounded-xl px-4 py-2.5 text-sm font-mono focus:outline-none focus:border-purple-500/50 transition-all text-purple-200"
                                         />
                                     </div>
+                                    <div className="flex items-center justify-between pt-4 border-t border-white/5">
+                                        <div className="space-y-1">
+                                            <label className="text-xs font-bold text-white tracking-wider flex items-center gap-2">
+                                                <Zap className="w-3 h-3 text-yellow-400" /> Auto-Tune Control
+                                            </label>
+                                            <p className="text-[10px] text-zinc-500 uppercase font-bold tracking-widest">Self-Learning Optimizer</p>
+                                        </div>
+                                        <Switch.Root
+                                            checked={configForm.use_auto_tune ?? true}
+                                            onCheckedChange={(c: boolean) => setConfigForm({ ...configForm, use_auto_tune: c })}
+                                            className={`w-10 h-5 rounded-full relative shadow-inner transition-colors duration-300 ${configForm.use_auto_tune !== false ? 'bg-yellow-600' : 'bg-zinc-700'}`}
+                                        >
+                                            <Switch.Thumb className={`block w-3 h-3 rounded-full bg-white shadow-lg transition-transform duration-300 transform translate-y-1 ${configForm.use_auto_tune !== false ? 'translate-x-6' : 'translate-x-1'}`} />
+                                        </Switch.Root>
+                                    </div>
                                 </div>
+                                )}
                             </div>
 
                             {/* Exit Strategy Section */}

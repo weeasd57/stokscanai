@@ -10,6 +10,7 @@ import json
 from pathlib import Path
 from collections import deque
 import math
+import uuid
 
 
 import numpy as np
@@ -116,6 +117,7 @@ class BotConfig:
     
     # 10. Partial Position Management
     use_partial_positions: bool = False  # Off by default (advanced)
+    use_auto_tune: bool = True  # NEW: Enable/Disable Self-Learning loop
     partial_entry_pct: float = 0.60
     partial_exit_pct: float = 0.50
     
@@ -334,6 +336,9 @@ class LiveBot:
         except Exception as e:
             print(f"Error loading logs from Supabase: {e}")
 
+        # Loads position state for ownership tracking
+        self._load_pos_state_from_supabase()
+
     def _save_trade_persistent(self, trade_info: Dict[str, Any]):
         """Save a trade to Supabase and update stats."""
         try:
@@ -380,6 +385,46 @@ class LiveBot:
             _supabase_upsert_with_retry("bot_trades", [record])
         except Exception as e:
             self._log(f"Supabase Trade Log Error: {e}")
+
+    def _save_pos_state_to_supabase(self):
+        """Persists the current _pos_state to Supabase for recovery after restart."""
+        try:
+            # We store the entire _pos_state as a JSON blob for this bot
+            record = {
+                "bot_id": self.bot_id,
+                "state": self._pos_state,
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }
+            _supabase_upsert_with_retry("bot_states", [record], on_conflict="bot_id")
+        except Exception as e:
+            self._log(f"⚠️ Failed to save position state to Supabase: {e}")
+
+    def _save_config_to_supabase(self):
+        """Save the current configuration to Supabase 'bot_configs' table."""
+        try:
+            config_dict = asdict(self.config)
+            record = {
+                "bot_id": self.bot_id,
+                "config": config_dict,
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }
+            _supabase_upsert_with_retry("bot_configs", [record], on_conflict="bot_id")
+            # self._log(f"✅ Bot configuration persisted to Supabase.")
+        except Exception as e:
+            self._log(f"⚠️ Failed to save config to Supabase: {e}")
+
+    def _load_pos_state_from_supabase(self):
+        """Loads the persisted _pos_state from Supabase."""
+        try:
+            def _fetch_state(sb):
+                return sb.table("bot_active_positions").select("state").eq("bot_id", self.bot_id).execute()
+            
+            res = _supabase_read_with_retry(_fetch_state, table_name="bot_active_positions")
+            if res and res.data:
+                self._pos_state = res.data[0].get("state", {})
+                self._log(f"Successfully recovered {len(self._pos_state)} active positions from Supabase.")
+        except Exception as e:
+            self._log(f"Error loading position state from Supabase: {e}")
 
     def _save_log_to_supabase(self, message: str):
         """Save a single log entry to Supabase 'bot_logs' table."""
@@ -468,7 +513,7 @@ class LiveBot:
                 # Add 3% tolerance
                 sma20_tolerance = 0.03
                 if current_price < sma_20 * (1 - sma20_tolerance):
-                    return False, f"Price below SMA20 tolerance ({current_price:.4f} < {sma_20 * (1 - sma20_tolerance):.4f})"
+                    return False, f"Price below SMA20 tolerance ({current_price:.4f} < {sma_20 * (1 - sma20_tolerance)::.4f})"
             
             # 3. RSI Filter
             if self.config.use_rsi_filter:
@@ -1246,7 +1291,7 @@ class LiveBot:
                                "use_market_regime", "use_mtf_confirmation", "use_atr_exits",
                                "use_rsi_divergence", "use_smart_exit", "use_correlation_guard",
                                "use_winrate_feedback", "use_time_filter", "use_quality_score",
-                               "use_partial_positions"]:
+                           "use_partial_positions", "use_auto_tune"]:
                         current[k] = _parse_bool(v, current[k])
 
                     elif k in ["trading_mode", "execution_mode", "name", "data_source",
@@ -1257,7 +1302,10 @@ class LiveBot:
                         current[k] = v
             
             self.config = BotConfig(**current)
-            self._log("Configuration updated.")
+        self._log("Configuration updated.")
+        
+        # Persist to Supabase
+        self._save_config_to_supabase()
 
     def start(self):
         with self._lock:
@@ -1344,6 +1392,16 @@ class LiveBot:
         so the bot can manage exits (sell logic) for them.
         """
         try:
+            # Fetch all recent orders to check for ownership via client_order_id
+            recent_orders = self.api.list_orders(status="closed", limit=50)
+            owned_symbols = set()
+            for o in recent_orders:
+                cid = str(getattr(o, "client_order_id", ""))
+                if cid.startswith(f"bot_{self.bot_id}_"):
+                    sym = str(getattr(o, "symbol", ""))
+                    if sym:
+                        owned_symbols.add(_normalize_symbol(sym))
+
             positions = list(self.api.list_positions() or [])
             self._log(f"DEBUG: Found {len(positions)} total positions in Alpaca account.")
         except Exception as e:
@@ -1355,30 +1413,43 @@ class LiveBot:
 
         existing = list(self.config.coins or [])
         existing_norm = {_normalize_symbol(c) for c in existing}
+        
+        # If coins are already configured, we respect that list as the boundary
         if existing_norm:
             self._log(
-                "DEBUG: Skipping auto-include of account positions because bot coin list is explicitly configured."
+                "DEBUG: Skipping auto-include because bot coin list is explicitly configured."
             )
             return
 
         added = 0
         for p in positions:
             raw_sym = str(getattr(p, "symbol", "") or "")
+            norm = _normalize_symbol(raw_sym)
+            
+            # 🛡️ ONLY auto-include if we can prove we own it (via recent orders)
+            # OR if this is the only bot (legacy behavior for 'primary')
+            is_owner = norm in owned_symbols
+            is_primary_fallback = self.bot_id == "primary" and not owned_symbols
+            
+            if not (is_owner or is_primary_fallback):
+                self._log(f"DEBUG: Skipping {raw_sym} (not clearly owned by {self.bot_id}).")
+                continue
+
             sym = _format_symbol_for_bot(raw_sym)
             if not sym:
                 continue
-            n = _normalize_symbol(sym)
-            if n in existing_norm:
-                self._log(f"DEBUG: {sym} ({raw_sym}) already in config.")
+            
+            if norm in existing_norm:
                 continue
+                
             existing.append(sym)
-            existing_norm.add(n)
+            existing_norm.add(norm)
             added += 1
-            self._log(f"DEBUG: Auto-adding {sym} from open positions.")
+            self._log(f"DEBUG: Auto-adding owned position {sym} to scan list.")
 
         if added:
             self.config.coins = existing
-            self._log(f"Synced: Included {added} open Alpaca position(s) into coin list.")
+            self._log(f"Synced: Included {added} owned Alpaca position(s) into coin list.")
 
     def _get_bot_coin_norms(self) -> set:
         """
@@ -1413,15 +1484,16 @@ class LiveBot:
                 p_list.append(norm)
                 
                 if norm not in self._pos_state:
-                    self._log(f"Sync: New position found for {sym}. Adding to internal state.")
-                    self._pos_state[norm] = {
-                        "entry_price": float(getattr(p, "avg_entry_price", 0)),
-                        "entry_ts": datetime.now(timezone.utc).isoformat(),
-                        "bars_held": 0,
-                        "target_price": None,
-                        "current_stop": None,
-                        "trail_mode": "NONE",
-                    }
+                    # 🛡️ STRICT ISOLATION: Ignore positions not explicitly opened by THIS bot instance.
+                    # Since we persist _pos_state to Supabase, this state survives restarts.
+                    self._log(f"Sync: Ignoring external position for {sym} (not owned by {self.bot_id}).")
+                    continue
+                
+                # Update existing position data if needed (e.g. entry price refresh)
+                # but keep our internal metadata (entry_ts, bars_held, etc.)
+                alpaca_entry = float(getattr(p, "avg_entry_price", 0))
+                if self._pos_state[norm].get("entry_price") is None:
+                    self._pos_state[norm]["entry_price"] = alpaca_entry
 
             # Check open orders
             orders = self.api.list_orders(status="open")
@@ -1430,6 +1502,12 @@ class LiveBot:
                 norm = _normalize_symbol(sym)
                 if allowed_norms and norm not in allowed_norms:
                     continue
+                
+                # Check if THIS bot owns this order via client_order_id
+                cid = str(getattr(o, "client_order_id", ""))
+                if not cid.startswith(f"bot_{self.bot_id}_"):
+                    continue
+
                 current_alpaca_norms.add(norm)
                 side_obj = getattr(o, "side", "")
                 side = str(getattr(side_obj, "value", side_obj) or "").lower()
@@ -1439,7 +1517,7 @@ class LiveBot:
                         entry_px = float(limit_price) if limit_price is not None else None
                     except Exception:
                         entry_px = None
-                    self._log(f"Sync: Open BUY order detected for {sym}. Reserving slot in internal state.")
+                    self._log(f"Sync: Own open BUY order detected for {sym}. Reserving slot.")
                     self._pos_state[norm] = {
                         "entry_price": entry_px,
                         "entry_ts": datetime.now(timezone.utc).isoformat(),
@@ -1457,16 +1535,18 @@ class LiveBot:
                 if (allowed_norms and norm not in allowed_norms) or norm not in current_alpaca_norms
             ]
             for norm in to_remove:
-                self._log(f"Sync: Pruning {norm} (no longer in Alpaca).")
+                self._log(f"Sync: Pruning {norm} (position closed or cancelled).")
                 self._pos_state.pop(norm, None)
+            
+            # Save updated state to DB
+            self._save_pos_state_to_supabase()
                 
             # Periodic debug log
             if datetime.now().minute % 5 == 0: # Every 5 mins
                  self._log(
                      f"DEBUG POS SYNC [{self.bot_id}]: "
                      f"Allowed({len(allowed_norms)})={sorted(list(allowed_norms))} | "
-                     f"AlpacaFiltered({len(p_list)})={p_list} | "
-                     f"Bot({len(self._pos_state)})={list(self._pos_state.keys())}"
+                     f"Owned({len(self._pos_state)})={list(self._pos_state.keys())}"
                  )
                 
         except Exception as e:
@@ -1857,12 +1937,16 @@ class LiveBot:
 
     def _buy_market(self, symbol: str, notional_usd: float) -> bool:
         try:
+            # Generate a unique client order ID tagged with bot_id
+            client_order_id = f"bot_{self.bot_id}_{uuid.uuid4().hex[:12]}"
+            
             order = self.api.submit_order(
                 symbol=symbol,
                 notional=float(notional_usd),
                 side="buy",
                 type="market",
                 time_in_force="gtc",
+                client_order_id=client_order_id
             )
             try:
                 avg_fill = float(getattr(order, "filled_avg_price", 0) or 0) or None
@@ -1875,6 +1959,7 @@ class LiveBot:
                 "current_stop": None,
                 "trail_mode": "NONE",
             }
+            self._save_pos_state_to_supabase()
             trade = {
                 "timestamp": datetime.now().isoformat(),
                 "symbol": symbol,
@@ -1909,32 +1994,86 @@ class LiveBot:
             self._log(f"Buy failed for {symbol}: {e}")
             return False
 
-    def _sell_market(self, symbol: str, qty: float) -> bool:
+    def _sell_market(self, symbol: str, qty: float, is_full_exit: bool = True) -> bool:
+        """
+        Sell a position on the market.
+        
+        Args:
+            symbol: Trading symbol
+            qty: Quantity to sell (used for logging/PnL calculation)
+            is_full_exit: If True, use close_position() to avoid dust issues
+        
+        Returns:
+            True if sell succeeded, False otherwise
+        """
         try:
-            # Apply safety factor for crypto/floating point precision issues
-            # Reduce by 0.01% to ensure available balance is sufficient
+            # Minimum quantity threshold (Alpaca requires > 1e-9)
+            MIN_QTY = 1e-8
+            # For crypto, always use close_position() for full exits to avoid dust
             is_crypto = "/" in symbol or symbol.upper().endswith("USD") or symbol.upper().endswith("USDT")
-            safe_qty = float(qty)
-            if is_crypto:
-                safe_qty = safe_qty * 0.9999
-                self._log(f"DEBUG: Applying crypto safety factor (0.9999): {qty} -> {safe_qty}")
-            
-            order = self.api.submit_order(
-                symbol=symbol,
-                qty=safe_qty,
-                side="sell",
-                type="market",
-                time_in_force="gtc",
-            )
+            order = None
+            fill_price = None
+            # Strategy 1: Use close_position() for complete exits (recommended)
+            if is_full_exit:
+                try:
+                    self._log(f"🧹 Closing ENTIRE position for {symbol} (avoiding dust)...")
+                    success = self.api.close_position(symbol)
+                    
+                    if success:
+                        # Fetch the closed order to get the fill price for PnL tracking
+                        import time
+                        time.sleep(0.5) # Minimal delay
+                        try:
+                            orders = self.api.list_orders(status="closed", symbols=[symbol], limit=1)
+                            if orders:
+                                order = orders[0]
+                        except Exception:
+                            pass
+                        
+                except Exception as e:
+                    self._log(f"⚠️ close_position failed for {symbol}: {e}")
+                    # Fallback: try manual sell with safety factor
+                    if qty > MIN_QTY:
+                        safe_qty = float(qty) * 0.9999 if is_crypto else float(qty)
+                        self._log(f"Fallback: Attempting manual sell with qty={safe_qty}")
+                        order = self.api.submit_order(
+                            symbol=symbol,
+                            qty=safe_qty,
+                            side="sell",
+                            type="market",
+                            time_in_force="gtc",
+                        )
+                    else:
+                        self._log(f"❌ Quantity {qty} too small (< {MIN_QTY}), cannot sell")
+                        return False
+            # Strategy 2: Partial sell (not a full exit)
+            else:
+                # Validate minimum quantity
+                if qty <= MIN_QTY:
+                    self._log(f"❌ Quantity {qty} too small (< {MIN_QTY}), skipping partial sell")
+                    return False
+                # Apply safety factor for crypto
+                safe_qty = float(qty) * 0.9999 if is_crypto else float(qty)
+                if safe_qty <= MIN_QTY:
+                    self._log(f"❌ Safe quantity {safe_qty} too small after adjustment, skipping")
+                    return False
+                self._log(f"Partial sell: {symbol} qty={safe_qty}")
+                order = self.api.submit_order(
+                    symbol=symbol,
+                    qty=safe_qty,
+                    side="sell",
+                    type="market",
+                    time_in_force="gtc",
+                )
+            # Extract fill price from order
+            if order:
+                try:
+                    fill_price = float(getattr(order, "filled_avg_price", 0) or 0) or None
+                except Exception:
+                    pass
             # Calculate PnL and Track Limits
             pnl = 0.0
             entry_price = self._pos_state.get(_normalize_symbol(symbol), {}).get("entry_price")
-            fill_price = None
-            try:
-                fill_price = float(getattr(order, "filled_avg_price", 0) or 0) or None
-            except:
-                pass
-                
             if entry_price and fill_price:
                 qty_sold = float(qty)
                 pnl = (fill_price - entry_price) * qty_sold
@@ -1943,7 +2082,6 @@ class LiveBot:
                     self._consecutive_losses += 1
                 else:
                     self._consecutive_losses = 0
-
             trade = {
                 "timestamp": datetime.now().isoformat(),
                 "symbol": symbol,
@@ -1952,19 +2090,16 @@ class LiveBot:
                 "price": fill_price,
                 "entry_price": entry_price,
                 "pnl": pnl,
-                "order_id": str(getattr(order, "id", "unknown")),
+                "order_id": str(getattr(order, "id", "unknown")) if order else "close_position",
             }
             self._trades.append(trade)
             self._save_trade_persistent(trade)
-            
             if self.telegram_bridge:
                 emoji = "🟢" if pnl > 0 else "🔴"
                 exit_str = f"`${fill_price:,.2f}`" if fill_price else "`pending fill`"
-                
                 pnl_pct = 0.0
                 if entry_price and fill_price:
                     pnl_pct = ((fill_price / entry_price) - 1) * 100
-                
                 msg = (
                     f"{emoji} *SELL EXECUTED*\n"
                     f"━━━━━━━━━━━━━━━\n"
@@ -1976,17 +2111,84 @@ class LiveBot:
                     f"🤖 *Bot:* `{self.config.name}`"
                 )
                 self.telegram_bridge.send_notification(msg)
-            
-            self._pos_state.pop(_normalize_symbol(symbol), None)
-            
-            # 🧊 Cooldown: Ban symbol for X minutes
-            self._cooldowns[_normalize_symbol(symbol)] = datetime.now(timezone.utc)
-            self._log(f"🧊 COOLDOWN: {symbol} banned for {self.config.cooldown_minutes} mins.")
-            
+            # Only clear position state and apply cooldown for full exits
+            if is_full_exit:
+                self._pos_state.pop(_normalize_symbol(symbol), None)
+                # 🧊 Cooldown: Ban symbol for X minutes
+                self._cooldowns[_normalize_symbol(symbol)] = datetime.now(timezone.utc)
+                self._log(f"🧊 COOLDOWN: {symbol} banned for {self.config.cooldown_minutes} mins.")
+            self._save_pos_state_to_supabase()
             return True
         except Exception as e:
             self._log(f"Sell failed for {symbol}: {e}")
             return False
+
+    def clean_dust(self, threshold: float = 0.10) -> int:
+        """
+        Closes all positions in the account with a market value below the threshold.
+        Useful for cleaning up 'crypto dust' (extremely small fractional positions).
+        """
+        cleaned_count = 0
+        try:
+            if not self.api:
+                if self.config.alpaca_key_id and self.config.alpaca_secret_key:
+                    self._log("🧹 DUST CLEANUP: API client not initialized. Creating temporary client...")
+                    self.api = create_alpaca_client(
+                        key_id=self.config.alpaca_key_id,
+                        secret_key=self.config.alpaca_secret_key,
+                        base_url=self.config.alpaca_base_url,
+                        logger=self._log,
+                    )
+                else:
+                    self._log("❌ DUST CLEANUP: API client not initialized and keys missing in config.")
+                    return 0
+
+            positions = self.api.list_positions()
+            self._log(f"🧹 DUST CLEANUP: Scanning {len(positions)} total positions (Threshold: ${threshold})...")
+            
+            for p in positions:
+                symbol = getattr(p, "symbol", "")
+                if not symbol: continue
+                
+                # Market value often comes as a string from Alpaca
+                mv_raw = getattr(p, "market_value", "0")
+                qty_raw = getattr(p, "qty", "0")
+                
+                try:
+                    market_value = float(mv_raw or 0)
+                    qty = float(qty_raw or 0)
+                except (ValueError, TypeError):
+                    market_value = 0
+                    qty = 0
+                
+                # If market value is effectively zero or below threshold, it's dust
+                is_dust = (market_value < threshold) or (market_value == 0 and qty > 0)
+                
+                if is_dust:
+                    self._log(f"🧹 DUST: Closing {symbol} (Value: ${market_value:.6f}, Qty: {qty:.10f})")
+                    try:
+                        self.api.close_position(symbol)
+                        cleaned_count += 1
+                        # Short delay between closes
+                        time.sleep(0.3)
+                    except Exception as ex:
+                        msg = str(ex)
+                        if ("minimal qty of order" in msg.lower()) or ("40310000" in msg):
+                            self._log(f"⚠️ DUST: Skipping {symbol} (below Alpaca min qty).")
+                            continue
+                        self._log(f"❌ DUST: Failed to close {symbol}: {ex}")
+            
+            if cleaned_count > 0:
+                self._log(f"🎊 Dust cleanup complete. Closed {cleaned_count} small position(s).")
+                # Trigger a position sync refresh
+                self._sync_pos_state()
+            else:
+                self._log("🧹 DUST CLEANUP: No dust positions found.")
+                
+            return cleaned_count
+        except Exception as e:
+            self._log(f"❌ Dust cleanup error: {e}")
+            return 0
 
     def _maybe_sell_position(self, symbol: str, bars: pd.DataFrame) -> bool:
         """
@@ -2116,6 +2318,63 @@ class LiveBot:
         return False
 
 
+    # ── Feature 11: Auto-Tuning (Self-Learning) ───────────────────────────
+    def _auto_tune_parameters(self):
+        """
+        Reviews bot performance and automatically adjusts parameters based on results.
+        Analyzes the last 20 closed trades to adapt to market conditions.
+        """
+        # 1. Get last 20 closed trades
+        closed_trades = [t for t in self._trades if t.get("action") == "SELL"]
+        if len(closed_trades) < 5:
+            return  # Not enough data to learn yet
+
+        recent = closed_trades[-20:] # Focus on the last 20
+        wins = sum(1 for t in recent if (t.get("pnl") or 0) > 0)
+        win_rate = wins / len(recent)
+        
+        # Get total PnL for the recent window
+        total_pnl = sum(t.get("pnl") or 0 for t in recent)
+
+        self._log(f"🤖 AUTO-TUNE: WinRate={win_rate:.0%} | PnL=${total_pnl:.2f} | Current King={self.config.king_threshold:.2f}")
+
+        # 2. Adjust Entry Logic (King Threshold)
+        # Low performance (WinRate < 40%) -> Tighten entry conditions
+        if win_rate < 0.40:
+            new_thresh = min(0.85, self.config.king_threshold + 0.02)
+            if new_thresh != self.config.king_threshold:
+                self.config.king_threshold = new_thresh
+                self._log(f"⚠️ Performance Low: Tightening King Threshold to {new_thresh:.2f}")
+        
+        # High performance (WinRate > 75%) -> Relax entry conditions to capture more opportunities
+        elif win_rate > 0.75:
+            new_thresh = max(0.50, self.config.king_threshold - 0.02)
+            if new_thresh != self.config.king_threshold:
+                self.config.king_threshold = new_thresh
+                self._log(f"🚀 Performance High: Relaxing King Threshold to {new_thresh:.2f}")
+
+        # 3. Adjust Stop Loss based on market
+        # Significant losses -> Tighten Stop Loss
+        if total_pnl < -50: # Default threshold
+            new_sl = max(0.02, self.config.stop_loss_pct - 0.01) # Reduce SL by 1%
+            if new_sl != self.config.stop_loss_pct:
+                self.config.stop_loss_pct = new_sl
+                self._log(f"🛡️ Protection Mode: Tightening Stop Loss to {new_sl*100:.1f}%")
+
+        # 4. Money Management (Position Sizing)
+        # Consecutive losses -> Reduce position size
+        if self._consecutive_losses >= 2:
+            new_cash_pct = max(0.05, self.config.pct_cash_per_trade * 0.8) # Reduce by 20%
+            if new_cash_pct != self.config.pct_cash_per_trade:
+                self.config.pct_cash_per_trade = new_cash_pct
+                self._log(f"📉 Losing Streak: Reducing Position Size to {new_cash_pct*100:.1f}%")
+        
+        # Consistent wins -> Restore normal position size
+        elif self._consecutive_losses == 0 and self.config.pct_cash_per_trade < 0.10:
+             self.config.pct_cash_per_trade = 0.10 # Restore to baseline
+             self._log(f"✅ Winning Streak: Restoring Position Size to 10%")
+
+
     def _run_loop(self):
         try:
             self._log("Initializing models and connection...")
@@ -2142,6 +2401,8 @@ class LiveBot:
             self._log(f"Models loaded. Polling every {self.config.poll_seconds}s.")
             self._log(f"Coins: {', '.join(self.config.coins)}")
             self._log(f"Thresholds: KING>={self.config.king_threshold}, COUNCIL>={self.config.council_threshold}")
+
+            loops_count = 0
 
             while not self._stop_event.is_set():
                 now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%SZ")
@@ -2388,6 +2649,10 @@ class LiveBot:
                     else:
                         self._log(f"{symbol}: Telegram-Only Signal recorded. (Quality={quality:.0f}, Regime={regime})")
 
+                # Auto-tuning execution
+                loops_count += 1
+                if self.config.use_auto_tune and loops_count % 12 == 0:
+                    self._auto_tune_parameters()
 
                 # Wait for next poll or stop signal
                 # Break it into small chunks to be responsive to stop

@@ -49,6 +49,7 @@ class BotConfigUpdate(BaseModel):
     name: Optional[str] = None
     execution_mode: Optional[str] = None
     trading_mode: Optional[str] = None
+    use_auto_tune: Optional[bool] = None
 
 class BotCreate(BaseModel):
     bot_id: str
@@ -84,6 +85,17 @@ def clear_bot_logs(bot_id: str = "primary"):
             raise HTTPException(status_code=404, detail=f"Bot {bot_id} not found")
         bot.clear_logs()
         return {"status": "cleared", "bot_id": bot_id}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.post("/clean_dust")
+def clean_bot_dust(bot_id: str = "primary"):
+    try:
+        bot = bot_manager.get_bot(bot_id)
+        if not bot:
+            raise HTTPException(status_code=404, detail=f"Bot {bot_id} not found")
+        count = bot.clean_dust()
+        return {"status": "success", "cleaned_count": count}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 

@@ -204,10 +204,12 @@ class AlpacaPyAdapter:
         else:
             slash_sym = raw
 
-        clean_sym = slash_sym.replace("/", "")
+        # Only try the BASE/QUOTE form first. Some Alpaca endpoints explicitly require the
+        # slash format (^[A-Z]+/[A-Z]+$). Falling back to the "clean" form (e.g. BTCUSD)
+        # can produce misleading errors and isn't helpful for the crypto latest-trade API.
         attempts = [slash_sym]
-        if clean_sym != slash_sym:
-            attempts.append(clean_sym)
+        if raw != slash_sym:
+            attempts.append(raw)
 
         last_err: Optional[Exception] = None
         for req_sym in attempts:
@@ -215,7 +217,7 @@ class AlpacaPyAdapter:
                 request_params = CryptoLatestTradeRequest(symbol_or_symbols=req_sym)
                 trade = self._data.get_crypto_latest_trade(request_params)
                 if isinstance(trade, dict):
-                    return trade.get(req_sym) or trade.get(slash_sym) or trade.get(clean_sym)
+                    return trade.get(req_sym) or trade.get(slash_sym) or trade.get(raw)
                 return trade
             except Exception as e:
                 last_err = e
@@ -426,10 +428,37 @@ class AlpacaPyAdapter:
             
         except AlpacaClientError:
             raise
+            raise AlpacaClientError(f"Failed to get watchlist by name: {e}")
+
+    def close_position(self, symbol: str) -> bool:
+        """
+        Close an entire position for a symbol.
+        
+        This is the recommended way to exit a position completely as it avoids
+        dust/precision issues with manually calculating quantities.
+        
+        Args:
+            symbol: Trading symbol (e.g., "BTC/USD")
+            
+        Returns:
+            True if position was closed successfully
+            
+        Raises:
+            AlpacaClientError: If close fails
+        """
+        if not symbol:
+            raise AlpacaClientError("symbol is required")
+        
+        try:
+            if self._logger:
+                self._logger(f"🧹 Closing entire position for {symbol}...")
+            # close_position returns the order object that was submitted
+            self._trading.close_position(symbol)
+            return True
         except Exception as e:
             if self._logger:
-                self._logger(f"Error searching for watchlist: {e}")
-            raise AlpacaClientError(f"Failed to get watchlist by name: {e}")
+                self._logger(f"Close position failed for {symbol}: {e}")
+            raise AlpacaClientError(f"Failed to close position: {e}")
 
 
 def create_alpaca_client(
