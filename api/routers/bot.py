@@ -146,10 +146,15 @@ def update_bot_config(config: BotConfigUpdate, bot_id: str = "primary"):
 def get_available_countries():
     """Returns a list of available countries and their symbol counts from summary files."""
     try:
-        base_dir = Path(os.getcwd())
+        # Use absolute path relative to this file to work in all environments (HF, Vercel, Local)
+        api_dir = Path(__file__).parent.parent
+        base_dir = api_dir.parent
         symbols_dir = base_dir / "symbols_data"
         
+        print(f"DEBUG: Checking countries in {symbols_dir}")
+        
         if not symbols_dir.exists():
+            print(f"DEBUG: symbols_data not found at {symbols_dir}")
             return []
             
         # Try to find country_summary_*.json
@@ -183,16 +188,17 @@ def get_available_countries():
 def get_available_models():
     """Returns a list of model files (.pkl) from the api/models directory."""
     try:
-        base_dir = Path(os.getcwd())
-        models_dir = base_dir / "api" / "models"
+        # Use absolute path relative to this file
+        api_dir = Path(__file__).parent.parent
+        models_dir = api_dir / "models"
         
         if not models_dir.exists():
             return []
             
         # Find all .pkl files
         model_files = list(models_dir.glob("*.pkl"))
-        # Return paths relative to models_dir or just the names? 
-        # The bot seems to expect a path. Let's return the relative path from base_dir for now.
+        # Return paths relative to base_dir (parent of api) for the bot to use
+        base_dir = api_dir.parent
         return sorted([str(f.relative_to(base_dir)).replace("\\", "/") for f in model_files])
     except Exception as e:
         print(f"Error fetching models: {e}")
@@ -202,8 +208,10 @@ def get_available_models():
 def get_available_coins(source: Optional[str] = None, limit: int = 0, country: Optional[str] = None, pair_type: Optional[str] = None):
     """Fetches available coins from various sources including local files."""
     try:
+        api_dir = Path(__file__).parent.parent
+        base_dir = api_dir.parent
+
         if source == "alpaca_stocks":
-            base_dir = Path(os.getcwd())
             alpaca_json = base_dir / "alpaca_exchanges" / "us_equity" / "all_assets.json"
             if alpaca_json.exists():
                 with open(alpaca_json, "r", encoding="utf-8") as f:
@@ -213,7 +221,6 @@ def get_available_coins(source: Optional[str] = None, limit: int = 0, country: O
             return []
 
         if source == "global" and country:
-            base_dir = Path(os.getcwd())
             symbols_dir = base_dir / "symbols_data"
             
             # Find the file for this country - be case-insensitive
@@ -241,14 +248,9 @@ def get_available_coins(source: Optional[str] = None, limit: int = 0, country: O
             return fetch_all_binance_symbols(quote_asset="USDT", limit=limit)
         
         if source == "alpaca":
-            # Load from local alpaca_exchanges/crypto/CRYPTO.json
-            base_dir = Path(os.getcwd())
+            # Load from absolute path
             alpaca_json = base_dir / "alpaca_exchanges" / "crypto" / "CRYPTO.json"
             
-            # Additional check: look relative to this file's directory
-            if not alpaca_json.exists():
-                alpaca_json = Path(__file__).parent.parent / "alpaca_exchanges" / "crypto" / "CRYPTO.json"
-
             if alpaca_json.exists():
                 with open(alpaca_json, "r", encoding="utf-8") as f:
                     data = json.load(f)

@@ -1390,65 +1390,10 @@ class LiveBot:
         When starting, automatically include any currently open Alpaca positions in the scan list
         so the bot can manage exits (sell logic) for them.
         """
-        try:
-            # Fetch all recent orders to check for ownership via client_order_id
-            recent_orders = self.api.list_orders(status="closed", limit=50)
-            owned_symbols = set()
-            for o in recent_orders:
-                cid = str(getattr(o, "client_order_id", ""))
-                if cid.startswith(f"bot_{self.bot_id}_"):
-                    sym = str(getattr(o, "symbol", ""))
-                    if sym:
-                        owned_symbols.add(_normalize_symbol(sym))
-
-            positions = list(self.api.list_positions() or [])
-            self._log(f"DEBUG: Found {len(positions)} total positions in Alpaca account.")
-        except Exception as e:
-            self._log(f"DEBUG ERROR: Failed to fetch positions at startup: {e}")
-            return
-
-        if not positions:
-            return
-
-        existing = list(self.config.coins or [])
-        existing_norm = {_normalize_symbol(c) for c in existing}
-        
-        # If coins are already configured, we respect that list as the boundary
-        if existing_norm:
-            self._log(
-                "DEBUG: Skipping auto-include because bot coin list is explicitly configured."
-            )
-            return
-
-        added = 0
-        for p in positions:
-            raw_sym = str(getattr(p, "symbol", "") or "")
-            norm = _normalize_symbol(raw_sym)
-            
-            # 🛡️ ONLY auto-include if we can prove we own it (via recent orders)
-            # OR if this is the only bot (legacy behavior for 'primary')
-            is_owner = norm in owned_symbols
-            is_primary_fallback = self.bot_id == "primary" and not owned_symbols
-            
-            if not (is_owner or is_primary_fallback):
-                self._log(f"DEBUG: Skipping {raw_sym} (not clearly owned by {self.bot_id}).")
-                continue
-
-            sym = _format_symbol_for_bot(raw_sym)
-            if not sym:
-                continue
-            
-            if norm in existing_norm:
-                continue
-                
-            existing.append(sym)
-            existing_norm.add(norm)
-            added += 1
-            self._log(f"DEBUG: Auto-adding owned position {sym} to scan list.")
-
-        if added:
-            self.config.coins = existing
-            self._log(f"Synced: Included {added} owned Alpaca position(s) into coin list.")
+        # 🛡️ Force strict adherence to configured coins list only.
+        # User reported unwanted symbols (like AAVE/USDC) being scanned.
+        self._log("DEBUG: Strict coin filtering enabled. Skipping auto-include of legacy positions.")
+        return
 
     def _get_bot_coin_norms(self) -> set:
         """
