@@ -3,7 +3,7 @@
 import { Zap, ChevronDown, Check, Loader2, Download, Database, Info, History, Trash2, TrendingUp, Clock, Sparkles } from "lucide-react";
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts";
 import { useState, useEffect, useMemo } from "react";
-import { getAlpacaSupabaseStats, type AlpacaSupabaseStats } from "@/lib/api";
+import { type AlpacaSupabaseStats } from "@/lib/api";
 import { toast } from "sonner";
 import ConfirmDialog from "@/components/ConfirmDialog";
 
@@ -228,8 +228,8 @@ export default function AIAutomationTab({
         const fetchCryptoStats = async () => {
             setLoadingCryptoStats(true);
             try {
-                const res = await getAlpacaSupabaseStats("crypto");
-                setCryptoStats(res);
+                // Alpaca routes removed. Keep UI stable by disabling this call.
+                setCryptoStats(null);
             } catch {
                 setCryptoStats(null);
             } finally {

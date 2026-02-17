@@ -14,13 +14,11 @@ warnings.filterwarnings("ignore", category=FutureWarning)
 # from dotenv import load_dotenv
 
 from dotenv import load_dotenv
-# Explicitly load .env from the root directory
+
+# Load environment variables from the repo root (and optional web env overrides).
 base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 load_dotenv(os.path.join(base_dir, ".env"))
 load_dotenv(os.path.join(base_dir, "web", ".env.local"), override=True)
-
-print(f"DEBUG: EODHD_API_KEY loaded: {'Yes' if os.getenv('EODHD_API_KEY') else 'No'}")
-print(f"DEBUG: ARTORO_AI_BOT loaded: {'Yes' if os.getenv('ARTORO_AI_BOT') else 'No'}")
 
 from fastapi import FastAPI, HTTPException, Request, Query, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
@@ -32,19 +30,9 @@ from pydantic import BaseModel, Field
 
 import yfinance as yf
 
-print("Main: Importing stock_ai...")
 from api.stock_ai import run_pipeline
-print("Main: Importing symbols_local...")
 from api.symbols_local import list_countries, search_symbols
-print("Main: Importing routers...")
-from api.routers import scan_ai, scan_ai_fast, scan_tech, admin, alpaca
-print("Main: Imports done.")
-
-load_dotenv()
-
-# Debug: Print loaded environment variables
-print(f"DEBUG: NEXT_PUBLIC_SUPABASE_URL loaded: {'Yes' if os.getenv('NEXT_PUBLIC_SUPABASE_URL') else 'No'}")
-print(f"DEBUG: SUPABASE_SERVICE_ROLE_KEY loaded: {'Yes' if os.getenv('SUPABASE_SERVICE_ROLE_KEY') else 'No'}")
+from api.routers import scan_ai, scan_ai_fast, scan_tech, admin
 
 app = FastAPI(title="Artoro API", version="1.0.0")
 
@@ -119,7 +107,6 @@ app.include_router(scan_ai.router)
 app.include_router(scan_ai_fast.router)
 app.include_router(scan_tech.router)
 app.include_router(admin.router)
-app.include_router(alpaca.router)
 from api.routers import bot
 app.include_router(bot.router, prefix="/ai_bot")
 app.include_router(bot.router, prefix="/bot") # Compatibility Alias

@@ -25,17 +25,14 @@ except ImportError:
 # We'll use the existing imports from run_live_bot.py logic
 # assuming api module structure is available.
 from api.stock_ai import _supabase_upsert_with_retry, _supabase_read_with_retry, supabase
-from api.alpaca_adapter import create_alpaca_client
+from api.virtual_market_adapter import create_virtual_market_client
 
 warnings.filterwarnings("ignore")
 
 @dataclass
 class BotConfig:
     name: str = "Primary Bot"
-    execution_mode: str = "BOTH"  # "ALPACA" | "TELEGRAM" | "BOTH"
-    alpaca_key_id: str = ""
-    alpaca_secret_key: str = ""
-    alpaca_base_url: str = "https://paper-api.alpaca.markets"
+    execution_mode: str = "BOTH"  # "VIRTUAL" | "TELEGRAM" | "BOTH"
     coins: list[str] = None
     king_threshold: float = 0.45
     council_threshold: float = 0.25
@@ -417,12 +414,14 @@ class LiveBot:
         """Loads the persisted _pos_state from Supabase."""
         try:
             def _fetch_state(sb):
-                return sb.table("bot_active_positions").select("state").eq("bot_id", self.bot_id).execute()
+                return sb.table("bot_states").select("state").eq("bot_id", self.bot_id).execute()
             
-            res = _supabase_read_with_retry(_fetch_state, table_name="bot_active_positions")
+            res = _supabase_read_with_retry(_fetch_state, table_name="bot_states")
             if res and res.data:
-                self._pos_state = res.data[0].get("state", {})
-                self._log(f"Successfully recovered {len(self._pos_state)} active positions from Supabase.")
+                state_data = res.data[0].get("state", {})
+                if state_data:
+                    self._pos_state = state_data
+                    self._log(f"Successfully recovered {len(self._pos_state)} active positions from Supabase.")
         except Exception as e:
             self._log(f"Error loading position state from Supabase: {e}")
 
@@ -1102,28 +1101,24 @@ class LiveBot:
         target_price = price * (1 + self.config.target_pct)
         stop_price = price * (1 - self.config.stop_loss_pct)
         
-        mode_emoji = "🔵" if self.config.execution_mode == "TELEGRAM" else "🟢"
-        title = f"{mode_emoji} *NEW TRADE SIGNAL*"
-        if self.config.execution_mode == "TELEGRAM":
-            title += " (Signal Only)"
-        
-        # Cornix compatible format keywords
+        # Cornix format
         formatted_symbol = f"#{symbol.replace('/', '')}" if '/' in symbol else f"#{symbol}"
+        
         msg = (
-            f"{title}\n"
-            f"━━━━━━━━━━━━━━━\n"
-            f"💎 *Pair:* {formatted_symbol}\n"
-            f"💰 *Entry Targets:* `${price:,.4f}`\n"
-            f"🎯 *Take-Profit Targets:* `${target_price:,.4f}`\n"
-            f"🛑 *Stop Targets:* `${stop_price:,.4f}`\n"
-            f"💵 *Amount:* `${notional:,.2f}`\n"
-            f"━━━━━━━━━━━━━━━\n"
-            f"👑 *KING Conf:* `{king_conf:.2f}`\n"
+            f"{formatted_symbol}\n"
+            f"Signal Type: Buy\n"
+            f"Leverage: Cross (20.0X)\n\n"
+            f"Entry Targets:\n"
+            f"1) {price:.4f}\n\n"
+            f"Take-Profit Targets:\n"
+            f"1) {target_price:.4f}\n\n"
+            f"Stop Targets:\n"
+            f"1) {stop_price:.4f}\n\n"
+            f"Trailing Configuration:\n"
+            f"Entry: Percentage (0.0%)\n"
+            f"Take-Profit: Percentage (0.0%)\n"
+            f"Stop: Percentage (0.0%)"
         )
-        if council_conf is not None:
-            msg += f"🛡️ *COUNCIL Conf:* `{council_conf:.2f}`\n"
-            
-        msg += f"🤖 *Bot:* `{self.config.name}`"
         
         self.telegram_bridge.send_notification(msg)
 
@@ -1160,51 +1155,57 @@ class LiveBot:
         price = 1234.56
         amount = 500.0
         
-        if notify_type == "buy":
-             msg = (
-                f"🟢 *TEST BUY EXECUTED*\n"
-                f"━━━━━━━━━━━━━━━\n"
-                f"💎 *Symbol:* `{symbol}`\n"
-                f"💰 *Price:* `${price:,.2f}`\n"
-                f"💵 *Amount:* `${amount:,.2f}`\n"
-                f"📊 *Regime:* `BULL`\n"
-                f"🎯 *Quality:* `85`\n"
-                f"━━━━━━━━━━━━━━━\n"
-                f"🤖 *Bot:* `{self.config.name} (TEST)`"
+        if notify_type == "buy" or notify_type == "signal":
+            # Use the Cornix format logic
+            formatted_symbol = "#TESTUSD"
+            target_price = price * 1.15
+            stop_price = price * 0.95
+            
+            msg = (
+                f"{formatted_symbol}\n"
+                f"Signal Type: Buy\n"
+                f"Leverage: Cross (20.0X)\n\n"
+                f"Entry Targets:\n"
+                f"1) {price:.2f}\n\n"
+                f"Take-Profit Targets:\n"
+                f"1) {target_price:.2f}\n\n"
+                f"Stop Targets:\n"
+                f"1) {stop_price:.2f}\n\n"
+                f"Trailing Configuration:\n"
+                f"Entry: Percentage (0.0%)\n"
+                f"Take-Profit: Percentage (0.0%)\n"
+                f"Stop: Percentage (0.0%)"
             )
+
         elif notify_type == "sell":
+            formatted_symbol = "#TESTUSD"
             pnl = 25.50
             pnl_pct = 5.10
+            
+            # Cornix Close/Sell format?
+            # Usually:
+            # #SYMBOL
+            # Closed at 1234.56
+            # PnL: +5.10%
+            
             msg = (
-                f"🔴 *TEST SELL EXECUTED*\n"
-                f"━━━━━━━━━━━━━━━\n"
-                f"💎 *Symbol:* `{symbol}`\n"
-                f"💰 *Exit Price:* `${price:,.2f}` ({pnl_pct:+.2f}%)\n"
-                f"💵 *PnL:* `${pnl:,.2f}`\n"
-                f"📈 *Daily PnL:* `$125.00`\n"
-                f"━━━━━━━━━━━━━━━\n"
-                f"🤖 *Bot:* `{self.config.name} (TEST)`"
+                f"{formatted_symbol}\n"
+                f"Signal Type: Close (Buy)\n\n"
+                f"Closed at {price:.2f}\n"
+                f"PnL: {pnl_pct:+.2f}% (${pnl:.2f})\n"
             )
-        elif notify_type == "signal":
-            target = price * 1.15
-            stop = price * 0.95
-            formatted_symbol = f"#{symbol.replace('/', '')}" if '/' in symbol else f"#{symbol}"
-            msg = (
-                f"🔵 *TEST TRADE SIGNAL*\n"
-                f"━━━━━━━━━━━━━━━\n"
-                f"💎 *Pair:* {formatted_symbol}\n"
-                f"💰 *Entry Targets:* `${price:,.2f}`\n"
-                f"🎯 *Take-Profit Targets:* `${target:,.2f}`\n"
-                f"🛑 *Stop Targets:* `${stop:,.2f}`\n"
-                f"💵 *Amount:* `${amount:,.2f}`\n"
-                f"━━━━━━━━━━━━━━━\n"
-                f"👑 *KING Conf:* `0.92`\n"
-                f"🤖 *Bot:* `{self.config.name} (TEST)`"
-            )
+            
         else:
             return False, f"Unknown notification type: {notify_type}"
             
-        self.telegram_bridge.send_notification(msg)
+        future = self.telegram_bridge.send_notification(msg)
+        if future:
+            try:
+                # Wait for the message to be sent
+                future.result(timeout=10)
+            except Exception as e:
+                return False, f"Telegram Error: {e}"
+        
         return True, "Notification sent"
 
     def _build_default_config(self) -> BotConfig:
@@ -1215,10 +1216,6 @@ class LiveBot:
             )
         )
         return BotConfig(
-            # Support both env var styles used across the repo/UI.
-            alpaca_key_id=str(_read_first_env(["ALPACA_KEY_ID", "ALPACA_API_KEY"], "") or ""),
-            alpaca_secret_key=str(_read_first_env(["ALPACA_SECRET_KEY"], "") or ""),
-            alpaca_base_url=str(_read_env("ALPACA_BASE_URL", "https://paper-api.alpaca.markets")),
             coins=coins,
             king_threshold=_parse_float(_read_env("KING_THRESHOLD", "0.45"), 0.45),
             council_threshold=_parse_float(_read_env("COUNCIL_THRESHOLD", "0.25"), 0.25),
@@ -1295,9 +1292,11 @@ class LiveBot:
                         current[k] = _parse_bool(v, current[k])
 
                     elif k in ["trading_mode", "execution_mode", "name", "data_source",
-                               "alpaca_key_id", "alpaca_secret_key", "alpaca_base_url",
                                "king_model_path", "council_model_path", "timeframe"]:
-                        current[k] = str(v).strip()
+                        sval = str(v).strip()
+                        if k == "execution_mode" and sval.upper() == "ALPACA":
+                            sval = "VIRTUAL"
+                        current[k] = sval
                     else:
                         current[k] = v
             
@@ -1656,16 +1655,14 @@ class LiveBot:
         
         # If the user explicitly sets a data source for the whole bot, we might respect it,
         # but for symbols like EGX ones, we need specific handling.
-        source = (getattr(self.config, "data_source", "alpaca") or "alpaca").lower()
+        source = (getattr(self.config, "data_source", "binance") or "binance").lower()
         
         # EGX Heuristic: 4 uppercase letters and no slash
         if not is_crypto and len(symbol) <= 5 and symbol.isupper() and "/" not in symbol:
             # Likely EGX or US Stock
-            if source == "alpaca":
-                 # Fallback to yfinance for EGX symbols as Alpaca doesn't support them
-                 # and user report shows Alpaca Crypto API is being wrongly triggered.
-                 self._log(f"Routing {symbol} to yfinance (Stock Detection)")
-                 return self._get_yfinance_bars(symbol, limit)
+            # Use yfinance for non-crypto symbols by default.
+            self._log(f"Routing {symbol} to yfinance (Stock Detection)")
+            return self._get_yfinance_bars(symbol, limit)
 
         if symbol in self._data_stream and self._data_stream[symbol]["status"] == "ERROR" and "yfinance" not in self._data_stream[symbol].get("message", ""):
             # If already failed on primary, might already be routed or need routing
@@ -1692,13 +1689,10 @@ class LiveBot:
              return pd.DataFrame()
 
         try:
-            source = (getattr(self.config, "data_source", "alpaca") or "alpaca").lower()
-            if source == "binance":
-                from api.binance_data import fetch_binance_bars_df
-                bars = fetch_binance_bars_df(symbol, timeframe=self.config.timeframe, limit=int(limit))
-            else:
-                # Alpaca Crypto V2
-                bars = self.api.get_crypto_bars(symbol, timeframe=self.config.timeframe, limit=int(limit)).df
+            source = (getattr(self.config, "data_source", "binance") or "binance").lower()
+            # Virtual mode: always use non-Alpaca data sources for market data.
+            from api.binance_data import fetch_binance_bars_df
+            bars = fetch_binance_bars_df(symbol, timeframe=self.config.timeframe, limit=int(limit))
             
             return self._process_bars(bars, symbol, source, limit)
         except Exception as e:
@@ -1707,18 +1701,10 @@ class LiveBot:
     def _get_stock_bars(self, symbol: str, limit: int) -> pd.DataFrame:
         """Fetch stock bars (US or mapped EGX)."""
         try:
-            source = (getattr(self.config, "data_source", "alpaca") or "alpaca").lower()
-            
-            # Map timeframe for Alpaca Stocks
-            tf_map = {"1Hour": "1Hour", "1Day": "1Day", "1min": "1Min", "5min": "5Min", "15min": "15Min"}
-            tf = tf_map.get(self.config.timeframe, "1Day")
-
-            if source == "alpaca":
-                # Alpaca Stocks V2
-                bars = self.api.get_bars(symbol, timeframe=tf, limit=int(limit)).df
-                return self._process_bars(bars, symbol, source, limit)
-            else:
-                return self._get_yfinance_bars(symbol, limit)
+            source = (getattr(self.config, "data_source", "yfinance") or "yfinance").lower()
+            if source == "tvdata":
+                return self._get_tvdata_bars(symbol, limit)
+            return self._get_yfinance_bars(symbol, limit)
         except Exception as e:
             return self._handle_fetch_error(e, symbol, limit)
 
@@ -2018,6 +2004,8 @@ class LiveBot:
                 try:
                     self._log(f"🧹 Closing ENTIRE position for {symbol} (avoiding dust)...")
                     success = self.api.close_position(symbol)
+                    if success is not True:
+                        raise RuntimeError(f"close_position returned {success!r}")
                     
                     if success:
                         # Fetch the closed order to get the fill price for PnL tracking
@@ -2131,17 +2119,8 @@ class LiveBot:
         cleaned_count = 0
         try:
             if not self.api:
-                if self.config.alpaca_key_id and self.config.alpaca_secret_key:
-                    self._log("🧹 DUST CLEANUP: API client not initialized. Creating temporary client...")
-                    self.api = create_alpaca_client(
-                        key_id=self.config.alpaca_key_id,
-                        secret_key=self.config.alpaca_secret_key,
-                        base_url=self.config.alpaca_base_url,
-                        logger=self._log,
-                    )
-                else:
-                    self._log("❌ DUST CLEANUP: API client not initialized and keys missing in config.")
-                    return 0
+                self._log("🧹 DUST CLEANUP: API client not initialized. Creating virtual client...")
+                self.api = create_virtual_market_client(logger=self._log)
 
             positions = self.api.list_positions()
             self._log(f"🧹 DUST CLEANUP: Scanning {len(positions)} total positions (Threshold: ${threshold})...")
@@ -2261,7 +2240,7 @@ class LiveBot:
                 sell_pnl = (float(current_stop) - float(entry_price)) * qty
                 self._save_signal_record(symbol, current_stop, qty * current_stop, 0, None, action="SELL", entry_price=float(entry_price), pnl=sell_pnl)
                 self._pos_state.pop(_normalize_symbol(symbol), None)
-                self._log(f"SKIPPING Alpaca Sell (Telegram-Only Mode)")
+                self._log("SKIPPING Virtual Sell (Telegram-Only Mode)")
                 return True
             return self._sell_market(symbol, qty=qty)
 
@@ -2272,7 +2251,7 @@ class LiveBot:
                 sell_pnl = (float(take_profit) - float(entry_price)) * qty
                 self._save_signal_record(symbol, take_profit, qty * take_profit, 0, None, action="SELL", entry_price=float(entry_price), pnl=sell_pnl)
                 self._pos_state.pop(_normalize_symbol(symbol), None)
-                self._log(f"SKIPPING Alpaca Sell (Telegram-Only Mode)")
+                self._log("SKIPPING Virtual Sell (Telegram-Only Mode)")
                 return True
             return self._sell_market(symbol, qty=qty)
 
@@ -2303,7 +2282,7 @@ class LiveBot:
                 sell_pnl = (close - float(entry_price)) * qty
                 self._save_signal_record(symbol, close, qty * close, 0, None, action="SELL", entry_price=float(entry_price), pnl=sell_pnl)
                 self._pos_state.pop(_normalize_symbol(symbol), None)
-                self._log(f"SKIPPING Alpaca Sell (Telegram-Only Mode)")
+                self._log("SKIPPING Virtual Sell (Telegram-Only Mode)")
                 return True
             return self._sell_market(symbol, qty=qty)
 
@@ -2378,18 +2357,9 @@ class LiveBot:
     def _run_loop(self):
         try:
             self._log("Initializing models and connection...")
-
-            if not self.config.alpaca_key_id or not self.config.alpaca_secret_key:
-                 raise ValueError("Alpaca API keys missing in config/env")
-
-            self._log("DEBUG: Creating Alpaca client...")
-            self.api = create_alpaca_client(
-                key_id=self.config.alpaca_key_id,
-                secret_key=self.config.alpaca_secret_key,
-                base_url=self.config.alpaca_base_url,
-                logger=self._log,
-            )
-            self._log("DEBUG: Alpaca client created successfully.")
+            self._log("DEBUG: Creating Virtual Market client...")
+            self.api = create_virtual_market_client(logger=self._log)
+            self._log("DEBUG: Virtual Market client created successfully.")
 
             self._current_activity = "Syncing positions"
             self._log("DEBUG: Entering _include_open_positions_in_coins...")
@@ -2677,7 +2647,6 @@ class LiveBot:
 class BotManager:
     def __init__(self):
         self._bots: Dict[str, LiveBot] = {}
-        self._state_file = Path("state/bots.json")
         self._telegram_bridge = None
         self._load_bots()
 
@@ -2687,8 +2656,21 @@ class BotManager:
             bot.set_telegram_bridge(bridge)
 
     def _load_bots(self):
-        """Load bot configurations from Supabase (primary) or state/bots.json (fallback)."""
+        """Load bot configurations from Supabase only."""
         loaded_ids = set()
+
+        cfg_keys = {f.name for f in __import__("dataclasses").fields(BotConfig)}
+
+        def _normalize_loaded_config(raw: Dict[str, Any]) -> Dict[str, Any]:
+            # Drop legacy keys (e.g. Alpaca credentials) safely.
+            out = {k: v for k, v in (raw or {}).items() if k in cfg_keys}
+            # Migrate legacy execution_mode
+            if str(out.get("execution_mode") or "").upper() == "ALPACA":
+                out["execution_mode"] = "VIRTUAL"
+            # Handle list parsing for coins if string provided
+            if "coins" in out and isinstance(out["coins"], str):
+                out["coins"] = _parse_coins(out["coins"])
+            return out
         
         # 1. Try loading from Supabase first
         try:
@@ -2701,11 +2683,7 @@ class BotManager:
                     bot_id = row.get("bot_id")
                     config_dict = row.get("config", {})
                     if bot_id and config_dict:
-                        # Handle list to dict migration if needed
-                        if "coins" in config_dict and isinstance(config_dict["coins"], str):
-                            config_dict["coins"] = _parse_coins(config_dict["coins"])
-                        
-                        cfg = BotConfig(**config_dict)
+                        cfg = BotConfig(**_normalize_loaded_config(config_dict))
                         self._bots[bot_id] = LiveBot(bot_id=bot_id, config=cfg)
                         loaded_ids.add(bot_id)
                 if loaded_ids:
@@ -2713,39 +2691,17 @@ class BotManager:
         except Exception as e:
             print(f"Supabase bot load error: {e}")
 
-        # 2. Fallback to local file for any missing bots or if Supabase failed
-        if self._state_file.exists():
-            try:
-                with open(self._state_file, "r", encoding="utf-8") as f:
-                    data = json.load(f)
-                    for bot_id, config_dict in data.items():
-                        if bot_id in loaded_ids:
-                            continue # Supabase version takes precedence
-                        
-                        # Handle list to dict migration if needed
-                        if "coins" in config_dict and isinstance(config_dict["coins"], str):
-                            config_dict["coins"] = _parse_coins(config_dict["coins"])
-                        
-                        cfg = BotConfig(**config_dict)
-                        self._bots[bot_id] = LiveBot(bot_id=bot_id, config=cfg)
-                        loaded_ids.add(bot_id)
-            except Exception as e:
-                print(f"Error loading local bots: {e}")
-        
-        # Ensure a 'primary' bot exists if none loaded
+        # Ensure a 'primary' bot exists if none loaded (First run / Empty DB)
         if "primary" not in self._bots:
+            print("No bots found in Supabase. Creating default 'primary' bot.")
             self.create_bot("primary", "Primary Bot")
+            # Auto-save the new primary bot to Supabase
+            self.save_bots() 
 
     def save_bots(self):
-        """Save all bot configurations locally and to Supabase."""
+        """Save all bot configurations to Supabase."""
         try:
-            # 1. Save local backup
-            self._state_file.parent.mkdir(exist_ok=True)
-            data = {bid: asdict(bot.config) for bid, bot in self._bots.items()}
-            with open(self._state_file, "w", encoding="utf-8") as f:
-                json.dump(data, f, indent=2)
-            
-            # 2. Sync to Supabase
+            # Sync to Supabase
             records = []
             for bid, bot in self._bots.items():
                 records.append({
@@ -2760,19 +2716,13 @@ class BotManager:
         except Exception as e:
             print(f"Error saving bots: {e}")
 
-    def create_bot(self, bot_id: str, name: str, alpaca_key_id: str = None, alpaca_secret_key: str = None) -> LiveBot:
+    def create_bot(self, bot_id: str, name: str) -> LiveBot:
         if bot_id in self._bots:
             raise ValueError(f"Bot ID {bot_id} already exists.")
         
         # Start with default config
         bot = LiveBot(bot_id=bot_id)
         bot.config.name = name
-        
-        # Apply custom keys if provided
-        if alpaca_key_id:
-            bot.config.alpaca_key_id = alpaca_key_id
-        if alpaca_secret_key:
-            bot.config.alpaca_secret_key = alpaca_secret_key
             
         if self._telegram_bridge:
             bot.set_telegram_bridge(self._telegram_bridge)

@@ -2,6 +2,8 @@ import os
 import sys
 import unittest
 
+raise unittest.SkipTest("Alpaca routes removed (virtual execution only).")
+
 import httpx
 from fastapi.testclient import TestClient
 

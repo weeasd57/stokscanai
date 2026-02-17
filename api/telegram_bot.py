@@ -182,9 +182,9 @@ class TelegramBot:
             pass
 
     def send_notification(self, message: str):
-        """Synchronous bridge to send a notification."""
+        """Synchronous bridge to send a notification. Returns Future if loop running."""
         if not self.chat_id or not self.token:
-            return
+            return None
 
         async def _send():
             try:
@@ -192,17 +192,20 @@ class TelegramBot:
                 await bot.send_message(chat_id=self.chat_id, text=message, parse_mode='Markdown')
             except Exception as e:
                 self._log(f"Error sending notification: {e}")
+                raise e
 
         if self.loop and self.loop.is_running():
-            asyncio.run_coroutine_threadsafe(_send(), self.loop)
+            return asyncio.run_coroutine_threadsafe(_send(), self.loop)
         else:
             # Fallback if loop is not running yet
             try:
                 loop = asyncio.new_event_loop()
                 loop.run_until_complete(_send())
                 loop.close()
-            except:
-                pass
+                return None # Completed synchronously
+            except Exception as e:
+                self._log(f"Error in sync fallback: {e}")
+                raise e
 
     async def post_init(self, application: Application):
         """Register commands with Telegram so they show up in the UI."""

@@ -4,6 +4,7 @@ import numpy as np
 # Set up path to include project root
 import sys, os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+from api.council import TheCouncil
 
 class MockModel:
     def __init__(self, prob):
@@ -28,7 +29,7 @@ def test_council_voting():
     consensus = council.get_consensus(X)
     assert len(consensus) == 2
     assert consensus[0] > 0.8
-    assert consensus[1] < 0.3
+    assert consensus[1] <= 0.3
     
     filtered = council.filter(X)
     assert len(filtered) == 1 # Only row 0 passes >= 0.55

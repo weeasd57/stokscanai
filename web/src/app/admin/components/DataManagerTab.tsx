@@ -3,9 +3,6 @@
 import { Database, Globe, Loader2, Download, Check, ChevronLeft, ChevronRight, BarChart3, History, Zap, Cloud, RefreshCcw } from "lucide-react";
 import {
     type SymbolResult,
-    getAlpacaSupabaseStats,
-    getAlpacaAssets,
-    syncAlpacaPrices,
     getCryptoSymbolStats,
     deleteCryptoBars,
     type AlpacaAsset,
@@ -132,12 +129,8 @@ export default function DataManagerTab({
     }>({ key: "bars", dir: "desc" });
 
     const fetchCryptoSupabaseStats = async () => {
-        try {
-            const sb = await getAlpacaSupabaseStats("crypto");
-            setCryptoStats(sb);
-        } catch {
-            // ignore (Supabase may not be configured)
-        }
+        // Alpaca routes removed. Keep UI stable by disabling these calls.
+        setCryptoStats(null);
     };
 
     useEffect(() => {
@@ -161,10 +154,9 @@ export default function DataManagerTab({
 
     const refreshCryptoAssets = () => {
         setLoadingCrypto(true);
-        return getAlpacaAssets(undefined, "crypto")
-            .then(setCryptoAssets)
-            .catch(() => setCryptoAssets([]))
-            .finally(() => setLoadingCrypto(false));
+        setCryptoAssets([]);
+        setLoadingCrypto(false);
+        return Promise.resolve([]);
     };
 
     const toggleCryptoSelect = (symbol: string) => {
@@ -196,21 +188,10 @@ export default function DataManagerTab({
     const handleUpdateCryptoPrices = async () => {
         setCryptoSyncing(true);
         try {
-            const symbols = selectedCryptoSymbols.size > 0
-                ? Array.from(selectedCryptoSymbols)
-                : filteredCryptoAssets.map(a => a.symbol);
-            const res = await syncAlpacaPrices(symbols, {
-                assetClass: "crypto",
-                exchange: "BINANCE",
-                days: maxPriceDays,
-                source: "binance",
-                timeframe: cryptoTimeframe,
-            });
             setLogs(prev => [
-                `[${new Date().toLocaleTimeString()}] Crypto update: ${res.rows_upserted} bars (${res.timeframe || cryptoTimeframe}, ${res.days}d)`,
+                `[${new Date().toLocaleTimeString()}] Crypto update disabled (Alpaca integration removed)`,
                 ...prev
             ]);
-            fetchCryptoSupabaseStats();
         } catch (e: any) {
             setLogs(prev => [`[${new Date().toLocaleTimeString()}] ERR: Crypto update`, ...prev]);
         } finally {

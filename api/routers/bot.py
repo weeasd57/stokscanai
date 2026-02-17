@@ -21,9 +21,6 @@ def safe_float(val):
 
 
 class BotConfigUpdate(BaseModel):
-    alpaca_key_id: Optional[str] = None
-    alpaca_secret_key: Optional[str] = None
-    alpaca_base_url: Optional[str] = None
     coins: Optional[List[str]] = None
     king_threshold: Optional[float] = None
     council_threshold: Optional[float] = None
@@ -50,10 +47,6 @@ class BotConfigUpdate(BaseModel):
     execution_mode: Optional[str] = None
     trading_mode: Optional[str] = None
     use_auto_tune: Optional[bool] = None
-
-class BotCreate(BaseModel):
-    bot_id: str
-    name: str
 
 @router.post("/start")
 def start_bot(bot_id: str = "primary"):
@@ -315,8 +308,6 @@ from pydantic import BaseModel
 class BotCreate(BaseModel):
     bot_id: str
     name: str
-    alpaca_key_id: Optional[str] = None
-    alpaca_secret_key: Optional[str] = None
 
 @router.get("/list")
 def list_bots():
@@ -325,12 +316,7 @@ def list_bots():
 @router.post("/create")
 def create_bot(req: BotCreate):
     try:
-        bot_manager.create_bot(
-            req.bot_id, 
-            req.name,
-            alpaca_key_id=req.alpaca_key_id,
-            alpaca_secret_key=req.alpaca_secret_key
-        )
+        bot_manager.create_bot(req.bot_id, req.name)
         return {"status": "created", "bot_id": req.bot_id}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -345,48 +331,7 @@ def delete_bot(bot_id: str):
 
 @router.get("/alpaca_watchlist")
 def get_alpaca_watchlist(bot_id: str = "primary"):
-    """Fetches symbols from the user's Alpaca primary watchlist."""
-    from api.alpaca_adapter import create_alpaca_client
-    try:
-        bot = bot_manager.get_bot(bot_id)
-        if not bot:
-             raise HTTPException(status_code=404, detail=f"Bot {bot_id} not found")
-        cfg = bot.config
-        if not cfg.alpaca_key_id or not cfg.alpaca_secret_key:
-             raise HTTPException(status_code=400, detail="Alpaca keys not configured")
-             
-        client = create_alpaca_client(
-            key_id=cfg.alpaca_key_id,
-            secret_key=cfg.alpaca_secret_key,
-            base_url=cfg.alpaca_base_url
-        )
-        
-        # Try to find 'KING' or 'Primary' or just take the first one
-        watchlists = client.get_watchlists()
-        if not watchlists:
-             return []
-             
-        target_wl = None
-        for wl in watchlists:
-             if wl.name.upper() in ["KING", "PRIMARY", "AI_BOT"]:
-                  target_wl = client.get_watchlist_by_id(wl.id)
-                  break
-        
-        if not target_wl:
-             target_wl = client.get_watchlist_by_id(watchlists[0].id)
-             
-        symbols = []
-        if target_wl and hasattr(target_wl, "assets"):
-             for asset in target_wl.assets:
-                  sym = asset["symbol"]
-                  # Heuristic: if it's crypto but missing USD, append it
-                  # Actually let's just return what's there
-                  symbols.append(sym)
-                  
-        return sorted(list(set(symbols)))
-    except Exception as e:
-        print(f"Error fetching Alpaca watchlist: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+    raise HTTPException(status_code=410, detail="Alpaca integration removed. Watchlists are no longer supported.")
 
 @router.get("/performance")
 def get_bot_performance(bot_id: str = "primary"):

@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import { Play, Square, Activity, Settings, Terminal, RefreshCw, Save, Coins, ShieldCheck, ShieldAlert, Plus, X, Search, Check, BarChart3, PieChart, ArrowUpRight, ArrowDownRight, Clock, Globe, Target, Trash2, History as HistoryIcon, Maximize2, ChevronDown, ChevronUp, Copy, CheckCheck, LayoutGrid, Cpu, Zap, BarChartHorizontal } from "lucide-react";
 import { useRef } from "react";
 import { toast } from "sonner";
-import { getAlpacaAccount, getAlpacaPositions, type AlpacaAccountInfo, type AlpacaPositionInfo } from "@/lib/api";
 import LiveCandleChart from "./LiveCandleChart";
 // Radix UI Imports
 import * as Dialog from "@radix-ui/react-dialog";
@@ -12,9 +11,6 @@ import * as Switch from "@radix-ui/react-switch";
 
 // Types
 interface BotConfig {
-    alpaca_key_id: string;
-    alpaca_secret_key: string;
-    alpaca_base_url: string;
     data_source: string;
     coins: string[];
     king_threshold: number;
@@ -41,7 +37,7 @@ interface BotConfig {
     council_model_path: string;
     max_open_positions: number;
     name: string;
-    execution_mode: "ALPACA" | "TELEGRAM" | "BOTH";
+    execution_mode: "VIRTUAL" | "TELEGRAM" | "BOTH";
     trading_mode: "defensive" | "aggressive" | "hybrid";
 }
 
@@ -133,26 +129,16 @@ export default function LiveBotTab() {
     const [coinDialogOpen, setCoinDialogOpen] = useState(false);
     const [coinSearch, setCoinSearch] = useState("");
     const [availableCoins, setAvailableCoins] = useState<string[]>([]);
-    const [alpacaAccount, setAlpacaAccount] = useState<AlpacaAccountInfo | null>(null);
-    const [alpacaAccountLoading, setAlpacaAccountLoading] = useState(false);
-    const [alpacaPositions, setAlpacaPositions] = useState<AlpacaPositionInfo[]>([]);
-    const [alpacaPositionsLoading, setAlpacaPositionsLoading] = useState(false);
-
     // Multi-Bot State
     const [botList, setBotList] = useState<BotListItem[]>([]);
     const [selectedBotId, setSelectedBotId] = useState<string>("primary");
     const [createBotDialogOpen, setCreateBotDialogOpen] = useState(false);
     const [newBotName, setNewBotName] = useState("");
-    const [newBotApiKey, setNewBotApiKey] = useState("");
-    const [newBotSecretKey, setNewBotSecretKey] = useState("");
     const [isCreatingBot, setIsCreatingBot] = useState(false);
     const [renameBotDialogOpen, setRenameBotDialogOpen] = useState(false);
     const [renameBotName, setRenameBotName] = useState("");
     const [isRenamingBot, setIsRenamingBot] = useState(false);
     const [modelHubOpen, setModelHubOpen] = useState(true);
-
-    const [alpacaOrders, setAlpacaOrders] = useState<any[]>([]);
-    const [alpacaOrdersLoading, setAlpacaOrdersLoading] = useState(false);
 
     // Command States
     const [isStarting, setIsStarting] = useState(false);
@@ -175,7 +161,7 @@ export default function LiveBotTab() {
     const [logFilter, setLogFilter] = useState<"ALL" | "ACCEPTED" | "REJECTED" | "ERROR">("ALL");
     const logsEndRef = useRef<HTMLDivElement>(null);
 
-    const [syncingAlpaca, setSyncingAlpaca] = useState(false);
+    // Alpaca integration removed (virtual execution only).
     // Logs & Analytics State
     const [selectedChartSymbol, setSelectedChartSymbol] = useState<string | null>(null);
     const [thresholdStats, setThresholdStats] = useState<Record<string, number>>({});
@@ -211,54 +197,9 @@ export default function LiveBotTab() {
     };
 
 
-    const fetchAccount = async (silent = false) => {
-        if (!silent) setAlpacaAccountLoading(true);
-        try {
-            const acc = await getAlpacaAccount();
-            setAlpacaAccount(acc);
-        } catch (error) {
-            console.error(error);
-            if (!silent) toast.error("Failed to fetch Alpaca account");
-        } finally {
-            if (!silent) setAlpacaAccountLoading(false);
-        }
-    };
-
-    const fetchPositions = async (silent = false) => {
-        if (!silent) setAlpacaPositionsLoading(true);
-        try {
-            const pos = await getAlpacaPositions();
-            setAlpacaPositions(Array.isArray(pos) ? pos : []);
-        } catch (error) {
-            console.error(error);
-            if (!silent) toast.error("Failed to fetch Alpaca positions");
-        } finally {
-            if (!silent) setAlpacaPositionsLoading(false);
-        }
-    };
-
-    const fetchOrders = async (silent = false) => {
-        if (!silent) setAlpacaOrdersLoading(true);
-        try {
-            // Using direct fetch since we couldn't update api library
-            const res = await fetch("/api/alpaca/orders?status=all&limit=50", { cache: "no-store" });
-            if (!res.ok) throw new Error("Failed to fetch Alpaca orders");
-            const data = await res.json();
-            setAlpacaOrders(Array.isArray(data) ? data : []);
-        } catch (error) {
-            console.error(error);
-            if (!silent) toast.error("Failed to fetch Alpaca orders");
-        } finally {
-            if (!silent) setAlpacaOrdersLoading(false);
-        }
-    };
-
     useEffect(() => {
         fetchBotList();
         fetchStatus();
-        fetchAccount(true);
-        fetchPositions(true);
-        fetchOrders(true);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selectedBotId]);
 
@@ -387,7 +328,7 @@ export default function LiveBotTab() {
         } else if (assetTab === "CRYPTO" && configForm.data_source === "tvdata") {
             setConfigForm(prev => ({ ...prev, data_source: "binance" }));
         } else if (assetTab === "STOCKS" && configForm.data_source === "tvdata") {
-            setConfigForm(prev => ({ ...prev, data_source: "alpaca" }));
+            setConfigForm(prev => ({ ...prev, data_source: "yfinance" }));
         }
     }, [assetTab, configForm.data_source]);
 
@@ -426,15 +367,11 @@ export default function LiveBotTab() {
                 body: JSON.stringify({
                     bot_id,
                     name: newBotName.trim(),
-                    alpaca_key_id: newBotApiKey.trim() || undefined,
-                    alpaca_secret_key: newBotSecretKey.trim() || undefined
                 })
             });
             if (res.ok) {
                 toast.success(`Bot "${newBotName}" created`);
                 setNewBotName("");
-                setNewBotApiKey("");
-                setNewBotSecretKey("");
                 setCreateBotDialogOpen(false);
                 await fetchBotList();
                 setSelectedBotId(bot_id);
@@ -564,9 +501,6 @@ export default function LiveBotTab() {
         const interval = setInterval(() => {
             if (status?.status === "running") {
                 fetchStatus(true);
-                fetchAccount(true);
-                fetchPositions(true);
-                fetchOrders(true);
                 fetchPerformance(true);
             }
         }, 8000); // Increased to 8s for lower load
@@ -577,8 +511,6 @@ export default function LiveBotTab() {
     useEffect(() => {
         fetchStatus(false);
         fetchPerformance(false);
-        fetchAccount(false);
-        fetchPositions(false);
     }, [selectedBotId]);
 
     const fetchStatus = async (silent = false) => {
@@ -643,7 +575,6 @@ export default function LiveBotTab() {
             if (res.ok) {
                 toast.success("Bot started command sent");
                 fetchStatus();
-                fetchAccount(true);
             } else {
                 const err = await res.json();
                 toast.error(err.detail || "Failed to start bot");
@@ -660,7 +591,6 @@ export default function LiveBotTab() {
             if (res.ok) {
                 toast.success("Bot stop command sent");
                 fetchStatus();
-                fetchAccount(true);
             } else {
                 toast.error("Failed to stop bot");
             }
@@ -715,28 +645,7 @@ export default function LiveBotTab() {
         }
     };
 
-    const handleSyncAlpaca = async () => {
-        setSyncingAlpaca(true);
-        try {
-            const res = await fetch("/api/ai_bot/alpaca_watchlist");
-            if (res.ok) {
-                const coins: string[] = await res.json();
-                if (coins.length > 0) {
-                    setConfigForm({ ...configForm, coins });
-                    toast.success(`Synced ${coins.length} symbols from Alpaca`);
-                } else {
-                    toast.error("No symbols found in Alpaca watchlist");
-                }
-            } else {
-                const err = await res.json();
-                toast.error(err.detail || "Failed to sync watchlist");
-            }
-        } catch (error) {
-            toast.error("Network error during sync");
-        } finally {
-            setSyncingAlpaca(false);
-        }
-    };
+    // Alpaca watchlist sync removed (virtual execution only).
 
     const fetchPerformance = async (silent = false) => {
         if (!silent) setPerformanceLoading(true);
@@ -1074,26 +983,6 @@ export default function LiveBotTab() {
                                             onKeyDown={(e) => e.key === 'Enter' && handleCreateBot()}
                                         />
                                     </div>
-                                    <div className="space-y-2">
-                                        <label className="text-xs font-bold text-zinc-500 uppercase flex items-center gap-2">Alpaca Key ID </label>
-                                        <input
-                                            type="text"
-                                            value={newBotApiKey}
-                                            onChange={(e) => setNewBotApiKey(e.target.value)}
-                                            placeholder="AKI..."
-                                            className="w-full bg-black/40 border border-white/5 rounded-xl px-4 py-3 text-sm font-mono focus:outline-none focus:border-indigo-500 transition-all"
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label className="text-xs font-bold text-zinc-500 uppercase flex items-center gap-2">Alpaca Secret Key </label>
-                                        <input
-                                            type="password"
-                                            value={newBotSecretKey}
-                                            onChange={(e) => setNewBotSecretKey(e.target.value)}
-                                            placeholder="••••••••"
-                                            className="w-full bg-black/40 border border-white/5 rounded-xl px-4 py-3 text-sm font-mono focus:outline-none focus:border-indigo-500 transition-all"
-                                        />
-                                    </div>
                                     <button
                                         onClick={handleCreateBot}
                                         disabled={isCreatingBot || !newBotName.trim()}
@@ -1156,8 +1045,8 @@ export default function LiveBotTab() {
                                         onChange={(e) => setConfigForm({ ...configForm, execution_mode: e.target.value as any })}
                                         className="w-full bg-black/40 border border-white/5 rounded-xl px-4 py-3 text-sm font-mono focus:outline-none focus:border-indigo-500/50 transition-all text-white border-white/10"
                                     >
-                                        <option value="BOTH" className="bg-zinc-950 text-white">Together (Alpaca + Telegram)</option>
-                                        <option value="ALPACA" className="bg-zinc-950 text-white">Alpaca Only (Auto-Trade)</option>
+                                        <option value="BOTH" className="bg-zinc-950 text-white">Together (Virtual + Telegram)</option>
+                                        <option value="VIRTUAL" className="bg-zinc-950 text-white">Virtual Only (Simulated)</option>
                                         <option value="TELEGRAM" className="bg-zinc-950 text-white">Telegram Only (Signal Only)</option>
                                     </select>
                                 </div>
@@ -1250,7 +1139,7 @@ export default function LiveBotTab() {
                                         >
                                             CLEAR ALL
                                         </button>
-                                        {assetTab === "GLOBAL" ? (
+                                        {assetTab === "GLOBAL" && (
                                             <button
                                                 onClick={() => {
                                                     if (availableCoins.length > 0) {
@@ -1262,14 +1151,6 @@ export default function LiveBotTab() {
                                                 className="text-[10px] font-black bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-1 rounded hover:bg-emerald-500/20 transition-all disabled:opacity-50"
                                             >
                                                 SYNC ALL {selectedCountry}
-                                            </button>
-                                        ) : (
-                                            <button
-                                                onClick={handleSyncAlpaca}
-                                                disabled={syncingAlpaca || isRunning}
-                                                className="text-[10px] font-black bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-2 py-1 rounded hover:bg-indigo-500/20 transition-all disabled:opacity-50"
-                                            >
-                                                {syncingAlpaca ? "SYNC" : assetTab === "STOCKS" ? "SYNC WATCHLIST" : "SYNC ALPACA"}
                                             </button>
                                         )}
                                     </div>
@@ -1783,12 +1664,12 @@ export default function LiveBotTab() {
                             <div className="space-y-2">
                                 <label className="text-xs font-bold text-zinc-500 uppercase">Data Source</label>
                                 <select
-                                    value={(configForm.data_source as string) || "alpaca"}
+                                    value={(configForm.data_source as string) || "binance"}
                                     onChange={(e) => setConfigForm({ ...configForm, data_source: e.target.value })}
                                     className="w-full bg-black/40 border border-white/5 rounded-xl px-4 py-3 text-sm font-mono focus:outline-none focus:border-white/20 transition-all text-white"
                                 >
-                                    <option value="alpaca" className="bg-zinc-950 text-white">Alpaca</option>
                                     <option value="binance" className="bg-zinc-950 text-white">Binance</option>
+                                    <option value="yfinance" className="bg-zinc-950 text-white">Yahoo Finance</option>
                                     {assetTab === "GLOBAL" && (
                                         <option value="tvdata" className="bg-zinc-950 text-white">TradingView (tvdata)</option>
                                     )}
