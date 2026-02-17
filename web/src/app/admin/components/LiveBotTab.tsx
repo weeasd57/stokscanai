@@ -551,11 +551,12 @@ export default function LiveBotTab() {
                 setThresholdStats(stats);
 
                 setStatus(data);
-                // Initialize config form if empty or if config updated externally
+                // Initialize config form if empty or if config updated externally (e.g. by Auto-Tune)
                 if (!silent) {
                     setConfigForm(data.config);
-                } else if (status?.status === 'running') {
-                    // Don't overwrite form while typing if running, but maybe keep logs updated
+                } else if (data.config && JSON.stringify(data.config) !== JSON.stringify(status?.config)) {
+                    // Update form if config changed externally while running
+                    setConfigForm(data.config);
                 }
             }
         } catch (error) {

@@ -2304,6 +2304,9 @@ class LiveBot:
         Reviews bot performance and automatically adjusts parameters based on results.
         Analyzes the last 20 closed trades to adapt to market conditions.
         """
+        if not getattr(self.config, "use_auto_tune", True):
+            return
+
         # 1. Get last 20 closed trades
         closed_trades = [t for t in self._trades if t.get("action") == "SELL"]
         if len(closed_trades) < 5:
@@ -2316,43 +2319,80 @@ class LiveBot:
         # Get total PnL for the recent window
         total_pnl = sum(t.get("pnl") or 0 for t in recent)
 
-        self._log(f"🤖 AUTO-TUNE: WinRate={win_rate:.0%} | PnL=${total_pnl:.2f} | Current King={self.config.king_threshold:.2f}")
+        self._log(f"🤖 AUTO-TUNE: WinRate={win_rate:.0%} | PnL=${total_pnl:.2f}")
 
-        # 2. Adjust Entry Logic (King Threshold)
+        changed = False
+        original_config = asdict(self.config)
+
+        # 2. Adjust Entry Logic (King & Council Thresholds)
         # Low performance (WinRate < 40%) -> Tighten entry conditions
         if win_rate < 0.40:
-            new_thresh = min(0.85, self.config.king_threshold + 0.02)
-            if new_thresh != self.config.king_threshold:
-                self.config.king_threshold = new_thresh
-                self._log(f"⚠️ Performance Low: Tightening King Threshold to {new_thresh:.2f}")
+            new_king = min(0.85, self.config.king_threshold + 0.02)
+            new_council = min(0.60, self.config.council_threshold + 0.02)
+            
+            if new_king != self.config.king_threshold:
+                self.config.king_threshold = new_king
+                self._log(f"⚠️ AUTO-TUNE: Tightening King Threshold to {new_king:.2f} (WinRate Low)")
+                changed = True
+            
+            if new_council != self.config.council_threshold:
+                self.config.council_threshold = new_council
+                self._log(f"⚠️ AUTO-TUNE: Tightening Council Threshold to {new_council:.2f}")
+                changed = True
+
+            # Switch to Defensive mode if performance is really bad
+            if win_rate < 0.30 and self.config.trading_mode != "defensive":
+                self.config.trading_mode = "defensive"
+                self._log("🛡️ AUTO-TUNE: Switching to DEFENSIVE mode due to low WinRate")
+                changed = True
         
-        # High performance (WinRate > 75%) -> Relax entry conditions to capture more opportunities
+        # High performance (WinRate > 75%) -> Relax entry conditions
         elif win_rate > 0.75:
-            new_thresh = max(0.50, self.config.king_threshold - 0.02)
-            if new_thresh != self.config.king_threshold:
-                self.config.king_threshold = new_thresh
-                self._log(f"🚀 Performance High: Relaxing King Threshold to {new_thresh:.2f}")
+            new_king = max(0.40, self.config.king_threshold - 0.02)
+            new_council = max(0.20, self.config.council_threshold - 0.02)
+
+            if new_king != self.config.king_threshold:
+                self.config.king_threshold = new_king
+                self._log(f"🚀 AUTO-TUNE: Relaxing King Threshold to {new_king:.2f} (WinRate High)")
+                changed = True
+
+            if new_council != self.config.council_threshold:
+                self.config.council_threshold = new_council
+                self._log(f"🚀 AUTO-TUNE: Relaxing Council Threshold to {new_council:.2f}")
+                changed = True
+
+            # Switch to Aggressive mode if performance is stellar
+            if win_rate > 0.85 and self.config.trading_mode != "aggressive":
+                self.config.trading_mode = "aggressive"
+                self._log("⚔️ AUTO-TUNE: Switching to AGGRESSIVE mode due to high performance")
+                changed = True
 
         # 3. Adjust Stop Loss based on market
-        # Significant losses -> Tighten Stop Loss
-        if total_pnl < -50: # Default threshold
-            new_sl = max(0.02, self.config.stop_loss_pct - 0.01) # Reduce SL by 1%
+        if total_pnl < -50:
+            new_sl = max(0.02, self.config.stop_loss_pct - 0.01)
             if new_sl != self.config.stop_loss_pct:
                 self.config.stop_loss_pct = new_sl
-                self._log(f"🛡️ Protection Mode: Tightening Stop Loss to {new_sl*100:.1f}%")
+                self._log(f"🛡️ AUTO-TUNE: Tightening Stop Loss to {new_sl*100:.1f}% (PnL Low)")
+                changed = True
 
-        # 4. Money Management (Position Sizing)
-        # Consecutive losses -> Reduce position size
+        # 4. Position Sizing
         if self._consecutive_losses >= 2:
-            new_cash_pct = max(0.05, self.config.pct_cash_per_trade * 0.8) # Reduce by 20%
+            new_cash_pct = max(0.05, self.config.pct_cash_per_trade * 0.8)
             if new_cash_pct != self.config.pct_cash_per_trade:
                 self.config.pct_cash_per_trade = new_cash_pct
-                self._log(f"📉 Losing Streak: Reducing Position Size to {new_cash_pct*100:.1f}%")
+                self._log(f"📉 AUTO-TUNE: Reducing Position Size to {new_cash_pct*100:.1f}% (Losing Streak)")
+                changed = True
         
-        # Consistent wins -> Restore normal position size
         elif self._consecutive_losses == 0 and self.config.pct_cash_per_trade < 0.10:
-             self.config.pct_cash_per_trade = 0.10 # Restore to baseline
-             self._log(f"✅ Winning Streak: Restoring Position Size to 10%")
+             self.config.pct_cash_per_trade = 0.10
+             self._log(f"✅ AUTO-TUNE: Restoring Position Size to 10% (Winning Streak)")
+             changed = True
+
+        # 5. Save changes to persistent storage so UI can sync
+        if changed:
+            from api.live_bot import bot_manager
+            bot_manager.save_bots()
+            self._log("💾 AUTO-TUNE: Configuration updated and saved to storage.")
 
 
     def _run_loop(self):
