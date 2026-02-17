@@ -1738,7 +1738,8 @@ class LiveBot:
             "status": "ERROR",
             "message": err_msg
         }
-        if "451" in str(e) or "block" in str(e).lower() or "invalid symbol" in str(e).lower():
+        is_crypto = "/" in symbol or symbol.endswith(("USD", "USDT", "USDC"))
+        if not is_crypto and ("451" in str(e) or "block" in str(e).lower() or "invalid symbol" in str(e).lower()):
              self._log(f"Fetch failed for {symbol}: {e}. Trying yfinance fallback...")
              return self._get_yfinance_bars(symbol, limit)
         self._log(f"Error fetching bars for {symbol}: {e}")

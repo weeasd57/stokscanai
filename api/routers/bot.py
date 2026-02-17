@@ -353,15 +353,17 @@ def get_bot_performance(bot_id: str = "primary"):
                 closed_order_by_id: Dict[str, Dict[str, Any]] = {}
                 if bot and getattr(bot, "api", None):
                     try:
-                        for o in (bot.api.list_orders(status="closed") or []):
-                            oid = str(getattr(o, "id", "") or "")
-                            if not oid:
-                                continue
-                            closed_order_by_id[oid] = {
-                                "price": safe_float(getattr(o, "filled_avg_price", 0)),
-                                "qty": safe_float(getattr(o, "filled_qty", 0)),
-                                "symbol": str(getattr(o, "symbol", "") or ""),
-                            }
+                        # Only fetch if it's a real API client, not a dummy
+                        if hasattr(bot.api, "list_orders"):
+                            for o in (bot.api.list_orders(status="closed") or []):
+                                oid = str(getattr(o, "id", "") or "")
+                                if not oid:
+                                    continue
+                                closed_order_by_id[oid] = {
+                                    "price": safe_float(getattr(o, "filled_avg_price", 0)),
+                                    "qty": safe_float(getattr(o, "filled_qty", 0)),
+                                    "symbol": str(getattr(o, "symbol", "") or ""),
+                                }
                     except Exception as e:
                         print(f"[Performance] Closed-orders enrichment skipped: {e}")
 
@@ -369,7 +371,12 @@ def get_bot_performance(bot_id: str = "primary"):
                 for t in trades:
                     trade = dict(t)
                     action = str(trade.get("action") or "").upper()
-                    if action not in ("BUY", "SELL"):
+                    
+                    # Include SIGNAL actions as BUYs for statistics if they have price data
+                    is_buy = action == "BUY" or action == "SIGNAL" or action.startswith("ALPACA:")
+                    is_sell = action == "SELL"
+
+                    if not (is_buy or is_sell):
                         normalized_trades.append(trade)
                         continue
 
@@ -382,15 +389,17 @@ def get_bot_performance(bot_id: str = "primary"):
                     if price > 0:
                         trade["price"] = price
 
-                    if action == "SELL":
+                    if is_sell:
                         qty = safe_float(trade.get("amount"))
                         if qty <= 0 and linked:
                             qty = safe_float(linked.get("qty"))
 
                         entry = safe_float(trade.get("entry_price"))
                         pnl = safe_float(trade.get("pnl"))
-                        if entry > 0 and price > 0 and qty > 0:
-                            derived_pnl = (price - entry) * qty
+                        if entry > 0 and price > 0:
+                            # If amount/qty is missing for signal_only, assume 1 unit for PnL % calculation or use amount if present
+                            calc_qty = qty if qty > 0 else 1.0
+                            derived_pnl = (price - entry) * calc_qty
                             # Prefer derived value when stored pnl is missing/zero-like.
                             if abs(pnl) < 1e-12:
                                 pnl = derived_pnl
@@ -399,7 +408,8 @@ def get_bot_performance(bot_id: str = "primary"):
                     normalized_trades.append(trade)
 
                 trades = normalized_trades
-                buys = [t for t in trades if str(t.get("action") or "").upper() == "BUY"]
+                # Re-filter buys/sells after normalization
+                buys = [t for t in trades if str(t.get("action") or "").upper() in ("BUY", "SIGNAL") or str(t.get("action") or "").upper().startswith("ALPACA:")]
                 sells = [t for t in trades if str(t.get("action") or "").upper() == "SELL"]
                 
                 print(f"[Performance] BUY trades: {len(buys)}, SELL trades: {len(sells)}")
