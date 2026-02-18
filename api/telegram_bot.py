@@ -179,7 +179,12 @@ class TelegramBot:
 
     def send_notification(self, message: str):
         """Synchronous bridge to send a notification. Returns Future if loop running."""
+        # Refresh chat_id from bot config if available
+        if self.bot_instance and getattr(self.bot_instance.config, "telegram_chat_id", None):
+            self.chat_id = self.bot_instance.config.telegram_chat_id
+
         if not self.chat_id or not self.token:
+            self._log("Cannot send notification: No chat_id or token.")
             return None
 
         async def _send():
