@@ -98,6 +98,49 @@ class VirtualMarketAdapter:
     def set_price_provider(self, fn: Optional[PriceProvider]) -> None:
         self._price_provider = fn
 
+    @staticmethod
+    def _format_symbol(symbol: str) -> str:
+        s = (symbol or "").strip().upper()
+        if not s:
+            return s
+        if "/" in s:
+            return s
+        if s.endswith("USDT") and len(s) > 4:
+            return f"{s[:-4]}/USDT"
+        if s.endswith("USD") and len(s) > 3:
+            return f"{s[:-3]}/USD"
+        return s
+
+    def seed_positions_from_state(self, pos_state: Dict[str, Dict[str, Any]]) -> None:
+        """
+        Hydrate broker positions from LiveBot's persisted _pos_state so restarts do not
+        "forget" open positions and re-trade / re-notify.
+        """
+        try:
+            for k, st in (pos_state or {}).items():
+                if not isinstance(st, dict):
+                    continue
+                sym = self._format_symbol(str(st.get("symbol") or k or ""))
+                if not sym:
+                    continue
+
+                try:
+                    entry = float(st.get("entry_price") or 0)
+                except Exception:
+                    entry = 0.0
+                try:
+                    qty = float(st.get("amount") or st.get("qty") or 0)
+                except Exception:
+                    qty = 0.0
+
+                if entry <= 0 or qty <= 0:
+                    continue
+
+                self._positions[sym] = {"qty": qty, "avg_entry": entry}
+        except Exception:
+            # Best-effort hydration; never break bot startup.
+            return
+
     def _now(self) -> str:
         return datetime.now(timezone.utc).isoformat()
 
@@ -324,4 +367,3 @@ class VirtualMarketAdapter:
 
 def create_virtual_market_client(*, logger: Optional[Callable[[str], Any]] = None) -> VirtualMarketAdapter:
     return VirtualMarketAdapter(logger=logger)
-

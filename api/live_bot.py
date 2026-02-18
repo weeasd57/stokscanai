@@ -106,7 +106,6 @@ class BotConfig:
     cooldown_minutes: int = 30  # Minutes to wait before re-entering the same symbol
     
     # 10. Telegram Integration
-    telegram_chat_id: Optional[int] = None
 
     # 11. Time-of-Day Filter
     use_time_filter: bool = False
@@ -1137,9 +1136,10 @@ class LiveBot:
             
         # Optional: Send important logs to Telegram
         if self.telegram_bridge and self.config.execution_mode in ["TELEGRAM", "BOTH"]:
-            # Only send orders and critical errors here. Signals handled separately.
-            if "order" in msg.lower() or "CRITICAL" in msg:
-                 self.telegram_bridge.send_notification(f"ℹ️ *{self.config.name}*\n{msg}")
+            # Avoid spamming Telegram with internal logs. Trade notifications are sent
+            # explicitly in BUY/SELL handlers; here we only forward critical errors.
+            if "CRITICAL" in msg:
+                self.telegram_bridge.send_notification(f"ℹ️ *{self.config.name}*\n{msg}")
 
     def set_telegram_bridge(self, bridge):
         self.telegram_bridge = bridge
@@ -1515,6 +1515,7 @@ class LiveBot:
                         entry_px = None
                     self._log(f"Sync: Own open BUY order detected for {sym}. Reserving slot.")
                     self._pos_state[norm] = {
+                        "symbol": sym,
                         "entry_price": entry_px,
                         "entry_ts": datetime.now(timezone.utc).isoformat(),
                         "bars_held": 0,
@@ -1946,6 +1947,7 @@ class LiveBot:
             # Merge with existing _pos_state (set by _run_loop before this call)
             existing_state = self._pos_state.get(_normalize_symbol(symbol), {})
             existing_state.update({
+                "symbol": symbol,
                 "entry_price": avg_fill,
                 "entry_ts": datetime.now(timezone.utc).isoformat(),
                 "bars_held": 0,
@@ -2306,6 +2308,7 @@ class LiveBot:
 
         self._pos_state[_normalize_symbol(symbol)] = {
             **state,
+            "symbol": symbol,
             "entry_price": entry_price,
             "bars_held": bars_held,
             "last_held_ts": current_ts,
@@ -2468,6 +2471,12 @@ class LiveBot:
             self.api.set_price_provider(
                 lambda sym: self._latest_prices.get(_normalize_symbol(sym))
             )
+            # Hydrate virtual broker positions from persisted _pos_state so restarts don't
+            # re-trade / re-notify due to empty in-memory broker state.
+            try:
+                self.api.seed_positions_from_state(self._pos_state)
+            except Exception:
+                pass
             self._log("DEBUG: Virtual Market client created with price provider.")
 
             self._current_activity = "Syncing positions"

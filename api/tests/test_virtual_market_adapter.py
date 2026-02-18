@@ -1,4 +1,5 @@
 import os
+import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
@@ -23,3 +24,18 @@ def test_close_position_return_value():
     # Closing again returns False
     assert vm.close_position("BTC/USD") is False
 
+
+def test_seed_positions_from_state_hydrates_positions():
+    vm = VirtualMarketAdapter(price_provider=lambda s: 10.0)
+    vm.seed_positions_from_state(
+        {
+            "BTCUSD": {"symbol": "BTC/USD", "entry_price": 10, "amount": 2},
+            "ETHUSD": {"entry_price": 10, "amount": 1},  # symbol missing -> inferred
+        }
+    )
+    syms = sorted([p.symbol for p in vm.list_positions()])
+    assert "BTC/USD" in syms
+    assert "ETH/USD" in syms
+    assert vm.close_position("BTC/USD") is True
+    syms2 = sorted([p.symbol for p in vm.list_positions()])
+    assert "ETH/USD" in syms2
