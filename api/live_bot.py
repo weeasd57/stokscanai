@@ -742,7 +742,7 @@ class LiveBot:
 
         try:
             atr = self._calculate_atr(bars, self.config.atr_period)
-            if atr <= 0:
+            if atr <= 0 or entry_price <= 0:
                 tp = entry_price * (1 + self.config.target_pct)
                 sl = entry_price * (1 - self.config.stop_loss_pct)
                 return tp, sl
@@ -756,7 +756,9 @@ class LiveBot:
             sl = min(sl, entry_price - min_sl_dist)
             tp = min(tp, entry_price + max_tp_dist)
 
-            self._log(f"ATR Exits: TP={tp:.4f} (+{((tp/entry_price)-1)*100:.1f}%), SL={sl:.4f} (-{(1-(sl/entry_price))*100:.1f}%), ATR={atr:.4f}")
+            tp_pct = ((tp / entry_price) - 1) * 100 if entry_price > 0 else 0
+            sl_pct = (1 - (sl / entry_price)) * 100 if entry_price > 0 else 0
+            self._log(f"ATR Exits: TP={tp:.4f} (+{tp_pct:.1f}%), SL={sl:.4f} (-{sl_pct:.1f}%), ATR={atr:.4f}")
             return tp, sl
         except Exception as e:
             self._log(f"ATR Exit Error: {e}")

@@ -528,11 +528,14 @@ def get_bot_performance(bot_id: str = "primary"):
                                  display_symbol = req_sym
 
                                  if "/" in req_sym:
-                                     latest_trade = bot.api.get_latest_crypto_trade(req_sym)
+                                     method = getattr(bot.api, "get_latest_crypto_trade", None)
+                                     latest_trade = method(req_sym) if method else None
                                  else:
-                                     latest_trade = bot.api.get_latest_trade(req_sym)
+                                     method = getattr(bot.api, "get_latest_trade", None)
+                                     latest_trade = method(req_sym) if method else None
+                                     
                                  if latest_trade:
-                                     current_price = float(latest_trade.price)
+                                     current_price = float(getattr(latest_trade, "price", 0))
                          except Exception as e:
                              print(f"[Performance] Error fetching latest price for {s}: {e}")
                          
