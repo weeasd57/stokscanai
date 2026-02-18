@@ -83,7 +83,7 @@ class TelegramBot:
         status = self.bot_instance.get_status()
         state = status.get("status", "unknown").upper()
         
-        # Get balance from Alpaca
+        # Get balance from Broker
         balance_text = "N/A"
         try:
             account = self.bot_instance.api.get_account()

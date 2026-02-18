@@ -24,17 +24,14 @@ except ImportError:
 # We'll use the existing imports from run_live_bot.py logic
 # assuming api module structure is available.
 from api.stock_ai import _supabase_upsert_with_retry, _supabase_read_with_retry, supabase
-from api.alpaca_adapter import create_alpaca_client
+from api.virtual_market_adapter import create_virtual_market_client
 
 warnings.filterwarnings("ignore")
 
 @dataclass
 class BotConfig:
     name: str = "Primary Bot"
-    execution_mode: str = "BOTH"  # "ALPACA" | "TELEGRAM" | "BOTH"
-    alpaca_key_id: str = ""
-    alpaca_secret_key: str = ""
-    alpaca_base_url: str = "https://paper-api.alpaca.markets"
+    execution_mode: str = "TELEGRAM"  # "VIRTUAL" | "TELEGRAM" | "BOTH"
     telegram_chat_id: Optional[int] = -1003699330518
     telegram_token: Optional[str] = None
     coins: list[str] = None
@@ -289,7 +286,10 @@ class LiveBot:
         # Telegram Bridge
         self.telegram_bridge = None
         
-        # Persistence (Supabase only now)
+        # Load state from DB
+        self._load_bot_state()
+        
+        # Finally, load last trades from Supabase to populate deque
         self._load_persistent_data()
 
     def _load_persistent_data(self):
@@ -337,6 +337,40 @@ class LiveBot:
         except Exception as e:
             print(f"Error loading logs from Supabase: {e}")
 
+    def _save_bot_state(self):
+        """Persist internal bot state to Supabase 'bot_states' table."""
+        try:
+            state = {
+                "pos_state": self._pos_state,
+                "daily_loss": self._daily_loss,
+                "consecutive_losses": self._consecutive_losses,
+                "last_scan_time": self._last_scan_time
+            }
+            record = {
+                "bot_id": self.bot_id,
+                "state": state,
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }
+            _supabase_upsert_with_retry("bot_states", [record], on_conflict="bot_id")
+        except Exception as e:
+            self._log(f"Error saving bot state: {e}")
+
+    def _load_bot_state(self):
+        """Restore bot state from Supabase 'bot_states' table."""
+        try:
+            def _fetch_state(sb):
+                return sb.table("bot_states").select("*").eq("bot_id", self.bot_id).execute()
+            
+            res = _supabase_read_with_retry(_fetch_state, table_name="bot_states")
+            if res and res.data:
+                state = res.data[0].get("state", {})
+                self._pos_state = state.get("pos_state", {})
+                self._daily_loss = float(state.get("daily_loss", 0.0))
+                self._consecutive_losses = int(state.get("consecutive_losses", 0))
+                self._log(f"Bot state restored for {self.bot_id}.")
+        except Exception as e:
+            self._log(f"Error loading bot state: {e}")
+
     def _save_trade_persistent(self, trade_info: Dict[str, Any]):
         """Save a trade to Supabase and update stats."""
         try:
@@ -380,7 +414,7 @@ class LiveBot:
                     except (TypeError, ValueError):
                         record[k] = None
 
-            _supabase_upsert_with_retry("bot_trades", [record])
+            _supabase_upsert_with_retry("bot_trades", [record], on_conflict="order_id")
         except Exception as e:
             self._log(f"Supabase Trade Log Error: {e}")
 
@@ -1174,9 +1208,6 @@ class LiveBot:
         )
         return BotConfig(
             # Support both env var styles used across the repo/UI.
-            alpaca_key_id=str(_read_first_env(["ALPACA_KEY_ID", "ALPACA_API_KEY"], "") or ""),
-            alpaca_secret_key=str(_read_first_env(["ALPACA_SECRET_KEY"], "") or ""),
-            alpaca_base_url=str(_read_env("ALPACA_BASE_URL", "https://paper-api.alpaca.markets")),
             coins=coins,
             telegram_chat_id=int(float(_read_env("TELEGRAM_CHAT_ID", "-1003699330518") or -1003699330518)),
             telegram_token=_read_env("TELEGRAM_TOKEN"),
@@ -1253,7 +1284,6 @@ class LiveBot:
                         current[k] = _parse_bool(v, current[k])
 
                     elif k in ["trading_mode", "execution_mode", "name", "data_source",
-                               "alpaca_key_id", "alpaca_secret_key", "alpaca_base_url",
                                "king_model_path", "council_model_path", "timeframe"]:
                         current[k] = str(v).strip()
                     elif k == "telegram_token":
@@ -1356,42 +1386,6 @@ class LiveBot:
         return king_art, king_clf, validator
 
 
-    def _include_open_positions_in_coins(self):
-        """
-        When starting, automatically include any currently open Alpaca positions in the scan list
-        so the bot can manage exits (sell logic) for them.
-        """
-        try:
-            positions = list(self.api.list_positions() or [])
-            self._log(f"DEBUG: Found {len(positions)} total positions in Alpaca account.")
-        except Exception as e:
-            self._log(f"DEBUG ERROR: Failed to fetch positions at startup: {e}")
-            return
-
-        if not positions:
-            return
-
-        existing = list(self.config.coins or [])
-        existing_norm = {_normalize_symbol(c) for c in existing}
-
-        added = 0
-        for p in positions:
-            raw_sym = str(getattr(p, "symbol", "") or "")
-            sym = _format_symbol_for_bot(raw_sym)
-            if not sym:
-                continue
-            n = _normalize_symbol(sym)
-            if n in existing_norm:
-                self._log(f"DEBUG: {sym} ({raw_sym}) already in config.")
-                continue
-            existing.append(sym)
-            existing_norm.add(n)
-            added += 1
-            self._log(f"DEBUG: Auto-adding {sym} from open positions.")
-
-        if added:
-            self.config.coins = existing
-            self._log(f"Synced: Included {added} open Alpaca position(s) into coin list.")
 
     def _sync_pos_state(self):
         """
@@ -1433,9 +1427,12 @@ class LiveBot:
                 self._log(f"Sync: Pruning {norm} (no longer in Alpaca).")
                 self._pos_state.pop(norm, None)
                 
+            # Save synced state
+            self._save_bot_state()
+
             # Periodic debug log
             if datetime.now().minute % 5 == 0: # Every 5 mins
-                 self._log(f"DEBUG POS SYNC: Alpaca({len(p_list)})={p_list} | Bot({len(self._pos_state)})={list(self._pos_state.keys())}")
+                 self._log(f"DEBUG POS SYNC: Virtual({len(p_list)})={p_list} | Bot({len(self._pos_state)})={list(self._pos_state.keys())}")
                 
         except Exception as e:
             self._log(f"Sync Error: {e}")
@@ -1903,13 +1900,13 @@ class LiveBot:
             # Apply safety factor for crypto/floating point precision issues
             # Reduce by 0.01% to ensure available balance is sufficient, but don't drop below 1e-9
             is_crypto = "/" in symbol or symbol.upper().endswith("USD") or symbol.upper().endswith("USDT")
-            ALPACA_MIN_QTY = 1e-8
             safe_qty = float(qty)
             if is_crypto:
                 reduced_qty = safe_qty * 0.9999
                 # If reduction pushes it below min, but it was above or at min, keep it at min.
-                if reduced_qty < ALPACA_MIN_QTY and safe_qty >= ALPACA_MIN_QTY:
-                    safe_qty = ALPACA_MIN_QTY
+                # Alpaca minimum for crypto is 1e-8
+                if reduced_qty < 1e-8 and safe_qty >= 1e-8:
+                    safe_qty = 1e-8
                 else:
                     safe_qty = reduced_qty
                 
@@ -2144,24 +2141,16 @@ class LiveBot:
 
     def _run_loop(self):
         try:
-            self._log("Initializing models and connection...")
+            self._log("Initializing models and virtual broker...")
 
-            if not self.config.alpaca_key_id or not self.config.alpaca_secret_key:
-                 raise ValueError("Alpaca API keys missing in config/env")
-
-            self._log("DEBUG: Creating Alpaca client...")
-            self.api = create_alpaca_client(
-                key_id=self.config.alpaca_key_id,
-                secret_key=self.config.alpaca_secret_key,
-                base_url=self.config.alpaca_base_url,
-                logger=self._log,
-            )
-            self._log("DEBUG: Alpaca client created successfully.")
-
-            self._current_activity = "Syncing positions"
-            self._log("DEBUG: Entering _include_open_positions_in_coins...")
-            self._include_open_positions_in_coins()
-            self._log("DEBUG: Finished initial position inclusion.")
+            self._log("DEBUG: Creating Virtual Market client...")
+            self.api = create_virtual_market_client(logger=self._log)
+            
+            # Hydrate virtual positions from persisted state if available
+            if hasattr(self.api, "seed_positions_from_state"):
+                self.api.seed_positions_from_state(self._pos_state)
+            
+            self._log("DEBUG: Virtual Market client created successfully.")
 
             self._current_activity = "Loading models"
             self.king_obj, self.king_clf, self.validator = self._load_models()

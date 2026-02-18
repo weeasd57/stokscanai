@@ -217,14 +217,6 @@ def get_available_coins(source: Optional[str] = None, limit: int = 0, country: O
         api_dir = Path(__file__).parent.parent
         base_dir = api_dir.parent
 
-        if source == "alpaca_stocks":
-            alpaca_json = base_dir / "alpaca_exchanges" / "us_equity" / "all_assets.json"
-            if alpaca_json.exists():
-                with open(alpaca_json, "r", encoding="utf-8") as f:
-                    data = json.load(f)
-                    symbols = [item.get("symbol") for item in data if item.get("symbol") and item.get("status") == "active"]
-                    return sorted(list(set(symbols))) if limit <= 0 else sorted(list(set(symbols)))[:limit]
-            return []
 
         if source == "global" and country:
             symbols_dir = base_dir / "symbols_data"
@@ -253,38 +245,15 @@ def get_available_coins(source: Optional[str] = None, limit: int = 0, country: O
             from api.binance_data import fetch_all_binance_symbols
             return fetch_all_binance_symbols(quote_asset="USDT", limit=limit)
         
-        if source == "alpaca":
-            # Load from absolute path
-            alpaca_json = base_dir / "alpaca_exchanges" / "crypto" / "CRYPTO.json"
-            
-            if alpaca_json.exists():
-                with open(alpaca_json, "r", encoding="utf-8") as f:
-                    data = json.load(f)
-                    # Filter for symbols with status="active" and return as strings
-                    symbols = [item.get("symbol") for item in data if item.get("status") == "active"]
-                    # Apply pair_type filter (e.g. 'USD' -> only /USD pairs)
-                    if pair_type and pair_type != "ALL":
-                        symbols = [s for s in symbols if s and s.endswith(f"/{pair_type}")]
-                    return sorted(list(set(symbols))) if limit <= 0 else sorted(list(set(symbols)))[:limit]
-            
-            # Fallback for remote deployments (Hugging Face / Vercel)
-            # We prioritize /USD pairs as most accounts have USD cash, not USDC/USDT.
+        if source == "simulated_crypto" or source == "alpaca":
+            # Simulation/Simulated Broker mode fallback
             usd_pairs = [
                 "AAVE/USD", "AVAX/USD", "BAT/USD", "BCH/USD", "BTC/USD", "CRV/USD",
                 "DOGE/USD", "DOT/USD", "ETH/USD", "GRT/USD", "LINK/USD", "LTC/USD",
                 "PEPE/USD", "SHIB/USD", "SOL/USD", "SUSHI/USD", "TRUMP/USD", "UNI/USD",
                 "USDC/USD", "USDT/USD", "XRP/USD", "XTZ/USD", "YFI/USD"
             ]
-            stable_pairs = [
-                "AAVE/USDC", "AAVE/USDT", "AVAX/USDC", "AVAX/USDT", "BAT/USDC",
-                "BCH/BTC", "BCH/USDC", "BCH/USDT", "BTC/USDC", "BTC/USDT", "CRV/USDC",
-                "DOGE/USDC", "DOGE/USDT", "DOT/USDC", "ETH/BTC", "ETH/USDC", "ETH/USDT",
-                "GRT/USDC", "LINK/BTC", "LINK/USDC", "LINK/USDT", "LTC/BTC", "LTC/USDC",
-                "LTC/USDT", "SHIB/USDC", "SHIB/USDT", "SOL/USDC", "SOL/USDT",
-                "SUSHI/USDC", "SUSHI/USDT", "UNI/BTC", "UNI/USDC", "UNI/USDT",
-                "USDT/USDC", "XTZ/USDC", "YFI/USDC", "YFI/USDT"
-            ]
-            fallback = usd_pairs + stable_pairs
+            fallback = usd_pairs
             # Apply pair_type filter
             if pair_type and pair_type != "ALL":
                 fallback = [s for s in fallback if s.endswith(f"/{pair_type}")]
@@ -355,13 +324,13 @@ def get_bot_performance(bot_id: str = "primary"):
                 
                 print(f"[Performance] Fetched {len(trades)} total trades for bot {bot_id}")
                 
-                # Normalize trade values using Alpaca closed orders so legacy rows with
+                # Normalize trade values using broker snapshots so legacy rows with
                 # missing fill price/PnL don't appear as +0.00/$0.00 in analytics.
                 bot = bot_manager.get_bot(bot_id)
                 closed_order_by_id: Dict[str, Dict[str, Any]] = {}
                 if bot and getattr(bot, "api", None):
                     try:
-                        # Only fetch if it's a real API client, not a dummy
+                        # Only fetch if it's a real API/Broker client, not a dummy
                         if hasattr(bot.api, "list_orders"):
                             for o in (bot.api.list_orders(status="closed") or []):
                                 oid = str(getattr(o, "id", "") or "")
@@ -381,7 +350,7 @@ def get_bot_performance(bot_id: str = "primary"):
                     action = str(trade.get("action") or "").upper()
                     
                     # Include SIGNAL actions as BUYs for statistics if they have price data
-                    is_buy = action == "BUY" or action == "SIGNAL" or action.startswith("ALPACA:")
+                    is_buy = action == "BUY" or action == "SIGNAL"
                     is_sell = action == "SELL"
 
                     if not (is_buy or is_sell):

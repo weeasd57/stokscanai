@@ -111,13 +111,12 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
     # traceback.print_exc()
     return JSONResponse(status_code=500, content={"detail": f"Internal server error: {str(exc)}"})
 
-from api.routers import scan_ai, scan_ai_fast, scan_tech, admin, alpaca, bot
+from api.routers import scan_ai, scan_ai_fast, scan_tech, admin, bot
 
 app.include_router(scan_ai.router)
 app.include_router(scan_ai_fast.router)
 app.include_router(scan_tech.router)
 app.include_router(admin.router)
-app.include_router(alpaca.router)
 app.include_router(bot.router, prefix="/ai_bot")
 app.include_router(bot.router, prefix="/bot") # Compatibility Alias
 
