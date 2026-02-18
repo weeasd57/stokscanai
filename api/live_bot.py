@@ -34,9 +34,15 @@ class BotConfig:
     name: str = "Primary Bot"
     execution_mode: str = "BOTH"  # "VIRTUAL" | "TELEGRAM" | "BOTH"
     coins: list[str] = None
+<<<<<<< HEAD
     king_threshold: float = 0.77
     council_threshold: float = 0.47
     max_notional_usd: float = 10000.0
+=======
+    king_threshold: float = 0.45
+    council_threshold: float = 0.25
+    max_notional_usd: float = 1000.0
+>>>>>>> 318d6ce6ac30744cf24e5d548dc5b2091b1077b3
     pct_cash_per_trade: float = 0.15
     bars_limit: int = 200
     poll_seconds: int = 120
@@ -45,15 +51,15 @@ class BotConfig:
     data_source: str = "binance"
 
     # Risk
-    max_open_positions: int = 5
+    max_open_positions: int = 8
     enable_sells: bool = True
     target_pct: float = 0.15
     stop_loss_pct: float = 0.07
     hold_max_bars: int = 30
     use_trailing: bool = True
-    trail_be_pct: float = 0.05
-    trail_lock_trigger_pct: float = 0.08
-    trail_lock_pct: float = 0.05
+    trail_be_pct: float = 0.04
+    trail_lock_trigger_pct: float = 0.06
+    trail_lock_pct: float = 0.04
     
     # Supabase integration
     save_to_supabase: bool = False  # Save polling data to Supabase
@@ -62,7 +68,11 @@ class BotConfig:
     # ===== Advanced Risk & Strategy =====
     daily_loss_limit: float = 1000.0
     max_consecutive_losses: int = 5
+<<<<<<< HEAD
     min_volume_ratio: float = 0.5
+=======
+    min_volume_ratio: float = 0.3
+>>>>>>> 318d6ce6ac30744cf24e5d548dc5b2091b1077b3
     use_rsi_filter: bool = True
     use_trend_filter: bool = False
     use_dynamic_sizing: bool = True
@@ -71,7 +81,11 @@ class BotConfig:
     # ===== Smart Bot Features =====
     # 1. Market Regime Detection
     use_market_regime: bool = True
+<<<<<<< HEAD
     regime_adx_threshold: float = 14.0  # ADX > this = trending (Default loosened from 25.0)
+=======
+    regime_adx_threshold: float = 14.0  # ADX > this = trending (Loosened for aggressive mode)
+>>>>>>> 318d6ce6ac30744cf24e5d548dc5b2091b1077b3
     regime_sideways_size_mult: float = 0.5  # Reduce size in sideways
     
     # 2. Multi-Timeframe Confirmation
@@ -104,11 +118,16 @@ class BotConfig:
     
     # 8. Cooldown Mechanism
     cooldown_minutes: int = 30  # Minutes to wait before re-entering the same symbol
+<<<<<<< HEAD
     
     # 10. Telegram Integration
     telegram_chat_id: Optional[int] = None
 
     # 11. Time-of-Day Filter
+=======
+
+    # 9. Time-of-Day Filter
+>>>>>>> 318d6ce6ac30744cf24e5d548dc5b2091b1077b3
     use_time_filter: bool = False
     
     # 9. Signal Quality Score
@@ -1911,6 +1930,25 @@ class LiveBot:
         except Exception:
             return False
 
+    def _wait_for_fill(self, order_id: str, timeout_seconds: int = 10) -> Optional[float]:
+        """Poll Alpaca for order fill status and return the average fill price."""
+        start_time = time.time()
+        while time.time() - start_time < timeout_seconds:
+            try:
+                order = self.api.get_order(order_id)
+                if order.status == "filled":
+                    return float(order.filled_avg_price)
+                elif order.status in ["canceled", "expired", "rejected"]:
+                    self._log(f"Order {order_id} failed with status: {order.status}")
+                    return None
+            except Exception as e:
+                self._log(f"Error checking fill for {order_id}: {e}")
+            
+            time.sleep(1)
+        
+        self._log(f"Timed out waiting for fill of order {order_id}")
+        return None
+
     def _get_open_position(self, symbol: str):
         try:
             norm = _normalize_symbol(symbol)
@@ -1934,6 +1972,7 @@ class LiveBot:
                 time_in_force="gtc",
                 client_order_id=client_order_id
             )
+<<<<<<< HEAD
             try:
                 avg_fill = float(getattr(order, "filled_avg_price", 0) or 0) or None
             except Exception:
@@ -1949,6 +1988,15 @@ class LiveBot:
             existing_state = self._pos_state.get(_normalize_symbol(symbol), {})
             existing_state.update({
                 "symbol": symbol,
+=======
+            order_id = str(getattr(order, "id", "unknown"))
+            self._log(f"Buy order submitted: {symbol} (${notional_usd:.2f}) - ID: {order_id}")
+            
+            # Wait for fill to get accurate entry price
+            avg_fill = self._wait_for_fill(order_id)
+            
+            self._pos_state[_normalize_symbol(symbol)] = {
+>>>>>>> 318d6ce6ac30744cf24e5d548dc5b2091b1077b3
                 "entry_price": avg_fill,
                 "entry_ts": datetime.now(timezone.utc).isoformat(),
                 "bars_held": 0,
@@ -1967,15 +2015,19 @@ class LiveBot:
                 "price": avg_fill,
                 "entry_price": avg_fill,
                 "pnl": 0.0,
+<<<<<<< HEAD
                 "order_id": str(getattr(order, "id", "unknown")),
                 "king_conf": existing_state.get("king_conf"),
                 "council_conf": existing_state.get("council_conf"),
+=======
+                "order_id": order_id
+>>>>>>> 318d6ce6ac30744cf24e5d548dc5b2091b1077b3
             }
             self._trades.append(trade)
             self._save_trade_persistent(trade)
             
             if self.telegram_bridge:
-                price_str = f"`${avg_fill:,.2f}`" if avg_fill else "`pending fill`"
+                price_str = f"`${avg_fill:,.4f}`" if avg_fill else "`pending fill`"
                 state = self._pos_state.get(_normalize_symbol(symbol), {})
                 
                 msg = (
@@ -2012,6 +2064,7 @@ class LiveBot:
             MIN_QTY = 1e-8
             # For crypto, always use close_position() for full exits to avoid dust
             is_crypto = "/" in symbol or symbol.upper().endswith("USD") or symbol.upper().endswith("USDT")
+<<<<<<< HEAD
             order = None
             fill_price = None
             # Strategy 1: Use close_position() for complete exits (recommended)
@@ -2077,6 +2130,30 @@ class LiveBot:
             # Calculate PnL and Track Limits
             pnl = 0.0
             entry_price = self._pos_state.get(_normalize_symbol(symbol), {}).get("entry_price")
+=======
+            safe_qty = float(qty)
+            if is_crypto:
+                safe_qty = safe_qty * 0.9999
+                self._log(f"DEBUG: Applying crypto safety factor (0.9999): {qty} -> {safe_qty}")
+            
+            order = self.api.submit_order(
+                symbol=symbol,
+                qty=safe_qty,
+                side="sell",
+                type="market",
+                time_in_force="gtc",
+            )
+            order_id = str(getattr(order, "id", "unknown"))
+            self._log(f"Sell order submitted: {symbol} ({qty}) - ID: {order_id}")
+            
+            # Wait for fill to get accurate exit price
+            fill_price = self._wait_for_fill(order_id)
+            
+            # Calculate PnL and Track Limits
+            pnl = 0.0
+            entry_price = self._pos_state.get(_normalize_symbol(symbol), {}).get("entry_price")
+                
+>>>>>>> 318d6ce6ac30744cf24e5d548dc5b2091b1077b3
             if entry_price and fill_price:
                 qty_sold = float(qty)
                 pnl = (fill_price - entry_price) * qty_sold
@@ -2097,15 +2174,24 @@ class LiveBot:
                 "price": fill_price,
                 "entry_price": entry_price,
                 "pnl": pnl,
+<<<<<<< HEAD
                 "order_id": str(getattr(order, "id", "unknown")) if order else "close_position",
                 "exit_reason": exit_reason,
                 "regime": regime
+=======
+                "order_id": order_id,
+>>>>>>> 318d6ce6ac30744cf24e5d548dc5b2091b1077b3
             }
             self._trades.append(trade)
             self._save_trade_persistent(trade)
             if self.telegram_bridge:
                 emoji = "🟢" if pnl > 0 else "🔴"
+<<<<<<< HEAD
                 exit_str = f"`${fill_price:,.2f}`" if fill_price else "`pending fill`"
+=======
+                exit_str = f"`${fill_price:,.4f}`" if fill_price else "`pending fill`"
+                
+>>>>>>> 318d6ce6ac30744cf24e5d548dc5b2091b1077b3
                 pnl_pct = 0.0
                 if entry_price and fill_price:
                     pnl_pct = ((fill_price / entry_price) - 1) * 100
