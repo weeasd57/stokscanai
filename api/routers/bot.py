@@ -713,8 +713,7 @@ def get_bot_logs(bot_id: str = "primary", lines: int = 100):
             raise HTTPException(status_code=404, detail=f"Bot {bot_id} not found")
         
         # Get logs from deque (last N)
-        all_logs = list(bot._logs)
-        requested_logs = all_logs[-lines:] if len(all_logs) > lines else all_logs
+        requested_logs = bot.get_safe_logs(lines)
         
         return {
             "bot_id": bot_id,

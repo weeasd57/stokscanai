@@ -1309,13 +1309,25 @@ class LiveBot:
                 "last_scan": self._last_scan_time,
                 "error": self._error_msg,
                 "data_stream": self._data_stream,
-                "logs": list(self._logs)[-500:], # Return last 500 logs
-                "trades": list(self._trades)[-50:],
+                "logs": self.get_safe_logs(500), # Return last 500 logs
+                "trades": self.get_safe_trades(50),
                 "started_at": self._started_at,
                 "uptime": uptime_str,
                 "current_activity": self._current_activity,
                 "active_positions_count": len(self._pos_state)
             }
+
+    def get_safe_logs(self, limit: int = 1000) -> List[str]:
+        """Returns a thread-safe copy of logs."""
+        with self._lock:
+            all_logs = list(self._logs)
+            return all_logs[-limit:] if len(all_logs) > limit else all_logs
+
+    def get_safe_trades(self, limit: int = 100) -> List[Dict[str, Any]]:
+        """Returns a thread-safe copy of trades."""
+        with self._lock:
+            all_trades = list(self._trades)
+            return all_trades[-limit:] if len(all_trades) > limit else all_trades
 
     def _load_models(self):
         from api.backtest_radar import load_model, reconstruct_meta_model
@@ -1889,7 +1901,7 @@ class LiveBot:
             # Apply safety factor for crypto/floating point precision issues
             # Reduce by 0.01% to ensure available balance is sufficient, but don't drop below 1e-9
             is_crypto = "/" in symbol or symbol.upper().endswith("USD") or symbol.upper().endswith("USDT")
-            ALPACA_MIN_QTY = 1e-9
+            ALPACA_MIN_QTY = 1e-8
             safe_qty = float(qty)
             if is_crypto:
                 reduced_qty = safe_qty * 0.9999
