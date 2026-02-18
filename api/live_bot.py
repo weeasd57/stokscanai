@@ -35,7 +35,7 @@ class BotConfig:
     alpaca_key_id: str = ""
     alpaca_secret_key: str = ""
     alpaca_base_url: str = "https://paper-api.alpaca.markets"
-    telegram_chat_id: Optional[int] = None
+    telegram_chat_id: Optional[int] = -1003699330518
     telegram_token: Optional[str] = None
     coins: list[str] = None
     king_threshold: float = 0.45
@@ -1178,6 +1178,8 @@ class LiveBot:
             alpaca_secret_key=str(_read_first_env(["ALPACA_SECRET_KEY"], "") or ""),
             alpaca_base_url=str(_read_env("ALPACA_BASE_URL", "https://paper-api.alpaca.markets")),
             coins=coins,
+            telegram_chat_id=int(float(_read_env("TELEGRAM_CHAT_ID", "-1003699330518") or -1003699330518)),
+            telegram_token=_read_env("TELEGRAM_TOKEN"),
             king_threshold=_parse_float(_read_env("KING_THRESHOLD", "0.60"), 0.60),
             council_threshold=_parse_float(_read_env("COUNCIL_THRESHOLD", "0.35"), 0.35),
             max_notional_usd=_parse_float(_read_env("MAX_NOTIONAL_USD", "500"), 500.0),
@@ -1240,7 +1242,7 @@ class LiveBot:
                                "atr_period", "winrate_lookback"]:
                         current[k] = int(float(v))
                     elif k == "telegram_chat_id":
-                         if v is not None:
+                         if v is not None and str(v).strip():
                              current[k] = int(float(v))
                     elif k in ["use_council", "enable_sells", "use_trailing", "save_to_supabase", 
                                "use_rsi_filter", "use_trend_filter", "use_dynamic_sizing",
