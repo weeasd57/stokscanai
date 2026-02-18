@@ -1887,21 +1887,57 @@ class LiveBot:
     def _sell_market(self, symbol: str, qty: float) -> bool:
         try:
             # Apply safety factor for crypto/floating point precision issues
-            # Reduce by 0.01% to ensure available balance is sufficient
+            # Reduce by 0.01% to ensure available balance is sufficient, but don't drop below 1e-9
             is_crypto = "/" in symbol or symbol.upper().endswith("USD") or symbol.upper().endswith("USDT")
+            ALPACA_MIN_QTY = 1e-9
             safe_qty = float(qty)
             if is_crypto:
-                safe_qty = safe_qty * 0.9999
-                self._log(f"DEBUG: Applying crypto safety factor (0.9999): {qty} -> {safe_qty}")
+                reduced_qty = safe_qty * 0.9999
+                # If reduction pushes it below min, but it was above or at min, keep it at min.
+                if reduced_qty < ALPACA_MIN_QTY and safe_qty >= ALPACA_MIN_QTY:
+                    safe_qty = ALPACA_MIN_QTY
+                else:
+                    safe_qty = reduced_qty
+                
+                # If still below min, we can't sell this qty on Alpaca.
+                if safe_qty < ALPACA_MIN_QTY:
+                    self._log(f"SKIPPING Sell for {symbol}: qty {safe_qty} is below Alpaca minimum {ALPACA_MIN_QTY}")
+                    return False
+
+                self._log(f"DEBUG: Applying crypto safety factor: {qty} -> {safe_qty}")
             
-            order = self.api.submit_order(
-                symbol=symbol,
-                qty=safe_qty,
-                side="sell",
-                type="market",
-                time_in_force="gtc",
-            )
-            order_id = str(getattr(order, "id", "unknown"))
+            # If we are selling the full relative amount, try close_position for better precision
+            # We assume it's a full sell if qty is very close to current pos qty (handled by caller or sync)
+            order = None
+            try:
+                # If the caller is trying to sell everything (qty is almost max), use close_position
+                pos = self._get_open_position(symbol)
+                if pos and abs(float(getattr(pos, 'qty', 0)) - safe_qty) / safe_qty < 0.001:
+                    self._log(f"Using close_position for {symbol} to ensure clean exit.")
+                    self.api.close_position(symbol)
+                    # We don't get an order object easily from close_position in the adapter the same way,
+                    # but we can look for the last order or just assume it worked if no exception.
+                    order_id = "close_pos_exit"
+                else:
+                    order = self.api.submit_order(
+                        symbol=symbol,
+                        qty=safe_qty,
+                        side="sell",
+                        type="market",
+                        time_in_force="gtc",
+                    )
+                    order_id = str(getattr(order, "id", "unknown"))
+            except Exception as e:
+                # Fallback to standard submit if close_position fails or other issue
+                self._log(f"Standard sell fallback for {symbol}: {e}")
+                order = self.api.submit_order(
+                    symbol=symbol,
+                    qty=safe_qty,
+                    side="sell",
+                    type="market",
+                    time_in_force="gtc",
+                )
+                order_id = str(getattr(order, "id", "unknown"))
             self._log(f"Sell order submitted: {symbol} ({qty}) - ID: {order_id}")
             
             # Wait for fill to get accurate exit price
