@@ -47,6 +47,8 @@ class BotConfigUpdate(BaseModel):
     execution_mode: Optional[str] = None
     trading_mode: Optional[str] = None
     use_auto_tune: Optional[bool] = None
+    telegram_chat_id: Optional[int] = None
+    telegram_token: Optional[str] = None
 
 @router.post("/start")
 def start_bot(bot_id: str = "primary"):

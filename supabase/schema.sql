@@ -512,7 +512,7 @@ alter table public.data_sync_logs enable row level security;
 create policy "admin_only_all_logs" on public.data_sync_logs for all using (true); -- Simplified for admin use
 grant all on public.data_sync_logs to anon, authenticated, service_role;
 
--- Inventory Stats RPC
+-- Inventory Stats RPC (Optimized for performance)
 create or replace function public.get_inventory_stats()
 returns table (
     exchange text,
@@ -525,23 +525,18 @@ security definer
 as $$
 BEGIN
     RETURN QUERY
-    WITH p AS (
-        SELECT s.exchange, count(DISTINCT s.symbol) as p_count, max(s.updated_at) as last_ts
-        FROM public.stock_prices s
-        GROUP BY s.exchange
-    ),
-    f AS (
+    WITH f AS (
         SELECT s.exchange, count(*) as f_count, max(s.updated_at) as last_upd
         FROM public.stock_fundamentals s
         GROUP BY s.exchange
     )
     SELECT 
-        COALESCE(p.exchange, f.exchange)::text as exchange,
-        COALESCE(p.p_count, 0)::bigint as price_count,
-        COALESCE(f.f_count, 0)::bigint as fund_count,
-        COALESCE(f.last_upd, p.last_ts) as last_update
-    FROM p
-    FULL OUTER JOIN f ON p.exchange = f.exchange;
+        f.exchange::text as exchange,
+        -- Approximate price count using fund count for performance
+        f.f_count::bigint as price_count, 
+        f.f_count::bigint as fund_count,
+        f.last_upd as last_update
+    FROM f;
 END;
 $$;
 
@@ -550,15 +545,14 @@ returns table (symbol text, exchange text, name text, country text)
 language sql
 security definer
 as $$
-  select distinct 
-    p.symbol, 
-    p.exchange, 
+  select 
+    f.symbol, 
+    f.exchange, 
     (f.data->>'name')::text as name, 
     (f.data->>'country')::text as country
-  from public.stock_prices p
-  left join public.stock_fundamentals f on p.symbol = f.symbol and p.exchange = f.exchange
+  from public.stock_fundamentals f
   where (p_country is null or (f.data->>'country' = p_country))
-    and not (p.symbol ilike 'fund_%');
+    and not (f.symbol ilike 'fund_%');
 $$;
 
 create or replace function public.get_active_countries()

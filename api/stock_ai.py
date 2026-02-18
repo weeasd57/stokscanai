@@ -335,9 +335,9 @@ def _init_supabase():
         if url and key:
             try:
                 try:
-                    postgrest_timeout_s = float(os.getenv("SUPABASE_POSTGREST_TIMEOUT", "120"))
+                    postgrest_timeout_s = float(os.getenv("SUPABASE_POSTGREST_TIMEOUT", "300"))
                 except Exception:
-                    postgrest_timeout_s = 120.0
+                    postgrest_timeout_s = 300.0
 
                 try:
                     storage_timeout_s = float(os.getenv("SUPABASE_STORAGE_TIMEOUT", "20"))
@@ -646,7 +646,7 @@ def get_cached_tickers() -> set[Tuple[str, str]]:
 
 _CACHED_TICKERS_SET = None
 _CACHED_TICKERS_TS = 0
-_CACHE_TTL_SECONDS = 30
+_CACHE_TTL_SECONDS = 300
 
 _EXCHANGE_BULK_CACHE: Dict[str, Dict[str, Any]] = {}
 _EXCHANGE_BULK_TTL_SECONDS = 900  # 15 minutes; adjust as needed

@@ -35,6 +35,8 @@ class BotConfig:
     alpaca_key_id: str = ""
     alpaca_secret_key: str = ""
     alpaca_base_url: str = "https://paper-api.alpaca.markets"
+    telegram_chat_id: Optional[int] = None
+    telegram_token: Optional[str] = None
     coins: list[str] = None
     king_threshold: float = 0.45
     council_threshold: float = 0.25
@@ -1237,6 +1239,9 @@ class LiveBot:
                     elif k in ["bars_limit", "poll_seconds", "max_open_positions", "hold_max_bars", "max_consecutive_losses",
                                "atr_period", "winrate_lookback"]:
                         current[k] = int(float(v))
+                    elif k == "telegram_chat_id":
+                         if v is not None:
+                             current[k] = int(float(v))
                     elif k in ["use_council", "enable_sells", "use_trailing", "save_to_supabase", 
                                "use_rsi_filter", "use_trend_filter", "use_dynamic_sizing",
                                "use_market_regime", "use_mtf_confirmation", "use_atr_exits",
@@ -1249,6 +1254,9 @@ class LiveBot:
                                "alpaca_key_id", "alpaca_secret_key", "alpaca_base_url",
                                "king_model_path", "council_model_path", "timeframe"]:
                         current[k] = str(v).strip()
+                    elif k == "telegram_token":
+                        if v:
+                            current[k] = str(v).strip()
                     else:
                         current[k] = v
             
@@ -2379,7 +2387,6 @@ class LiveBot:
 class BotManager:
     def __init__(self):
         self._bots: Dict[str, LiveBot] = {}
-        self._state_file = Path("state/bots.json")
         self._telegram_bridge = None
         self._load_bots()
 
@@ -2414,40 +2421,15 @@ class BotManager:
                     print(f"Loaded {len(loaded_ids)} bot(s) from Supabase.")
         except Exception as e:
             print(f"Supabase bot load error: {e}")
-
-        # 2. Fallback to local file for any missing bots or if Supabase failed
-        if self._state_file.exists():
-            try:
-                with open(self._state_file, "r", encoding="utf-8") as f:
-                    data = json.load(f)
-                    for bot_id, config_dict in data.items():
-                        if bot_id in loaded_ids:
-                            continue # Supabase version takes precedence
-                        
-                        # Handle list to dict migration if needed
-                        if "coins" in config_dict and isinstance(config_dict["coins"], str):
-                            config_dict["coins"] = _parse_coins(config_dict["coins"])
-                        
-                        cfg = BotConfig(**config_dict)
-                        self._bots[bot_id] = LiveBot(bot_id=bot_id, config=cfg)
-                        loaded_ids.add(bot_id)
-            except Exception as e:
-                print(f"Error loading local bots: {e}")
         
         # Ensure a 'primary' bot exists if none loaded
         if "primary" not in self._bots:
             self.create_bot("primary", "Primary Bot")
 
     def save_bots(self):
-        """Save all bot configurations locally and to Supabase."""
+        """Save all bot configurations to Supabase."""
         try:
-            # 1. Save local backup
-            self._state_file.parent.mkdir(exist_ok=True)
-            data = {bid: asdict(bot.config) for bid, bot in self._bots.items()}
-            with open(self._state_file, "w", encoding="utf-8") as f:
-                json.dump(data, f, indent=2)
-            
-            # 2. Sync to Supabase
+            # Sync to Supabase
             records = []
             for bid, bot in self._bots.items():
                 records.append({
