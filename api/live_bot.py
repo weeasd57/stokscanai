@@ -34,18 +34,18 @@ class BotConfig:
     name: str = "Primary Bot"
     execution_mode: str = "BOTH"  # "VIRTUAL" | "TELEGRAM" | "BOTH"
     coins: list[str] = None
-    king_threshold: float = 0.45
-    council_threshold: float = 0.25
-    max_notional_usd: float = 1000.0
+    king_threshold: float = 0.77
+    council_threshold: float = 0.47
+    max_notional_usd: float = 10000.0
     pct_cash_per_trade: float = 0.15
     bars_limit: int = 200
     poll_seconds: int = 120
     timeframe: str = "1Hour"
-    use_council: bool = True
+    use_council: bool = False
     data_source: str = "binance"
 
     # Risk
-    max_open_positions: int = 8
+    max_open_positions: int = 5
     enable_sells: bool = True
     target_pct: float = 0.15
     stop_loss_pct: float = 0.07
@@ -106,6 +106,7 @@ class BotConfig:
     cooldown_minutes: int = 30  # Minutes to wait before re-entering the same symbol
     
     # 10. Telegram Integration
+    telegram_chat_id: Optional[int] = None
 
     # 11. Time-of-Day Filter
     use_time_filter: bool = False
@@ -124,7 +125,7 @@ class BotConfig:
     trading_mode: str = "aggressive"  # "defensive" | "aggressive" | "hybrid"
 
     # Model Paths
-    king_model_path: str = "api/models/KING_CRYPTO 👑.pkl"
+    king_model_path: str = "api/models/CRISTAL_CRYPTO 💎.pkl"
     council_model_path: str = "api/models/COUNCIL_CRYPTO.pkl"
 
 def _read_env(name: str, default: Optional[str] = None, required: bool = False) -> Optional[str]:
@@ -1267,9 +1268,9 @@ class LiveBot:
         )
         return BotConfig(
             coins=coins,
-            king_threshold=_parse_float(_read_env("KING_THRESHOLD", "0.45"), 0.45),
-            council_threshold=_parse_float(_read_env("COUNCIL_THRESHOLD", "0.25"), 0.25),
-            max_notional_usd=_parse_float(_read_env("MAX_NOTIONAL_USD", "1000.0"), 1000.0),
+            king_threshold=_parse_float(_read_env("KING_THRESHOLD", "0.77"), 0.77),
+            council_threshold=_parse_float(_read_env("COUNCIL_THRESHOLD", "0.47"), 0.47),
+            max_notional_usd=_parse_float(_read_env("MAX_NOTIONAL_USD", "10000.0"), 10000.0),
             pct_cash_per_trade=_parse_float(_read_env("PCT_CASH_PER_TRADE", "0.15"), 0.15),
             bars_limit=int(float(_read_env("BARS_LIMIT", "200") or 200)),
             poll_seconds=int(float(_read_env("POLL_SECONDS", "120") or 120)),
@@ -1296,15 +1297,15 @@ class LiveBot:
 
             trading_mode=str(_read_env("TRADING_MODE", "aggressive") or "aggressive").strip().lower(),
 
-            king_model_path=str(_read_env("LIVE_KING_MODEL_PATH", "api/models/KING_CRYPTO 👑.pkl")),
+            king_model_path=str(_read_env("LIVE_KING_MODEL_PATH", "api/models/CRISTAL_CRYPTO 💎.pkl")),
             council_model_path=str(_read_env("LIVE_COUNCIL_MODEL_PATH", "api/models/COUNCIL_CRYPTO.pkl")),
-            max_open_positions=int(float(_read_env("LIVE_MAX_OPEN_POSITIONS", "8") or 8)),
+            max_open_positions=int(float(_read_env("LIVE_MAX_OPEN_POSITIONS", "5") or 5)),
             
             cooldown_minutes=int(float(_read_env("COOLDOWN_MINUTES", "30") or 30)),
             use_time_filter=_parse_bool(_read_env("USE_TIME_FILTER", "0"), False),
             min_quality_score=_parse_float(_read_env("MIN_QUALITY_SCORE", "50.0"), 50.0),
             regime_adx_threshold=_parse_float(_read_env("REGIME_ADX_THRESHOLD", "14.0"), 14.0),
-            use_council=_parse_bool(_read_env("LIVE_USE_COUNCIL", "1"), True),
+            use_council=_parse_bool(_read_env("LIVE_USE_COUNCIL", "0"), False),
             save_trades_to_supabase=_parse_bool(_read_env("LIVE_SAVE_TRADES_TO_SUPABASE", "1"), True),
         )
 
