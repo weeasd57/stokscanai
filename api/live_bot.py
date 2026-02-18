@@ -2657,8 +2657,7 @@ class LiveBot:
                         if total_managed >= self.config.max_open_positions:
                             msg = f"⚠️ *RISK FIREWALL ALERT*\n\nLimit Reached: {total_managed}/{self.config.max_open_positions} positions.\nSkipping signal for `{symbol}`.\n\n_Increase 'Max Open Trades' in settings if you want to allow more simultaneous positions._"
                             self._log(f"RISK FIREWALL: Max positions reached ({total_managed}/{self.config.max_open_positions}). Skipping signal for {symbol}.")
-                            if self.telegram_bridge:
-                                self.telegram_bridge.send_notification(msg)
+                            # Do not spam Telegram with capacity alerts; keep it in logs only.
                             continue
                     except Exception as e:
                         self._log(f"Error checking Risk Firewall: {e}")
