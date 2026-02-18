@@ -169,6 +169,38 @@ def _parse_coins(raw: Any) -> list[str]:
         coins.append(s)
     return coins
 
+def _consolidate_coins(coins: list[str]) -> list[str]:
+    """
+    Consolidate coins list by picking the best quote currency per asset.
+    Priority: USD > USDT > USDC
+    """
+    if not coins:
+        return []
+        
+    assets = {}
+    for pair in coins:
+        if "/" not in pair:
+            continue
+        base, quote = pair.split("/", 1)
+        if base not in assets:
+            assets[base] = []
+        assets[base].append(quote)
+        
+    final_list = []
+    priority = ["USD", "USDT", "USDC"]
+    
+    for base, quotes in assets.items():
+        best_quote = None
+        for p in priority:
+            if p in quotes:
+                best_quote = p
+                break
+        if not best_quote:
+            best_quote = quotes[0]
+        final_list.append(f"{base}/{best_quote}")
+        
+    return sorted(final_list)
+
 def _normalize_symbol(symbol: str) -> str:
     return (symbol or "").strip().upper().replace("/", "")
 
@@ -268,6 +300,13 @@ class LiveBot:
         # Default config from env or defaults
         self.config = config or self._build_default_config()
         
+        # Consolidate coins to avoid scanning multiple quotes for same asset (USD/USDT/USDC)
+        if self.config.coins:
+            original_count = len(self.config.coins)
+            self.config.coins = _consolidate_coins(self.config.coins)
+            if len(self.config.coins) < original_count:
+                print(f"DEBUG: Consolidated coins for {self.bot_id}: {original_count} -> {len(self.config.coins)}")
+            
         # Models
         self.king_obj = None
         self.king_clf = None
@@ -1266,6 +1305,8 @@ class LiveBot:
             use_time_filter=_parse_bool(_read_env("USE_TIME_FILTER", "0"), False),
             min_quality_score=_parse_float(_read_env("MIN_QUALITY_SCORE", "50.0"), 50.0),
             regime_adx_threshold=_parse_float(_read_env("REGIME_ADX_THRESHOLD", "14.0"), 14.0),
+            use_council=_parse_bool(_read_env("LIVE_USE_COUNCIL", "1"), True),
+            save_trades_to_supabase=_parse_bool(_read_env("LIVE_SAVE_TRADES_TO_SUPABASE", "1"), True),
         )
 
     def update_config(self, updates: Dict[str, Any]):
