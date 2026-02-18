@@ -131,7 +131,11 @@ def update_bot_config(config: BotConfigUpdate, bot_id: str = "primary"):
             raise HTTPException(status_code=404, detail=f"Bot {bot_id} not found")
         
         updates = config.dict(exclude_unset=True)
-        print(f"DEBUG: Received config update for {bot_id}: {updates}")
+        # Avoid charmap encoding errors on Windows when printing emojis
+        try:
+            print(f"DEBUG: Received config update for {bot_id}: {updates}")
+        except UnicodeEncodeError:
+            print(f"DEBUG: Received config update for {bot_id} (emojis simplified)")
         bot.update_config(updates)
         bot_manager.save_bots()
         status = bot.get_status()
@@ -410,11 +414,61 @@ def get_bot_performance(bot_id: str = "primary"):
                     normalized_trades.append(trade)
 
                 trades = normalized_trades
-                # Re-filter buys/sells after normalization
-                buys = [t for t in trades if str(t.get("action") or "").upper() in ("BUY", "SIGNAL") or str(t.get("action") or "").upper().startswith("ALPACA:")]
-                sells = [t for t in trades if str(t.get("action") or "").upper() == "SELL"]
+
+                # ── Enrich execution trades with confidence from signal records ──
+                # Build index of signal_only records by (symbol, approx_timestamp)
+                from datetime import timedelta
+                _signal_index = {}
+                for t in trades:
+                    if str(t.get("order_id") or "") == "signal_only":
+                        sym = str(t.get("symbol") or "")
+                        ts_raw = t.get("timestamp") or ""
+                        _signal_index.setdefault(sym, []).append(t)
+
+                for t in trades:
+                    oid = str(t.get("order_id") or "")
+                    if oid.startswith("virt_oid_") and not t.get("king_conf"):
+                        sym = str(t.get("symbol") or "")
+                        t_ts = t.get("timestamp") or ""
+                        # Find matching signal within ±10 seconds
+                        for sig in _signal_index.get(sym, []):
+                            try:
+                                from datetime import datetime as _dt
+                                t1 = _dt.fromisoformat(str(t_ts).replace("Z", "+00:00"))
+                                t2 = _dt.fromisoformat(str(sig.get("timestamp", "")).replace("Z", "+00:00"))
+                                if abs((t1 - t2).total_seconds()) <= 10:
+                                    if sig.get("king_conf") and not t.get("king_conf"):
+                                        t["king_conf"] = sig["king_conf"]
+                                    if sig.get("council_conf") and not t.get("council_conf"):
+                                        t["council_conf"] = sig["council_conf"]
+                                    break
+                            except Exception:
+                                continue
+
+                # ── Helper: detect placeholder trades ──
+                def _is_placeholder(t):
+                    """Trade with price=1.0, entry_price=1.0, pnl=0 is a phantom fill."""
+                    p = safe_float(t.get("price"))
+                    ep = safe_float(t.get("entry_price"))
+                    pnl = safe_float(t.get("pnl"))
+                    return (abs(p - 1.0) < 1e-6 and abs(ep - 1.0) < 1e-6 and abs(pnl) < 1e-6)
+
+                # ── Filter for statistics: exclude signal_only AND placeholder trades ──
+                def _is_real_trade(t):
+                    oid = str(t.get("order_id") or "")
+                    if oid == "signal_only":
+                        return False
+                    if _is_placeholder(t):
+                        return False
+                    return True
+
+                # Re-filter buys/sells after normalization — only real execution trades
+                all_buys = [t for t in trades if str(t.get("action") or "").upper() in ("BUY", "SIGNAL") or str(t.get("action") or "").upper().startswith("ALPACA:")]
+                all_sells = [t for t in trades if str(t.get("action") or "").upper() == "SELL"]
+                buys = [t for t in all_buys if _is_real_trade(t)]
+                sells = [t for t in all_sells if _is_real_trade(t)]
                 
-                print(f"[Performance] BUY trades: {len(buys)}, SELL trades: {len(sells)}")
+                print(f"[Performance] BUY trades: {len(buys)} (of {len(all_buys)} total), SELL trades: {len(sells)} (of {len(all_sells)} total)")
                 
                 # Calculate wins/losses with proper type conversion
                 wins = []

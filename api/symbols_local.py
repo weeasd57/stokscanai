@@ -16,7 +16,7 @@ def _project_root() -> str:
     if os.path.exists("/app/symbols_data"):
         return "/app"
         
-    # 4. Fallback to parent directory as project root
+    # 4. Fallback to current dir's parent
     return parent_dir
 
 def _default_symbols_dir() -> str:
@@ -36,23 +36,34 @@ def _safe_read_json(path: str) -> Any:
             return json.load(f)
 
 def _find_latest_file(prefix: str, suffix: str = ".json") -> Optional[str]:
-    base = _default_symbols_dir()
-    if not os.path.exists(base):
-        return None
-    
-    # Standard names first (if we decide to use them)
-    standard = os.path.join(base, f"{prefix}{suffix}")
-    if os.path.exists(standard):
-        return standard
+    try:
+        base = _default_symbols_dir()
+        if not os.path.exists(base):
+            return None
         
-    # Otherwise look for timestamped ones: prefix_YYYYMMDD_HHMMSS.json
-    candidates = [f for f in os.listdir(base) if f.startswith(prefix) and f.endswith(suffix)]
-    if not candidates:
+        # Standard names first (if we decide to use them)
+        standard = os.path.join(base, f"{prefix}{suffix}")
+        if os.path.exists(standard):
+            return standard
+            
+        # Otherwise look for timestamped ones: prefix_YYYYMMDD_HHMMSS.json
+        if not os.path.isdir(base):
+            print(f"DEBUG ERROR: {base} is not a directory")
+            return None
+            
+        candidates = [f for f in os.listdir(base) if f.startswith(prefix) and f.endswith(suffix)]
+        if not candidates:
+            return None
+            
+        # Sort by name (timestamp format ensures correct sorting for latest)
+        candidates.sort(reverse=True)
+        return os.path.join(base, candidates[0])
+    except OSError as e:
+        print(f"DEBUG ERROR in _find_latest_file({prefix}): {e}")
         return None
-        
-    # Sort by name (timestamp format ensures correct sorting for latest)
-    candidates.sort(reverse=True)
-    return os.path.join(base, candidates[0])
+    except Exception as e:
+        print(f"DEBUG ERROR in _find_latest_file({prefix}) [Generic]: {e}")
+        return None
 
 @lru_cache(maxsize=1)
 def load_country_summary() -> Dict[str, Any]:

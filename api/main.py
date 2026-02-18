@@ -7,6 +7,9 @@ import urllib.request
 import pandas as pd
 import numpy as np
 import warnings
+import io
+
+# Suppress specific FutureWarnings from libraries like 'ta'
 
 # Suppress specific FutureWarnings from libraries like 'ta'
 warnings.filterwarnings("ignore", category=FutureWarning)
@@ -52,12 +55,13 @@ async def log_requests(request: Request, call_next):
         
         # Log all failures, or non-polling successes
         if response.status_code >= 400 or not is_polling:
-            print(f"[REQ] {method} {path} - {response.status_code} ({duration:.3f}s)", flush=True)
+            # print(f"[REQ] {method} {path} - {response.status_code} ({duration:.3f}s)", flush=True)
+            pass
             
         return response
     except Exception as e:
         duration = (dt.datetime.now() - start_time).total_seconds()
-        print(f"[REQ ERROR] {method} {path} - FAILED ({duration:.3f}s): {e}", flush=True)
+        # print(f"[REQ ERROR] {method} {path} - FAILED ({duration:.3f}s): {e}", flush=True)
         raise e
 
 @app.on_event("startup")
@@ -68,7 +72,11 @@ async def startup_event():
     
     # Initialize Telegram Bot if token exists
     tg_token = os.getenv("ARTORO_AI_BOT", "")
-    print(f"DEBUG: STARTUP - ARTORO_AI_BOT found: {'Yes' if tg_token else 'No'}")
+    webhook_url = os.getenv("WEBHOOK_URL", "")
+    
+    print(f"DEBUG: STARTUP - ARTORO_AI_BOT: {'SET' if tg_token else 'MISSING'}")
+    print(f"DEBUG: STARTUP - WEBHOOK_URL: {webhook_url or 'NOT SET (Polling Mode)'}")
+    
     if tg_token:
         try:
             from api.telegram_bot import start_telegram_bridge
@@ -98,16 +106,18 @@ async def shutdown_event():
 async def unhandled_exception_handler(request: Request, exc: Exception):
     if isinstance(exc, HTTPException):
         return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
-    print(f"Unhandled exception for {request.method} {request.url.path}: {exc}")
+    # print(f"Unhandled exception for {request.method} {request.url.path}: {exc}")
     import traceback
-    traceback.print_exc()
+    # traceback.print_exc()
     return JSONResponse(status_code=500, content={"detail": f"Internal server error: {str(exc)}"})
+
+from api.routers import scan_ai, scan_ai_fast, scan_tech, admin, alpaca, bot
 
 app.include_router(scan_ai.router)
 app.include_router(scan_ai_fast.router)
 app.include_router(scan_tech.router)
 app.include_router(admin.router)
-from api.routers import bot
+app.include_router(alpaca.router)
 app.include_router(bot.router, prefix="/ai_bot")
 app.include_router(bot.router, prefix="/bot") # Compatibility Alias
 
@@ -469,13 +479,25 @@ def symbols_countries(source: str = Query(default="supabase")):
             return {"countries": list_countries()}
         
         from api.stock_ai import get_supabase_countries
-        sb_countries = get_supabase_countries()
-        if sb_countries:
-            return {"countries": sb_countries}
+        try:
+            sb_countries = get_supabase_countries()
+            if sb_countries:
+                return {"countries": sb_countries}
+        except Exception as sb_err:
+            print(f"DEBUG ERROR: get_supabase_countries failed: {sb_err}")
         
-        return {"countries": list_countries()} # Fallback
+        # Fallback to local
+        try:
+            return {"countries": list_countries()}
+        except Exception as loc_err:
+            print(f"DEBUG ERROR: list_countries failed: {loc_err}")
+            # Absolute minimum fallback to prevent 500
+            return {"countries": ["Egypt", "USA", "UK"]}
+            
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Countries fetch failed: {str(e)}")
 
 
 @app.get("/symbols/by-date")

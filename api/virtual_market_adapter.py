@@ -10,6 +10,30 @@ from typing import Any, Callable, Dict, List, Optional
 PriceProvider = Callable[[str], Optional[float]]
 
 
+def _supabase_last_close(symbol: str) -> Optional[float]:
+    """Best-effort: fetch the latest close price from stock_bars_intraday."""
+    try:
+        from api.stock_ai import supabase, _init_supabase
+        _init_supabase()
+        if not supabase:
+            return None
+        resp = (
+            supabase.table("stock_bars_intraday")
+            .select("close")
+            .eq("symbol", symbol)
+            .order("ts", desc=True)
+            .limit(1)
+            .execute()
+        )
+        if resp and resp.data:
+            val = float(resp.data[0].get("close", 0))
+            if val > 0:
+                return val
+    except Exception:
+        pass
+    return None
+
+
 @dataclass
 class VirtualOrder:
     id: str
@@ -77,8 +101,8 @@ class VirtualMarketAdapter:
     def _now(self) -> str:
         return datetime.now(timezone.utc).isoformat()
 
-    def _get_price(self, symbol: str) -> float:
-        # 1) injected provider
+    def _get_price(self, symbol: str) -> Optional[float]:
+        # 1) injected provider (populated from bars the bot already fetched)
         if self._price_provider:
             try:
                 p = self._price_provider(symbol)
@@ -87,9 +111,17 @@ class VirtualMarketAdapter:
             except Exception:
                 pass
 
-        # 2) best-effort fallback using yfinance (networked). If it fails, return a stable dummy.
+        # 2) Supabase last close (zero-network-latency if DB is warm)
         try:
-            import yfinance as yf  # local dependency already used in project
+            sb_price = _supabase_last_close(symbol)
+            if sb_price is not None and sb_price > 0:
+                return sb_price
+        except Exception:
+            pass
+
+        # 3) best-effort fallback using yfinance (networked)
+        try:
+            import yfinance as yf
 
             s = (symbol or "").strip().upper()
             yf_sym = s
@@ -120,8 +152,9 @@ class VirtualMarketAdapter:
         except Exception:
             pass
 
-        # deterministic dummy to keep the bot functional offline/tests
-        return 1.0
+        # No price available — return None so callers can decide
+        self._log(f"WARNING: No price available for {symbol}")
+        return None
 
     def get_account(self) -> Any:
         class MockAccount:
@@ -136,6 +169,8 @@ class VirtualMarketAdapter:
         for sym, p in self._positions.items():
             qty = float(p.get("qty", 0))
             px = self._get_price(sym)
+            if px is None:
+                px = float(p.get("avg_entry", 0))  # fallback to entry price
             equity += qty * px
         return MockAccount(self._cash, equity)
 
@@ -145,6 +180,8 @@ class VirtualMarketAdapter:
             qty = float(p.get("qty", 0))
             avg = float(p.get("avg_entry", 0))
             px = self._get_price(sym)
+            if px is None:
+                px = avg  # fallback to entry price if no market data
             mv = qty * px
             upl = (px - avg) * qty
             uplpc = ((px / avg) - 1.0) if avg > 0 else 0.0
@@ -201,6 +238,10 @@ class VirtualMarketAdapter:
         qty = kwargs.get("qty")
         notional = kwargs.get("notional")
         px = self._get_price(symbol)
+
+        # Refuse to fill at unknown price — prevents phantom 1.0 trades
+        if px is None or px <= 0:
+            raise ValueError(f"Cannot fill order for {symbol}: no market price available")
 
         if qty is None and notional is None:
             raise ValueError("Either qty or notional must be provided")

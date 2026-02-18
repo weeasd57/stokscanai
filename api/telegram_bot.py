@@ -29,21 +29,42 @@ class TelegramBot:
         self._load_chat_id()
 
     def _load_chat_id(self):
-        """Load chat_id from a local file if exists."""
+        """Load chat_id from bot config or local file."""
+        # 1. Check bot config (Supabase)
+        if self.bot_instance and getattr(self.bot_instance.config, "telegram_chat_id", None):
+            self.chat_id = self.bot_instance.config.telegram_chat_id
+            self._log(f"Loaded chat_id from bot config: {self.chat_id}")
+            return
+
+        # 2. Fallback to local file (Migration)
         p = Path("state/telegram_chat_id.json")
         if p.exists():
             try:
                 with open(p, "r") as f:
                     self.chat_id = json.load(f).get("chat_id")
+                    if self.chat_id:
+                        self._log(f"Migrated chat_id from local file: {self.chat_id}")
+                        # Auto-save to config
+                        self._save_chat_id(self.chat_id)
             except:
                 pass
 
     def _save_chat_id(self, chat_id: int):
-        """Save chat_id to keep it across restarts."""
+        """Save chat_id to bot config for persistence across restarts."""
         self.chat_id = chat_id
+        if self.bot_instance:
+            self.bot_instance.config.telegram_chat_id = chat_id
+            from api.live_bot import bot_manager
+            bot_manager.save_bots()
+            self._log(f"Saved chat_id to bot config and Supabase: {chat_id}")
+        
+        # Still save local for extra safety
         os.makedirs("state", exist_ok=True)
-        with open("state/telegram_chat_id.json", "w") as f:
-            json.dump({"chat_id": chat_id}, f)
+        try:
+            with open("state/telegram_chat_id.json", "w") as f:
+                json.dump({"chat_id": chat_id}, f)
+        except:
+            pass
 
     async def handle_webhook_update(self, data: dict):
         """Processes an update received via webhook."""

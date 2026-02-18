@@ -105,7 +105,10 @@ class BotConfig:
     # 8. Cooldown Mechanism
     cooldown_minutes: int = 30  # Minutes to wait before re-entering the same symbol
 
-    # 9. Time-of-Day Filter
+    # 9. Telegram Integration
+    telegram_chat_id: Optional[int] = None
+
+    # 10. Time-of-Day Filter
     use_time_filter: bool = False
     
     # 9. Signal Quality Score
@@ -276,6 +279,8 @@ class LiveBot:
         self._cooldowns: Dict[str, datetime] = {}
         # Track last saved bar timestamp per symbol to avoid redundant Supabase writes
         self._last_save_bars_ts: Dict[str, str] = {}
+        # Latest prices from bars — injected into virtual market adapter
+        self._latest_prices: Dict[str, float] = {}
 
         # Risk & Limits Trackers
         self._consecutive_losses = 0
@@ -1078,7 +1083,14 @@ class LiveBot:
         ts = datetime.now().strftime("%H:%M:%S")
         line = f"[{self.config.name}] [{ts}] {msg}"
         with self._lock:
-            print(line) # Keep printing to stdout for convenience
+            try:
+                print(line) # Keep printing to stdout for convenience
+            except UnicodeEncodeError:
+                # Fallback for Windows console with limited encoding
+                try:
+                    print(line.encode('ascii', errors='replace').decode('ascii'))
+                except Exception:
+                    pass
             self._logs.append(line)
             
         # NEW: Persist to Supabase
@@ -1884,14 +1896,26 @@ class LiveBot:
                 avg_fill = float(getattr(order, "filled_avg_price", 0) or 0) or None
             except Exception:
                 avg_fill = None
-            self._pos_state[_normalize_symbol(symbol)] = {
+
+            # Cross-check: prefer latest bars close if avg_fill looks like a placeholder
+            if not avg_fill or abs(avg_fill - 1.0) < 1e-6:
+                bars_price = self._latest_prices.get(_normalize_symbol(symbol)) or self._latest_prices.get(symbol)
+                if bars_price and bars_price > 0:
+                    avg_fill = bars_price
+
+            # Merge with existing _pos_state (set by _run_loop before this call)
+            existing_state = self._pos_state.get(_normalize_symbol(symbol), {})
+            existing_state.update({
                 "entry_price": avg_fill,
                 "entry_ts": datetime.now(timezone.utc).isoformat(),
                 "bars_held": 0,
-                "current_stop": None,
-                "trail_mode": "NONE",
-            }
+                "trail_mode": existing_state.get("trail_mode", "NONE"),
+                "amount": float(notional_usd) / avg_fill if avg_fill else 0,
+            })
+            self._pos_state[_normalize_symbol(symbol)] = existing_state
             self._save_pos_state_to_supabase()
+
+            # Build trade record — carry king_conf/council_conf from pos state
             trade = {
                 "timestamp": datetime.now().isoformat(),
                 "symbol": symbol,
@@ -1900,7 +1924,9 @@ class LiveBot:
                 "price": avg_fill,
                 "entry_price": avg_fill,
                 "pnl": 0.0,
-                "order_id": str(getattr(order, "id", "unknown"))
+                "order_id": str(getattr(order, "id", "unknown")),
+                "king_conf": existing_state.get("king_conf"),
+                "council_conf": existing_state.get("council_conf"),
             }
             self._trades.append(trade)
             self._save_trade_persistent(trade)
@@ -1926,7 +1952,7 @@ class LiveBot:
             self._log(f"Buy failed for {symbol}: {e}")
             return False
 
-    def _sell_market(self, symbol: str, qty: float, is_full_exit: bool = True) -> bool:
+    def _sell_market(self, symbol: str, qty: float, is_full_exit: bool = True, exit_reason: str = "MANUAL") -> bool:
         """
         Sell a position on the market.
         
@@ -2016,6 +2042,10 @@ class LiveBot:
                     self._consecutive_losses += 1
                 else:
                     self._consecutive_losses = 0
+            # Capture regime from state before we potentially pop it
+            state = self._pos_state.get(_normalize_symbol(symbol)) or {}
+            regime = state.get("regime", "UNKNOWN")
+
             trade = {
                 "timestamp": datetime.now().isoformat(),
                 "symbol": symbol,
@@ -2025,6 +2055,8 @@ class LiveBot:
                 "entry_price": entry_price,
                 "pnl": pnl,
                 "order_id": str(getattr(order, "id", "unknown")) if order else "close_position",
+                "exit_reason": exit_reason,
+                "regime": regime
             }
             self._trades.append(trade)
             self._save_trade_persistent(trade)
@@ -2174,7 +2206,7 @@ class LiveBot:
                 self._save_signal_record(symbol, close, qty * close, 0, None, action="SELL", entry_price=float(entry_price), pnl=sell_pnl)
                 self._pos_state.pop(_normalize_symbol(symbol), None)
                 return True
-            return self._sell_market(symbol, qty=qty)
+            return self._sell_market(symbol, qty=qty, exit_reason="SMART-EXIT")
 
         # ── Feature 10: Partial Position Sell ──
         self._maybe_partial_sell(symbol, qty, close, entry_price)
@@ -2188,7 +2220,7 @@ class LiveBot:
                 self._pos_state.pop(_normalize_symbol(symbol), None)
                 self._log("SKIPPING Virtual Sell (Telegram-Only Mode)")
                 return True
-            return self._sell_market(symbol, qty=qty)
+            return self._sell_market(symbol, qty=qty, exit_reason="STOP-LOSS")
 
         # Target check
         if hi >= float(take_profit):
@@ -2199,7 +2231,7 @@ class LiveBot:
                 self._pos_state.pop(_normalize_symbol(symbol), None)
                 self._log("SKIPPING Virtual Sell (Telegram-Only Mode)")
                 return True
-            return self._sell_market(symbol, qty=qty)
+            return self._sell_market(symbol, qty=qty, exit_reason="TAKE-PROFIT")
 
         # Trailing stop updates (effective next bar)
         if self.config.use_trailing:
@@ -2230,7 +2262,7 @@ class LiveBot:
                 self._pos_state.pop(_normalize_symbol(symbol), None)
                 self._log("SKIPPING Virtual Sell (Telegram-Only Mode)")
                 return True
-            return self._sell_market(symbol, qty=qty)
+            return self._sell_market(symbol, qty=qty, exit_reason="TIME-EXIT")
 
         self._pos_state[_normalize_symbol(symbol)] = {
             **state,
@@ -2243,101 +2275,148 @@ class LiveBot:
         return False
 
 
+    def _get_auto_tune_analytics(self, lookback: int = 30) -> Dict[str, Any]:
+        """
+        Performs deep analysis of recent trades grouped by regime and exit reason.
+        Returns a structured dictionary of metrics.
+        """
+        sells = [t for t in self._trades if t.get("action") == "SELL"]
+        if not sells:
+            return {}
+
+        recent = sells[-lookback:]
+        
+        # 1. Performance by Regime
+        regimes = {}
+        for t in recent:
+            reg = t.get("regime", "UNKNOWN")
+            if reg not in regimes:
+                regimes[reg] = {"wins": 0, "losses": 0, "pnl": 0.0, "gross_profit": 0.0, "gross_loss": 0.0, "count": 0}
+            
+            regimes[reg]["count"] += 1
+            pnl = float(t.get("pnl") or 0)
+            regimes[reg]["pnl"] += pnl
+            if pnl > 0:
+                regimes[reg]["wins"] += 1
+                regimes[reg]["gross_profit"] += pnl
+            else:
+                regimes[reg]["losses"] += 1
+                regimes[reg]["gross_loss"] += abs(pnl)
+
+        # Calculate Profit Factor and Win Rate per regime
+        for reg in regimes:
+            r = regimes[reg]
+            r["win_rate"] = r["wins"] / r["count"]
+            r["profit_factor"] = r["gross_profit"] / r["gross_loss"] if r["gross_loss"] > 0 else (2.0 if r["gross_profit"] > 0 else 1.0)
+
+        # 2. Performance by Exit Reason
+        exits = {}
+        for t in recent:
+            reason = t.get("exit_reason", "MANUAL")
+            if reason not in exits:
+                exits[reason] = {"count": 0, "pnl": 0.0, "wins": 0}
+            
+            exits[reason]["count"] += 1
+            pnl = float(t.get("pnl") or 0)
+            exits[reason]["pnl"] += pnl
+            if pnl > 0:
+                exits[reason]["wins"] += 1
+            
+        for reason in exits:
+            exits[reason]["win_rate"] = exits[reason]["wins"] / exits[reason]["count"]
+
+        return {
+            "total_count": len(recent),
+            "regimes": regimes,
+            "exits": exits,
+            "overall_win_rate": sum(1 for t in recent if float(t.get("pnl") or 0) > 0) / len(recent)
+        }
+
     # ── Feature 11: Auto-Tuning (Self-Learning) ───────────────────────────
     def _auto_tune_parameters(self):
         """
         Reviews bot performance and automatically adjusts parameters based on results.
-        Analyzes the last 20 closed trades to adapt to market conditions.
+        Analyzes recent history grouped by regime and exit reason for smarter tuning.
         """
         if not getattr(self.config, "use_auto_tune", True):
             return
 
-        # 1. Get last 20 closed trades
-        closed_trades = [t for t in self._trades if t.get("action") == "SELL"]
-        if len(closed_trades) < 5:
-            return  # Not enough data to learn yet
+        analytics = self._get_auto_tune_analytics(lookback=30)
+        if not analytics or analytics.get("total_count", 0) < 5:
+            return
 
-        recent = closed_trades[-20:] # Focus on the last 20
-        wins = sum(1 for t in recent if (t.get("pnl") or 0) > 0)
-        win_rate = wins / len(recent)
+        overall_wr = analytics["overall_win_rate"]
+        regimes = analytics["regimes"]
+        exits = analytics["exits"]
+
+        self._log(f"🤖 SMART AUTO-TUNE: Analysing {analytics['total_count']} trades. Overall WR={overall_wr:.0%}")
         
-        # Get total PnL for the recent window
-        total_pnl = sum(t.get("pnl") or 0 for t in recent)
-
-        self._log(f"🤖 AUTO-TUNE: WinRate={win_rate:.0%} | PnL=${total_pnl:.2f}")
-
         changed = False
-        original_config = asdict(self.config)
 
-        # 2. Adjust Entry Logic (King & Council Thresholds)
-        # Low performance (WinRate < 40%) -> Tighten entry conditions
-        if win_rate < 0.40:
-            new_king = min(0.85, self.config.king_threshold + 0.02)
-            new_council = min(0.60, self.config.council_threshold + 0.02)
-            
-            if new_king != self.config.king_threshold:
-                self.config.king_threshold = new_king
-                self._log(f"⚠️ AUTO-TUNE: Tightening King Threshold to {new_king:.2f} (WinRate Low)")
-                changed = True
-            
-            if new_council != self.config.council_threshold:
-                self.config.council_threshold = new_council
-                self._log(f"⚠️ AUTO-TUNE: Tightening Council Threshold to {new_council:.2f}")
-                changed = True
+        # 1. Regime-Specific Threshold Tuning
+        # Find the worst performing regime with at least 3 trades
+        worst_regime = None
+        min_pf = 1.0
+        for reg, data in regimes.items():
+            if data["count"] >= 3 and data["profit_factor"] < min_pf:
+                min_pf = data["profit_factor"]
+                worst_regime = reg
 
-            # Switch to Defensive mode if performance is really bad
-            if win_rate < 0.30 and self.config.trading_mode != "defensive":
+        if worst_regime:
+            self._log(f"⚠️ AUTO-TUNE: Detected weakness in {worst_regime} regime (PF={min_pf:.2f})")
+            # Tighten entries generally if a regime is failing
+            self.config.king_threshold = min(0.90, self.config.king_threshold + 0.03)
+            self.config.council_threshold = min(0.65, self.config.council_threshold + 0.03)
+            
+            # Switch to defensive mode if profit factor is abysmal
+            if min_pf < 0.5 and self.config.trading_mode != "defensive":
                 self.config.trading_mode = "defensive"
-                self._log("🛡️ AUTO-TUNE: Switching to DEFENSIVE mode due to low WinRate")
-                changed = True
-        
-        # High performance (WinRate > 75%) -> Relax entry conditions
-        elif win_rate > 0.75:
-            new_king = max(0.40, self.config.king_threshold - 0.02)
-            new_council = max(0.20, self.config.council_threshold - 0.02)
+                self._log("🛡️ AUTO-TUNE: Switching to DEFENSIVE mode due to regime failure")
+            changed = True
 
-            if new_king != self.config.king_threshold:
-                self.config.king_threshold = new_king
-                self._log(f"🚀 AUTO-TUNE: Relaxing King Threshold to {new_king:.2f} (WinRate High)")
-                changed = True
-
-            if new_council != self.config.council_threshold:
-                self.config.council_threshold = new_council
-                self._log(f"🚀 AUTO-TUNE: Relaxing Council Threshold to {new_council:.2f}")
-                changed = True
-
-            # Switch to Aggressive mode if performance is stellar
-            if win_rate > 0.85 and self.config.trading_mode != "aggressive":
-                self.config.trading_mode = "aggressive"
-                self._log("⚔️ AUTO-TUNE: Switching to AGGRESSIVE mode due to high performance")
-                changed = True
-
-        # 3. Adjust Stop Loss based on market
-        if total_pnl < -50:
-            new_sl = max(0.02, self.config.stop_loss_pct - 0.01)
-            if new_sl != self.config.stop_loss_pct:
-                self.config.stop_loss_pct = new_sl
-                self._log(f"🛡️ AUTO-TUNE: Tightening Stop Loss to {new_sl*100:.1f}% (PnL Low)")
-                changed = True
-
-        # 4. Position Sizing
-        if self._consecutive_losses >= 2:
-            new_cash_pct = max(0.05, self.config.pct_cash_per_trade * 0.8)
-            if new_cash_pct != self.config.pct_cash_per_trade:
-                self.config.pct_cash_per_trade = new_cash_pct
-                self._log(f"📉 AUTO-TUNE: Reducing Position Size to {new_cash_pct*100:.1f}% (Losing Streak)")
-                changed = True
-        
-        elif self._consecutive_losses == 0 and self.config.pct_cash_per_trade < 0.10:
-             self.config.pct_cash_per_trade = 0.10
-             self._log(f"✅ AUTO-TUNE: Restoring Position Size to 10% (Winning Streak)")
+        # 2. Exit Strategy Optimization (ATR SL Multiplier)
+        # If STOP-LOSS is the dominant exit and WR is low, stops might be too tight
+        stop_data = exits.get("STOP-LOSS", {})
+        if stop_data.get("count", 0) > analytics["total_count"] * 0.5 and overall_wr < 0.40:
+             self._log("🛡️ AUTO-TUNE: High Stop-Loss rate detected. Loosening ATR SL multiplier.")
+             self.config.atr_sl_multiplier = min(3.0, self.config.atr_sl_multiplier + 0.2)
              changed = True
 
-        # 5. Save changes to persistent storage so UI can sync
+        # 3. Smart Exit Calibration
+        smart_data = exits.get("SMART-EXIT", {})
+        if smart_data.get("count", 0) >= 3:
+            # If smart exit win rate is lower than overall, it's exiting too early/wrongly
+            if smart_data["win_rate"] < overall_wr:
+                self._log("🧠 AUTO-TUNE: Smart Exit underperforming. Raising RSI threshold to be more selective.")
+                self.config.smart_exit_rsi_threshold = min(50, self.config.smart_exit_rsi_threshold + 5)
+                changed = True
+            elif smart_data["win_rate"] > overall_wr + 0.2:
+                self._log("🚀 AUTO-TUNE: Smart Exit performing well. Lowering RSI threshold to capture more momentum.")
+                self.config.smart_exit_rsi_threshold = max(25, self.config.smart_exit_rsi_threshold - 2)
+                changed = True
+
+        # 4. Dynamic Sizing based on overall Profit Factor
+        total_gp = sum(r["gross_profit"] for r in regimes.values())
+        total_gl = sum(r["gross_loss"] for r in regimes.values())
+        pf = total_gp / total_gl if total_gl > 0 else 2.0
+        
+        if pf < 0.8:
+            new_size = max(0.05, self.config.pct_cash_per_trade * 0.8)
+            if new_size != self.config.pct_cash_per_trade:
+                self.config.pct_cash_per_trade = new_size
+                self._log(f"📉 AUTO-TUNE: Low Profit Factor ({pf:.2f}). Reducing size.")
+                changed = True
+        elif pf > 1.8 and overall_wr > 0.60:
+            new_size = min(0.25, self.config.pct_cash_per_trade * 1.1)
+            if new_size != self.config.pct_cash_per_trade:
+                self.config.pct_cash_per_trade = new_size
+                self._log(f"💰 AUTO-TUNE: High efficiency (PF={pf:.2f}, WR={overall_wr:.0%}). Increasing size.")
+                changed = True
+
         if changed:
             from api.live_bot import bot_manager
             bot_manager.save_bots()
-            self._log("💾 AUTO-TUNE: Configuration updated and saved to storage.")
+            self._log("💾 AUTO-TUNE: Logic applied and configuration saved.")
 
 
     def _run_loop(self):
@@ -2345,7 +2424,11 @@ class LiveBot:
             self._log("Initializing models and connection...")
             self._log("DEBUG: Creating Virtual Market client...")
             self.api = create_virtual_market_client(logger=self._log)
-            self._log("DEBUG: Virtual Market client created successfully.")
+            # Inject real price provider: uses latest close from bars the bot already fetched
+            self.api.set_price_provider(
+                lambda sym: self._latest_prices.get(_normalize_symbol(sym))
+            )
+            self._log("DEBUG: Virtual Market client created with price provider.")
 
             self._current_activity = "Syncing positions"
             self._log("DEBUG: Entering _include_open_positions_in_coins...")
@@ -2426,6 +2509,15 @@ class LiveBot:
 
                     # Save to Supabase
                     self._save_to_supabase(bars, symbol)
+
+                    # Update latest price cache for virtual adapter
+                    try:
+                        last_close = float(bars.iloc[-1]['close'])
+                        if last_close > 0:
+                            self._latest_prices[_normalize_symbol(symbol)] = last_close
+                            self._latest_prices[symbol] = last_close  # also store original key
+                    except Exception:
+                        pass
 
                     # If a position exists, apply sell logic first using the latest bar, then skip buy logic.
                     if self._has_open_position(symbol):
@@ -2589,6 +2681,8 @@ class LiveBot:
                         "notional": notional,
                         "regime": regime,
                         "quality_score": quality,
+                        "king_conf": king_conf,
+                        "council_conf": council_conf,
                     }
 
                     # Execute real trade if not in Telegram-only mode
