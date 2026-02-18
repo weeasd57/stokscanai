@@ -159,7 +159,7 @@ def fetch_all_binance_symbols(quote_asset: Optional[str] = "USDT", limit: int = 
                 # Base is symbol minus suffix
                 base = s[:-len(q_suffix)]
                 
-                # Exclude leveraged tokens or other weird things if needed? 
+                # Exclude unusual symbols/tokens if needed.
                 # For now just standard filter.
                 
                 vol = float(item.get("quoteVolume", 0) or 0)

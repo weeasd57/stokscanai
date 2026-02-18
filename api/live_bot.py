@@ -105,9 +105,6 @@ class BotConfig:
     # 8. Cooldown Mechanism
     cooldown_minutes: int = 30  # Minutes to wait before re-entering the same symbol
     
-    # 9. Leverage
-    leverage: float = 20.0 # Default leverage for signals
-
     # 10. Telegram Integration
     telegram_chat_id: Optional[int] = None
 
@@ -1157,12 +1154,9 @@ class LiveBot:
         
         # Cornix format
         formatted_symbol = f"#{symbol.replace('/', '')}" if '/' in symbol else f"#{symbol}"
-        lev = getattr(self.config, "leverage", 20.0)
-        
         msg = (
             f"{formatted_symbol}\n"
             f"Signal Type: Buy\n"
-            f"Leverage: Cross ({lev:.1f}X)\n\n"
             f"Entry Targets:\n"
             f"1) {price:.4f}\n\n"
             f"Take-Profit Targets:\n"
@@ -1218,12 +1212,10 @@ class LiveBot:
             formatted_symbol = "#TESTUSD"
             target_price = price * 1.15
             stop_price = price * 0.95
-            lev = getattr(self.config, "leverage", 20.0)
             
             msg = (
                 f"{formatted_symbol}\n"
                 f"Signal Type: Buy\n"
-                f"Leverage: Cross ({lev:.1f}X)\n\n"
                 f"Entry Targets:\n"
                 f"1) {price:.2f}\n\n"
                 f"Take-Profit Targets:\n"
@@ -1289,7 +1281,6 @@ class LiveBot:
             trail_lock_trigger_pct=_parse_float(_read_env("LIVE_TRAIL_LOCK_TRIGGER_PCT", "0.08"), 0.08),
             trail_lock_pct=_parse_float(_read_env("LIVE_TRAIL_LOCK_PCT", "0.05"), 0.05),
             save_to_supabase=_parse_bool(_read_env("LIVE_SAVE_TO_SUPABASE", "0"), False),
-            leverage=_parse_float(_read_env("LIVE_LEVERAGE", "20.0"), 20.0),
             
             # --- New Advanced Risk & Strategy ---
             target_pct=_parse_float(_read_env("LIVE_TARGET_PCT", "0.15"), 0.15),

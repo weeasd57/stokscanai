@@ -1418,45 +1418,45 @@ export default function LiveBotTab() {
                                     </span>
                                 </button>
                                 {modelHubOpen && (
-                                <div className="space-y-4 animate-in fade-in duration-200">
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">King Model Path</label>
-                                        <select
-                                            value={configForm.king_model_path}
-                                            onChange={(e) => setConfigForm({ ...configForm, king_model_path: e.target.value })}
-                                            className="w-full bg-black/60 border border-white/5 rounded-xl px-4 py-2.5 text-xs font-mono focus:outline-none focus:border-purple-500/50 transition-all text-zinc-400"
-                                        >
-                                            <option value="">Select Model...</option>
-                                            {availableModels.map(m => (
-                                                <option key={m} value={m}>{m.split('/').pop()}</option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">King Confidence Threshold</label>
-                                        <input
-                                            type="number" step="0.01"
-                                            value={configForm.king_threshold}
-                                            onChange={(e) => setConfigForm({ ...configForm, king_threshold: parseFloat(e.target.value) })}
-                                            className="w-full bg-black/60 border border-white/5 rounded-xl px-4 py-2.5 text-sm font-mono focus:outline-none focus:border-purple-500/50 transition-all text-purple-200"
-                                        />
-                                    </div>
-                                    <div className="flex items-center justify-between pt-4 border-t border-white/5">
-                                        <div className="space-y-1">
-                                            <label className="text-xs font-bold text-white tracking-wider flex items-center gap-2">
-                                                <Zap className="w-3 h-3 text-yellow-400" /> Auto-Tune Control
-                                            </label>
-                                            <p className="text-[10px] text-zinc-500 uppercase font-bold tracking-widest">Self-Learning Optimizer</p>
+                                    <div className="space-y-4 animate-in fade-in duration-200">
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">King Model Path</label>
+                                            <select
+                                                value={configForm.king_model_path}
+                                                onChange={(e) => setConfigForm({ ...configForm, king_model_path: e.target.value })}
+                                                className="w-full bg-black/60 border border-white/5 rounded-xl px-4 py-2.5 text-xs font-mono focus:outline-none focus:border-purple-500/50 transition-all text-zinc-400"
+                                            >
+                                                <option value="">Select Model...</option>
+                                                {availableModels.map(m => (
+                                                    <option key={m} value={m}>{m.split('/').pop()}</option>
+                                                ))}
+                                            </select>
                                         </div>
-                                        <Switch.Root
-                                            checked={configForm.use_auto_tune ?? true}
-                                            onCheckedChange={(c: boolean) => setConfigForm({ ...configForm, use_auto_tune: c })}
-                                            className={`w-10 h-5 rounded-full relative shadow-inner transition-colors duration-300 ${configForm.use_auto_tune !== false ? 'bg-yellow-600' : 'bg-zinc-700'}`}
-                                        >
-                                            <Switch.Thumb className={`block w-3 h-3 rounded-full bg-white shadow-lg transition-transform duration-300 transform translate-y-1 ${configForm.use_auto_tune !== false ? 'translate-x-6' : 'translate-x-1'}`} />
-                                        </Switch.Root>
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">King Confidence Threshold</label>
+                                            <input
+                                                type="number" step="0.01"
+                                                value={configForm.king_threshold}
+                                                onChange={(e) => setConfigForm({ ...configForm, king_threshold: parseFloat(e.target.value) })}
+                                                className="w-full bg-black/60 border border-white/5 rounded-xl px-4 py-2.5 text-sm font-mono focus:outline-none focus:border-purple-500/50 transition-all text-purple-200"
+                                            />
+                                        </div>
+                                        <div className="flex items-center justify-between pt-4 border-t border-white/5">
+                                            <div className="space-y-1">
+                                                <label className="text-xs font-bold text-white tracking-wider flex items-center gap-2">
+                                                    <Zap className="w-3 h-3 text-yellow-400" /> Auto-Tune Control
+                                                </label>
+                                                <p className="text-[10px] text-zinc-500 uppercase font-bold tracking-widest">Self-Learning Optimizer</p>
+                                            </div>
+                                            <Switch.Root
+                                                checked={configForm.use_auto_tune ?? true}
+                                                onCheckedChange={(c: boolean) => setConfigForm({ ...configForm, use_auto_tune: c })}
+                                                className={`w-10 h-5 rounded-full relative shadow-inner transition-colors duration-300 ${configForm.use_auto_tune !== false ? 'bg-yellow-600' : 'bg-zinc-700'}`}
+                                            >
+                                                <Switch.Thumb className={`block w-3 h-3 rounded-full bg-white shadow-lg transition-transform duration-300 transform translate-y-1 ${configForm.use_auto_tune !== false ? 'translate-x-6' : 'translate-x-1'}`} />
+                                            </Switch.Root>
+                                        </div>
                                     </div>
-                                </div>
                                 )}
                             </div>
 
@@ -1597,6 +1597,9 @@ export default function LiveBotTab() {
                                                 className="w-full bg-black/40 border border-white/5 rounded-xl px-3 py-2 text-sm text-zinc-300 focus:outline-none border-white/10"
                                             />
                                         </div>
+                                    </div>
+                                    <div className="space-y-2">
+                                        {/* Leverage removed */}
                                     </div>
                                 </div>
                             </div>

@@ -47,7 +47,6 @@ class BotConfigUpdate(BaseModel):
     execution_mode: Optional[str] = None
     trading_mode: Optional[str] = None
     use_auto_tune: Optional[bool] = None
-    leverage: Optional[float] = None
 
 @router.post("/start")
 def start_bot(bot_id: str = "primary"):
