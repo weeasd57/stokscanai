@@ -310,7 +310,7 @@ class LiveBot:
                     transformed.append({
                         "timestamp": t.get("timestamp"),
                         "symbol": t.get("symbol"),
-                        "action": meta.get("action", "UNKNOWN"),
+                        "action": t.get("action") or meta.get("action", "UNKNOWN"),
                         "amount": t.get("amount"),
                         "price": t.get("price"),
                         "entry_price": t.get("entry_price"),
@@ -1137,7 +1137,7 @@ class LiveBot:
             "pnl": float(pnl) if pnl is not None else None,
             "king_conf": float(king_conf),
             "council_conf": float(council_conf) if council_conf is not None else None,
-            "order_id": "signal_only"
+            "order_id": f"signal_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{symbol.replace('/', '')}"
         }
         self._trades.append(trade)
         self._save_trade_persistent(trade)
@@ -1409,7 +1409,7 @@ class LiveBot:
                     self._log(f"Sync: New position found for {sym}. Adding to internal state.")
                     self._pos_state[norm] = {
                         "entry_price": float(getattr(p, "avg_entry_price", 0)),
-                        "entry_ts": datetime.now(timezone.utc).isoformat(),
+                        "entry_time": datetime.now(timezone.utc).isoformat(),
                         "bars_held": 0,
                         "current_stop": None,
                         "trail_mode": "NONE",
@@ -1856,7 +1856,7 @@ class LiveBot:
             
             self._pos_state[_normalize_symbol(symbol)] = {
                 "entry_price": avg_fill,
-                "entry_ts": datetime.now(timezone.utc).isoformat(),
+                "entry_time": datetime.now(timezone.utc).isoformat(),
                 "bars_held": 0,
                 "current_stop": None,
                 "trail_mode": "NONE",
@@ -2379,7 +2379,7 @@ class LiveBot:
                     # Record position state for exit management (real or virtual)
                     self._pos_state[_normalize_symbol(symbol)] = {
                         "entry_price": last_price,
-                        "entry_ts": datetime.now(timezone.utc).isoformat(),
+                        "entry_time": datetime.now(timezone.utc).isoformat(),
                         "bars_held": 0,
                         "current_stop": atr_sl,
                         "trail_mode": "NONE",

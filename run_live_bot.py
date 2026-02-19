@@ -750,7 +750,7 @@ def _save_trade_to_supabase(bot_id: str, trade: dict):
                 except (TypeError, ValueError):
                     record[k] = None
 
-        _supabase_upsert_with_retry("bot_trades", [record])
+        _supabase_upsert_with_retry("bot_trades", [record], on_conflict="order_id")
     except Exception as e:
         logging.error(f"Supabase Trade Log Error: {e}")
 
@@ -888,7 +888,7 @@ def main() -> int:
                     avg_fill = None
                 state[_normalize_symbol(symbol)] = {
                     "entry_price": avg_fill,
-                    "entry_ts": datetime.now(timezone.utc).isoformat(),
+                    "entry_time": datetime.now(timezone.utc).isoformat(),
                     "bars_held": 0,
                     "current_stop": None,
                     "trail_mode": "NONE",

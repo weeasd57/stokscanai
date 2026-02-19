@@ -391,7 +391,7 @@ def get_bot_performance(bot_id: str = "primary"):
                 from datetime import timedelta
                 _signal_index = {}
                 for t in trades:
-                    if str(t.get("order_id") or "") == "signal_only":
+                    if str(t.get("order_id") or "").startswith("signal_"):
                         sym = str(t.get("symbol") or "")
                         ts_raw = t.get("timestamp") or ""
                         _signal_index.setdefault(sym, []).append(t)
@@ -427,7 +427,7 @@ def get_bot_performance(bot_id: str = "primary"):
                 # ── Filter for statistics: exclude signal_only AND placeholder trades ──
                 def _is_real_trade(t):
                     oid = str(t.get("order_id") or "")
-                    if oid == "signal_only":
+                    if oid == "signal_only" or oid.startswith("signal_"):
                         return False
                     if _is_placeholder(t):
                         return False
@@ -522,7 +522,7 @@ def get_bot_performance(bot_id: str = "primary"):
                             "stop_price": safe_float(pos_data.get("current_stop")),
                             "pl_pct": pl_pct,
                             "pl_usd": pl_usd,
-                            "entry_time": pos_data.get("entry_time"),
+                            "entry_time": pos_data.get("entry_time") or pos_data.get("entry_ts"),
                             "bars_held": pos_data.get("bars_held", 0),
                             "trail_mode": pos_data.get("trail_mode", "NONE"),
                             "amount": safe_float(pos_data.get("amount", 0))
