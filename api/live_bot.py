@@ -277,6 +277,8 @@ class LiveBot:
         self._cooldowns: Dict[str, datetime] = {}
         # Track last saved bar timestamp per symbol to avoid redundant Supabase writes
         self._last_save_bars_ts: Dict[str, str] = {}
+        # Track latest prices for the virtual broker provider
+        self._latest_prices: Dict[str, float] = {}
 
         # Risk & Limits Trackers
         self._consecutive_losses = 0
@@ -414,14 +416,31 @@ class LiveBot:
                     except (TypeError, ValueError):
                         record[k] = None
 
+            self._log(f"DEBUG: Upserting trade to Supabase: {record['symbol']} {record['action']} ID={record['order_id']}")
             _supabase_upsert_with_retry("bot_trades", [record], on_conflict="order_id")
         except Exception as e:
             self._log(f"Supabase Trade Log Error: {e}")
+            import traceback
+            self._log(f"Traceback: {traceback.format_exc()}")
 
     def _save_log_to_supabase(self, message: str):
         """Save a single log entry to Supabase 'bot_logs' table."""
         try:
             if not getattr(self.config, "save_to_supabase", True):
+                return
+
+            # Importance Filter: Only persist critical/trade-related logs to Supabase
+            m = message.upper()
+            # "noise" keywords that happen every scan/poll
+            noise = ["IDLE", "FETCHING BARS", "SCAN CYCLE START", "EVALUATING EXIT", 
+                     "PREPARING FEATURES", "PREDICTING KING", "VALIDATING COUNCIL", 
+                     "IN COOLDOWN", "CHECKING DAILY LIMITS", "BARS FOUND", "SMART SCAN"]
+            
+            is_important = any(k in m for k in ["BUY", "SELL", "SIGNAL", "CRITICAL", "ERROR", 
+                                                "REJECTED", "LIMIT REACHED", "REGIME", "STARTED", "STOPPED"])
+            is_noise = any(k in m for k in noise)
+
+            if is_noise and not is_important:
                 return
 
             record = {
@@ -1060,12 +1079,15 @@ class LiveBot:
         with self._lock:
             self._logs.clear()
             # Clear from Supabase if enabled
-            try:
-                from api.stock_ai import supabase
+        try:
+            from api.stock_ai import supabase, _init_supabase
+            _init_supabase()
+            if supabase:
+                # Use a larger timeout/retry if possible, or just standard exec
                 supabase.table("bot_logs").delete().eq("bot_id", self.bot_id).execute()
-            except Exception as e:
-                print(f"Error clearing Supabase logs: {e}")
-            self._log("Logs cleared by user (local + database).")
+        except Exception as e:
+            print(f"Error clearing Supabase logs: {e}")
+        self._log("Logs cleared by user (local + database).")
 
     def _log(self, msg: str):
         ts = datetime.now().strftime("%H:%M:%S")
@@ -1855,10 +1877,12 @@ class LiveBot:
             avg_fill = self._wait_for_fill(order_id)
             
             self._pos_state[_normalize_symbol(symbol)] = {
+                "symbol": symbol,
                 "entry_price": avg_fill,
                 "entry_time": datetime.now(timezone.utc).isoformat(),
                 "bars_held": 0,
                 "current_stop": None,
+                "target_price": None, # Will be set by ATR or static config in next loop
                 "trail_mode": "NONE",
             }
             trade = {
@@ -1926,9 +1950,8 @@ class LiveBot:
                 if pos and abs(float(getattr(pos, 'qty', 0)) - safe_qty) / safe_qty < 0.001:
                     self._log(f"Using close_position for {symbol} to ensure clean exit.")
                     self.api.close_position(symbol)
-                    # We don't get an order object easily from close_position in the adapter the same way,
-                    # but we can look for the last order or just assume it worked if no exception.
-                    order_id = "close_pos_exit"
+                    # Use a unique ID for the close position order to avoid DB conflicts
+                    order_id = f"close_pos_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{symbol.replace('/', '')}"
                 else:
                     order = self.api.submit_order(
                         symbol=symbol,
@@ -1937,7 +1960,7 @@ class LiveBot:
                         type="market",
                         time_in_force="gtc",
                     )
-                    order_id = str(getattr(order, "id", "unknown"))
+                    order_id = str(getattr(order, "id", f"unknown_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{symbol.replace('/', '')}"))
             except Exception as e:
                 # Fallback to standard submit if close_position fails or other issue
                 self._log(f"Standard sell fallback for {symbol}: {e}")
@@ -1948,7 +1971,7 @@ class LiveBot:
                     type="market",
                     time_in_force="gtc",
                 )
-                order_id = str(getattr(order, "id", "unknown"))
+                order_id = str(getattr(order, "id", f"unknown_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{symbol.replace('/', '')}"))
             self._log(f"Sell order submitted: {symbol} ({qty}) - ID: {order_id}")
             
             # Wait for fill to get accurate exit price
@@ -2134,6 +2157,7 @@ class LiveBot:
             "bars_held": bars_held,
             "last_held_ts": current_ts,
             "current_stop": float(current_stop),
+            "target_price": float(take_profit),
             "trail_mode": trail_mode,
         }
         return False
@@ -2145,6 +2169,11 @@ class LiveBot:
 
             self._log("DEBUG: Creating Virtual Market client...")
             self.api = create_virtual_market_client(logger=self._log)
+            
+            # Set up price provider for the virtual broker to use our fetched bars
+            def v_price_provider(sym):
+                return self._latest_prices.get(_normalize_symbol(sym))
+            self.api.set_price_provider(v_price_provider)
             
             # Hydrate virtual positions from persisted state if available
             if hasattr(self.api, "seed_positions_from_state"):
@@ -2221,6 +2250,9 @@ class LiveBot:
                     if bars.empty:
                         self._log(f"{symbol}: No bars found.")
                         continue
+
+                    # Update latest price for the virtual broker
+                    self._latest_prices[_normalize_symbol(symbol)] = float(bars.iloc[-1]["close"])
 
                     # Save to Supabase
                     self._save_to_supabase(bars, symbol)

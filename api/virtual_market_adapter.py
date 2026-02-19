@@ -65,8 +65,8 @@ class VirtualPosition:
 
 
 class _LatestTrade:
-    def __init__(self, price: float):
-        self.price = float(price)
+    def __init__(self, price: Optional[float]):
+        self.price = float(price) if price is not None else 0.0
 
 
 class VirtualMarketAdapter:
@@ -149,9 +149,11 @@ class VirtualMarketAdapter:
         if self._price_provider:
             try:
                 p = self._price_provider(symbol)
-                if p is not None and float(p) > 0:
-                    return float(p)
-            except Exception:
+                if p is not None:
+                    pf = float(p)
+                    if pf > 0:
+                        return pf
+            except (Exception, TypeError, ValueError):
                 pass
 
         # 2) Supabase last close (zero-network-latency if DB is warm)
