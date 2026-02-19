@@ -1081,7 +1081,7 @@ class LiveBot:
         if self.telegram_bridge and self.config.execution_mode in ["TELEGRAM", "BOTH"]:
             # Only send orders and critical errors here. Signals handled separately.
             if "order" in msg.lower() or "CRITICAL" in msg:
-                 self.telegram_bridge.send_notification(f"ℹ️ *{self.config.name}*\n{msg}")
+                 self.telegram_bridge.send_notification(f"ℹ️ *{self.config.name}*\n`{msg}`")
 
     def set_telegram_bridge(self, bridge):
         self.telegram_bridge = bridge

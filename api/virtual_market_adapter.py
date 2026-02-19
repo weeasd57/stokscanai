@@ -258,6 +258,12 @@ class VirtualMarketAdapter:
         rows = list(reversed(rows))  # newest first
         return rows[:limit_i] if limit_i else rows
 
+    def get_order(self, order_id: str) -> Any:
+        for o in self._orders:
+            if o.id == order_id:
+                return o
+        raise ValueError(f"Order {order_id} not found in virtual broker")
+
     def get_latest_trade(self, symbol: str) -> Any:
         return _LatestTrade(self._get_price(symbol))
 
