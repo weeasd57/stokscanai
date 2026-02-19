@@ -18,9 +18,12 @@ def normalize_binance_symbol(sym: str, default_quote: str = "USDT") -> str:
         base = base.strip()
         quote = quote.strip()
         if quote in {"USD", "USDT"}:
+            # Fix for USDT/USD -> USDTUSD (avoids USDTUSDT error)
+            if base in {"USD", "USDT"}:
+                return f"{base}{quote}"
             return f"{base}{default_quote}"
         return f"{base}{quote}"
-    if s.endswith("USD") and not s.endswith("USDT"):
+    if s.endswith("USD") and not s.endswith("USDT") and not s.startswith("USDT"):
         return f"{s[:-3]}{default_quote}"
     return s
 
@@ -195,4 +198,3 @@ def fetch_all_binance_symbols(quote_asset: Optional[str] = "USDT", limit: int = 
     except Exception as e:
         print(f"DEBUG: Error in fetch_all_binance_symbols: {e}")
         return []
-

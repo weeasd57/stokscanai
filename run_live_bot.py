@@ -632,7 +632,7 @@ def _maybe_sell_position(*, api, cfg: BotConfig, symbol: str, pos, bars: pd.Data
                 pnl_pct = ((current_stop - entry_price) / entry_price) if entry_price > 0 else 0
                 logger.info(f"{symbol}: SELL (STOP) qty={qty} stop=${float(current_stop):.6f} entry=${float(entry_price):.6f} PnL={pnl_pct:+.2%}")
                 state.pop(key, None)
-                _save_trade_to_supabase("live_bot", {
+                _save_trade_to_supabase("primary", {
                     "timestamp": datetime.now(timezone.utc).isoformat(),
                     "symbol": symbol,
                     "action": "SELL",
@@ -656,7 +656,7 @@ def _maybe_sell_position(*, api, cfg: BotConfig, symbol: str, pos, bars: pd.Data
                 pnl_pct = ((take_profit - entry_price) / entry_price) if entry_price > 0 else 0
                 logger.info(f"{symbol}: SELL (TARGET) qty={qty} tp=${float(take_profit):.6f} entry=${float(entry_price):.6f} PnL={pnl_pct:+.2%}")
                 state.pop(key, None)
-                _save_trade_to_supabase("live_bot", {
+                _save_trade_to_supabase("primary", {
                     "timestamp": datetime.now(timezone.utc).isoformat(),
                     "symbol": symbol,
                     "action": "SELL",
@@ -696,7 +696,7 @@ def _maybe_sell_position(*, api, cfg: BotConfig, symbol: str, pos, bars: pd.Data
                 pnl_pct = ((close - entry_price) / entry_price) if entry_price > 0 else 0
                 logger.info(f"{symbol}: SELL (TIME) qty={qty} bars={bars_held} close=${close:.6f} PnL={pnl_pct:+.2%}")
                 state.pop(key, None)
-                _save_trade_to_supabase("live_bot", {
+                _save_trade_to_supabase("primary", {
                     "timestamp": datetime.now(timezone.utc).isoformat(),
                     "symbol": symbol,
                     "action": "SELL",
@@ -897,7 +897,7 @@ def main() -> int:
                 _save_json(cfg.state_path, state)
                 daily_trades += 1
                 logger.info(f"{symbol}: BUY (notional ${notional:.2f})")
-                _save_trade_to_supabase("live_bot", {
+                _save_trade_to_supabase("primary", {
                     "timestamp": datetime.now(timezone.utc).isoformat(),
                     "symbol": symbol,
                     "action": "BUY",
