@@ -9,6 +9,9 @@ def normalize_binance_symbol(sym: str, default_quote: str = "USDT") -> str:
     s = (sym or "").strip().upper()
     if not s:
         return s
+    # Strip suffixes like .BINANCE
+    if "." in s:
+        s = s.split(".")[0]
     # Accept BINANCE:BTCUSDT format
     if ":" in s:
         s = s.split(":", 1)[1]

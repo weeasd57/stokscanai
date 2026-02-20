@@ -822,6 +822,7 @@ class BacktestRequest(PBM):
     target_pct: float | None = None
     stop_loss_pct: float | None = None
     capital: float = 100000
+    crypto_quote_filters: list[str] | None = None
 
 
 def _safe_basename(name: str) -> str:
@@ -1083,6 +1084,9 @@ def run_backtest_task(req: BacktestRequest, backtest_id: str = None):
     
     # Always use quiet mode in background tasks to keep terminal clean
     cmd.append("--quiet")
+
+    if req.crypto_quote_filters:
+        cmd.extend(["--crypto-filters", ",".join(req.crypto_quote_filters)])
     
     if not os.path.exists(script_path):
         print(f"Error: Backtest script not found at {script_path}")

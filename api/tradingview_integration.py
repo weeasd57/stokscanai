@@ -17,6 +17,8 @@ from collections import defaultdict
 # Inspired by stockroom model structures
 EXCHANGE_CONFIG = {
     "ADX": {"market": "uae", "tv_id": "ADX", "country": "UAE"},
+    "BINANCE": {"market": "crypto", "tv_id": "BINANCE", "country": "Crypto"},
+    "OKX": {"market": "crypto", "tv_id": "OKX", "country": "Crypto"},
     "AS": {"market": "netherlands", "tv_id": "EURONEXT", "country": "Netherlands"},
     "AT": {"market": "greece", "tv_id": "ATHEX", "country": "Greece"},
     "AU": {"market": "australia", "tv_id": "ASX", "country": "Australia"},
@@ -133,7 +135,8 @@ def get_tradingview_exchange(symbol: str) -> str:
 
 def fetch_tradingview_prices(
     symbol: str,
-    max_days: int = 365
+    max_days: int = 365,
+    timeframe: str = "1d"
 ) -> Tuple[bool, str]:
     """
     Fetch historical price data from TradingView and sync to Supabase.
@@ -142,6 +145,7 @@ def fetch_tradingview_prices(
     Args:
         symbol: Stock symbol with exchange suffix (e.g., "AAPL.US", "AIR.PA")
         max_days: Max historical bars to fetch if no cloud data exists
+        timeframe: Data interval (e.g., "1d", "1h", "15m", "1m")
     
     Returns:
         Tuple of (success: bool, message: str)
@@ -154,6 +158,24 @@ def fetch_tradingview_prices(
     import datetime as dt
     from api.stock_ai import _last_trading_day, sync_df_to_supabase, _get_supabase_info
 
+    # Map string timeframe to tvDatafeed Interval
+    tf_map = {
+        "1m": Interval.in_1_minute,
+        "1min": Interval.in_1_minute,
+        "5m": Interval.in_5_minute,
+        "5min": Interval.in_5_minute,
+        "15m": Interval.in_15_minute,
+        "15min": Interval.in_15_minute,
+        "30m": Interval.in_30_minute,
+        "1h": Interval.in_1_hour,
+        "1hour": Interval.in_1_hour,
+        "4h": Interval.in_4_hour,
+        "1d": Interval.in_daily,
+        "1day": Interval.in_daily,
+    }
+    
+    tv_interval = tf_map.get(timeframe.lower(), Interval.in_daily)
+    
     # Parse symbol
     upper = symbol.strip().upper()
     parts = upper.split(".")
@@ -171,14 +193,16 @@ def fetch_tradingview_prices(
     last_date = info["last_date"]
     current_count = info["count"]
     
-    is_up_to_date = last_date and last_date >= _last_trading_day(today)
+    # Intraday check is different, but for now we skip strict up-to-date check for intraday
+    # to always allow fetching new bars.
+    is_daily = timeframe.lower() in ["1d", "1day", "daily"]
+    is_up_to_date = last_date and last_date >= _last_trading_day(today) if is_daily else False
     has_enough_history = current_count >= max_days
     
-    if is_up_to_date and has_enough_history:
+    if is_daily and is_up_to_date and has_enough_history:
         return True, "Already up to date and sufficient history in Cloud"
     
-    # Throttle slightly to avoid hammering TradingView / remote host when
-    # updating many symbols in a loop.
+    # Throttle slightly
     try:
         delay = float(os.getenv("TRADINGVIEW_REQUEST_DELAY", "1.5"))
         if delay > 0:
@@ -191,40 +215,40 @@ def fetch_tradingview_prices(
         tv = TvDatafeed()
         
         # Calculate how many bars we need
-        # If we don't have enough history, we need max_days (plus some buffer)
-        # If we are just stale, we need at least the gap since last_date
-        
-        needed_for_history = max_days + 100 if not has_enough_history else 0
-        needed_for_update = (today - last_date).days + 10 if last_date else max_days + 30
-        
-        n_bars = max(needed_for_history, needed_for_update)
-        # Cap at a reasonable limit (e.g., 5000) if needed, but max_days is usually smaller
+        if is_daily:
+            needed_for_history = max_days + 100 if not has_enough_history else 0
+            needed_for_update = (today - last_date).days + 10 if last_date else max_days + 30
+            n_bars = max(needed_for_history, needed_for_update)
+        else:
+            # For intraday, use max_days as the bar count directly if it's high enough,
+            # otherwise use a reasonable default.
+            n_bars = max(max_days, 500)
+
         n_bars = min(5000, n_bars)
 
         # Normalize symbol for TradingView (remove slashes for crypto pairs)
         tv_symbol = base_symbol.replace("/", "")
 
-        print(f"TV FETCH: {upper} | n_bars={n_bars} (history={not has_enough_history}, stale={not is_up_to_date})")
+        print(f"TV FETCH: {upper} | interval={timeframe} | n_bars={n_bars}")
 
         # Fetch historical data
         df = tv.get_hist(
             symbol=tv_symbol,
             exchange=tv_exchange,
-            interval=Interval.in_daily,
+            interval=tv_interval,
             n_bars=n_bars
         )
         
         if df is None or df.empty:
-            return False, f"No data found for {symbol} on {tv_exchange}"
+            return False, f"No data found for {symbol} on {tv_exchange} at {timeframe}"
         
         # Prepare data
         df_new = df.reset_index()
         # TV returns 'datetime' column
-        df_new = df_new.rename(columns={'datetime': 'date', 'open': 'open', 'high': 'high', 'low': 'low', 'close': 'close', 'volume': 'volume'})
-        df_new['adjusted_close'] = df_new['close']
+        df_new = df_new.rename(columns={'datetime': 'ts', 'open': 'open', 'high': 'high', 'low': 'low', 'close': 'close', 'volume': 'volume'})
         
         # Sync Directly
-        ok, sync_msg = sync_df_to_supabase(upper, df_new)
+        ok, sync_msg = sync_df_to_supabase(upper, df_new, timeframe=timeframe)
         return ok, f"OK (tradingview) - {sync_msg}"
         
     except Exception as e:
@@ -308,18 +332,17 @@ def fetch_tradingview_fundamentals_bulk(
 
         if alias_target:
              base = alias_target
-             # We need to know which market the ALIAS belongs to. 
-             # For now assume same market as original derived, or just EGX if it was EGX
-             # Usually aliases are within same market.
              market = get_tradingview_market(up) 
         else:
              base = up.split(".")[0]
              market = get_tradingview_market(up)
+             if market == "crypto":
+                 base = base.replace("/", "")
         
         market_groups[market].append(base)
         
         # KEY: Map the TRADINGVIEW BASE back to the ORIGINAL FULL SYMBOL
-        # So when we get result for "ADPC", we store it under "AIND.EGX"
+        # So when we get result for "ACXUSDT", we store it under "ACX/USDT.BINANCE"
         base_to_tickers_by_market[market][base].append(sym)
     
     out: Dict[str, Tuple[Dict[str, Any], Dict[str, Any]]] = {}
@@ -344,21 +367,34 @@ def fetch_tradingview_fundamentals_bulk(
         
         for chunk in _chunks(uniq_bases, bulk_chunk_size):
             try:
-                q = (
-                    Query()
-                    .set_markets(market)
-                    .select(
-                        "name",
-                        "description",
-                        "market_cap_basic",
-                        "price_earnings_ttm",
-                        "earnings_per_share_basic_ttm",
-                        "dividend_yield_recent",
-                        "sector",
-                        "industry",
-                        "logoid",
+                if market == "crypto":
+                    # Crypto screener has different fields
+                    q = (
+                        Query()
+                        .set_markets(market)
+                        .select(
+                            "name",
+                            "description",
+                            "market_cap_calc", # Crypto often uses calc
+                            "logoid",
+                        )
                     )
-                )
+                else:
+                    q = (
+                        Query()
+                        .set_markets(market)
+                        .select(
+                            "name",
+                            "description",
+                            "market_cap_basic",
+                            "price_earnings_ttm",
+                            "earnings_per_share_basic_ttm",
+                            "dividend_yield_recent",
+                            "sector",
+                            "industry",
+                            "logoid",
+                        )
+                    )
                 
                 # Apply filter based on available import
                 if Column is not None:
@@ -378,8 +414,11 @@ def fetch_tradingview_fundamentals_bulk(
                     if not base:
                         continue
                     
-                    # Get market cap (prefer market_cap_basic, fallback to fund_total_assets)
-                    mcap = _finite_float(row.get("market_cap_basic"))
+                    if market == "crypto":
+                        mcap = _finite_float(row.get("market_cap_calc"))
+                    else:
+                        mcap = _finite_float(row.get("market_cap_basic"))
+                    
                     if mcap is None:
                         mcap = _finite_float(row.get("fund_total_assets"))
                     

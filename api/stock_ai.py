@@ -1691,8 +1691,8 @@ def update_stock_data(
 
 
 
-def sync_df_to_supabase(ticker: str, df: pd.DataFrame) -> tuple[bool, str]:
-    """Upsert a Pandas DataFrame of stock prices directly to Supabase."""
+def sync_df_to_supabase(ticker: str, df: pd.DataFrame, timeframe: str = "1d") -> tuple[bool, str]:
+    """Upsert a Pandas DataFrame of stock prices or intraday bars directly to Supabase."""
     _init_supabase()
     if not supabase:
         return False, "Supabase not initialized"
@@ -1703,57 +1703,91 @@ def sync_df_to_supabase(ticker: str, df: pd.DataFrame) -> tuple[bool, str]:
         # Normalize columns to lowercase for case-insensitive access
         df.columns = [c.lower() for c in df.columns]
         
-        # Reset index if date is index
-        if df.index.name and df.index.name.lower() == 'date':
+        # Reset index if date/timestamp is index
+        if df.index.name and df.index.name.lower() in ('date', 'timestamp', 'ts'):
             df = df.reset_index()
-        elif not 'date' in df.columns and isinstance(df.index, pd.DatetimeIndex):
+        elif not any(c in df.columns for c in ['date', 'timestamp', 'ts']) and isinstance(df.index, pd.DatetimeIndex):
             df = df.reset_index().rename(columns={df.index.name or 'index': 'date'})
 
-        if 'date' in df.columns:
-            df['date'] = pd.to_datetime(df['date'], errors='coerce')
-            df = df.dropna(subset=['date']).sort_values('date').tail(5000) # Increased buffer from 1000
-                
-            rows = []
-            sb_symbol = ticker
-            sb_exchange = "US"
-            if "." in ticker:
-                parts = ticker.split(".")
-                sb_symbol = parts[0]
-                sb_exchange = parts[1]
-                if sb_exchange in ["CC", "CA"]: sb_exchange = "EGX"
-            
-            for _, row in df.iterrows():
-                adj_close = row.get('adjusted_close')
-                if adj_close is None:
-                    adj_close = row.get('close')
+        # Find the correct time column
+        time_col = 'date'
+        if 'timestamp' in df.columns: time_col = 'timestamp'
+        elif 'ts' in df.columns: time_col = 'ts'
+        elif 'date' not in df.columns:
+            return False, "No time column found (expected date, timestamp, or ts)"
 
-                rows.append({
-                    "symbol": sb_symbol,
-                    "exchange": sb_exchange,
-                    "date": row['date'].strftime('%Y-%m-%d'),
-                    "open": _finite_float(row.get('open')),
-                    "high": _finite_float(row.get('high')),
-                    "low": _finite_float(row.get('low')),
-                    "close": _finite_float(row.get('close')),
-                    "adjusted_close": _finite_float(adj_close),
-                    "volume": int(row['volume']) if pd.notna(row.get('volume')) else None,
-                })
-            
-            if rows:
-                # Use chunks of 100 to avoid request size limits
-                for i in range(0, len(rows), 100):
-                    supabase.table("stock_prices").upsert(rows[i:i+100], on_conflict="symbol,exchange,date").execute()
+        df[time_col] = pd.to_datetime(df[time_col], errors='coerce')
+        df = df.dropna(subset=[time_col]).sort_values(time_col).tail(10000)
                 
-                # Fetch final count and range for verification
-                final_info = _get_supabase_info(ticker)
-                min_date = df['date'].min().date()
-                max_date = df['date'].max().date()
-                
-                msg = f"Synced {len(rows)} rows ({min_date} to {max_date}). Total in cloud: {final_info['count']}"
-                print(f"DEBUG: {msg}")
-                return True, msg
+        rows = []
+        sb_symbol = ticker
+        sb_exchange = "US"
+        if "." in ticker:
+            parts = ticker.split(".")
+            sb_symbol = parts[0]
+            sb_exchange = parts[1]
+            if sb_exchange in ["CC", "CA"]: sb_exchange = "EGX"
+        
+        # Normalize all crypto exchanges to "CRYPTO" for consistency
+        crypto_exchanges = ["BINANCE", "OKX", "BYBIT", "MEXC", "COINBASE", "BITTREX", "HUOBI"]
+        is_crypto_sym = sb_exchange.upper() in crypto_exchanges or "/" in sb_symbol
+        if is_crypto_sym:
+            sb_exchange = "CRYPTO"
+            # User requested crypto should ALWAYS save as "1h" in stock_bars_intraday
+            timeframe = "1h"
+
+        is_intraday = timeframe.lower() not in ["1d", "1day", "daily"]
+        
+        for _, row in df.iterrows():
+            adj_close = row.get('adjusted_close')
+            if adj_close is None:
+                adj_close = row.get('close')
+
+            record = {
+                "symbol": sb_symbol,
+                "exchange": sb_exchange,
+                "open": _finite_float(row.get('open')),
+                "high": _finite_float(row.get('high')),
+                "low": _finite_float(row.get('low')),
+                "close": _finite_float(row.get('close')),
+                "volume": int(row['volume']) if pd.notna(row.get('volume')) else None,
+            }
+
+            if is_intraday:
+                record["ts"] = row[time_col].isoformat()
+                record["timeframe"] = timeframe
+                # Intraday doesn't use adjusted_close typically in our schema
             else:
-                return False, "No valid rows found to sync"
+                record["date"] = row[time_col].strftime('%Y-%m-%d')
+                record["adjusted_close"] = _finite_float(adj_close)
+            
+            rows.append(record)
+        
+        if rows:
+            table_name = "stock_bars_intraday" if is_intraday else "stock_prices"
+            on_conflict = "symbol,exchange,timeframe,ts" if is_intraday else "symbol,exchange,date"
+            
+            # Use chunks of 100 to avoid request size limits
+            import time
+            for i in range(0, len(rows), 100):
+                chunk = rows[i:i+100]
+                max_retries = 3
+                for attempt in range(max_retries):
+                    try:
+                        supabase.table(table_name).upsert(chunk, on_conflict=on_conflict).execute()
+                        break
+                    except Exception as e:
+                        if attempt == max_retries - 1:
+                            raise e
+                        sleep_time = (attempt + 1) * 2
+                        print(f"DEBUG: Supabase upsert failed (attempt {attempt+1}/{max_retries}): {e}. Retrying in {sleep_time}s...")
+                        time.sleep(sleep_time)
+            
+            msg = f"Synced {len(rows)} rows to {table_name} ({timeframe})."
+            print(f"DEBUG: {msg}")
+            return True, msg
+        else:
+            return False, "No valid rows found to sync"
     except Exception as e:
         msg = f"Supabase sync error for {ticker}: {e}"
         print(msg)

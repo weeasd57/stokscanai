@@ -823,6 +823,7 @@ def main():
     parser.add_argument("--timeframe", default=None, help="Force a specific timeframe (e.g. 1h, 1d)")
     parser.add_argument("--quiet", "-q", action="store_true", help="Suppress verbose debug output")
     parser.add_argument("--no-trades-json", action="store_true", help="Do not print trades JSON to stdout")
+    parser.add_argument("--crypto-filters", default=None, help="Comma-separated quote currency filters for crypto (e.g. USD,USDT,USDC)")
     args = parser.parse_args()
 
     # Always include a buffer window before the selected start date
@@ -1036,6 +1037,24 @@ def main():
     all_res_metadata = []
     count = 0
     symbols_list = list(data_map.keys())
+
+    # Apply crypto quote currency filters (e.g. USD, USDT, USDC)
+    if args.crypto_filters and args.exchange.strip().upper() == "CRYPTO":
+        quote_filters = [q.strip().upper() for q in args.crypto_filters.split(",") if q.strip()]
+        if quote_filters:
+            before_count = len(symbols_list)
+            filtered = []
+            for sym in symbols_list:
+                sym_upper = sym.upper()
+                matched = False
+                for qf in quote_filters:
+                    if sym_upper.endswith(f"/{qf}") or sym_upper.endswith(qf):
+                        matched = True
+                        break
+                if matched:
+                    filtered.append(sym)
+            symbols_list = filtered
+            print(f"🔍 Crypto filter applied: {quote_filters} → {before_count} → {len(symbols_list)} symbols", flush=True)
     
     print(f"🚀 Processing {len(symbols_list)} symbols sequentially...", flush=True)
     

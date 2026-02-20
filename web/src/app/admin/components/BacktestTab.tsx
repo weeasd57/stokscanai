@@ -939,6 +939,7 @@ export default function BacktestTab() {
   const [stopLossPct, setStopLossPct] = useState<number>(5);
   const [councilThreshold, setCouncilThreshold] = useState<number>(0.1);
   const [startingCapital, setStartingCapital] = useState<number>(100000);
+  const [cryptoQuoteFilters, setCryptoQuoteFilters] = useState<Set<string>>(new Set(["USD", "USDT", "USDC"]));
 
   // Automation State
   const [activeMainTab, setActiveMainTab] = useState<"manual" | "automation">("manual");
@@ -1178,6 +1179,9 @@ export default function BacktestTab() {
         stop_loss_pct: stopLossPct / 100,
         capital: startingCapital,
         timeframe: selectedTimeframe,
+        crypto_quote_filters: selectedExchange === "CRYPTO" && cryptoQuoteFilters.size > 0
+          ? Array.from(cryptoQuoteFilters)
+          : undefined,
       };
       // Intentionally silent (avoid noisy debug logs in the browser console)
 
@@ -1245,7 +1249,10 @@ export default function BacktestTab() {
           target_values: optTargets.split(",").map(v => parseFloat(v.trim())).filter(v => !isNaN(v)),
           stoploss_values: optStopLosses.split(",").map(v => parseFloat(v.trim())).filter(v => !isNaN(v)),
           capital: startingCapital,
-          timeframe: selectedTimeframe
+          timeframe: selectedTimeframe,
+          crypto_quote_filters: selectedExchange === "CRYPTO" && cryptoQuoteFilters.size > 0
+            ? Array.from(cryptoQuoteFilters)
+            : undefined,
         }),
       });
       const data = await res.json();
@@ -1546,6 +1553,41 @@ export default function BacktestTab() {
                 </select>
               </div>
             </div>
+
+            {/* Crypto Quote Currency Filters — visible only for CRYPTO */}
+            {selectedExchange === "CRYPTO" && (
+              <div className="space-y-3">
+                <label className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest flex items-center gap-2">
+                  <Cpu className="h-3 w-3" /> Crypto Pair Filter
+                </label>
+                <div className="flex gap-2 flex-wrap">
+                  {["USD", "USDT", "USDC"].map((q) => {
+                    const active = cryptoQuoteFilters.has(q);
+                    return (
+                      <button
+                        key={q}
+                        type="button"
+                        onClick={() => {
+                          setCryptoQuoteFilters((prev) => {
+                            const next = new Set(prev);
+                            if (next.has(q)) next.delete(q);
+                            else next.add(q);
+                            return next;
+                          });
+                        }}
+                        className={`px-5 py-2.5 rounded-2xl text-xs font-black uppercase tracking-widest border transition-all ${
+                          active
+                            ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-400 shadow-lg shadow-emerald-500/10"
+                            : "bg-zinc-900/80 border-white/5 text-zinc-500 hover:border-white/20 hover:text-zinc-300"
+                        }`}
+                      >
+                        {q}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             {/* Timeframe Selector Row */}
             <div className="space-y-3">

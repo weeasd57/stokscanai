@@ -963,6 +963,50 @@ def get_candles(symbol: str, bot_id: str = "primary", limit: int = 150):
         print(f"Error in get_candles: {e}")
         print(traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/supabase-stats")
+def get_supabase_stats():
+    """Returns general stats about Supabase tables like stock_bars_intraday."""
+    _init_supabase()
+    if not stock_ai.supabase:
+        raise HTTPException(status_code=503, detail="Supabase not configured")
+    
+    try:
+        # Get count of intraday bars
+        intraday_res = stock_ai.supabase.table("stock_bars_intraday").select("*", count="exact").limit(1).execute()
+        intraday_total = intraday_res.count if intraday_res else 0
+        
+        # Get count of daily prices
+        prices_res = stock_ai.supabase.table("stock_prices").select("*", count="exact").limit(1).execute()
+        prices_total = prices_res.count if prices_res else 0
+        
+        # Breakdown by timeframe for intraday
+        tf_stats = {}
+        for tf in ["1m", "1h", "1d"]:
+            res = stock_ai.supabase.table("stock_bars_intraday").select("*", count="exact").eq("timeframe", tf).limit(1).execute()
+            tf_stats[tf] = res.count if res else 0
+            
+        # Last daily price date
+        last_daily = stock_ai.supabase.table("stock_prices").select("date").order("date", desc=True).limit(1).execute()
+        last_date = last_daily.data[0]["date"] if last_daily.data else "n/a"
+
+        return {
+            "stock_bars_intraday": {
+                "rows": intraday_total,
+                "by_timeframe": tf_stats
+            },
+            "stock_prices": {
+                "rows": prices_total,
+                "last_date": last_date
+            }
+        }
+    except Exception as e:
+        print(f"Error in supabase-stats: {e}")
+        return {
+            "stock_bars_intraday": {"rows": 0, "by_timeframe": {}},
+            "stock_prices": {"rows": 0, "last_date": "error"}
+        }
+
 @router.get("/crypto_symbols_stats")
 def get_crypto_symbols_stats(timeframe: str = "1h"):
     """Returns detailed stats for each crypto symbol in stock_bars_intraday."""
@@ -974,7 +1018,15 @@ def get_crypto_symbols_stats(timeframe: str = "1h"):
         # We'll use a RPC if it exists, otherwise we'll try to aggregate.
         res = stock_ai.supabase.rpc("get_crypto_symbol_stats", {"p_timeframe": timeframe}).execute()
         if res.data:
-            return res.data
+            # Explicitly filter results to ensure only CRYPTO assets are returned.
+            # The RPC doesn't return 'exchange', so we use symbol patterns.
+            filtered = []
+            for item in res.data:
+                sym = item.get("symbol", "").upper()
+                exch = item.get("exchange", "").upper()
+                if exch == "CRYPTO" or "/" in sym or ".BINANCE" in sym or sym.endswith("USD") or sym.endswith("USDT"):
+                    filtered.append(item)
+            return filtered
     except Exception:
         pass
     

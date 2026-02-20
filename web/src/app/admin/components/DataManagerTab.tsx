@@ -326,6 +326,15 @@ export default function DataManagerTab({
             setCryptoDialogLoading(false);
         }
     };
+
+    const handleUseInDataManager = () => {
+        if (cryptoDialogSelected.size === 0) return;
+        const next = new Set(selectedCryptoSymbols);
+        cryptoDialogSelected.forEach(s => next.add(s));
+        setSelectedCryptoSymbols(next);
+        setCryptoDialogOpen(false);
+        toast.success(`Added ${cryptoDialogSelected.size} symbols to selection`);
+    };
     return (
         <div className="p-4 md:p-8 max-w-full mx-auto w-full space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 overflow-x-hidden">
             <header className="flex flex-col gap-2 max-w-full">
@@ -1056,6 +1065,13 @@ export default function DataManagerTab({
                                                     className="text-xs font-bold text-red-400 hover:text-red-300 disabled:opacity-40"
                                                 >
                                                     Delete Selected
+                                                </button>
+                                                <button
+                                                    onClick={handleUseInDataManager}
+                                                    disabled={cryptoDialogSelected.size === 0}
+                                                    className="px-3 h-8 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-[10px] font-bold text-indigo-400 hover:bg-indigo-600 hover:text-white transition-all disabled:opacity-40"
+                                                >
+                                                    Use in Data Manager
                                                 </button>
                                             </div>
 

@@ -42,6 +42,7 @@ class UpdateRequest(BaseModel):
     updatePrices: bool = True
     updateFundamentals: bool = False
     maxPriceDays: int = 365
+    timeframe: Optional[str] = "1d"
 
 class SyncRequest(BaseModel):
     exchange: Optional[str] = None 
@@ -300,11 +301,30 @@ def update_batch(req: UpdateRequest, background_tasks: BackgroundTasks):
         ok = True
         msg = ""
         saw_unauthorized = False
-
         if price_source == "tradingview":
-            # Fetch from TradingView using new integration module
             from api.tradingview_integration import fetch_tradingview_prices
-            ok, msg = fetch_tradingview_prices(sym, max_days=req.maxPriceDays)
+            tf = getattr(req, "timeframe", "1d") or "1d"
+            
+            # Force 1h for crypto in Data Manager as requested
+            up = sym.upper()
+            if "/" in up or ".BINANCE" in up or up.endswith("USD") or up.endswith("USDT"):
+                tf = "1h"
+                
+            ok, msg = fetch_tradingview_prices(sym, max_days=req.maxPriceDays, timeframe=tf)
+            
+            # Fallback for Binance symbols if TV fails
+            if not ok and sym.upper().endswith(".BINANCE"):
+                print(f"DEBUG: TradingView failed for {sym}. Attempting Binance fallback...")
+                try:
+                    from api.binance_data import fetch_binance_bars_df
+                    from api.stock_ai import sync_df_to_supabase
+                    # Use timeframe from request for fallback too
+                    bars = fetch_binance_bars_df(sym, timeframe=tf, limit=req.maxPriceDays + 30)
+                    if not bars.empty:
+                        ok, sync_msg = sync_df_to_supabase(sym, bars, timeframe=tf)
+                        msg = f"OK (binance fallback) - {sync_msg}"
+                except Exception as be:
+                    print(f"DEBUG: Binance fallback failed for {sym}: {be}")
         elif price_source == "eodhd":
             ok, msg = update_stock_data(client, sym, source="eodhd", max_days=req.maxPriceDays)
         else:
@@ -677,17 +697,17 @@ def get_supabase_stats():
     
     try:
         # Get count of intraday bars
-        intraday_res = stock_ai.supabase.table("stock_bars_intraday").select("id", count="exact").limit(1).execute()
+        intraday_res = stock_ai.supabase.table("stock_bars_intraday").select("*", count="exact").limit(1).execute()
         intraday_total = intraday_res.count if intraday_res else 0
         
         # Get count of daily prices
-        prices_res = stock_ai.supabase.table("stock_prices").select("id", count="exact").limit(1).execute()
+        prices_res = stock_ai.supabase.table("stock_prices").select("*", count="exact").limit(1).execute()
         prices_total = prices_res.count if prices_res else 0
         
         # Breakdown by timeframe for intraday
         tf_stats = {}
         for tf in ["1m", "1h", "1d"]:
-            res = stock_ai.supabase.table("stock_bars_intraday").select("id", count="exact").eq("timeframe", tf).limit(1).execute()
+            res = stock_ai.supabase.table("stock_bars_intraday").select("*", count="exact").eq("timeframe", tf).limit(1).execute()
             tf_stats[tf] = res.count if res else 0
             
         # Last daily price date
@@ -723,7 +743,15 @@ def get_crypto_symbols_stats(timeframe: str = "1h"):
         # Check if RPC get_crypto_symbol_stats exists
         res = stock_ai.supabase.rpc("get_crypto_symbol_stats", {"p_timeframe": timeframe}).execute()
         if res.data:
-            return res.data
+            # Explicitly filter results to ensure only CRYPTO assets are returned.
+            # The RPC doesn't return 'exchange', so we use symbol patterns.
+            filtered = []
+            for item in res.data:
+                sym = item.get("symbol", "").upper()
+                exch = item.get("exchange", "").upper()
+                if exch == "CRYPTO" or "/" in sym or ".BINANCE" in sym or sym.endswith("USD") or sym.endswith("USDT"):
+                    filtered.append(item)
+            return filtered
     except Exception:
         # If RPC fails or doesn't exist, we fall back to a manual approach if feasible,
         # but for large data this is tricky without grouping.
