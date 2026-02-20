@@ -58,8 +58,7 @@ def test_precision_and_laddering():
         assert entries[0] > entries[1] > entries[2] > entries[3], f"Entries not strictly decreasing: {entries}"
         assert tp > entries[0], f"TP {tp} must be above first entry {entries[0]}"
         assert sl < entries[3], f"SL {sl} must be below last entry {entries[3]}"
-        assert "Binance" in msg, "Binance missing from exchanges"
-        assert "Coinbase Advanced Spot" not in msg, "Old exchange string still present"
+        assert "Exchanges:" not in msg, "Exchanges section should be removed"
         
         print(f"DONE: {symbol} passed validation.")
 

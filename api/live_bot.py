@@ -1188,8 +1188,7 @@ class LiveBot:
         if tp <= entries[0]:
             tp = round(entries[0] + (10**-precision), precision)
 
-        # Exchange list: Cleanup for Cornix compatibility
-        exchanges = "Binance, OKX, KuCoin, Huobi.pro, Bybit, Bitget, BingX"
+
         
         entry_lines = "\n".join(f"{i+1}) {e}" for i, e in enumerate(entries))
         
@@ -1204,7 +1203,7 @@ class LiveBot:
 
         msg = (
             f"### #{symbol} ###\n"
-            f"Exchanges: {exchanges}\n"
+
             f"Signal Type: Regular (Long)\n"
             f"\n"
             f"Entry Targets:\n"
