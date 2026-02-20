@@ -7,17 +7,17 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspa
 
 
 def test_botmanager_migrates_legacy_config_from_supabase():
-    # Fake Supabase response with legacy Alpaca keys stored in config.
+    # Fake Supabase response with legacy Virtual keys stored in config.
     fake_res = SimpleNamespace(
         data=[
             {
                 "bot_id": "legacy_bot",
                 "config": {
                     "name": "Legacy Bot",
-                    "execution_mode": "ALPACA",
-                    "alpaca_key_id": "AKIA...",
-                    "alpaca_secret_key": "SECRET",
-                    "alpaca_base_url": "https://paper-api.alpaca.markets",
+                    "execution_mode": "Virtual",
+                    "Virtual_key_id": "AKIA...",
+                    "Virtual_secret_key": "SECRET",
+                    "Virtual_base_url": "https://paper-api.Virtual.markets",
                     "coins": ["BTC/USD", "ETH/USD"],
                     "max_open_positions": 4,
                 },
@@ -34,9 +34,9 @@ def test_botmanager_migrates_legacy_config_from_supabase():
         bot = mgr.get_bot("legacy_bot")
         assert bot is not None
 
-        # Legacy "ALPACA" should migrate to "VIRTUAL"
+        # Legacy "Virtual" should migrate to "VIRTUAL"
         assert bot.config.execution_mode == "VIRTUAL"
         # Ensure removed fields don't exist on config
-        assert not hasattr(bot.config, "alpaca_key_id")
-        assert not hasattr(bot.config, "alpaca_secret_key")
-        assert not hasattr(bot.config, "alpaca_base_url")
+        assert not hasattr(bot.config, "Virtual_key_id")
+        assert not hasattr(bot.config, "Virtual_secret_key")
+        assert not hasattr(bot.config, "Virtual_base_url")

@@ -786,7 +786,7 @@ export async function updateBacktestVisibility(id: string, isPublic: boolean): P
   if (!response.ok) throw new Error("Failed to update backtest visibility");
 }
 
-export type AlpacaAsset = {
+export type Asset = {
   symbol: string;
   name: string;
   exchange: string;
@@ -797,150 +797,6 @@ export type AlpacaAsset = {
   shortable: boolean;
   easy_to_borrow: boolean;
   fractionable: boolean;
-};
-
-export type AlpacaAccountInfo = {
-  account_number: string;
-  status: string;
-  crypto_status: string;
-  currency: string;
-  buying_power: string;
-  cash: string;
-  portfolio_value: string;
-  pattern_day_trader: boolean;
-  trading_blocked: boolean;
-  transfers_blocked: boolean;
-  account_blocked: boolean;
-  created_at: string;
-};
-
-export async function getAlpacaAccount(): Promise<AlpacaAccountInfo> {
-  const res = await fetch("/api/alpaca/account", { cache: "no-store" });
-  if (!res.ok) {
-    const error = await res.json().catch(() => ({ detail: "Failed to fetch Alpaca account" }));
-    throw new Error(error.detail || "Failed to fetch Alpaca account");
-  }
-  return res.json();
-}
-
-export type AlpacaPositionInfo = {
-  symbol: string;
-  qty: string;
-  side?: string | null;
-  market_value?: string | null;
-  unrealized_intraday_pl?: string | null;
-  unrealized_pl?: string | null;
-};
-
-export async function getAlpacaPositions(): Promise<AlpacaPositionInfo[]> {
-  const res = await fetch("/api/alpaca/positions", { cache: "no-store" });
-  if (!res.ok) {
-    const error = await res.json().catch(() => ({ detail: "Failed to fetch Alpaca positions" }));
-    throw new Error(error.detail || "Failed to fetch Alpaca positions");
-  }
-  return res.json();
-}
-
-export async function getAlpacaAssets(
-  exchange?: string,
-  assetClass: "us_equity" | "crypto" = "us_equity"
-): Promise<AlpacaAsset[]> {
-  const params = new URLSearchParams();
-  if (exchange) params.set("exchange", exchange);
-  params.set("asset_class", assetClass);
-  params.set("source", "local");
-  const url = `/api/alpaca/assets?${params.toString()}`;
-  const res = await fetch(url, { cache: "no-store" });
-  if (!res.ok) {
-    const error = await res.json().catch(() => ({ detail: "Failed to fetch Alpaca assets" }));
-    throw new Error(error.detail || "Failed to fetch Alpaca assets");
-  }
-  return res.json();
-}
-
-export async function syncAlpacaSymbols(
-  symbols: string[],
-  opts?: { assetClass?: "us_equity" | "crypto"; exchange?: string | null; source?: "local" | "live" }
-): Promise<{ success: boolean; synced_count: number; saved_count?: number }> {
-  const res = await fetch("/api/alpaca/sync", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      symbols,
-      asset_class: opts?.assetClass ?? "us_equity",
-      exchange: opts?.exchange ?? undefined,
-      source: opts?.source ?? "local",
-    }),
-  });
-  if (!res.ok) {
-    const error = await res.json().catch(() => ({ detail: "Failed to sync Alpaca symbols" }));
-    throw new Error(error.detail || "Failed to sync Alpaca symbols");
-  }
-  return res.json();
-}
-
-export async function updateAlpacaLocalCache(
-  markets?: Array<"us_equity" | "crypto">
-): Promise<{ success: boolean; count: number; filename: string }> {
-  const res = await fetch("/api/alpaca/update-local-cache", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(markets ? { markets } : {}),
-  });
-  if (!res.ok) {
-    const error = await res.json().catch(() => ({ detail: "Failed to update Alpaca local cache" }));
-    throw new Error(error.detail || "Failed to update Alpaca local cache");
-  }
-  return res.json();
-}
-
-export type AlpacaExchange = {
-  name: string;
-  asset_count: number;
-};
-
-export async function getAlpacaExchanges(assetClass: "us_equity" | "crypto" = "us_equity"): Promise<AlpacaExchange[]> {
-  const params = new URLSearchParams();
-  params.set("asset_class", assetClass);
-  params.set("source", "local");
-  const res = await fetch(`/api/alpaca/exchanges?${params.toString()}`, { cache: "no-store" });
-  if (!res.ok) {
-    const error = await res.json().catch(() => ({ detail: "Failed to fetch Alpaca exchanges" }));
-    throw new Error(error.detail || "Failed to fetch Alpaca exchanges");
-  }
-  const data = await res.json();
-  return data;
-}
-
-export type AlpacaCacheMeta = {
-  exists: boolean;
-  asset_class: "us_equity" | "crypto";
-  updated_at?: string;
-  total_assets?: number;
-};
-
-export async function getAlpacaCacheMeta(assetClass: "us_equity" | "crypto" = "us_equity"): Promise<AlpacaCacheMeta> {
-  const params = new URLSearchParams();
-  params.set("asset_class", assetClass);
-  const res = await fetch(`/api/alpaca/cache-meta?${params.toString()}`, { cache: "no-store" });
-  if (!res.ok) {
-    const error = await res.json().catch(() => ({ detail: "Failed to fetch Alpaca cache meta" }));
-    throw new Error(error.detail || "Failed to fetch Alpaca cache meta");
-  }
-  return res.json();
-}
-
-export type AlpacaSupabaseStats = {
-  asset_class: "us_equity" | "crypto";
-  exchange_filter?: string | null;
-  alpaca_exchanges?: string[];
-  alpaca_assets_cache?: { rows: number; last_updated_at?: string | null };
-  stock_prices?: { rows: number; last_date?: string | null };
-  stock_bars_intraday?: {
-    rows: number;
-    last_ts?: string | null;
-    by_timeframe?: Partial<Record<IntradayTimeframe, number>>;
-  };
 };
 
 export type IntradayTimeframe =
@@ -963,64 +819,12 @@ export type CryptoSymbolStat = {
   last_ts: string | null;
 };
 
-export async function getAlpacaSupabaseStats(
-  assetClass: "us_equity" | "crypto" = "us_equity",
-  exchange?: string
-): Promise<AlpacaSupabaseStats> {
-  const params = new URLSearchParams();
-  params.set("asset_class", assetClass);
-  if (exchange) params.set("exchange", exchange);
-  const res = await fetch(`/api/alpaca/supabase-stats?${params.toString()}`, { cache: "no-store" });
-  if (!res.ok) {
-    const error = await res.json().catch(() => ({ detail: "Failed to fetch Alpaca Supabase stats" }));
-    throw new Error(error.detail || "Failed to fetch Alpaca Supabase stats");
-  }
-  return res.json();
-}
-
-export async function syncAlpacaPrices(
-  symbols: string[],
-  opts: {
-    assetClass: "us_equity" | "crypto";
-    exchange?: string | null;
-    days: number;
-    source?: "local" | "live" | "tradingview" | "binance";
-    timeframe?: IntradayTimeframe;
-  }
-): Promise<{
-  success: boolean;
-  symbols: number;
-  rows_upserted: number;
-  days: number;
-  timeframe?: IntradayTimeframe;
-  volume_total?: number;
-  volume_missing?: number;
-}> {
-  const res = await fetch("/api/alpaca/sync-prices", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      symbols,
-      asset_class: opts.assetClass,
-      exchange: opts.exchange ?? undefined,
-      days: opts.days,
-      source: opts.source ?? "local",
-      timeframe: opts.timeframe ?? "1d",
-    }),
-  });
-  if (!res.ok) {
-    const error = await res.json().catch(() => ({ detail: "Failed to sync Alpaca prices" }));
-    throw new Error(error.detail || "Failed to sync Alpaca prices");
-  }
-  return res.json();
-}
-
 export async function getCryptoSymbolStats(
   timeframe: IntradayTimeframe = "1h"
 ): Promise<CryptoSymbolStat[]> {
   const params = new URLSearchParams();
   params.set("timeframe", timeframe);
-  const res = await fetch(`/api/alpaca/crypto-symbols-stats?${params.toString()}`, { cache: "no-store" });
+  const res = await fetch(`/api/ai_bot/crypto_symbols_stats?${params.toString()}`, { cache: "no-store" });
   if (!res.ok) {
     const error = await res.json().catch(() => ({ detail: "Failed to fetch crypto symbol stats" }));
     throw new Error(error.detail || "Failed to fetch crypto symbol stats");
@@ -1032,7 +836,7 @@ export async function deleteCryptoBars(
   symbols: string[],
   timeframe: IntradayTimeframe = "1h"
 ): Promise<{ success: boolean; deleted: number; symbols: number; timeframe: string }> {
-  const res = await fetch("/api/alpaca/crypto-delete-bars", {
+  const res = await fetch("/api/ai_bot/crypto_delete_bars", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ symbols, timeframe }),
@@ -1040,6 +844,51 @@ export async function deleteCryptoBars(
   if (!res.ok) {
     const error = await res.json().catch(() => ({ detail: "Failed to delete crypto bars" }));
     throw new Error(error.detail || "Failed to delete crypto bars");
+  }
+  return res.json();
+}
+
+export async function getAssets(
+  exchange?: string,
+  assetClass: "us_equity" | "crypto" = "us_equity"
+): Promise<Asset[]> {
+  const params = new URLSearchParams();
+  if (exchange) params.set("exchange", exchange);
+  params.set("asset_class", assetClass);
+  params.set("source", "local");
+  const url = `/api/ai_bot/assets?${params.toString()}`;
+  const res = await fetch(url, { cache: "no-store" });
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({ detail: "Failed to fetch assets" }));
+    throw new Error(error.detail || "Failed to fetch assets");
+  }
+  return res.json();
+}
+
+export type CryptoSupabaseStats = {
+  asset_class: "us_equity" | "crypto";
+  exchange_filter?: string | null;
+  exchanges?: string[];
+  assets_cache?: { rows: number; last_updated_at?: string | null };
+  stock_prices?: { rows: number; last_date?: string | null };
+  stock_bars_intraday?: {
+    rows: number;
+    last_ts?: string | null;
+    by_timeframe?: Partial<Record<IntradayTimeframe, number>>;
+  };
+};
+
+export async function getCryptoSupabaseStats(
+  assetClass: "us_equity" | "crypto" = "us_equity",
+  exchange?: string
+): Promise<CryptoSupabaseStats> {
+  const params = new URLSearchParams();
+  params.set("asset_class", assetClass);
+  if (exchange) params.set("exchange", exchange);
+  const res = await fetch(`/api/ai_bot/supabase-stats?${params.toString()}`, { cache: "no-store" });
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({ detail: "Failed to fetch Supabase stats" }));
+    throw new Error(error.detail || "Failed to fetch Supabase stats");
   }
   return res.json();
 }

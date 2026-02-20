@@ -161,7 +161,7 @@ export default function LiveBotTab() {
     const [logFilter, setLogFilter] = useState<"ALL" | "ACCEPTED" | "REJECTED" | "ERROR">("ALL");
     const logsEndRef = useRef<HTMLDivElement>(null);
 
-    // Alpaca integration removed (virtual execution only).
+    // virtual integration removed (virtual execution only).
     // Logs & Analytics State
     const [selectedChartSymbol, setSelectedChartSymbol] = useState<string | null>(null);
     const [thresholdStats, setThresholdStats] = useState<Record<string, number>>({});
@@ -255,7 +255,7 @@ export default function LiveBotTab() {
         return safe.toLocaleString(undefined, { style: "currency", currency: "USD", maximumFractionDigits: 2 });
     };
 
-    const [coinSource, setCoinSource] = useState<"database" | "alpaca">("alpaca");
+    const [coinSource, setCoinSource] = useState<"database" | "virtual">("virtual");
     const [coinLimit, setCoinLimit] = useState(100);
     const autoSelectRef = useRef(false);
 
@@ -292,10 +292,10 @@ export default function LiveBotTab() {
             let url = "";
 
             if (assetTab === "CRYPTO") {
-                source = coinSource === "alpaca" ? "alpaca" : "database";
+                source = coinSource === "database" ? "database" : "virtual";
                 url = `/api/ai_bot/available_coins?source=${source}&limit=${coinLimit}&pair_type=${cryptoFilter}`;
             } else if (assetTab === "STOCKS") {
-                source = "alpaca_stocks";
+                source = "virtual_stocks";
                 url = `/api/ai_bot/available_coins?source=${source}&limit=${coinLimit}`;
             } else if (assetTab === "GLOBAL") {
                 source = "global";
@@ -646,7 +646,7 @@ export default function LiveBotTab() {
         }
     };
 
-    // Alpaca watchlist sync removed (virtual execution only).
+    // virtual watchlist sync removed (virtual execution only).
 
     const fetchPerformance = async (silent = false) => {
         if (!silent) setPerformanceLoading(true);
@@ -922,7 +922,7 @@ export default function LiveBotTab() {
                         </div>
                         <div className="mt-4 pt-4 border-t border-white/5 flex items-center justify-between text-[10px]">
                             <span className="text-zinc-600 font-bold">SOURCE</span>
-                            <span className="text-purple-400/80 font-bold truncate max-w-[100px] text-right uppercase">{status?.config?.data_source || "ALPACA"}</span>
+                            <span className="text-purple-400/80 font-bold truncate max-w-[100px] text-right uppercase">{status?.config?.data_source || "virtual"}</span>
                         </div>
                     </div>
                 </div>
@@ -1128,7 +1128,7 @@ export default function LiveBotTab() {
                                     {assetTab === "STOCKS" && (
                                         <div className="p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-xl text-xs text-yellow-200 flex items-center gap-2">
                                             <Globe className="w-4 h-4" />
-                                            <span>US Stock Market (Alpaca)</span>
+                                            <span>US Stock Market (virtual)</span>
                                         </div>
                                     )}
 
@@ -1170,10 +1170,10 @@ export default function LiveBotTab() {
                                                     MY ASSETS
                                                 </button>
                                                 <button
-                                                    onClick={() => setCoinSource("alpaca")}
-                                                    className={`px-3 py-1 text-[10px] font-bold rounded-md transition-all ${coinSource === "alpaca" ? "bg-indigo-600 text-white" : "text-zinc-500 hover:text-zinc-300"}`}
+                                                    onClick={() => setCoinSource("virtual")}
+                                                    className={`px-3 py-1 text-[10px] font-bold rounded-md transition-all ${coinSource === "virtual" ? "bg-indigo-600 text-white" : "text-zinc-500 hover:text-zinc-300"}`}
                                                 >
-                                                    ALPACA
+                                                    virtual
                                                 </button>
                                             </div>
                                         ) : null}
@@ -1202,7 +1202,7 @@ export default function LiveBotTab() {
                                             </select>
                                         )}
 
-                                        {coinSource === "alpaca" && (
+                                        {coinSource === "virtual" && (
                                             <div className="flex items-center gap-1 overflow-x-auto custom-scrollbar pb-1 max-w-full">
                                                 {[10, 50, 100, 0].map(lim => {
                                                     const countryObj = countries.find(c => c.name === selectedCountry);
@@ -1908,11 +1908,11 @@ export default function LiveBotTab() {
                                             </thead>
                                             <tbody className="divide-y divide-white/5 font-mono">
                                                 {(() => {
-                                                    // Bot-scoped trades only (no account-wide Alpaca merge).
+                                                    // Bot-scoped trades only (no account-wide virtual merge).
                                                     const botTrades = (performance?.trades || status?.trades || [])
                                                         .filter(t => isBotSymbol(t.symbol));
                                                     const buyTrades = botTrades
-                                                        .filter(t => t.action === 'BUY' || t.action === 'SIGNAL' || t.action.startsWith('ALPACA:'));
+                                                        .filter(t => t.action === 'BUY' || t.action === 'SIGNAL' || t.action.startsWith('virtual:'));
 
                                                     console.log(`[Dashboard] Buy Table - Displaying from ${performance?.trades ? 'Performance (Supabase)' : 'Status (Memory)'}`);
 
@@ -1952,7 +1952,7 @@ export default function LiveBotTab() {
                                                                 </td>
                                                                 <td className="px-4 py-3">
                                                                     <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase ${trade.action === 'BUY' ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/10' :
-                                                                        trade.action.startsWith('ALPACA:') ? 'bg-orange-500/10 text-orange-400 border border-orange-500/10' :
+                                                                        trade.action.startsWith('virtual:') ? 'bg-orange-500/10 text-orange-400 border border-orange-500/10' :
                                                                             'bg-indigo-500/10 text-indigo-400 border border-indigo-500/10'
                                                                         }`}>
                                                                         {trade.action}
@@ -2371,24 +2371,24 @@ export default function LiveBotTab() {
                                 My Symbols
                             </button>
                             <button
-                                onClick={() => setCoinSource("alpaca")}
-                                className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-all ${coinSource === "alpaca"
+                                onClick={() => setCoinSource("virtual")}
+                                className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-all ${coinSource === "virtual"
                                     ? "bg-indigo-500 text-white shadow-lg shadow-indigo-500/20"
                                     : "text-zinc-500 hover:text-zinc-300"
                                     }`}
                             >
-                                All Alpaca
+                                All virtual
                             </button>
                         </div>
 
-                        {coinSource === "alpaca" && (
+                        {coinSource === "virtual" && (
                             <div className="mb-4 p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-[10px] text-amber-200/70 leading-relaxed animate-in fade-in duration-500">
                                 <Activity className="w-3 h-3 mb-1 text-amber-500" />
                                 <strong>Important:</strong> Trading <code>/USDC</code> or <code>/USDT</code> pairs requires having those specific assets. If you only have USD, please use <code>/USD</code> pairs (recommended).
                             </div>
                         )}
 
-                        {coinSource === "alpaca" && (
+                        {coinSource === "virtual" && (
                             <div className="flex gap-2 mb-4 overflow-x-auto custom-scrollbar pb-2">
                                 {[10, 20, 50, 100, 200, 500, 1000, 0].map(lim => (
                                     <button

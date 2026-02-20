@@ -245,7 +245,7 @@ def get_available_coins(source: Optional[str] = None, limit: int = 0, country: O
             from api.binance_data import fetch_all_binance_symbols
             return fetch_all_binance_symbols(quote_asset="USDT", limit=limit)
         
-        if source == "simulated_crypto" or source == "alpaca":
+        if source == "simulated_crypto" or source == "virtual":
             # Simulation/Simulated Broker mode fallback
             usd_pairs = [
                 "AAVE/USD", "AVAX/USD", "BAT/USD", "BCH/USD", "BTC/USD", "CRV/USD",
@@ -306,9 +306,9 @@ def delete_bot(bot_id: str):
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-@router.get("/alpaca_watchlist")
-def get_alpaca_watchlist(bot_id: str = "primary"):
-    raise HTTPException(status_code=410, detail="Alpaca integration removed. Watchlists are no longer supported.")
+@router.get("/virtual_watchlist")
+def get_virtual_watchlist(bot_id: str = "primary"):
+    raise HTTPException(status_code=410, detail="virtual integration removed. Watchlists are no longer supported.")
 
 @router.get("/performance")
 def get_bot_performance(bot_id: str = "primary"):
@@ -434,7 +434,7 @@ def get_bot_performance(bot_id: str = "primary"):
                     return True
 
                 # Re-filter buys/sells after normalization — only real execution trades
-                all_buys = [t for t in trades if str(t.get("action") or "").upper() in ("BUY", "SIGNAL") or str(t.get("action") or "").upper().startswith("ALPACA:")]
+                all_buys = [t for t in trades if str(t.get("action") or "").upper() in ("BUY", "SIGNAL")]
                 all_sells = [t for t in trades if str(t.get("action") or "").upper() == "SELL"]
                 buys = [t for t in all_buys if _is_real_trade(t)]
                 sells = [t for t in all_sells if _is_real_trade(t)]
@@ -481,11 +481,11 @@ def get_bot_performance(bot_id: str = "primary"):
                 if bot:
                     for s, pos_data in bot._pos_state.items():
                          display_symbol = str(s)
-                         # Get actual current price from Alpaca
+                         # Get actual current price from virtual broker or cached data
                          current_price = safe_float(pos_data.get("entry_price")) # Default
                          try:
                              if bot.api:
-                                 # Alpaca crypto latest-trade expects BASE/QUOTE format (e.g. BTC/USD).
+                                 # virtual crypto latest-trade expects BASE/QUOTE format (e.g. BTC/USD).
                                  # _pos_state keys are often normalized like BTCUSD, so convert safely.
                                  raw_sym = str(s or "").upper().replace("-", "").replace("_", "")
                                  if "/" in raw_sym:
@@ -753,8 +753,8 @@ def get_candles(symbol: str, bot_id: str = "primary", limit: int = 150):
         
         if bot:
             ds = getattr(bot.config, "data_source", "").lower()
-            # If alpaca is source but it doesn't look like crypto, assume US Stock
-            if "alpaca" in ds and not is_crypto:
+            # If virtual is source but it doesn't look like crypto, assume US Stock
+            if "virtual" in ds and not is_crypto:
                 exchange = "US"
 
         # Query OHLC data with centralized retry logic
@@ -879,7 +879,7 @@ def get_candles(symbol: str, bot_id: str = "primary", limit: int = 150):
                 target_price = safe_float(pos.get("target_price"))
                 stop_price = safe_float(pos.get("current_stop"))
 
-            # Fallback: if entry wasn't stored yet, read from live Alpaca position
+            # Fallback: if entry wasn't stored yet, read from live virtual position
             if entry_price <= 0:
                 try:
                     live_pos = bot._get_open_position(symbol)

@@ -71,7 +71,7 @@ class _LatestTrade:
 
 class VirtualMarketAdapter:
     """
-    In-memory "broker" used by LiveBot to simulate trading without Alpaca.
+    In-memory "broker" used by LiveBot to simulate trading without Virtual.
 
     Interface intentionally mirrors the small subset LiveBot + routers rely on:
     - submit_order(**kwargs)

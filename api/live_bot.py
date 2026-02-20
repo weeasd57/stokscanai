@@ -21,7 +21,7 @@ except ImportError:
     TvDatafeed = None
     Interval = None
 
-# We'll use the existing imports from run_live_bot.py logic
+# We'll use the existing imports from the core bot logic
 # assuming api module structure is available.
 from api.stock_ai import _supabase_upsert_with_retry, _supabase_read_with_retry, supabase
 from api.virtual_market_adapter import create_virtual_market_client
@@ -172,7 +172,7 @@ def _normalize_symbol(symbol: str) -> str:
 
 def _format_symbol_for_bot(symbol: str) -> str:
     """
-    Alpaca positions may return crypto like 'BTCUSD'. The bot/data sources generally use 'BTC/USD'.
+    Virtual positions may return crypto like 'BTCUSD'. The bot/data sources generally use 'BTC/USD'.
     """
     s = (symbol or "").strip().upper()
     if not s:
@@ -1102,7 +1102,8 @@ class LiveBot:
         # Optional: Send important logs to Telegram
         if self.telegram_bridge and self.config.execution_mode in ["TELEGRAM", "BOTH"]:
             # Only send orders and critical errors here. Signals handled separately.
-            if "order" in msg.lower() or "CRITICAL" in msg:
+            # User requested to suppress "VIRTUAL ORDER filled" spam.
+            if ("order" in msg.lower() or "CRITICAL" in msg) and "VIRTUAL ORDER filled" not in msg:
                  self.telegram_bridge.send_notification(f"ℹ️ *{self.config.name}*\n`{msg}`")
 
     def set_telegram_bridge(self, bridge):
@@ -1411,20 +1412,21 @@ class LiveBot:
 
     def _sync_pos_state(self):
         """
-        Sync internal _pos_state with actual Alpaca positions.
+        Sync internal _pos_state with actual virtual positions.
         """
         if self.config.execution_mode == "TELEGRAM":
             return
 
         try:
+            # Sync with the Virtual Broker (self.api)
             positions = self.api.list_positions()
-            current_alpaca_norms = set()
+            current_norms = set()
             
             p_list = []
             for p in positions:
                 sym = str(getattr(p, "symbol", "") or "")
                 norm = _normalize_symbol(sym)
-                current_alpaca_norms.add(norm)
+                current_norms.add(norm)
                 p_list.append(norm)
                 
                 if norm not in self._pos_state:
@@ -1437,16 +1439,10 @@ class LiveBot:
                         "trail_mode": "NONE",
                     }
 
-            # Check open orders
-            orders = self.api.list_orders(status="open")
-            for o in orders:
-                sym = str(getattr(o, "symbol", "") or "")
-                current_alpaca_norms.add(_normalize_symbol(sym))
-            
             # Prune closed positions
-            to_remove = [norm for norm in self._pos_state if norm not in current_alpaca_norms]
+            to_remove = [norm for norm in self._pos_state if norm not in current_norms]
             for norm in to_remove:
-                self._log(f"Sync: Pruning {norm} (no longer in Alpaca).")
+                self._log(f"Sync: Pruning {norm} (no longer in virtual broker).")
                 self._pos_state.pop(norm, None)
                 
             # Save synced state
@@ -1458,8 +1454,6 @@ class LiveBot:
                 
         except Exception as e:
             self._log(f"Sync Error: {e}")
-            import traceback
-            traceback.print_exc()
 
     def _align_for_king(self, X_src: pd.DataFrame, king_artifact: object) -> pd.DataFrame:
         if not isinstance(X_src, pd.DataFrame):
@@ -1563,14 +1557,14 @@ class LiveBot:
         
         # If the user explicitly sets a data source for the whole bot, we might respect it,
         # but for symbols like EGX ones, we need specific handling.
-        source = (getattr(self.config, "data_source", "alpaca") or "alpaca").lower()
+        source = (getattr(self.config, "data_source", "Virtual") or "Virtual").lower()
         
         # EGX Heuristic: 4 uppercase letters and no slash
         if not is_crypto and len(symbol) <= 5 and symbol.isupper() and "/" not in symbol:
             # Likely EGX or US Stock
-            if source == "alpaca":
-                 # Fallback to yfinance for EGX symbols as Alpaca doesn't support them
-                 # and user report shows Alpaca Crypto API is being wrongly triggered.
+            if source == "Virtual":
+                 # Fallback to yfinance for EGX symbols as Virtual doesn't support them
+                 # and user report shows Virtual Crypto API is being wrongly triggered.
                  self._log(f"Routing {symbol} to yfinance (Stock Detection)")
                  return self._get_yfinance_bars(symbol, limit)
 
@@ -1586,10 +1580,7 @@ class LiveBot:
             return self._get_stock_bars(symbol, limit)
 
     def _get_crypto_bars(self, symbol: str, limit: int) -> pd.DataFrame:
-        """Fetch crypto bars from Binance via tvDatafeed."""
-        if not TvDatafeed:
-            return pd.DataFrame()
-            
+        """Fetch crypto bars (Binance default)."""
         # ✅ Strict Symbol Filter
         normalized_symbol = symbol.strip().upper()
         allowed_symbols = [s.strip().upper() for s in (self.config.coins or [])]
@@ -1599,33 +1590,16 @@ class LiveBot:
              return pd.DataFrame()
 
         try:
-            source = (getattr(self.config, "data_source", "alpaca") or "alpaca").lower()
-            if source == "binance":
-                from api.binance_data import fetch_binance_bars_df
-                bars = fetch_binance_bars_df(symbol, timeframe=self.config.timeframe, limit=int(limit))
-            else:
-                # Alpaca Crypto V2
-                bars = self.api.get_crypto_bars(symbol, timeframe=self.config.timeframe, limit=int(limit)).df
-            
-            return self._process_bars(bars, symbol, source, limit)
+            from api.binance_data import fetch_binance_bars_df
+            bars = fetch_binance_bars_df(symbol, timeframe=self.config.timeframe, limit=int(limit))
+            return self._process_bars(bars, symbol, "binance", limit)
         except Exception as e:
             return self._handle_fetch_error(e, symbol, limit)
 
     def _get_stock_bars(self, symbol: str, limit: int) -> pd.DataFrame:
-        """Fetch stock bars (US or mapped EGX)."""
+        """Fetch stock bars."""
         try:
-            source = (getattr(self.config, "data_source", "alpaca") or "alpaca").lower()
-            
-            # Map timeframe for Alpaca Stocks
-            tf_map = {"1Hour": "1Hour", "1Day": "1Day", "1min": "1Min", "5min": "5Min", "15min": "15Min"}
-            tf = tf_map.get(self.config.timeframe, "1Day")
-
-            if source == "alpaca":
-                # Alpaca Stocks V2
-                bars = self.api.get_bars(symbol, timeframe=tf, limit=int(limit)).df
-                return self._process_bars(bars, symbol, source, limit)
-            else:
-                return self._get_yfinance_bars(symbol, limit)
+            return self._get_yfinance_bars(symbol, limit)
         except Exception as e:
             return self._handle_fetch_error(e, symbol, limit)
 
@@ -1808,7 +1782,7 @@ class LiveBot:
             if rows:
                 # Supabase/Postgres throws `21000 ... cannot affect row a second time` if a single
                 # upsert statement contains duplicate values for the conflict key.
-                # Alpaca bars can occasionally contain duplicate timestamps; dedupe by the conflict key.
+                # Virtual bars can occasionally contain duplicate timestamps; dedupe by the conflict key.
                 deduped: Dict[tuple[str, str, str, str], Dict[str, Any]] = {}
                 for r in rows:
                     key = (str(r.get("symbol")), str(r.get("exchange")), str(r.get("timeframe")), str(r.get("ts")))
@@ -1833,22 +1807,13 @@ class LiveBot:
             return False
 
     def _wait_for_fill(self, order_id: str, timeout_seconds: int = 10) -> Optional[float]:
-        """Poll Alpaca for order fill status and return the average fill price."""
-        start_time = time.time()
-        while time.time() - start_time < timeout_seconds:
-            try:
-                order = self.api.get_order(order_id)
-                if order.status == "filled":
-                    return float(order.filled_avg_price)
-                elif order.status in ["canceled", "expired", "rejected"]:
-                    self._log(f"Order {order_id} failed with status: {order.status}")
-                    return None
-            except Exception as e:
-                self._log(f"Error checking fill for {order_id}: {e}")
-            
-            time.sleep(1)
-        
-        self._log(f"Timed out waiting for fill of order {order_id}")
+        """Check virtual order status and return the average fill price."""
+        try:
+            order = self.api.get_order(order_id)
+            if order and order.status == "filled":
+                return float(order.filled_avg_price)
+        except Exception as e:
+            self._log(f"Error checking fill for {order_id}: {e}")
         return None
 
     def _get_open_position(self, symbol: str):
@@ -1927,18 +1892,13 @@ class LiveBot:
             safe_qty = float(qty)
             if is_crypto:
                 reduced_qty = safe_qty * 0.9999
-                # If reduction pushes it below min, but it was above or at min, keep it at min.
-                # Alpaca minimum for crypto is 1e-8
-                if reduced_qty < 1e-8 and safe_qty >= 1e-8:
-                    safe_qty = 1e-8
+                # If reduction pushes it below min, keep it at a reasonable precision.
+                # Virtual minimum for crypto 1e-8 is removed. We use 1e-6 as a safe floor.
+                if reduced_qty < 1e-6 and safe_qty >= 1e-6:
+                    safe_qty = 1e-6
                 else:
                     safe_qty = reduced_qty
                 
-                # If still below min, we can't sell this qty on Alpaca.
-                if safe_qty < ALPACA_MIN_QTY:
-                    self._log(f"SKIPPING Sell for {symbol}: qty {safe_qty} is below Alpaca minimum {ALPACA_MIN_QTY}")
-                    return False
-
                 self._log(f"DEBUG: Applying crypto safety factor: {qty} -> {safe_qty}")
             
             # If we are selling the full relative amount, try close_position for better precision
@@ -2105,7 +2065,7 @@ class LiveBot:
                 sell_pnl = (float(current_stop) - float(entry_price)) * qty
                 self._save_signal_record(symbol, current_stop, qty * current_stop, 0, None, action="SELL", entry_price=float(entry_price), pnl=sell_pnl)
                 self._pos_state.pop(_normalize_symbol(symbol), None)
-                self._log(f"SKIPPING Alpaca Sell (Telegram-Only Mode)")
+                self._log(f"SKIPPING Virtual Sell (Telegram-Only Mode)")
                 return True
             return self._sell_market(symbol, qty=qty)
 
@@ -2116,7 +2076,7 @@ class LiveBot:
                 sell_pnl = (float(take_profit) - float(entry_price)) * qty
                 self._save_signal_record(symbol, take_profit, qty * take_profit, 0, None, action="SELL", entry_price=float(entry_price), pnl=sell_pnl)
                 self._pos_state.pop(_normalize_symbol(symbol), None)
-                self._log(f"SKIPPING Alpaca Sell (Telegram-Only Mode)")
+                self._log(f"SKIPPING Virtual Sell (Telegram-Only Mode)")
                 return True
             return self._sell_market(symbol, qty=qty)
 
@@ -2147,7 +2107,7 @@ class LiveBot:
                 sell_pnl = (close - float(entry_price)) * qty
                 self._save_signal_record(symbol, close, qty * close, 0, None, action="SELL", entry_price=float(entry_price), pnl=sell_pnl)
                 self._pos_state.pop(_normalize_symbol(symbol), None)
-                self._log(f"SKIPPING Alpaca Sell (Telegram-Only Mode)")
+                self._log(f"SKIPPING Virtual Sell (Telegram-Only Mode)")
                 return True
             return self._sell_market(symbol, qty=qty)
 
@@ -2355,8 +2315,9 @@ class LiveBot:
                         if total_managed >= self.config.max_open_positions:
                             msg = f"⚠️ *RISK FIREWALL ALERT*\n\nLimit Reached: {total_managed}/{self.config.max_open_positions} positions.\nSkipping signal for `{symbol}`.\n\n_Increase 'Max Open Trades' in settings if you want to allow more simultaneous positions._"
                             self._log(f"RISK FIREWALL: Max positions reached ({total_managed}/{self.config.max_open_positions}). Skipping signal for {symbol}.")
-                            if self.telegram_bridge:
-                                self.telegram_bridge.send_notification(msg)
+                            # [SUPPRESSED] User requested not to see firewall alerts on Telegram
+                            # if self.telegram_bridge:
+                            #     self.telegram_bridge.send_notification(msg)
                             continue
                     except Exception as e:
                         self._log(f"Error checking Risk Firewall: {e}")
@@ -2515,7 +2476,7 @@ class BotManager:
         except Exception as e:
             print(f"Error saving bots: {e}")
 
-    def create_bot(self, bot_id: str, name: str, alpaca_key_id: str = None, alpaca_secret_key: str = None) -> LiveBot:
+    def create_bot(self, bot_id: str, name: str, Virtual_key_id: str = None, Virtual_secret_key: str = None) -> LiveBot:
         if bot_id in self._bots:
             raise ValueError(f"Bot ID {bot_id} already exists.")
         
@@ -2524,10 +2485,10 @@ class BotManager:
         bot.config.name = name
         
         # Apply custom keys if provided
-        if alpaca_key_id:
-            bot.config.alpaca_key_id = alpaca_key_id
-        if alpaca_secret_key:
-            bot.config.alpaca_secret_key = alpaca_secret_key
+        if Virtual_key_id:
+            bot.config.Virtual_key_id = Virtual_key_id
+        if Virtual_secret_key:
+            bot.config.Virtual_secret_key = Virtual_secret_key
             
         if self._telegram_bridge:
             bot.set_telegram_bridge(self._telegram_bridge)

@@ -3,11 +3,12 @@
 import { Database, Globe, Loader2, Download, Check, ChevronLeft, ChevronRight, BarChart3, History, Zap, Cloud, RefreshCcw } from "lucide-react";
 import {
     type SymbolResult,
-    getCryptoSymbolStats,
-    deleteCryptoBars,
-    type AlpacaAsset,
-    type AlpacaSupabaseStats,
+    type Asset,
     type CryptoSymbolStat,
+    type CryptoSupabaseStats,
+    getCryptoSymbolStats,
+    getCryptoSupabaseStats,
+    deleteCryptoBars,
 } from "@/lib/api";
 import { useEffect, useState } from "react";
 
@@ -108,13 +109,13 @@ export default function DataManagerTab({
     updatingInventory,
     runInventoryUpdate
 }: DataManagerTabProps) {
-    const [cryptoStats, setCryptoStats] = useState<AlpacaSupabaseStats | null>(null);
     const [marketMode, setMarketMode] = useState<"global" | "crypto">("global");
-    const [cryptoAssets, setCryptoAssets] = useState<AlpacaAsset[]>([]);
+    const [cryptoAssets, setCryptoAssets] = useState<Asset[]>([]);
     const [cryptoQuery, setCryptoQuery] = useState("");
     const [selectedCryptoSymbols, setSelectedCryptoSymbols] = useState<Set<string>>(new Set());
     const [cryptoTimeframe, setCryptoTimeframe] = useState<"1m" | "1h" | "1d">("1h");
     const [cryptoSyncing, setCryptoSyncing] = useState(false);
+    const [cryptoStats, setCryptoStats] = useState<CryptoSupabaseStats | null>(null);
     const [loadingCrypto, setLoadingCrypto] = useState(false);
     const isCryptoMode = marketMode === "crypto";
     const [cryptoDialogOpen, setCryptoDialogOpen] = useState(false);
@@ -129,8 +130,12 @@ export default function DataManagerTab({
     }>({ key: "bars", dir: "desc" });
 
     const fetchCryptoSupabaseStats = async () => {
-        // Alpaca routes removed. Keep UI stable by disabling these calls.
-        setCryptoStats(null);
+        try {
+            const data = await getCryptoSupabaseStats("crypto");
+            setCryptoStats(data);
+        } catch (e) {
+            console.error("Failed to fetch crypto stats:", e);
+        }
     };
 
     useEffect(() => {
@@ -189,7 +194,7 @@ export default function DataManagerTab({
         setCryptoSyncing(true);
         try {
             setLogs(prev => [
-                `[${new Date().toLocaleTimeString()}] Crypto update disabled (Alpaca integration removed)`,
+                `[${new Date().toLocaleTimeString()}] Crypto update disabled (Internal integration removed)`,
                 ...prev
             ]);
         } catch (e: any) {

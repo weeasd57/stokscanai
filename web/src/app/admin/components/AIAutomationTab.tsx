@@ -3,7 +3,7 @@
 import { Zap, ChevronDown, Check, Loader2, Download, Database, Info, History, Trash2, TrendingUp, Clock, Sparkles } from "lucide-react";
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts";
 import { useState, useEffect, useMemo } from "react";
-import { type AlpacaSupabaseStats } from "@/lib/api";
+import { type Asset, type CryptoSupabaseStats, getCryptoSupabaseStats } from "@/lib/api";
 import { toast } from "sonner";
 import ConfirmDialog from "@/components/ConfirmDialog";
 
@@ -205,7 +205,7 @@ export default function AIAutomationTab({
     // Adaptive Learning State
     const [retraining, setRetraining] = useState(false);
     const [updatingActuals, setUpdatingActuals] = useState(false);
-    const [cryptoStats, setCryptoStats] = useState<AlpacaSupabaseStats | null>(null);
+    const [cryptoStats, setCryptoStats] = useState<CryptoSupabaseStats | null>(null);
     const [loadingCryptoStats, setLoadingCryptoStats] = useState(false);
 
     const cryptoDailyCount = cryptoStats?.stock_prices?.rows ?? 0;
@@ -228,8 +228,8 @@ export default function AIAutomationTab({
         const fetchCryptoStats = async () => {
             setLoadingCryptoStats(true);
             try {
-                // Alpaca routes removed. Keep UI stable by disabling this call.
-                setCryptoStats(null);
+                const data = await getCryptoSupabaseStats("crypto");
+                setCryptoStats(data);
             } catch {
                 setCryptoStats(null);
             } finally {
