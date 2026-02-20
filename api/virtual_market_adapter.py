@@ -357,20 +357,19 @@ class VirtualMarketAdapter:
         self._log(f"VIRTUAL ORDER filled: {side.upper()} {qty_f} {symbol} @ {px}")
         return order
 
-    def close_position(self, symbol: str) -> bool:
+    def close_position(self, symbol: str) -> Any:
         sym = str(symbol or "").strip().upper()
         pos = self._positions.get(sym)
         if not pos:
-            return False
+            return None
 
         qty_f = float(pos.get("qty", 0))
         if qty_f <= 0:
             self._positions.pop(sym, None)
-            return False
+            return None
 
         # Full close via a market sell.
-        self.submit_order(symbol=sym, qty=qty_f, side="sell", type="market", time_in_force="gtc")
-        return True
+        return self.submit_order(symbol=sym, qty=qty_f, side="sell", type="market", time_in_force="gtc")
 
 
 def create_virtual_market_client(*, logger: Optional[Callable[[str], Any]] = None) -> VirtualMarketAdapter:

@@ -1958,9 +1958,8 @@ class LiveBot:
                 pos = self._get_open_position(symbol)
                 if pos and abs(float(getattr(pos, 'qty', 0)) - safe_qty) / safe_qty < 0.001:
                     self._log(f"Using close_position for {symbol} to ensure clean exit.")
-                    self.api.close_position(symbol)
-                    # Use a unique ID for the close position order to avoid DB conflicts
-                    order_id = f"close_pos_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{symbol.replace('/', '')}"
+                    order = self.api.close_position(symbol)
+                    order_id = str(getattr(order, "id", f"unknown_close_{datetime.now().strftime('%Y%m%d_%H%M%S')}"))
                 else:
                     order = self.api.submit_order(
                         symbol=symbol,
