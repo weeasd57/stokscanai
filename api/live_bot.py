@@ -322,6 +322,59 @@ class LiveBot:
                         "order_id": t.get("order_id")
                     })
                 self._trades = deque(transformed, maxlen=100)
+            
+            # Reconstruction Fallback: If pos_state is empty, try to infer it from history
+            if not getattr(self, "_pos_state", None):
+                self._log("Position state empty. Reconstructing from trade history...")
+                reconstructed = {} # BUY order_id -> state
+                
+                # First pass: map of all BUYs
+                # Second pass: remove based on SELL's parent_order_id
+                # Since we have them chronologically:
+                for t in transformed:
+                    action = (t.get("action") or "").upper()
+                    oid = t.get("order_id")
+                    
+                    if action == "BUY":
+                        reconstructed[oid] = {
+                            "entry_price": float(t.get("price") or t.get("entry_price") or 0),
+                            "entry_time": t.get("timestamp"),
+                            "amount": float(t.get("amount") or 0),
+                            "bars_held": 0,
+                            "current_stop": None,
+                            "trail_mode": "NONE",
+                            "symbol": t.get("symbol"),
+                            "order_id": oid
+                        }
+                    elif action == "SELL":
+                        raw_meta = t.get("metadata") or {}
+                        # Metadata might be a string if JSON not auto-parsed, or already a dict
+                        meta = raw_meta if isinstance(raw_meta, dict) else {}
+                        parent_id = meta.get("parent_order_id")
+                        
+                        if parent_id and parent_id in reconstructed:
+                            reconstructed.pop(parent_id)
+                        else:
+                            # Fallback for legacy trades without parent_order_id: remove by symbol
+                            sym = _normalize_symbol(t.get("symbol"))
+                            # Find the latest BUY for this symbol to pop
+                            target_id = None
+                            for bid, bstate in reconstructed.items():
+                                if _normalize_symbol(bstate.get("symbol")) == sym:
+                                    target_id = bid
+                            if target_id:
+                                reconstructed.pop(target_id)
+                
+                if reconstructed:
+                    # Convert map back to symbol-keyed dict for _pos_state compatibility
+                    # Note: This assumes 1 active position per symbol as per bot logic
+                    final_pos_state = {}
+                    for bid, bstate in reconstructed.items():
+                        norm_sym = _normalize_symbol(bstate.get("symbol"))
+                        final_pos_state[norm_sym] = bstate
+                    
+                    self._pos_state = final_pos_state
+                    self._log(f"Recovered {len(final_pos_state)} positions from history (using Order ID linkage).")
         except Exception as e:
             self._log(f"Error loading trades from Supabase: {e}")
 
@@ -1329,6 +1382,11 @@ class LiveBot:
             self._status = "starting"
             self._started_at = datetime.now(timezone.utc).isoformat()
             
+            # Ensure Virtual Broker is seeded with our restored pos_state
+            if self.api and hasattr(self.api, "seed_positions_from_state"):
+                self.api.seed_positions_from_state(self._pos_state)
+                self._log(f"Seeded virtual broker with {len(self._pos_state)} existing positions.")
+            
             self._thread = threading.Thread(target=self._run_loop, daemon=True)
             self._thread.start()
             self._status = "running"
@@ -1849,6 +1907,7 @@ class LiveBot:
                 "current_stop": None,
                 "target_price": None, # Will be set by ATR or static config in next loop
                 "trail_mode": "NONE",
+                "order_id": order_id, # Store BUY order_id for future linkage
             }
             trade = {
                 "timestamp": datetime.now().isoformat(),
@@ -1959,6 +2018,9 @@ class LiveBot:
                 "entry_price": entry_price,
                 "pnl": pnl,
                 "order_id": order_id,
+                "metadata": {
+                    "parent_order_id": self._pos_state.get(_normalize_symbol(symbol), {}).get("order_id")
+                }
             }
             self._trades.append(trade)
             self._save_trade_persistent(trade)
