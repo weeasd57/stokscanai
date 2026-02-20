@@ -4,7 +4,7 @@ import threading
 import warnings
 import traceback
 from dataclasses import dataclass, asdict
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from typing import Optional, List, Dict, Any
 import json
 from pathlib import Path
@@ -326,19 +326,31 @@ class LiveBot:
             # Reconstruction Fallback: If pos_state is empty, try to infer it from history
             if not getattr(self, "_pos_state", None):
                 self._log("Position state empty. Reconstructing from trade history...")
-                reconstructed = {} # BUY order_id -> state
+                reconstructed = {} # norm_symbol -> state
                 
-                # First pass: map of all BUYs
-                # Second pass: remove based on SELL's parent_order_id
-                # Since we have them chronologically:
+                # Filter trades from last 48 hours to ignore "ghost" records from old sessions
+                now_utc = datetime.now(timezone.utc)
+                cutoff = now_utc - timedelta(hours=48)
+                
                 for t in transformed:
+                    ts_str = t.get("timestamp")
+                    try:
+                        ts_dt = datetime.fromisoformat(ts_str.replace("Z", "+00:00"))
+                        if ts_dt < cutoff:
+                            continue # Ignore old trades
+                    except:
+                        pass
+
                     action = (t.get("action") or "").upper()
+                    sym = _normalize_symbol(t.get("symbol"))
                     oid = t.get("order_id")
                     
                     if action == "BUY":
-                        reconstructed[oid] = {
+                        # If we have multiple BUYs for the same symbol (e.g. Signal + Virt), 
+                        # the latest one in the chronological loop will overwrite.
+                        reconstructed[sym] = {
                             "entry_price": float(t.get("price") or t.get("entry_price") or 0),
-                            "entry_time": t.get("timestamp"),
+                            "entry_time": ts_str,
                             "amount": float(t.get("amount") or 0),
                             "bars_held": 0,
                             "current_stop": None,
@@ -347,34 +359,12 @@ class LiveBot:
                             "order_id": oid
                         }
                     elif action == "SELL":
-                        raw_meta = t.get("metadata") or {}
-                        # Metadata might be a string if JSON not auto-parsed, or already a dict
-                        meta = raw_meta if isinstance(raw_meta, dict) else {}
-                        parent_id = meta.get("parent_order_id")
-                        
-                        if parent_id and parent_id in reconstructed:
-                            reconstructed.pop(parent_id)
-                        else:
-                            # Fallback for legacy trades without parent_order_id: remove by symbol
-                            sym = _normalize_symbol(t.get("symbol"))
-                            # Find the latest BUY for this symbol to pop
-                            target_id = None
-                            for bid, bstate in reconstructed.items():
-                                if _normalize_symbol(bstate.get("symbol")) == sym:
-                                    target_id = bid
-                            if target_id:
-                                reconstructed.pop(target_id)
+                        # In 1-pos-per-symbol logic, any SELL for this symbol closes it.
+                        reconstructed.pop(sym, None)
                 
                 if reconstructed:
-                    # Convert map back to symbol-keyed dict for _pos_state compatibility
-                    # Note: This assumes 1 active position per symbol as per bot logic
-                    final_pos_state = {}
-                    for bid, bstate in reconstructed.items():
-                        norm_sym = _normalize_symbol(bstate.get("symbol"))
-                        final_pos_state[norm_sym] = bstate
-                    
-                    self._pos_state = final_pos_state
-                    self._log(f"Recovered {len(final_pos_state)} positions from history (using Order ID linkage).")
+                    self._pos_state = reconstructed
+                    self._log(f"Recovered {len(reconstructed)} positions from history (48h window).")
         except Exception as e:
             self._log(f"Error loading trades from Supabase: {e}")
 
