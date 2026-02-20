@@ -1152,27 +1152,40 @@ class LiveBot:
     def set_telegram_bridge(self, bridge):
         self.telegram_bridge = bridge
 
+    def _get_precision(self, price: float) -> int:
+        """Determine appropriate decimal precision based on price magnitude."""
+        if price <= 0: return 2
+        if price < 0.001: return 6
+        if price < 0.01: return 5
+        if price < 0.1: return 4
+        if price < 1: return 3
+        if price < 10: return 2
+        return 1
+
     def _format_cornix_signal(self, symbol: str, price: float, target_pct: float = None, stop_pct: float = None) -> str:
         """Build a Cornix-compatible signal message."""
         t_pct = target_pct or self.config.target_pct
         s_pct = stop_pct or self.config.stop_loss_pct
 
-        # Entry zone: 4 ladder entries spread ±3% below current price (tighter to ensure SL stays below)
+        precision = self._get_precision(price)
+
+        # Entry zone: 4 ladder entries spread ±3% below current price
+        # Using the precision helper to ensure we don't collision for low-priced assets.
         entries = [
-            price,
-            round(price * 0.99, 1),
-            round(price * 0.98, 1),
-            round(price * 0.97, 1),
+            round(price, precision),
+            round(price * 0.99, precision),
+            round(price * 0.98, precision),
+            round(price * 0.97, precision),
         ]
         # Take-profit: single target based on configured %
-        tp = round(price * (1 + t_pct), 1)
+        tp = round(price * (1 + t_pct), precision)
 
         # Exchange list
         exchange = self.config.data_source.upper() if self.config.data_source else "BINANCE"
         exchanges = f"OKX, KuCoin, Huobi.pro, Coinbase Advanced Spot, ByBit Spot, Bitget Spot, BingX Spot, {exchange.capitalize()}"
 
         entry_lines = "\n".join(f"{i+1}) {e}" for i, e in enumerate(entries))
-        sl = round(price * (1 - s_pct), 1)
+        sl = round(price * (1 - s_pct), precision)
         msg = (
             f"⚡⚡ #{symbol} ⚡⚡\n"
             f"Exchanges: {exchanges}\n"
