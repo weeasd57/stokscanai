@@ -1155,11 +1155,13 @@ class LiveBot:
     def _get_precision(self, price: float) -> int:
         """Determine appropriate decimal precision based on price magnitude."""
         if price <= 0: return 2
-        if price < 0.001: return 6
-        if price < 0.01: return 5
-        if price < 0.1: return 4
-        if price < 1: return 3
-        if price < 10: return 2
+        if price < 0.0001: return 8
+        if price < 0.001: return 7
+        if price < 0.01: return 6
+        if price < 0.1: return 5
+        if price < 1: return 4
+        if price < 10: return 3
+        if price < 1000: return 2
         return 1
 
     def _format_cornix_signal(self, symbol: str, price: float, target_pct: float = None, stop_pct: float = None) -> str:
@@ -1169,25 +1171,39 @@ class LiveBot:
 
         precision = self._get_precision(price)
 
-        # Entry zone: 4 ladder entries spread ±3% below current price
-        # Using the precision helper to ensure we don't collision for low-priced assets.
-        entries = [
-            round(price, precision),
-            round(price * 0.99, precision),
-            round(price * 0.98, precision),
-            round(price * 0.97, precision),
-        ]
+        # Entry zone: 4 ladder entries spread below current price
+        # Ensure entries are strictly decreasing and unique by checking the step vs precision
+        step = max(0.005, 10**-precision * 10) # At least 0.5% or 10 units of the smallest digit
+        
+        entries = []
+        for i in range(4):
+            val = round(price * (1 - (i * 0.01)), precision)
+            # If rounding causes collision, force decrement
+            if i > 0 and val >= entries[i-1]:
+                val = round(entries[i-1] - (10**-precision), precision)
+            entries.append(val)
+
         # Take-profit: single target based on configured %
         tp = round(price * (1 + t_pct), precision)
+        if tp <= entries[0]:
+            tp = round(entries[0] + (10**-precision), precision)
 
-        # Exchange list
-        exchange = self.config.data_source.upper() if self.config.data_source else "BINANCE"
-        exchanges = f"OKX, KuCoin, Huobi.pro, Coinbase Advanced Spot, ByBit Spot, Bitget Spot, BingX Spot, {exchange.capitalize()}"
-
+        # Exchange list: Cleanup for Cornix compatibility
+        exchanges = "Binance, OKX, KuCoin, Huobi.pro, Bybit, Bitget, BingX"
+        
         entry_lines = "\n".join(f"{i+1}) {e}" for i, e in enumerate(entries))
+        
+        # Stop loss: Must be below the lowest entry
         sl = round(price * (1 - s_pct), precision)
+        lowest_entry = entries[-1]
+        
+        if sl >= lowest_entry:
+            sl = round(lowest_entry * 0.99, precision)
+            if sl >= lowest_entry: # fallback for extreme low precision
+                sl = round(lowest_entry - (10**-precision), precision)
+
         msg = (
-            f"⚡⚡ #{symbol} ⚡⚡\n"
+            f"### #{symbol} ###\n"
             f"Exchanges: {exchanges}\n"
             f"Signal Type: Regular (Long)\n"
             f"\n"
