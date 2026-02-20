@@ -201,11 +201,14 @@ def fetch_tradingview_prices(
         # Cap at a reasonable limit (e.g., 5000) if needed, but max_days is usually smaller
         n_bars = min(5000, n_bars)
 
+        # Normalize symbol for TradingView (remove slashes for crypto pairs)
+        tv_symbol = base_symbol.replace("/", "")
+
         print(f"TV FETCH: {upper} | n_bars={n_bars} (history={not has_enough_history}, stale={not is_up_to_date})")
 
         # Fetch historical data
         df = tv.get_hist(
-            symbol=base_symbol,
+            symbol=tv_symbol,
             exchange=tv_exchange,
             interval=Interval.in_daily,
             n_bars=n_bars

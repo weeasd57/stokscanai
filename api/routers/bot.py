@@ -7,6 +7,7 @@ from pathlib import Path
 from datetime import datetime
 
 from api.live_bot import bot_manager
+from api import stock_ai
 from api.stock_ai import get_cached_tickers, _supabase_read_with_retry, supabase, _init_supabase
 
 router = APIRouter(tags=["AI_BOT"])
@@ -211,7 +212,13 @@ def get_available_models():
         return []
 
 @router.get("/available_coins")
-def get_available_coins(source: Optional[str] = None, limit: int = 0, country: Optional[str] = None, pair_type: Optional[str] = None):
+def get_available_coins(
+    source: Optional[str] = None, 
+    limit: int = 0, 
+    country: Optional[str] = None, 
+    pair_type: Optional[str] = None,
+    q: Optional[str] = None
+):
     """Fetches available coins from various sources including local files."""
     try:
         api_dir = Path(__file__).parent.parent
@@ -246,18 +253,43 @@ def get_available_coins(source: Optional[str] = None, limit: int = 0, country: O
             return fetch_all_binance_symbols(quote_asset="USDT", limit=limit)
         
         if source == "simulated_crypto" or source == "virtual":
-            # Simulation/Simulated Broker mode fallback
-            usd_pairs = [
-                "AAVE/USD", "AVAX/USD", "BAT/USD", "BCH/USD", "BTC/USD", "CRV/USD",
-                "DOGE/USD", "DOT/USD", "ETH/USD", "GRT/USD", "LINK/USD", "LTC/USD",
-                "PEPE/USD", "SHIB/USD", "SOL/USD", "SUSHI/USD", "TRUMP/USD", "UNI/USD",
-                "USDC/USD", "USDT/USD", "XRP/USD", "XTZ/USD", "YFI/USD"
-            ]
-            fallback = usd_pairs
+            # Load from CRYPTO.json — check multiple locations for local dev & HF
+            symbols = ["BTC/USDT", "ETH/USDT", "SOL/USDT"]  # minimal fallback
+            try:
+                candidates = [
+                    base_dir / "symbols_data" / "CRYPTO.json",      # local dev (project root)
+                    api_dir / "symbols_data" / "CRYPTO.json",       # HF (api/ is root)
+                    Path.cwd() / "symbols_data" / "CRYPTO.json",    # CWD fallback
+                ]
+                for crypto_path in candidates:
+                    if crypto_path.exists():
+                        with open(crypto_path, "r", encoding="utf-8") as f:
+                            symbols = json.load(f)
+                        break
+            except Exception as e:
+                print(f"Error loading CRYPTO.json: {e}")
+
+            
             # Apply pair_type filter
             if pair_type and pair_type != "ALL":
-                fallback = [s for s in fallback if s.endswith(f"/{pair_type}")]
-            return sorted(fallback)[:limit] if limit > 0 else sorted(fallback)
+                target = pair_type.upper()
+                filtered = []
+                for s in symbols:
+                    s_up = s.upper()
+                    if "/" in s_up:
+                        # Extract quote (portion between / and .)
+                        quote_part = s_up.split("/")[1]
+                        quote = quote_part.split(".")[0]
+                        if quote == target:
+                            filtered.append(s)
+                symbols = filtered
+            
+            # Apply search query filter
+            if q:
+                q_low = q.lower()
+                symbols = [s for s in symbols if q_low in s.lower()]
+            
+            return sorted(list(set(symbols)))[:limit] if limit > 0 else sorted(list(set(symbols)))
             
         tickers = get_cached_tickers()
         # Convert set of (symbol, exchange) to formatted strings
@@ -931,3 +963,19 @@ def get_candles(symbol: str, bot_id: str = "primary", limit: int = 150):
         print(f"Error in get_candles: {e}")
         print(traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
+@router.get("/crypto_symbols_stats")
+def get_crypto_symbols_stats(timeframe: str = "1h"):
+    """Returns detailed stats for each crypto symbol in stock_bars_intraday."""
+    _init_supabase()
+    if not stock_ai.supabase:
+        raise HTTPException(status_code=503, detail="Supabase not configured")
+        
+    try:
+        # We'll use a RPC if it exists, otherwise we'll try to aggregate.
+        res = stock_ai.supabase.rpc("get_crypto_symbol_stats", {"p_timeframe": timeframe}).execute()
+        if res.data:
+            return res.data
+    except Exception:
+        pass
+    
+    return []

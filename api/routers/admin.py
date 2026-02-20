@@ -15,9 +15,10 @@ from datetime import datetime
 import pandas as pd
 import numpy as np
 
+from api import stock_ai
 from api.stock_ai import (
     get_stock_data, get_stock_data_eodhd, get_company_fundamentals,
-    _init_supabase, supabase, update_stock_data,
+    _init_supabase, update_stock_data,
     _finite_float, add_technical_indicators, upsert_technical_indicators, get_supabase_inventory,
     _supabase_read_with_retry, _supabase_upsert_with_retry
 )
@@ -482,7 +483,7 @@ def evaluate_open_signals():
     """Evaluate all 'open' status signals across all batches."""
     from api.routers.scan_ai_fast import evaluate_scan
     _init_supabase()
-    if not supabase: return
+    if not stock_ai.supabase: return
 
     try:
         def _fetch_batches(sb):
@@ -663,6 +664,92 @@ def get_db_inventory():
         print(f"Error fetching inventory: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.get("/get_db_inventory")
+def get_db_inventory_endpoint():
+    return get_db_inventory()
+
+@router.get("/supabase-stats")
+def get_supabase_stats():
+    """Returns general stats about Supabase tables like stock_bars_intraday."""
+    _init_supabase()
+    if not stock_ai.supabase:
+        raise HTTPException(status_code=503, detail="Supabase not configured")
+    
+    try:
+        # Get count of intraday bars
+        intraday_res = stock_ai.supabase.table("stock_bars_intraday").select("id", count="exact").limit(1).execute()
+        intraday_total = intraday_res.count if intraday_res else 0
+        
+        # Get count of daily prices
+        prices_res = stock_ai.supabase.table("stock_prices").select("id", count="exact").limit(1).execute()
+        prices_total = prices_res.count if prices_res else 0
+        
+        # Breakdown by timeframe for intraday
+        tf_stats = {}
+        for tf in ["1m", "1h", "1d"]:
+            res = stock_ai.supabase.table("stock_bars_intraday").select("id", count="exact").eq("timeframe", tf).limit(1).execute()
+            tf_stats[tf] = res.count if res else 0
+            
+        # Last daily price date
+        last_daily = stock_ai.supabase.table("stock_prices").select("date").order("date", desc=True).limit(1).execute()
+        last_date = last_daily.data[0]["date"] if last_daily.data else "n/a"
+
+        return {
+            "stock_bars_intraday": {
+                "rows": intraday_total,
+                "by_timeframe": tf_stats
+            },
+            "stock_prices": {
+                "rows": prices_total,
+                "last_date": last_date
+            }
+        }
+    except Exception as e:
+        print(f"Error in supabase-stats: {e}")
+        return {
+            "stock_bars_intraday": {"rows": 0, "by_timeframe": {}},
+            "stock_prices": {"rows": 0, "last_date": "error"}
+        }
+
+@router.get("/crypto-symbols-stats")
+def get_crypto_symbols_stats(timeframe: str = "1h"):
+    """Returns detailed stats for each crypto symbol in stock_bars_intraday."""
+    _init_supabase()
+    if not stock_ai.supabase:
+        raise HTTPException(status_code=503, detail="Supabase not configured")
+        
+    try:
+        # We'll use a RPC if it exists, otherwise we'll try to aggregate.
+        # Check if RPC get_crypto_symbol_stats exists
+        res = stock_ai.supabase.rpc("get_crypto_symbol_stats", {"p_timeframe": timeframe}).execute()
+        if res.data:
+            return res.data
+    except Exception:
+        # If RPC fails or doesn't exist, we fall back to a manual approach if feasible,
+        # but for large data this is tricky without grouping.
+        pass
+    
+    return []
+
+@router.delete("/bulk_delete_bars")
+def bulk_delete_bars(symbols: List[str], timeframe: str):
+    """Deletes intraday bars for specific symbols and timeframe."""
+    _init_supabase()
+    if not stock_ai.supabase:
+        raise HTTPException(status_code=503, detail="Supabase not configured")
+    
+    if not symbols:
+        return {"success": True, "count": 0}
+        
+    try:
+        # Delete in chunks to avoid URL length issues
+        total_deleted = 0
+        for chunk in _chunks(symbols, 100):
+            stock_ai.supabase.table("stock_bars_intraday").delete().in_("symbol", chunk).eq("timeframe", timeframe).execute()
+        return {"success": True, "message": f"Deleted data for {len(symbols)} symbols"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @router.get("/db-symbols/{exchange}")
 def get_db_symbols(exchange: str, mode: str = "prices"):
     """List all symbols for a specific exchange based on mode (prices or fundamentals)."""
@@ -686,7 +773,7 @@ def get_db_symbols(exchange: str, mode: str = "prices"):
     exchange = country_map.get(lookup_key, exchange).upper()
 
     _init_supabase()
-    if not supabase:
+    if not stock_ai.supabase:
         return []
     
     try:
@@ -759,7 +846,7 @@ def get_db_symbols(exchange: str, mode: str = "prices"):
 def export_prices_csv(exchange: str, symbol: Optional[str] = None):
     """Export historical prices for an exchange or symbol as CSV."""
     _init_supabase()
-    if not supabase:
+    if not stock_ai.supabase:
         raise HTTPException(status_code=500, detail="Supabase not initialized")
     
     try:
@@ -797,7 +884,7 @@ def export_prices_csv(exchange: str, symbol: Optional[str] = None):
 def export_fundamentals_csv(exchange: str):
     """Export fundamentals for an exchange as CSV."""
     _init_supabase()
-    if not supabase:
+    if not stock_ai.supabase:
         raise HTTPException(status_code=500, detail="Supabase not initialized")
     
     try:
@@ -836,7 +923,7 @@ def export_fundamentals_csv(exchange: str):
 @router.get("/sync-history")
 def get_sync_history(limit: int = 50):
     _init_supabase()
-    if not supabase:
+    if not stock_ai.supabase:
         return []
     try:
         def _fetch_history(sb):
@@ -851,7 +938,7 @@ def get_sync_history(limit: int = 50):
 def get_recent_fundamentals(limit: int = 15):
     """Fetch the most recently updated fundamental records."""
     _init_supabase()
-    if not supabase:
+    if not stock_ai.supabase:
         return []
     try:
         def _fetch_recent(sb):
@@ -1209,7 +1296,7 @@ async def list_models():
 @router.get("/train/download/{filename}")
 async def get_model_download_url(filename: str):
     _init_supabase()
-    if not supabase:
+    if not stock_ai.supabase:
         raise HTTPException(status_code=500, detail="Supabase not initialized")
     
     try:

@@ -301,12 +301,12 @@ class LiveBot:
                 return sb.table("bot_trades").select("*").eq("bot_id", self.bot_id).order("timestamp", desc=True).limit(100).execute()
             
             res = _supabase_read_with_retry(_fetch_trades, table_name="bot_trades")
+            transformed = []
             if res and res.data:
                 # We want them in chronological order for the deque
                 trades = sorted(res.data, key=lambda x: x.get("timestamp", ""))
                 
                 # Transform DB records back to our internal trade dict format if needed
-                transformed = []
                 for t in trades:
                     meta = t.get("metadata", {}) or {}
                     transformed.append({
@@ -1152,37 +1152,49 @@ class LiveBot:
     def set_telegram_bridge(self, bridge):
         self.telegram_bridge = bridge
 
+    def _format_cornix_signal(self, symbol: str, price: float, target_pct: float = None, stop_pct: float = None) -> str:
+        """Build a Cornix-compatible signal message."""
+        t_pct = target_pct or self.config.target_pct
+        s_pct = stop_pct or self.config.stop_loss_pct
+
+        # Entry zone: 4 ladder entries spread ±3% below current price (tighter to ensure SL stays below)
+        entries = [
+            price,
+            round(price * 0.99, 1),
+            round(price * 0.98, 1),
+            round(price * 0.97, 1),
+        ]
+        # Take-profit: single target based on configured %
+        tp = round(price * (1 + t_pct), 1)
+
+        # Exchange list
+        exchange = self.config.data_source.upper() if self.config.data_source else "BINANCE"
+        exchanges = f"OKX, KuCoin, Huobi.pro, Coinbase Advanced Spot, ByBit Spot, Bitget Spot, BingX Spot, {exchange.capitalize()}"
+
+        entry_lines = "\n".join(f"{i+1}) {e}" for i, e in enumerate(entries))
+        sl = round(price * (1 - s_pct), 1)
+        msg = (
+            f"⚡⚡ #{symbol} ⚡⚡\n"
+            f"Exchanges: {exchanges}\n"
+            f"Signal Type: Regular (Long)\n"
+            f"\n"
+            f"Entry Targets:\n"
+            f"{entry_lines}\n"
+            f"\n"
+            f"Take-Profit Targets:\n"
+            f"1) {tp}\n"
+            f"\n"
+            f"Stop Targets:\n"
+            f"1) {sl}\n"
+        )
+        return msg
+
     def _send_telegram_signal(self, symbol: str, price: float, notional: float, king_conf: float, council_conf: Optional[float] = None):
-        """Send a professional looking trade signal to Telegram (Cornix compatible)."""
+        """Send a trade signal to Telegram in Cornix-compatible format."""
         if not self.telegram_bridge or self.config.execution_mode not in ["TELEGRAM", "BOTH"]:
             return
-            
-        target_price = price * (1 + self.config.target_pct)
-        stop_price = price * (1 - self.config.stop_loss_pct)
-        
-        mode_emoji = "🔵" if self.config.execution_mode == "TELEGRAM" else "🟢"
-        title = f"{mode_emoji} *NEW TRADE SIGNAL*"
-        if self.config.execution_mode == "TELEGRAM":
-            title += " (Signal Only)"
-        
-        # Cornix compatible format keywords
-        formatted_symbol = f"#{symbol.replace('/', '')}" if '/' in symbol else f"#{symbol}"
-        msg = (
-            f"{title}\n"
-            f"━━━━━━━━━━━━━━━\n"
-            f"💎 *Pair:* {formatted_symbol}\n"
-            f"💰 *Entry Targets:* `${price:,.4f}`\n"
-            f"🎯 *Take-Profit Targets:* `${target_price:,.4f}`\n"
-            f"🛑 *Stop Targets:* `${stop_price:,.4f}`\n"
-            f"💵 *Amount:* `${notional:,.2f}`\n"
-            f"━━━━━━━━━━━━━━━\n"
-            f"👑 *KING Conf:* `{king_conf:.2f}`\n"
-        )
-        if council_conf is not None:
-            msg += f"🛡️ *COUNCIL Conf:* `{council_conf:.2f}`\n"
-            
-        msg += f"🤖 *Bot:* `{self.config.name}`"
-        
+
+        msg = self._format_cornix_signal(symbol, price)
         self.telegram_bridge.send_notification(msg)
 
     def _save_signal_record(self, symbol: str, price: float, notional: float, king_conf: float, council_conf: Optional[float] = None, action: str = "BUY", entry_price: Optional[float] = None, pnl: Optional[float] = None):
@@ -1220,45 +1232,31 @@ class LiveBot:
         
         if notify_type == "buy":
              msg = (
-                f"🟢 *TEST BUY EXECUTED*\n"
+                f"TEST BUY EXECUTED\n"
                 f"━━━━━━━━━━━━━━━\n"
-                f"💎 *Symbol:* `{symbol}`\n"
-                f"💰 *Price:* `${price:,.2f}`\n"
-                f"💵 *Amount:* `${amount:,.2f}`\n"
-                f"📊 *Regime:* `BULL`\n"
-                f"🎯 *Quality:* `85`\n"
+                f"💎 Symbol: {symbol}\n"
+                f"💰 Price: ${price:,.2f}\n"
+                f"💵 Amount: ${amount:,.2f}\n"
+                f"📊 Regime: BULL\n"
+                f"🎯 Quality: 85\n"
                 f"━━━━━━━━━━━━━━━\n"
-                f"🤖 *Bot:* `{self.config.name} (TEST)`"
+                f"🤖 Bot: {self.config.name} (TEST)"
             )
         elif notify_type == "sell":
             pnl = 25.50
             pnl_pct = 5.10
             msg = (
-                f"🔴 *TEST SELL EXECUTED*\n"
+                f"TEST SELL EXECUTED\n"
                 f"━━━━━━━━━━━━━━━\n"
-                f"💎 *Symbol:* `{symbol}`\n"
-                f"💰 *Exit Price:* `${price:,.2f}` ({pnl_pct:+.2f}%)\n"
-                f"💵 *PnL:* `${pnl:,.2f}`\n"
-                f"📈 *Daily PnL:* `$125.00`\n"
+                f"💎 Symbol: {symbol}\n"
+                f"💰 Exit Price: ${price:,.2f} ({pnl_pct:+.2f}%)\n"
+                f"💵 PnL: ${pnl:,.2f}\n"
+                f"📈 Daily PnL: $125.00\n"
                 f"━━━━━━━━━━━━━━━\n"
-                f"🤖 *Bot:* `{self.config.name} (TEST)`"
+                f"🤖 Bot: {self.config.name} (TEST)"
             )
         elif notify_type == "signal":
-            target = price * 1.15
-            stop = price * 0.95
-            formatted_symbol = f"#{symbol.replace('/', '')}" if '/' in symbol else f"#{symbol}"
-            msg = (
-                f"🔵 *TEST TRADE SIGNAL*\n"
-                f"━━━━━━━━━━━━━━━\n"
-                f"💎 *Pair:* {formatted_symbol}\n"
-                f"💰 *Entry Targets:* `${price:,.2f}`\n"
-                f"🎯 *Take-Profit Targets:* `${target:,.2f}`\n"
-                f"🛑 *Stop Targets:* `${stop:,.2f}`\n"
-                f"💵 *Amount:* `${amount:,.2f}`\n"
-                f"━━━━━━━━━━━━━━━\n"
-                f"👑 *KING Conf:* `0.92`\n"
-                f"🤖 *Bot:* `{self.config.name} (TEST)`"
-            )
+            msg = self._format_cornix_signal(symbol, price)
         else:
             return False, f"Unknown notification type: {notify_type}"
             
@@ -1266,12 +1264,29 @@ class LiveBot:
         return True, "Notification sent"
 
     def _build_default_config(self) -> BotConfig:
-        coins = _parse_coins(
-            _read_env(
-                "LIVE_COINS",
-                "BTC/USD,ETH/USD,SOL/USD,LTC/USD,LINK/USD,DOGE/USD,AVAX/USD,MATIC/USD",
-            )
-        )
+        # Load default coins from CRYPTO.json to avoid hardcoded lists
+        default_coins_str = "BTC/USDT,ETH/USDT,SOL/USDT,LTC/USDT,LINK/USDT"
+        try:
+            from pathlib import Path
+            import json
+            api_dir = Path(__file__).parent
+            candidates = [
+                api_dir.parent / "symbols_data" / "CRYPTO.json",  # local dev (project root)
+                api_dir / "symbols_data" / "CRYPTO.json",         # HF (api/ is root)
+                Path.cwd() / "symbols_data" / "CRYPTO.json",     # CWD fallback
+            ]
+            for crypto_path in candidates:
+                if crypto_path.exists():
+                    with open(crypto_path, "r", encoding="utf-8") as f:
+                        all_syms = json.load(f)
+                        # Take top 30 for default bot config
+                        default_coins_str = ",".join(all_syms[:30])
+                    break
+        except Exception as e:
+            print(f"Error loading default coins from CRYPTO.json: {e}")
+
+        coins = _parse_coins(_read_env("LIVE_COINS", default_coins_str))
+
         return BotConfig(
             # Support both env var styles used across the repo/UI.
             coins=coins,
@@ -1913,19 +1928,19 @@ class LiveBot:
             self._save_trade_persistent(trade)
             
             if self.telegram_bridge:
-                price_str = f"`${avg_fill:,.4f}`" if avg_fill else "`pending fill`"
+                price_str = f"${avg_fill:,.4f}" if avg_fill else "pending fill"
                 state = self._pos_state.get(_normalize_symbol(symbol), {})
                 
                 msg = (
-                    f"🟢 *BUY EXECUTED*\n"
+                    f"BUY EXECUTED\n"
                     f"━━━━━━━━━━━━━━━\n"
-                    f"💎 *Symbol:* `{symbol}`\n"
-                    f"💰 *Price:* {price_str}\n"
-                    f"💵 *Amount:* `${float(notional_usd):,.2f}`\n"
-                    f"📊 *Regime:* `{state.get('regime', 'N/A')}`\n"
-                    f"🎯 *Quality:* `{state.get('quality_score', 0):.0f}`\n"
+                    f"💎 Symbol: {symbol}\n"
+                    f"💰 Price: {price_str}\n"
+                    f"💵 Amount: ${float(notional_usd):,.2f}\n"
+                    f"📊 Regime: {state.get('regime', 'N/A')}\n"
+                    f"🎯 Quality: {state.get('quality_score', 0):.0f}\n"
                     f"━━━━━━━━━━━━━━━\n"
-                    f"🤖 *Bot:* `{self.config.name}`"
+                    f"🤖 Bot: {self.config.name}"
                 )
                 self.telegram_bridge.send_notification(msg)
             return True
@@ -2016,21 +2031,21 @@ class LiveBot:
             
             if self.telegram_bridge:
                 emoji = "🟢" if pnl > 0 else "🔴"
-                exit_str = f"`${fill_price:,.4f}`" if fill_price else "`pending fill`"
+                exit_str = f"${fill_price:,.4f}" if fill_price else "pending fill"
                 
                 pnl_pct = 0.0
                 if entry_price and fill_price:
                     pnl_pct = ((fill_price / entry_price) - 1) * 100
                 
                 msg = (
-                    f"{emoji} *SELL EXECUTED*\n"
+                    f"SELL EXECUTED\n"
                     f"━━━━━━━━━━━━━━━\n"
-                    f"💎 *Symbol:* `{symbol}`\n"
-                    f"💰 *Exit Price:* {exit_str} ({pnl_pct:+.2f}%)\n"
-                    f"💵 *PnL:* `${pnl:,.2f}`\n"
-                    f"📈 *Daily PnL:* `${self._daily_loss:,.2f}`\n"
+                    f"💎 Symbol: {symbol}\n"
+                    f"💰 Exit Price: {exit_str} ({pnl_pct:+.2f}%)\n"
+                    f"💵 PnL: ${pnl:,.2f}\n"
+                    f"📈 Daily PnL: ${self._daily_loss:,.2f}\n"
                     f"━━━━━━━━━━━━━━━\n"
-                    f"🤖 *Bot:* `{self.config.name}`"
+                    f"🤖 Bot: {self.config.name}"
                 )
                 self.telegram_bridge.send_notification(msg)
             

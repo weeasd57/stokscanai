@@ -1,36 +1,40 @@
 BUY Message:
-🟢 *TEST BUY EXECUTED*
+TEST BUY EXECUTED
 ━━━━━━━━━━━━━━━
-💎 *Symbol:* `TEST/USD`
-💰 *Price:* `$1,234.56`
-💵 *Amount:* `$500.00`
-📊 *Regime:* `BULL`
-🎯 *Quality:* `85`
+💎 Symbol: TEST/USD
+💰 Price: $1,234.56
+💵 Amount: $500.00
+📊 Regime: BULL
+🎯 Quality: 85
 ━━━━━━━━━━━━━━━
-🤖 *Bot:* `Primary Bot (TEST)`
-
-==================================================
+🤖 Bot: Primary Bot (TEST)
 
 SELL Message:
-🔴 *TEST SELL EXECUTED*
+TEST SELL EXECUTED
 ━━━━━━━━━━━━━━━
-💎 *Symbol:* `TEST/USD`
-💰 *Exit Price:* `$1,234.56` (+5.10%)
-💵 *PnL:* `$25.50`
-📈 *Daily PnL:* `$125.00`
+💎 Symbol: TEST/USD
+💰 Exit Price: $1,234.56 (+5.10%)
+💵 PnL: $25.50
+📈 Daily PnL: $125.00
 ━━━━━━━━━━━━━━━
-🤖 *Bot:* `Primary Bot (TEST)`
+🤖 Bot: Primary Bot (TEST)
 
-==================================================
+=== CORNIX RAW SIGNAL ===
 
 SIGNAL Message:
-🔵 *TEST TRADE SIGNAL*
-━━━━━━━━━━━━━━━
-💎 *Pair:* `TEST/USD`
-💰 *Entry Price:* `$1,234.56`
-🎯 *Targets (TP):* `$1,419.74`
-🛑 *Stop Loss:* `$1,172.83`
-💵 *Amount:* `$500.00`
-━━━━━━━━━━━━━━━
-👑 *KING Conf:* `0.92`
-🤖 *Bot:* `Primary Bot (TEST)`
+⚡⚡ #TEST/USD ⚡⚡
+Exchanges: OKX, KuCoin, Huobi.pro, Coinbase Advanced Spot, ByBit Spot, Bitget Spot, BingX Spot, Binance
+Signal Type: Regular (Long)
+
+Entry Targets:
+1) 1234.56
+2) 1222.2
+3) 1209.9
+4) 1197.5
+
+Take-Profit Targets:
+1) 1419.7
+
+Stop Targets:
+1) 1135.8
+

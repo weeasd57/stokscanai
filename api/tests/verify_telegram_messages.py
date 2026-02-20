@@ -15,8 +15,6 @@ def test_message_construction():
     # Create a bot instance with a basic config
     config = BotConfig(
         name="Primary Bot",
-        alpaca_key_id="dummy",
-        alpaca_secret_key="dummy",
         coins=["BTC/USD"]
     )
     
@@ -26,22 +24,26 @@ def test_message_construction():
     print("Testing BUY/SELL notifications and writing to api/tests/result.txt...")
     
     with open("api/tests/result.txt", "w", encoding="utf-8") as f:
+        # Test BUY/SELL (remain same)
         bot.send_test_notification("buy")
         args, kwargs = mock_bridge.send_notification.call_args
         f.write("BUY Message:\n")
         f.write(args[0])
-        f.write("\n\n" + "="*50 + "\n\n")
+        f.write("\n\n")
         
         bot.send_test_notification("sell")
         args, kwargs = mock_bridge.send_notification.call_args
         f.write("SELL Message:\n")
         f.write(args[0])
-        f.write("\n\n" + "="*50 + "\n\n")
+        f.write("\n\n")
         
+        # Test Cornix SIGNAL (only one now)
+        f.write("=== CORNIX RAW SIGNAL ===\n\n")
         bot.send_test_notification("signal")
         args, kwargs = mock_bridge.send_notification.call_args
         f.write("SIGNAL Message:\n")
         f.write(args[0])
+        f.write("\n")
 
 if __name__ == "__main__":
     test_message_construction()

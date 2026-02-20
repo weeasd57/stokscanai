@@ -892,3 +892,15 @@ export async function getCryptoSupabaseStats(
   }
   return res.json();
 }
+
+export async function getAvailableCoins(
+  source: string = "virtual",
+  limit: number = 0,
+  pairType?: string
+): Promise<string[]> {
+  const params = new URLSearchParams({ source, limit: limit.toString() });
+  if (pairType) params.set("pair_type", pairType);
+  const res = await fetch(`/api/ai_bot/available_coins?${params.toString()}`, { cache: "no-store" });
+  if (!res.ok) throw new Error("Failed to fetch available coins");
+  return res.json();
+}

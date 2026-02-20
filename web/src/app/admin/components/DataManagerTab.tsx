@@ -9,8 +9,10 @@ import {
     getCryptoSymbolStats,
     getCryptoSupabaseStats,
     deleteCryptoBars,
+    getAvailableCoins,
 } from "@/lib/api";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
+import { toast } from "sonner";
 
 interface DataManagerTabProps {
     selectedCountry: string;
@@ -128,6 +130,7 @@ export default function DataManagerTab({
         key: "symbol" | "bars" | "start" | "end" | "days";
         dir: "asc" | "desc";
     }>({ key: "bars", dir: "desc" });
+    const [cryptoFilter, setCryptoFilter] = useState("USDT");
 
     const fetchCryptoSupabaseStats = async () => {
         try {
@@ -157,11 +160,25 @@ export default function DataManagerTab({
         refreshCryptoAssets();
     }, [marketMode, setCurrentPage]);
 
-    const refreshCryptoAssets = () => {
+    const refreshCryptoAssets = async () => {
         setLoadingCrypto(true);
-        setCryptoAssets([]);
-        setLoadingCrypto(false);
-        return Promise.resolve([]);
+        try {
+            const coins = await getAvailableCoins("virtual", 0, cryptoFilter);
+            // Format for Asset type (minimal)
+            const assets = coins.map(c => ({
+                symbol: c.split('.')[0],
+                exchange: c.split('.')[1] || "BINANCE",
+                name: c.split('.')[0],
+                country: "Crypto"
+            }));
+            setCryptoAssets(assets as any);
+            return assets;
+        } catch (e) {
+            toast.error("Failed to fetch crypto symbols");
+            return [];
+        } finally {
+            setLoadingCrypto(false);
+        }
     };
 
     const toggleCryptoSelect = (symbol: string) => {
@@ -191,14 +208,55 @@ export default function DataManagerTab({
     };
 
     const handleUpdateCryptoPrices = async () => {
+        if (selectedCryptoSymbols.size === 0) {
+            toast.error("Please select at least one crypto symbol");
+            return;
+        }
         setCryptoSyncing(true);
+        setLogs([]);
         try {
-            setLogs(prev => [
-                `[${new Date().toLocaleTimeString()}] Crypto update disabled (Internal integration removed)`,
-                ...prev
-            ]);
+            // runUpdate expects symbols in "SYMBOL.EXCHANGE" format
+            // We need to map our selectedCryptoSymbols (which are like "BTC/USDT")
+            // to "BTC/USDT.BINANCE" (or whatever exchange they have)
+            const symbolsToUpdate = Array.from(selectedCryptoSymbols).map(s => {
+                const asset = cryptoAssets.find(a => a.symbol === s);
+                return asset ? `${asset.symbol}.${asset.exchange}` : `${s}.BINANCE`;
+            });
+
+            // We need to temporarily set the main selectedSymbols to our crypto list
+            // However, runUpdate uses the component's parent state via closure if it's not passed as param.
+            // Actually, in page.tsx:
+            // const runUpdate = async () => { if (selectedSymbols.size === 0) return; ... const queue = Array.from(selectedSymbols); ... }
+            // So we can't easily trigger it for crypto if it uses a different state.
+
+            // Wait, DataManagerTab is passed `selectedSymbols` and `runUpdate`.
+            // In global mode it works. In crypto mode, we should perhaps use the same `selectedSymbols`?
+            // But DataManagerTab maintains its own `selectedCryptoSymbols`.
+
+            // Let's implement a small batch fetch here if we can't reuse runUpdate easily, 
+            // OR better: the user should be able to use the same selection mechanism.
+
+            // Actually, let's just do a direct fetch to /api/admin/update_batch
+            const res = await fetch("/api/admin/update_batch", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    symbols: symbolsToUpdate,
+                    updatePrices: true,
+                    updateFundamentals: false,
+                    maxPriceDays: maxPriceDays
+                })
+            });
+
+            if (!res.ok) throw new Error("Batch update failed");
+            const data = await res.json();
+            if (data.results) {
+                const msgs = data.results.map((r: any) => `${r.symbol}: ${r.success ? "OK" : "ERR"} - ${r.message}`);
+                setLogs(msgs);
+                toast.success("Crypto update complete");
+            }
         } catch (e: any) {
-            setLogs(prev => [`[${new Date().toLocaleTimeString()}] ERR: Crypto update`, ...prev]);
+            toast.error("Update failed: " + (e.message || "Unknown error"));
         } finally {
             setCryptoSyncing(false);
         }
