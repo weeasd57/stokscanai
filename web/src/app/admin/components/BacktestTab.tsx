@@ -940,6 +940,7 @@ export default function BacktestTab() {
   const [councilThreshold, setCouncilThreshold] = useState<number>(0.1);
   const [startingCapital, setStartingCapital] = useState<number>(100000);
   const [cryptoQuoteFilters, setCryptoQuoteFilters] = useState<Set<string>>(new Set(["USD", "USDT", "USDC"]));
+  const [cryptoSymbolCounts, setCryptoSymbolCounts] = useState<Record<string, number>>({});
 
   // Automation State
   const [activeMainTab, setActiveMainTab] = useState<"manual" | "automation">("manual");
@@ -974,6 +975,35 @@ export default function BacktestTab() {
     } else {
       setSelectedTimeframe("1D");
     }
+  }, [selectedExchange]);
+
+  // Fetch crypto symbol counts when CRYPTO is selected
+  useEffect(() => {
+    if (selectedExchange !== "CRYPTO") {
+      setCryptoSymbolCounts({});
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "/api";
+        const res = await fetch(`${baseUrl}/symbols/synced?country=CRYPTO`, { cache: "no-store" });
+        if (!res.ok || cancelled) return;
+        const data = await res.json();
+        const symbols: { symbol: string }[] = data.results || [];
+        const counts: Record<string, number> = { USD: 0, USDT: 0, USDC: 0 };
+        for (const s of symbols) {
+          const sym = (s.symbol || "").toUpperCase();
+          if (sym.endsWith("/USDT") || sym.endsWith("USDT")) counts.USDT++;
+          else if (sym.endsWith("/USDC") || sym.endsWith("USDC")) counts.USDC++;
+          else if (sym.endsWith("/USD") || sym.endsWith("USD")) counts.USD++;
+        }
+        setCryptoSymbolCounts(counts);
+      } catch (err) {
+        console.error("Failed to fetch crypto symbol counts:", err);
+      }
+    })();
+    return () => { cancelled = true; };
   }, [selectedExchange]);
   const [tradesTitle, setTradesTitle] = useState<string>("");
   const [viewingBacktest, setViewingBacktest] = useState<any>(null);
@@ -1559,10 +1589,16 @@ export default function BacktestTab() {
               <div className="space-y-3">
                 <label className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest flex items-center gap-2">
                   <Cpu className="h-3 w-3" /> Crypto Pair Filter
+                  {Object.values(cryptoSymbolCounts).some(v => v > 0) && (
+                    <span className="ml-auto text-[9px] font-mono text-zinc-600">
+                      {Array.from(cryptoQuoteFilters).reduce((sum, q) => sum + (cryptoSymbolCounts[q] || 0), 0)} / {Object.values(cryptoSymbolCounts).reduce((a, b) => a + b, 0)} symbols
+                    </span>
+                  )}
                 </label>
                 <div className="flex gap-2 flex-wrap">
                   {["USD", "USDT", "USDC"].map((q) => {
                     const active = cryptoQuoteFilters.has(q);
+                    const count = cryptoSymbolCounts[q] || 0;
                     return (
                       <button
                         key={q}
@@ -1575,13 +1611,18 @@ export default function BacktestTab() {
                             return next;
                           });
                         }}
-                        className={`px-5 py-2.5 rounded-2xl text-xs font-black uppercase tracking-widest border transition-all ${
-                          active
-                            ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-400 shadow-lg shadow-emerald-500/10"
-                            : "bg-zinc-900/80 border-white/5 text-zinc-500 hover:border-white/20 hover:text-zinc-300"
-                        }`}
+                        className={`px-5 py-2.5 rounded-2xl text-xs font-black uppercase tracking-widest border transition-all flex items-center gap-2 ${active
+                          ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-400 shadow-lg shadow-emerald-500/10"
+                          : "bg-zinc-900/80 border-white/5 text-zinc-500 hover:border-white/20 hover:text-zinc-300"
+                          }`}
                       >
                         {q}
+                        {count > 0 && (
+                          <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded-lg ${active ? "bg-emerald-500/30 text-emerald-300" : "bg-white/5 text-zinc-600"
+                            }`}>
+                            {count}
+                          </span>
+                        )}
                       </button>
                     );
                   })}

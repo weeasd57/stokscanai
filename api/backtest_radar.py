@@ -1054,7 +1054,13 @@ def main():
                 if matched:
                     filtered.append(sym)
             symbols_list = filtered
-            print(f"🔍 Crypto filter applied: {quote_filters} → {before_count} → {len(symbols_list)} symbols", flush=True)
+            # Print per-filter breakdown
+            breakdown = {}
+            for qf in quote_filters:
+                cnt = sum(1 for s in symbols_list if s.upper().endswith(f"/{qf}") or s.upper().endswith(qf))
+                breakdown[qf] = cnt
+            breakdown_str = ", ".join(f"{k}: {v}" for k, v in breakdown.items())
+            print(f"🔍 Crypto filter applied: {quote_filters} → {before_count} → {len(symbols_list)} symbols ({breakdown_str})", flush=True)
     
     print(f"🚀 Processing {len(symbols_list)} symbols sequentially...", flush=True)
     

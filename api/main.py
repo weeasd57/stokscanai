@@ -1024,6 +1024,7 @@ async def backtest_endpoint(req: BacktestRequest, background_tasks: BackgroundTa
         target_pct=req.target_pct,
         stop_loss_pct=req.stop_loss_pct,
         capital=req.capital,
+        crypto_quote_filters=req.crypto_quote_filters,
     )
 
     background_tasks.add_task(run_backtest_task, req_sanitized, backtest_id)
@@ -1087,6 +1088,7 @@ def run_backtest_task(req: BacktestRequest, backtest_id: str = None):
 
     if req.crypto_quote_filters:
         cmd.extend(["--crypto-filters", ",".join(req.crypto_quote_filters)])
+        print(f"[BT-DEBUG] crypto_quote_filters received: {req.crypto_quote_filters}", flush=True)
     
     if not os.path.exists(script_path):
         print(f"Error: Backtest script not found at {script_path}")
@@ -1372,28 +1374,6 @@ def run_backtest_task(req: BacktestRequest, backtest_id: str = None):
             try: supabase.table("backtests").update({"status": "failed", "status_msg": str(e)}).eq("id", backtest_id).execute()
             except: pass
 
-
-@app.post("/backtest")
-async def backtest_endpoint(req: BacktestRequest, background_tasks: BackgroundTasks):
-    """Run backtest as a background task."""
-    from api.stock_ai import supabase
-    
-    # Create record in DB first
-    try:
-        res = supabase.table("backtests").insert({
-            "model_name": req.model,
-            "exchange": req.exchange,
-            "start_date": req.start_date,
-            "status": "pending",
-            "status_msg": "Queued..."
-        }).execute()
-        backtest_id = res.data[0]["id"] if res.data else None
-    except Exception as e:
-        print(f"Error creating backtest record: {e}")
-        backtest_id = None
-
-    background_tasks.add_task(run_backtest_task, req, backtest_id)
-    return {"id": backtest_id, "message": f"Backtest for {req.model} started."}
 
 def run_optimize_task(req: OptimizeRequest, opt_id: str = None):
     """Runs optimize_radar.py and updates status with trials."""
