@@ -1432,6 +1432,8 @@ class LiveBot:
             self._log("Stopping bot...")
             self._status = "stopping"
             self._stop_event.set()
+        # Persist state on shutdown so positions survive restart
+        self._save_bot_state()
     
     def get_status(self) -> Dict[str, Any]:
         with self._lock:
@@ -1506,6 +1508,9 @@ class LiveBot:
         Sync internal _pos_state with actual virtual positions.
         """
         if self.config.execution_mode == "TELEGRAM":
+            # In TELEGRAM mode there is no virtual broker, but still
+            # persist the current _pos_state so it survives restarts.
+            self._save_bot_state()
             return
 
         try:
@@ -2079,6 +2084,9 @@ class LiveBot:
             
             self._pos_state.pop(_normalize_symbol(symbol), None)
             
+            # Persist state after sell so positions survive restart
+            self._save_bot_state()
+            
             # 🧊 Cooldown: Ban symbol for X minutes
             self._cooldowns[_normalize_symbol(symbol)] = datetime.now(timezone.utc)
             self._log(f"🧊 COOLDOWN: {symbol} banned for {self.config.cooldown_minutes} mins.")
@@ -2146,6 +2154,7 @@ class LiveBot:
                 sell_pnl = (close - float(entry_price)) * qty
                 self._save_signal_record(symbol, close, qty * close, 0, None, action="SELL", entry_price=float(entry_price), pnl=sell_pnl)
                 self._pos_state.pop(_normalize_symbol(symbol), None)
+                self._save_bot_state()
                 return True
             return self._sell_market(symbol, qty=qty)
 
@@ -2159,6 +2168,7 @@ class LiveBot:
                 sell_pnl = (float(current_stop) - float(entry_price)) * qty
                 self._save_signal_record(symbol, current_stop, qty * current_stop, 0, None, action="SELL", entry_price=float(entry_price), pnl=sell_pnl)
                 self._pos_state.pop(_normalize_symbol(symbol), None)
+                self._save_bot_state()
                 self._log(f"SKIPPING Virtual Sell (Telegram-Only Mode)")
                 return True
             return self._sell_market(symbol, qty=qty)
@@ -2170,6 +2180,7 @@ class LiveBot:
                 sell_pnl = (float(take_profit) - float(entry_price)) * qty
                 self._save_signal_record(symbol, take_profit, qty * take_profit, 0, None, action="SELL", entry_price=float(entry_price), pnl=sell_pnl)
                 self._pos_state.pop(_normalize_symbol(symbol), None)
+                self._save_bot_state()
                 self._log(f"SKIPPING Virtual Sell (Telegram-Only Mode)")
                 return True
             return self._sell_market(symbol, qty=qty)
@@ -2201,6 +2212,7 @@ class LiveBot:
                 sell_pnl = (close - float(entry_price)) * qty
                 self._save_signal_record(symbol, close, qty * close, 0, None, action="SELL", entry_price=float(entry_price), pnl=sell_pnl)
                 self._pos_state.pop(_normalize_symbol(symbol), None)
+                self._save_bot_state()
                 self._log(f"SKIPPING Virtual Sell (Telegram-Only Mode)")
                 return True
             return self._sell_market(symbol, qty=qty)
@@ -2456,9 +2468,6 @@ class LiveBot:
                         continue
 
                     self._send_telegram_signal(symbol, last_price, notional, king_conf, council_conf)
-                    
-                    # Store signal record
-                    self._save_signal_record(symbol, last_price, notional, king_conf, council_conf, action="BUY")
 
                     # Calculate ATR-based exits for the position state
                     atr_tp, atr_sl = self._calculate_atr_exits(bars, last_price)
@@ -2487,7 +2496,12 @@ class LiveBot:
                         except Exception as ex:
                             self._log(f"Error executing buy for {symbol}: {ex}")
                     else:
+                        # TELEGRAM mode: save signal record (virtual mode saves via _buy_market)
+                        self._save_signal_record(symbol, last_price, notional, king_conf, council_conf, action="BUY")
                         self._log(f"{symbol}: Telegram-Only Signal recorded. (Quality={quality:.0f}, Regime={regime})")
+
+                    # Persist state after position change so it survives restart
+                    self._save_bot_state()
 
 
                 # Wait for next poll or stop signal
