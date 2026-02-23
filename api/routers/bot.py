@@ -544,7 +544,13 @@ def get_bot_performance(bot_id: str = "primary"):
                          
                          entry_price = safe_float(pos_data.get("entry_price"))
                          pl_pct = ((current_price / entry_price) - 1) * 100 if entry_price > 0 else 0
-                         pl_usd = (current_price - entry_price) * safe_float(pos_data.get("amount", 0))
+                         # _pos_state stores 'notional' (USD invested), not 'amount' (qty).
+                         # Derive qty from notional/entry to compute correct unrealized P/L.
+                         qty = safe_float(pos_data.get("amount", 0))
+                         if qty <= 0 and entry_price > 0:
+                             notional = safe_float(pos_data.get("notional", 0))
+                             qty = notional / entry_price if notional > 0 else 0
+                         pl_usd = (current_price - entry_price) * qty
 
                          open_positions.append({
                             "symbol": display_symbol,
@@ -806,6 +812,23 @@ def get_candles(symbol: str, bot_id: str = "primary", limit: int = 150):
         # Reverse to chronological order
         raw_candles.reverse()
 
+        # ── Fallback to in-memory chart bars if Supabase has no data ──
+        # This allows charts to work even when "Save to Supabase" is disabled.
+        if not raw_candles and bot and hasattr(bot, "_chart_bars"):
+            # Try exact symbol first, then normalized lookup
+            mem_bars = bot._chart_bars.get(symbol) or bot._chart_bars.get(db_symbol)
+            if not mem_bars:
+                # Try all keys with normalized comparison
+                from api.live_bot import _normalize_symbol
+                target_norm = _normalize_symbol(symbol)
+                for key, val in bot._chart_bars.items():
+                    if _normalize_symbol(key) == target_norm:
+                        mem_bars = val
+                        break
+            if mem_bars:
+                raw_candles = mem_bars[-limit:]
+                print(f"DEBUG: /candles using in-memory cache for {symbol} ({len(raw_candles)} bars)")
+
         # Format for lightweight-charts: time as unix timestamp
         candles = []
         for c in raw_candles:
@@ -1031,3 +1054,38 @@ def get_crypto_symbols_stats(timeframe: str = "1h"):
         pass
     
     return []
+
+class CryptoDeleteBarsRequest(BaseModel):
+    symbols: list[str]
+    timeframe: str = "1h"
+
+@router.post("/crypto_delete_bars")
+def crypto_delete_bars(req: CryptoDeleteBarsRequest):
+    """Deletes intraday bars for specific crypto symbols and timeframe."""
+    _init_supabase()
+    if not stock_ai.supabase:
+        raise HTTPException(status_code=503, detail="Supabase not configured")
+
+    if not req.symbols:
+        return {"success": True, "deleted": 0, "symbols": 0, "timeframe": req.timeframe}
+
+    try:
+        total_deleted = 0
+        # Delete in chunks to avoid URL length issues
+        chunk_size = 100
+        for i in range(0, len(req.symbols), chunk_size):
+            chunk = req.symbols[i:i + chunk_size]
+            stock_ai.supabase.table("stock_bars_intraday") \
+                .delete() \
+                .in_("symbol", chunk) \
+                .eq("timeframe", req.timeframe) \
+                .execute()
+            total_deleted += len(chunk)
+        return {
+            "success": True,
+            "deleted": total_deleted,
+            "symbols": len(req.symbols),
+            "timeframe": req.timeframe,
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

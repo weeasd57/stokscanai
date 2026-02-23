@@ -119,6 +119,14 @@ class BotConfig:
     partial_entry_pct: float = 0.60
     partial_exit_pct: float = 0.50
     
+    # ===== Live-Trading Shock Fixes =====
+    # 11. Warm-up: min bars before any prediction (indicators need history)
+    warmup_bars: int = 100
+    # 12. Slippage buffer: assumed spread/slippage cost (0.5%)
+    slippage_buffer_pct: float = 0.005
+    # 13. Confidence haircut: subtracted from KING conf in live mode (anti-overfitting)
+    live_confidence_haircut: float = 0.05
+    
     # Trading Mode
     trading_mode: str = "aggressive"  # "defensive" | "aggressive" | "hybrid"
 
@@ -279,6 +287,11 @@ class LiveBot:
         self._last_save_bars_ts: Dict[str, str] = {}
         # Track latest prices for the virtual broker provider
         self._latest_prices: Dict[str, float] = {}
+        # Warm-up tracker: per-symbol flag to ensure indicators are stable
+        self._warmup_complete: Dict[str, bool] = {}
+        # In-memory chart bars cache: {symbol: [{ts, open, high, low, close, volume}, ...]}
+        # Used by /candles endpoint as fallback when Supabase save is disabled
+        self._chart_bars: Dict[str, list] = {}
 
         # Risk & Limits Trackers
         self._consecutive_losses = 0
@@ -743,7 +756,8 @@ class LiveBot:
             sl = entry_price - (atr * self.config.atr_sl_multiplier)
 
             # Sanity: ensure SL isn't too tight or TP isn't too loose
-            min_sl_dist = entry_price * 0.01  # At least 1%
+            # FIXED: raised from 1% to 3% — crypto spreads + noise kill tight SL instantly
+            min_sl_dist = entry_price * 0.03  # At least 3% breathing room
             max_tp_dist = entry_price * 0.30  # At most 30%
             sl = min(sl, entry_price - min_sl_dist)
             tp = min(tp, entry_price + max_tp_dist)
@@ -1146,7 +1160,10 @@ class LiveBot:
         if self.telegram_bridge and self.config.execution_mode in ["TELEGRAM", "BOTH"]:
             # Only send orders and critical errors here. Signals handled separately.
             # User requested to suppress "VIRTUAL ORDER filled" spam.
-            if ("order" in msg.lower() or "CRITICAL" in msg) and "VIRTUAL ORDER filled" not in msg:
+            # User requested to suppress ALL sell-related messages from Telegram/Cornix.
+            _msg_lower = msg.lower()
+            is_sell_msg = any(kw in _msg_lower for kw in ["sell", "stop", "target", "time exit"])
+            if not is_sell_msg and (("order" in _msg_lower or "CRITICAL" in msg) and "VIRTUAL ORDER filled" not in msg):
                  self.telegram_bridge.send_notification(f"ℹ️ *{self.config.name}*\n`{msg}`")
 
     def set_telegram_bridge(self, bridge):
@@ -1376,10 +1393,11 @@ class LiveBot:
                              "atr_sl_multiplier", "atr_tp_multiplier",
                              "smart_exit_rsi_threshold", "smart_exit_volume_spike",
                              "max_correlation", "winrate_low_threshold", "winrate_high_threshold",
-                             "min_quality_score", "partial_entry_pct", "partial_exit_pct"]:
+                             "min_quality_score", "partial_entry_pct", "partial_exit_pct",
+                             "slippage_buffer_pct", "live_confidence_haircut"]:
                         current[k] = _parse_float(v, current[k])
                     elif k in ["bars_limit", "poll_seconds", "max_open_positions", "hold_max_bars", "max_consecutive_losses",
-                               "atr_period", "winrate_lookback"]:
+                               "atr_period", "winrate_lookback", "warmup_bars"]:
                         current[k] = int(float(v))
                     elif k == "telegram_chat_id":
                          if v is not None and str(v).strip():
@@ -1591,9 +1609,10 @@ class LiveBot:
         df = df.dropna(subset=[c for c in ["open", "high", "low", "close", "volume"] if c in df.columns])
 
         # Some TA feature generators crash on very short series (e.g., certain windowed indicators).
-        # If we don't have enough bars, skip this scan safely.
-        if len(df) < 50:
-            self._log(f"Warning: Not enough bars for features ({len(df)} < 50)")
+        # FIXED: raised from 50 to 100 to ensure robust indicator computation
+        # (EMA200 needs 200 bars ideally, but 100 is a practical minimum)
+        if len(df) < 100:
+            self._log(f"Warning: Not enough bars for features ({len(df)} < 100)")
             return pd.DataFrame()
 
         try:
@@ -1609,42 +1628,9 @@ class LiveBot:
         feat = feat.replace([np.inf, -np.inf], np.nan).fillna(0)
         return feat
 
-    def _process_bars(self, df: pd.DataFrame, symbol: str, source: str, limit: int) -> pd.DataFrame:
-        """Standardize bar processing and update state for UI."""
-        if df.empty:
-            self._handle_fetch_error("Empty bars returned", symbol, limit, source)
-            return df
-            
-        count = len(df)
-        last_bar = df.iloc[-1]
-        
-        # Update data stream state for UI
-        self._data_stream[symbol] = {
-            "source": source,
-            "count": count,
-            "timestamp": last_bar["timestamp"].isoformat() if hasattr(last_bar["timestamp"], "isoformat") else str(last_bar["timestamp"]),
-            "status": "OK" if count >= limit * 0.5 else "PARTIAL",
-            "has_volume": float(last_bar.get("volume", 0)) > 0,
-            "error": None
-        }
-        
-        # Extra debug log for "all debugs" requirement
-        self._log(f"DEBUG: {symbol} bars={count} src={source} last_close={last_bar['close']:.4f}")
-        
-        return df.tail(limit)
-
-    def _handle_fetch_error(self, err: Any, symbol: str, limit: int, source: str = "unknown"):
-        """Record and log data fetching errors."""
-        err_msg = str(err)
-        self._data_stream[symbol] = {
-            "source": source,
-            "count": 0,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-            "status": "ERROR",
-            "has_volume": False,
-            "error": err_msg
-        }
-        self._log(f"DATA ERROR: {symbol} via {source}: {err_msg}")
+    # REMOVED: Duplicate _process_bars definition was here.
+    # REMOVED: Duplicate _handle_fetch_error definition was here.
+    # The canonical versions are defined further below.
 
     def _get_bars(self, symbol: str, limit: int) -> pd.DataFrame:
         """Dispatcher to fetch bars based on symbol type and data source."""
@@ -1946,6 +1932,7 @@ class LiveBot:
                 "target_price": None, # Will be set by ATR or static config in next loop
                 "trail_mode": "NONE",
                 "order_id": order_id, # Store BUY order_id for future linkage
+                "notional": float(notional_usd),  # USD invested — used to derive qty for P/L
             }
             trade = {
                 "timestamp": datetime.now().isoformat(),
@@ -1960,7 +1947,7 @@ class LiveBot:
             self._trades.append(trade)
             self._save_trade_persistent(trade)
             
-            if self.telegram_bridge:
+            if self.telegram_bridge and self.config.execution_mode in ["TELEGRAM", "BOTH"]:
                 price_str = f"${avg_fill:,.4f}" if avg_fill else "pending fill"
                 state = self._pos_state.get(_normalize_symbol(symbol), {})
                 
@@ -2062,25 +2049,26 @@ class LiveBot:
             self._trades.append(trade)
             self._save_trade_persistent(trade)
             
-            if self.telegram_bridge:
-                emoji = "🟢" if pnl > 0 else "🔴"
-                exit_str = f"${fill_price:,.4f}" if fill_price else "pending fill"
-                
-                pnl_pct = 0.0
-                if entry_price and fill_price:
-                    pnl_pct = ((fill_price / entry_price) - 1) * 100
-                
-                msg = (
-                    f"SELL EXECUTED\n"
-                    f"━━━━━━━━━━━━━━━\n"
-                    f"💎 Symbol: {symbol}\n"
-                    f"💰 Exit Price: {exit_str} ({pnl_pct:+.2f}%)\n"
-                    f"💵 PnL: ${pnl:,.2f}\n"
-                    f"📈 Daily PnL: ${self._daily_loss:,.2f}\n"
-                    f"━━━━━━━━━━━━━━━\n"
-                    f"🤖 Bot: {self.config.name}"
-                )
-                self.telegram_bridge.send_notification(msg)
+            # NOTE: Sell notifications to Telegram are DISABLED to prevent
+            # Cornix from processing them. Sell trades are still recorded
+            # internally (trades list, Supabase, logs).
+            # if self.telegram_bridge:
+            #     emoji = "🟢" if pnl > 0 else "🔴"
+            #     exit_str = f"${fill_price:,.4f}" if fill_price else "pending fill"
+            #     pnl_pct = 0.0
+            #     if entry_price and fill_price:
+            #         pnl_pct = ((fill_price / entry_price) - 1) * 100
+            #     msg = (
+            #         f"SELL EXECUTED\n"
+            #         f"━━━━━━━━━━━━━━━\n"
+            #         f"💎 Symbol: {symbol}\n"
+            #         f"💰 Exit Price: {exit_str} ({pnl_pct:+.2f}%)\n"
+            #         f"💵 PnL: ${pnl:,.2f}\n"
+            #         f"📈 Daily PnL: ${self._daily_loss:,.2f}\n"
+            #         f"━━━━━━━━━━━━━━━\n"
+            #         f"🤖 Bot: {self.config.name}"
+            #     )
+            #     self.telegram_bridge.send_notification(msg)
             
             self._pos_state.pop(_normalize_symbol(symbol), None)
             
@@ -2252,6 +2240,8 @@ class LiveBot:
             self._log(f"Models loaded. Polling every {self.config.poll_seconds}s.")
             self._log(f"Coins: {', '.join(self.config.coins)}")
             self._log(f"Thresholds: KING>={self.config.king_threshold}, COUNCIL>={self.config.council_threshold}")
+            self._log(f"⚠️ LIVE-SAFETY: warmup={self.config.warmup_bars} bars, slippage={self.config.slippage_buffer_pct*100:.1f}%, confidence_haircut={self.config.live_confidence_haircut:.2f}")
+            self._log(f"⚠️ LIVE-SAFETY: Using CLOSED bar features (shift-1) to prevent look-ahead bias")
 
             while not self._stop_event.is_set():
                 now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%SZ")
@@ -2317,11 +2307,46 @@ class LiveBot:
                         self._log(f"{symbol}: No bars found.")
                         continue
 
+                    # ── WARM-UP BARRIER ──
+                    # Indicators (EMA, RSI, Bollinger) produce garbage on insufficient history.
+                    # Block predictions until we have enough bars for stable indicators.
+                    # NOTE: We save bars to Supabase and update prices BEFORE this check
+                    # so that charts always have data, even during warm-up.
+                    
                     # Update latest price for the virtual broker
                     self._latest_prices[_normalize_symbol(symbol)] = float(bars.iloc[-1]["close"])
 
-                    # Save to Supabase
+                    # Always cache bars in memory for chart display (works without Supabase)
+                    try:
+                        chart_rows = []
+                        df_chart = bars.reset_index() if "timestamp" not in bars.columns else bars.copy()
+                        if "timestamp" in df_chart.columns:
+                            for _, row in df_chart.iterrows():
+                                ts = row["timestamp"]
+                                ts_str = ts.isoformat() if hasattr(ts, "isoformat") else str(ts)
+                                chart_rows.append({
+                                    "ts": ts_str,
+                                    "open": float(row.get("open", 0)),
+                                    "high": float(row.get("high", 0)),
+                                    "low": float(row.get("low", 0)),
+                                    "close": float(row.get("close", 0)),
+                                    "volume": int(row.get("volume", 0)) if row.get("volume") else 0,
+                                })
+                            self._chart_bars[symbol] = chart_rows[-300:]  # Keep last 300 bars
+                    except Exception:
+                        pass
+
+                    # Save to Supabase (for chart display)
                     self._save_to_supabase(bars, symbol)
+
+                    norm_sym_warmup = _normalize_symbol(symbol)
+                    if len(bars) < self.config.warmup_bars:
+                        if not self._warmup_complete.get(norm_sym_warmup):
+                            self._log(f"🥶 WARM-UP: {symbol} has {len(bars)}/{self.config.warmup_bars} bars — skipping prediction (indicators not stable)")
+                        continue
+                    elif not self._warmup_complete.get(norm_sym_warmup):
+                        self._warmup_complete[norm_sym_warmup] = True
+                        self._log(f"✅ WARM-UP COMPLETE: {symbol} has {len(bars)} bars — indicators are now stable")
 
                     # If a position exists, apply sell logic first using the latest bar, then skip buy logic.
                     if self._has_open_position(symbol):
@@ -2353,7 +2378,16 @@ class LiveBot:
                         self._log(f"{symbol}: Features empty (insufficient data).")
                         continue
 
-                    X_all = features.iloc[[-1]].copy()
+                    # ── LOOK-AHEAD BIAS FIX ──
+                    # Use the CLOSED bar (second-to-last), not the current open bar.
+                    # In backtest, all bars are closed. In live, bars.iloc[-1] is still forming.
+                    if len(features) < 2:
+                        self._log(f"{symbol}: Not enough feature rows for closed-bar prediction (need >= 2)")
+                        continue
+                    
+                    X_all = features.iloc[[-2]].copy()  # FIXED: was iloc[[-1]] (look-ahead bias)
+                    closed_bar_ts = bars.iloc[-2].get("timestamp", "unknown") if len(bars) >= 2 else "unknown"
+                    self._log(f"{symbol}: Predicting on CLOSED bar (ts={closed_bar_ts})")
                     Xk = self._align_for_king(X_all, self.king_obj)
 
                     # ── Feature 7: Win Rate Adaptive Threshold ──
@@ -2361,9 +2395,16 @@ class LiveBot:
 
                     self._current_activity = f"Predicting KING for {symbol}"
                     try:
-                        king_conf = float(self.king_clf.predict_proba(Xk)[:, 1][0])
+                        king_conf_raw = float(self.king_clf.predict_proba(Xk)[:, 1][0])
                     except Exception:
                         continue
+
+                    # ── ANTI-OVERFITTING: Confidence Haircut ──
+                    # Models with 1000+ trees tend to be over-confident on live data.
+                    # Apply a small pessimism tax to counteract overfitting optimism.
+                    king_conf = king_conf_raw - self.config.live_confidence_haircut
+                    if self.config.live_confidence_haircut > 0:
+                        self._log(f"{symbol}: KING raw={king_conf_raw:.3f} → live={king_conf:.3f} (haircut={self.config.live_confidence_haircut:.2f})")
 
                     # ── Feature 4: RSI Divergence ──
                     divergence_type, div_boost = self._detect_rsi_divergence(bars)
@@ -2435,7 +2476,16 @@ class LiveBot:
                         continue
 
                     # Signal Confirmed -> Execute trade
-                    last_price = float(bars.iloc[-1]['close'])
+                    # FIXED: Use the CLOSED bar price (iloc[-2]) to match the prediction bar.
+                    # The current bar (iloc[-1]) is still forming and its close keeps changing.
+                    last_price = float(bars.iloc[-2]['close']) if len(bars) >= 2 else float(bars.iloc[-1]['close'])
+                    
+                    # ── SLIPPAGE BUFFER ──
+                    # In reality, market orders fill at a worse price due to spread.
+                    # Adjust the effective entry price upward to set realistic TP/SL.
+                    effective_entry = last_price * (1 + self.config.slippage_buffer_pct)
+                    if self.config.slippage_buffer_pct > 0:
+                        self._log(f"{symbol}: Slippage buffer: market_price={last_price:.4f} → effective_entry={effective_entry:.4f} (+{self.config.slippage_buffer_pct*100:.1f}%)")
                     
                     try:
                         account = self.api.get_account()
@@ -2469,12 +2519,12 @@ class LiveBot:
 
                     self._send_telegram_signal(symbol, last_price, notional, king_conf, council_conf)
 
-                    # Calculate ATR-based exits for the position state
-                    atr_tp, atr_sl = self._calculate_atr_exits(bars, last_price)
+                    # Calculate ATR-based exits using effective_entry (includes slippage)
+                    atr_tp, atr_sl = self._calculate_atr_exits(bars, effective_entry)
 
                     # Record position state for exit management (real or virtual)
                     self._pos_state[_normalize_symbol(symbol)] = {
-                        "entry_price": last_price,
+                        "entry_price": effective_entry,  # Use slippage-adjusted price
                         "entry_time": datetime.now(timezone.utc).isoformat(),
                         "bars_held": 0,
                         "current_stop": atr_sl,
