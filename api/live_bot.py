@@ -83,8 +83,8 @@ class BotConfig:
     use_atr_exits: bool = True
     atr_sl_multiplier: float = 1.5
     atr_tp_multiplier: float = 2.5
-    atr_tp_multiplier: float = 2.5
     atr_period: int = 14
+    exit_mode: str = "hybrid"  # "manual" | "atr_smart" | "hybrid"
     
     # 4. RSI Divergence
     use_rsi_divergence: bool = True
@@ -737,36 +737,46 @@ class LiveBot:
     # ── Feature 3: Dynamic ATR-based TP/SL ──────────────────────────────
     def _calculate_atr_exits(self, bars: pd.DataFrame, entry_price: float) -> tuple[float, float]:
         """
-        Calculate dynamic TP/SL based on ATR.
+        Calculate dynamic TP/SL based on ATR and exit_mode.
         Returns (take_profit_price, stop_loss_price).
         """
-        if not self.config.use_atr_exits:
-            tp = entry_price * (1 + self.config.target_pct)
-            sl = entry_price * (1 - self.config.stop_loss_pct)
-            return tp, sl
+        mode = getattr(self.config, 'exit_mode', 'hybrid').lower()
+        manual_tp = entry_price * (1 + self.config.target_pct)
+        manual_sl = entry_price * (1 - self.config.stop_loss_pct)
+
+        # Manual mode: always use fixed percentages
+        if mode == "manual" or not self.config.use_atr_exits:
+            return manual_tp, manual_sl
 
         try:
             atr = self._calculate_atr(bars, self.config.atr_period)
             if atr <= 0:
-                tp = entry_price * (1 + self.config.target_pct)
-                sl = entry_price * (1 - self.config.stop_loss_pct)
-                return tp, sl
+                return manual_tp, manual_sl
 
-            tp = entry_price + (atr * self.config.atr_tp_multiplier)
-            sl = entry_price - (atr * self.config.atr_sl_multiplier)
+            atr_tp = entry_price + (atr * self.config.atr_tp_multiplier)
+            atr_sl = entry_price - (atr * self.config.atr_sl_multiplier)
 
             # Sanity: ensure SL isn't too tight or TP isn't too loose
-            # FIXED: raised from 1% to 3% — crypto spreads + noise kill tight SL instantly
+            # Crypto spreads + noise kill tight SL instantly
             min_sl_dist = entry_price * 0.03  # At least 3% breathing room
             max_tp_dist = entry_price * 0.30  # At most 30%
-            sl = min(sl, entry_price - min_sl_dist)
-            tp = min(tp, entry_price + max_tp_dist)
+            atr_sl = min(atr_sl, entry_price - min_sl_dist)
+            atr_tp = min(atr_tp, entry_price + max_tp_dist)
 
-            self._log(f"ATR Exits: TP={tp:.4f} (+{((tp/entry_price)-1)*100:.1f}%), SL={sl:.4f} (-{(1-(sl/entry_price))*100:.1f}%), ATR={atr:.4f}")
+            if mode == "hybrid":
+                # Hybrid: use the WIDER (safer) of the two
+                tp = max(atr_tp, manual_tp)
+                sl = min(atr_sl, manual_sl)
+            else:
+                # atr_smart: pure ATR
+                tp = atr_tp
+                sl = atr_sl
+
+            self._log(f"ATR Exits [{mode}]: TP={tp:.4f} (+{((tp/entry_price)-1)*100:.1f}%), SL={sl:.4f} (-{(1-(sl/entry_price))*100:.1f}%), ATR={atr:.4f}")
             return tp, sl
         except Exception as e:
             self._log(f"ATR Exit Error: {e}")
-            return entry_price * (1 + self.config.target_pct), entry_price * (1 - self.config.stop_loss_pct)
+            return manual_tp, manual_sl
 
     # ── Feature 4: RSI Divergence Detection ─────────────────────────────
     def _detect_rsi_divergence(self, bars: pd.DataFrame) -> tuple[str, float]:
@@ -827,17 +837,18 @@ class LiveBot:
 
         try:
             pnl_pct = (current_price - entry_price) / entry_price
-
-            # Only consider smart exit when in profit
-            if pnl_pct <= 0.01:
-                return False, ""
-
-            # RSI dropping while in profit
             rsi = self._calculate_rsi(bars['close'].iloc[-25:], 14)
-            if rsi < self.config.smart_exit_rsi_threshold and pnl_pct > 0.02:
-                return True, f"SMART EXIT: RSI={rsi:.1f} dropping while in profit (+{pnl_pct*100:.1f}%)"
 
-            # Volume spike on red candle (panic selling)
+            # 1. RSI dropping hard (momentum collapse)
+            # If RSI < 30 (oversold/weakness) and we are not recovering, exit early
+            if rsi < self.config.smart_exit_rsi_threshold:
+                if pnl_pct > 0.01:
+                    return True, f"SMART EXIT: RSI={rsi:.1f} dropping while in profit (+{pnl_pct*100:.1f}%)"
+                elif pnl_pct < -0.02:
+                    # If already in loss and RSI is weak, cut it before it hits full Stop Loss
+                    return True, f"SMART EXIT: Momentum collapsed (RSI={rsi:.1f}) in loss (-{abs(pnl_pct*100):.1f}%)"
+
+            # 2. Volume spike on red candle (panic selling)
             last_candle = bars.iloc[-1]
             if last_candle['close'] < last_candle['open']:  # Red candle
                 recent_vol = bars['volume'].iloc[-1]
@@ -1181,47 +1192,54 @@ class LiveBot:
         if price < 1000: return 2
         return 1
 
-    def _format_cornix_signal(self, symbol: str, price: float, target_pct: float = None, stop_pct: float = None) -> str:
-        """Build a Cornix-compatible signal message."""
-        t_pct = target_pct or self.config.target_pct
-        s_pct = stop_pct or self.config.stop_loss_pct
-
+    def _format_cornix_signal(self, symbol: str, price: float, target_pct: float = None, stop_pct: float = None,
+                               tp_price: float = None, sl_price: float = None) -> str:
+        """Build a Cornix-compatible signal message.
+        
+        If tp_price/sl_price are given (from ATR), use those absolute prices.
+        Otherwise fall back to percentage-based calculation.
+        """
         precision = self._get_precision(price)
 
         # Entry zone: 4 ladder entries spread below current price
-        # Ensure entries are strictly decreasing and unique by checking the step vs precision
-        step = max(0.005, 10**-precision * 10) # At least 0.5% or 10 units of the smallest digit
-        
         entries = []
         for i in range(4):
             val = round(price * (1 - (i * 0.01)), precision)
-            # If rounding causes collision, force decrement
             if i > 0 and val >= entries[i-1]:
                 val = round(entries[i-1] - (10**-precision), precision)
             entries.append(val)
 
-        # Take-profit: single target based on configured %
-        tp = round(price * (1 + t_pct), precision)
+        # Take-profit: use absolute ATR price if provided, else percentage
+        if tp_price is not None:
+            tp = round(tp_price, precision)
+        else:
+            t_pct = target_pct or self.config.target_pct
+            tp = round(price * (1 + t_pct), precision)
         if tp <= entries[0]:
             tp = round(entries[0] + (10**-precision), precision)
-
-
         
         entry_lines = "\n".join(f"{i+1}) {e}" for i, e in enumerate(entries))
         
-        # Stop loss: Must be below the lowest entry
-        sl = round(price * (1 - s_pct), precision)
+        # Stop loss: use absolute ATR price if provided, else percentage
+        if sl_price is not None:
+            sl = round(sl_price, precision)
+        else:
+            s_pct = stop_pct or self.config.stop_loss_pct
+            sl = round(price * (1 - s_pct), precision)
         lowest_entry = entries[-1]
         
         if sl >= lowest_entry:
             sl = round(lowest_entry * 0.99, precision)
-            if sl >= lowest_entry: # fallback for extreme low precision
+            if sl >= lowest_entry:
                 sl = round(lowest_entry - (10**-precision), precision)
+
+        # Show exit mode in signal
+        exit_mode = getattr(self.config, 'exit_mode', 'hybrid').upper()
+        mode_label = f" [{exit_mode}]" if exit_mode != "MANUAL" else ""
 
         msg = (
             f"### #{symbol} ###\n"
-
-            f"Signal Type: Regular (Long)\n"
+            f"Signal Type: Regular (Long){mode_label}\n"
             f"\n"
             f"Entry Targets:\n"
             f"{entry_lines}\n"
@@ -1234,15 +1252,28 @@ class LiveBot:
         )
         return msg
 
-    def _send_telegram_signal(self, symbol: str, price: float, notional: float, king_conf: float, council_conf: Optional[float] = None):
-        """Send a trade signal to Telegram in Cornix-compatible format."""
+    def _send_telegram_signal(self, symbol: str, price: float, notional: float, king_conf: float, council_conf: Optional[float] = None, bars: pd.DataFrame = None):
+        """Send a trade signal to Telegram in Cornix-compatible format.
+        
+        When exit_mode is 'atr_smart' or 'hybrid' and bars are provided,
+        uses ATR-calculated TP/SL prices in the signal.
+        """
         if not self.telegram_bridge or self.config.execution_mode not in ["TELEGRAM", "BOTH"]:
             return
 
-        msg = self._format_cornix_signal(symbol, price)
+        tp_price = None
+        sl_price = None
+        mode = getattr(self.config, 'exit_mode', 'hybrid').lower()
+        if mode != "manual" and bars is not None and not bars.empty:
+            try:
+                tp_price, sl_price = self._calculate_atr_exits(bars, price)
+            except Exception as e:
+                self._log(f"ATR signal calc error: {e}")
+
+        msg = self._format_cornix_signal(symbol, price, tp_price=tp_price, sl_price=sl_price)
         self.telegram_bridge.send_notification(msg)
 
-    def _save_signal_record(self, symbol: str, price: float, notional: float, king_conf: float, council_conf: Optional[float] = None, action: str = "BUY", entry_price: Optional[float] = None, pnl: Optional[float] = None):
+    def _save_signal_record(self, symbol: str, price: float, notional: float, king_conf: float, council_conf: Optional[float] = None, action: str = "BUY", entry_price: Optional[float] = None, pnl: Optional[float] = None, reason: str = "SIGNAL"):
         """Save a signal as a virtual trade in the history so it shows up in UI."""
         # For BUY: entry_price = buy price, pnl = 0
         # For SELL: entry_price = original buy price, pnl = profit/loss
@@ -1260,11 +1291,12 @@ class LiveBot:
             "pnl": float(pnl) if pnl is not None else None,
             "king_conf": float(king_conf),
             "council_conf": float(council_conf) if council_conf is not None else None,
-            "order_id": f"signal_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{symbol.replace('/', '')}"
+            "order_id": f"signal_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{symbol.replace('/', '')}",
+            "metadata": {"reason": reason}
         }
         self._trades.append(trade)
         self._save_trade_persistent(trade)
-        self._log(f"{action} SIGNAL RECORDED: {symbol} @ {price:.4f}")
+        self._log(f"{action} SIGNAL RECORDED: {symbol} @ {price:.4f} Reason: {reason}")
 
     def send_test_notification(self, notify_type: str):
         """Send a mock notification to Telegram for testing purposes."""
@@ -1411,7 +1443,7 @@ class LiveBot:
                         current[k] = _parse_bool(v, current[k])
 
                     elif k in ["trading_mode", "execution_mode", "name", "data_source",
-                               "king_model_path", "council_model_path", "timeframe"]:
+                               "king_model_path", "council_model_path", "timeframe", "exit_mode"]:
                         current[k] = str(v).strip()
                     elif k == "telegram_token":
                         if v:
@@ -2140,7 +2172,7 @@ class LiveBot:
             self._log(f"{symbol}: {smart_msg}")
             if self.config.execution_mode == "TELEGRAM":
                 sell_pnl = (close - float(entry_price)) * qty
-                self._save_signal_record(symbol, close, qty * close, 0, None, action="SELL", entry_price=float(entry_price), pnl=sell_pnl)
+                self._save_signal_record(symbol, close, qty * close, 0, None, action="SELL", entry_price=float(entry_price), pnl=sell_pnl, reason="SMART")
                 self._pos_state.pop(_normalize_symbol(symbol), None)
                 self._save_bot_state()
                 return True
@@ -2154,7 +2186,7 @@ class LiveBot:
             self._log(f"{symbol}: SELL (STOP) qty={qty} stop={current_stop:.6f} entry={entry_price:.6f}")
             if self.config.execution_mode == "TELEGRAM":
                 sell_pnl = (float(current_stop) - float(entry_price)) * qty
-                self._save_signal_record(symbol, current_stop, qty * current_stop, 0, None, action="SELL", entry_price=float(entry_price), pnl=sell_pnl)
+                self._save_signal_record(symbol, current_stop, qty * current_stop, 0, None, action="SELL", entry_price=float(entry_price), pnl=sell_pnl, reason="STOP")
                 self._pos_state.pop(_normalize_symbol(symbol), None)
                 self._save_bot_state()
                 self._log(f"SKIPPING Virtual Sell (Telegram-Only Mode)")
@@ -2166,7 +2198,7 @@ class LiveBot:
             self._log(f"{symbol}: SELL (TARGET) qty={qty} tp={take_profit:.6f} entry={entry_price:.6f}")
             if self.config.execution_mode == "TELEGRAM":
                 sell_pnl = (float(take_profit) - float(entry_price)) * qty
-                self._save_signal_record(symbol, take_profit, qty * take_profit, 0, None, action="SELL", entry_price=float(entry_price), pnl=sell_pnl)
+                self._save_signal_record(symbol, take_profit, qty * take_profit, 0, None, action="SELL", entry_price=float(entry_price), pnl=sell_pnl, reason="TARGET")
                 self._pos_state.pop(_normalize_symbol(symbol), None)
                 self._save_bot_state()
                 self._log(f"SKIPPING Virtual Sell (Telegram-Only Mode)")
@@ -2198,7 +2230,7 @@ class LiveBot:
             self._log(f"{symbol}: SELL (TIME) qty={qty} bars={bars_held} close={close:.6f}")
             if self.config.execution_mode == "TELEGRAM":
                 sell_pnl = (close - float(entry_price)) * qty
-                self._save_signal_record(symbol, close, qty * close, 0, None, action="SELL", entry_price=float(entry_price), pnl=sell_pnl)
+                self._save_signal_record(symbol, close, qty * close, 0, None, action="SELL", entry_price=float(entry_price), pnl=sell_pnl, reason="TIME")
                 self._pos_state.pop(_normalize_symbol(symbol), None)
                 self._save_bot_state()
                 self._log(f"SKIPPING Virtual Sell (Telegram-Only Mode)")
@@ -2517,7 +2549,7 @@ class LiveBot:
                         self._log(f"{symbol}: insufficient liquidity/cash (${notional:.2f})")
                         continue
 
-                    self._send_telegram_signal(symbol, last_price, notional, king_conf, council_conf)
+                    self._send_telegram_signal(symbol, last_price, notional, king_conf, council_conf, bars=bars)
 
                     # Calculate ATR-based exits using effective_entry (includes slippage)
                     atr_tp, atr_sl = self._calculate_atr_exits(bars, effective_entry)

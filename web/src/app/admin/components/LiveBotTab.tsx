@@ -39,6 +39,12 @@ interface BotConfig {
     name: string;
     execution_mode: "VIRTUAL" | "TELEGRAM" | "BOTH";
     trading_mode: "defensive" | "aggressive" | "hybrid";
+    exit_mode: "manual" | "atr_smart" | "hybrid";
+    use_atr_exits: boolean;
+    atr_tp_multiplier: number;
+    atr_sl_multiplier: number;
+    atr_period: number;
+    use_smart_exit: boolean;
 }
 
 interface BotListItem {
@@ -1480,25 +1486,109 @@ export default function LiveBotTab() {
 
                                 {configForm.enable_sells && (
                                     <div className="space-y-5 animate-in fade-in duration-300">
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <div className="space-y-2">
-                                                <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Target %</label>
-                                                <input
-                                                    type="number" step="0.1"
-                                                    value={Math.round((configForm.target_pct || 0) * 100 * 100) / 100}
-                                                    onChange={(e) => setConfigForm({ ...configForm, target_pct: parseFloat(e.target.value) / 100 })}
-                                                    className="w-full bg-black/60 border border-white/5 rounded-xl px-4 py-2.5 text-sm font-mono focus:outline-none focus:border-emerald-500/50 transition-all text-emerald-200"
-                                                />
+                                        {/* Exit Mode Selector */}
+                                        <div className="space-y-3">
+                                            <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Exit Mode</label>
+                                            <div className="flex bg-black/40 rounded-lg p-0.5 border border-white/5">
+                                                {(["manual", "atr_smart", "hybrid"] as const).map(mode => (
+                                                    <button
+                                                        key={mode}
+                                                        onClick={() => setConfigForm({ ...configForm, exit_mode: mode, use_atr_exits: mode !== "manual" })}
+                                                        className={`flex-1 px-3 py-2 rounded-md text-[10px] font-black uppercase tracking-wider transition-all ${(configForm.exit_mode || "hybrid") === mode
+                                                                ? mode === "manual" ? "bg-zinc-600 text-white shadow-lg" :
+                                                                    mode === "atr_smart" ? "bg-cyan-600 text-white shadow-lg shadow-cyan-500/20" :
+                                                                        "bg-amber-600 text-white shadow-lg shadow-amber-500/20"
+                                                                : "text-zinc-500 hover:text-zinc-300"
+                                                            }`}
+                                                    >
+                                                        {mode === "manual" ? "🔧 Manual" : mode === "atr_smart" ? "🤖 ATR Smart" : "⚡ Hybrid"}
+                                                    </button>
+                                                ))}
                                             </div>
-                                            <div className="space-y-2">
-                                                <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Stop Loss %</label>
-                                                <input
-                                                    type="number" step="0.1"
-                                                    value={Math.round((configForm.stop_loss_pct || 0) * 100 * 100) / 100}
-                                                    onChange={(e) => setConfigForm({ ...configForm, stop_loss_pct: parseFloat(e.target.value) / 100 })}
-                                                    className="w-full bg-black/60 border border-white/5 rounded-xl px-4 py-2.5 text-sm font-mono focus:outline-none focus:border-red-500/50 transition-all text-red-200"
-                                                />
+                                            <p className="text-[9px] text-zinc-600 leading-relaxed">
+                                                {(configForm.exit_mode || "hybrid") === "manual" && "Fixed TP/SL percentages — you set them manually"}
+                                                {(configForm.exit_mode || "hybrid") === "atr_smart" && "Dynamic TP/SL calculated from ATR volatility"}
+                                                {(configForm.exit_mode || "hybrid") === "hybrid" && "Uses the wider (safer) of ATR and Manual levels"}
+                                            </p>
+                                        </div>
+
+                                        {/* Manual TP/SL — shown in manual & hybrid */}
+                                        {(configForm.exit_mode || "hybrid") !== "atr_smart" && (
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div className="space-y-2">
+                                                    <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Target %</label>
+                                                    <input
+                                                        type="number" step="0.1"
+                                                        value={Math.round((configForm.target_pct || 0) * 100 * 100) / 100}
+                                                        onChange={(e) => setConfigForm({ ...configForm, target_pct: parseFloat(e.target.value) / 100 })}
+                                                        className="w-full bg-black/60 border border-white/5 rounded-xl px-4 py-2.5 text-sm font-mono focus:outline-none focus:border-emerald-500/50 transition-all text-emerald-200"
+                                                    />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Stop Loss %</label>
+                                                    <input
+                                                        type="number" step="0.1"
+                                                        value={Math.round((configForm.stop_loss_pct || 0) * 100 * 100) / 100}
+                                                        onChange={(e) => setConfigForm({ ...configForm, stop_loss_pct: parseFloat(e.target.value) / 100 })}
+                                                        className="w-full bg-black/60 border border-white/5 rounded-xl px-4 py-2.5 text-sm font-mono focus:outline-none focus:border-red-500/50 transition-all text-red-200"
+                                                    />
+                                                </div>
                                             </div>
+                                        )}
+
+                                        {/* ATR Parameters — shown in atr_smart & hybrid */}
+                                        {(configForm.exit_mode || "hybrid") !== "manual" && (
+                                            <div className="space-y-3 p-3 bg-cyan-500/5 border border-cyan-500/10 rounded-xl animate-in fade-in duration-300">
+                                                <label className="text-[10px] font-black text-cyan-400 uppercase tracking-widest flex items-center gap-1.5">
+                                                    <Activity className="w-3 h-3" /> ATR Parameters
+                                                </label>
+                                                <div className="grid grid-cols-3 gap-2">
+                                                    <div className="space-y-1">
+                                                        <label className="text-[8px] font-black text-zinc-600 uppercase">TP Mult</label>
+                                                        <input
+                                                            type="number" step="0.1"
+                                                            value={configForm.atr_tp_multiplier ?? 2.5}
+                                                            onChange={(e) => setConfigForm({ ...configForm, atr_tp_multiplier: parseFloat(e.target.value) })}
+                                                            className="w-full bg-black/60 border border-white/5 rounded-lg px-2 py-1.5 text-[10px] font-mono focus:outline-none focus:border-cyan-500/50 transition-all text-cyan-200"
+                                                        />
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        <label className="text-[8px] font-black text-zinc-600 uppercase">SL Mult</label>
+                                                        <input
+                                                            type="number" step="0.1"
+                                                            value={configForm.atr_sl_multiplier ?? 1.5}
+                                                            onChange={(e) => setConfigForm({ ...configForm, atr_sl_multiplier: parseFloat(e.target.value) })}
+                                                            className="w-full bg-black/60 border border-white/5 rounded-lg px-2 py-1.5 text-[10px] font-mono focus:outline-none focus:border-cyan-500/50 transition-all text-cyan-200"
+                                                        />
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        <label className="text-[8px] font-black text-zinc-600 uppercase">Period</label>
+                                                        <input
+                                                            type="number" min={5} max={50}
+                                                            value={configForm.atr_period ?? 14}
+                                                            onChange={(e) => setConfigForm({ ...configForm, atr_period: parseInt(e.target.value) })}
+                                                            className="w-full bg-black/60 border border-white/5 rounded-lg px-2 py-1.5 text-[10px] font-mono focus:outline-none focus:border-cyan-500/50 transition-all text-cyan-200"
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Smart Exit Toggle */}
+                                        <div className="flex items-center justify-between pt-2 border-t border-white/5">
+                                            <div className="space-y-1">
+                                                <label className="text-xs font-bold text-white tracking-wider flex items-center gap-2">
+                                                    <Zap className="w-3 h-3 text-yellow-400" /> Smart Exit (Momentum)
+                                                </label>
+                                                <p className="text-[9px] text-zinc-600">Auto-exit on RSI drop or volume spike</p>
+                                            </div>
+                                            <Switch.Root
+                                                checked={configForm.use_smart_exit ?? true}
+                                                onCheckedChange={(c: boolean) => setConfigForm({ ...configForm, use_smart_exit: c })}
+                                                className={`w-10 h-5 rounded-full relative shadow-inner transition-colors duration-300 ${(configForm.use_smart_exit ?? true) ? 'bg-yellow-600' : 'bg-zinc-700'}`}
+                                            >
+                                                <Switch.Thumb className={`block w-3 h-3 rounded-full bg-white shadow-lg transition-transform duration-300 transform translate-y-1 ${(configForm.use_smart_exit ?? true) ? 'translate-x-6' : 'translate-x-1'}`} />
+                                            </Switch.Root>
                                         </div>
 
                                         <div className="space-y-4 pt-4 border-t border-white/5">
