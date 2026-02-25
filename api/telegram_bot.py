@@ -232,21 +232,18 @@ class TelegramBot:
 
         async def _send_async():
             try:
-                # Reuse the application's bot if it's running (it has the IPv4 fix client)
+                # Reuse the application's bot if it's running
                 if self.application and self.application.running:
                     await self.application.bot.send_message(chat_id=target_chat_id, text=message, parse_mode='Markdown')
+                    self._log(f"Notification sent to {target_chat_id}")
                 else:
-                    # Fallback to standalone bot with IPv4 fix
-                    import httpx
+                    # Fallback to standalone bot
+                    from telegram import Bot
                     from telegram.request import HTTPXRequest
-                    
-                    # Force IPv4 via transport
-                    transport = httpx.AsyncHTTPTransport(local_address="0.0.0.0")
-                    client = httpx.AsyncClient(transport=transport, timeout=30.0)
                     request = HTTPXRequest(connection_pool_size=1)
                     bot = Bot(token=self.token, request=request)
                     await bot.send_message(chat_id=target_chat_id, text=message, parse_mode='Markdown')
-                    await client.aclose()
+                    self._log(f"Notification sent to {target_chat_id} (fallback bot)")
             except Exception as e:
                 self._log(f"Error sending notification: {e}")
 
@@ -266,6 +263,16 @@ class TelegramBot:
             self.loop = asyncio.new_event_loop()
             asyncio.set_event_loop(self.loop)
             
+            # === NUCLEAR IPv4 FIX: Monkeypatch socket.getaddrinfo ===
+            # This forces the whole thread to prefer IPv4 for all libraries
+            import socket
+            orig_getaddrinfo = socket.getaddrinfo
+            def getaddrinfo_ipv4(host, port, family=0, type=0, proto=0, flags=0):
+                # Force AF_INET (IPv4)
+                return orig_getaddrinfo(host, port, socket.AF_INET, type, proto, flags)
+            socket.getaddrinfo = getaddrinfo_ipv4
+            self._log("Socket monkeypatch applied: Forced IPv4 (AF_INET)")
+
             # Start the Bot bridge
             self._log("Starting Telegram Bot bridge...")
             
@@ -337,16 +344,9 @@ class TelegramBot:
                 else:
                     self._log("WARNING: No Telegram IPs reachable via TCP.")
 
-                # === Step 2: Build Application with IPv4 Priority ===
-                # Force IPv4 via custom Transport if possible, otherwise use standard HTTPXRequest
-                import httpx
+                # === Step 2: Build Application ===
                 from telegram.request import HTTPXRequest
-                
-                self._log("Configuring robust transport...")
-                # We use a transport that forces IPv4 for all connections if needed
-                # However, HTTPXRequest doesn't take a custom client directly in all versions.
-                # The /etc/hosts fix should handle the IPv4 routing.
-                request = HTTPXRequest(connection_pool_size=20)
+                request = HTTPXRequest(connection_pool_size=10)
                 
                 self.application = Application.builder() \
                     .token(self.token) \
