@@ -279,6 +279,16 @@ class TelegramBot:
             self.loop = asyncio.new_event_loop()
             asyncio.set_event_loop(self.loop)
             
+            # === Force IPv4 globally ===
+            # httpx tries IPv6 first on HF, which is blocked.
+            # Monkeypatch socket.getaddrinfo to only return IPv4 results.
+            import socket
+            _orig_getaddrinfo = socket.getaddrinfo
+            def _ipv4_only(host, port, family=0, type=0, proto=0, flags=0):
+                return _orig_getaddrinfo(host, port, socket.AF_INET, type, proto, flags)
+            socket.getaddrinfo = _ipv4_only
+            self._log("IPv4-only mode enabled (socket monkeypatch)")
+            
             self.application = Application.builder().token(self.token).post_init(self.post_init).build()
             
             # Add handlers
