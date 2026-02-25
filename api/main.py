@@ -127,7 +127,6 @@ async def telegram_webhook(token: str, request: Request, background_tasks: Backg
     bridge = getattr(app.state, "telegram_bridge", None) or getattr(bot_manager, "_telegram_bridge", None)
 
     if not bridge:
-        # Detailed 503 logging
         has_state = hasattr(app.state, "telegram_bridge")
         has_manager = bot_manager._telegram_bridge is not None
         print(f"WEBHOOK 503: Bridge not found. State={has_state}, Manager={has_manager}")
@@ -138,10 +137,40 @@ async def telegram_webhook(token: str, request: Request, background_tasks: Backg
         raise HTTPException(status_code=403, detail="Invalid token")
     
     data = await request.json()
-    # Process in background task to avoid blocking Telegram
     background_tasks.add_task(bridge.handle_webhook_update, data)
     
     return {"ok": True}
+
+@app.get("/tg-set-webhook")
+async def tg_set_webhook_from_local():
+    """Set Telegram webhook from LOCAL machine (bypasses HF firewall).
+
+    Open this URL in your browser:
+      https://your-space.hf.space/tg-set-webhook
+    """
+    import requests as req
+    bridge = getattr(app.state, "telegram_bridge", None)
+    if not bridge:
+        raise HTTPException(status_code=503, detail="Bridge not started")
+
+    webhook_url = os.getenv("WEBHOOK_URL", "")
+    if not webhook_url:
+        raise HTTPException(status_code=500, detail="WEBHOOK_URL not set")
+
+    hook = f"{webhook_url.rstrip('/')}/tg-webhook/{bridge.token}"
+    try:
+        r = req.post(
+            f"https://api.telegram.org/bot{bridge.token}/setWebhook",
+            json={"url": hook}, timeout=30
+        )
+        data = r.json()
+        if data.get("ok"):
+            bridge._ready = True
+            bridge._net_ok = True
+            return {"ok": True, "webhook": hook, "message": "Webhook set successfully!"}
+        return {"ok": False, "detail": data}
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=str(e))
 
 CONFIG_FILE = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "admin_config.json"))
 
