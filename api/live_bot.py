@@ -734,6 +734,48 @@ class LiveBot:
             self._log(f"MTF Error: {e}")
             return True, f"MTF Error: {e}"
 
+    def _is_bar_stale(self, ts) -> bool:
+        """
+        Check if a bar timestamp is significantly behind system time.
+        Helps prevent trading on old data from gaps or stale providers.
+        """
+        if ts == "unknown" or not ts:
+            return False
+            
+        try:
+            if isinstance(ts, str):
+                # Handle ISO formats
+                if ts.endswith("Z"): ts = ts.replace("Z", "+00:00")
+                dt_ts = datetime.fromisoformat(ts)
+            elif hasattr(ts, "to_pydatetime"):
+                dt_ts = ts.to_pydatetime()
+            else:
+                dt_ts = ts
+                
+            if dt_ts.tzinfo is None:
+                dt_ts = dt_ts.replace(tzinfo=timezone.utc)
+            
+            now = datetime.now(timezone.utc)
+            diff_seconds = (now - dt_ts).total_seconds()
+            
+            # Map timeframe to seconds for age comparison
+            tf_str = _to_intraday_timeframe(self.config.timeframe)
+            tf_seconds = 3600
+            if tf_str.endswith("m"): tf_seconds = int(tf_str[:-1]) * 60
+            elif tf_str.endswith("h"): tf_seconds = int(tf_str[:-1]) * 3600
+            elif tf_str.endswith("d"): tf_seconds = int(tf_str[:-1]) * 86400
+            
+            # Allow up to 2.5 intervals of lag (e.g. 2.5h for 1h timeframe)
+            # This accounts for the closed bar being -1 from current, plus some polling lag.
+            max_age = tf_seconds * 2.5
+            if diff_seconds > max_age:
+                self._log(f"STALE DATA DETECTED: Bar at {dt_ts} is {diff_seconds/3600:.1f}h old (max allowed {max_age/3600:.1f}h).")
+                return True
+            return False
+        except Exception as e:
+            self._log(f"Error in recency check: {e}")
+            return False # Default to fresh if check fails
+
     # ── Feature 3: Dynamic ATR-based TP/SL ──────────────────────────────
     def _calculate_atr_exits(self, bars: pd.DataFrame, entry_price: float) -> tuple[float, float]:
         """
@@ -2436,6 +2478,10 @@ class LiveBot:
                     X_all = features.iloc[[-2]].copy()  # FIXED: was iloc[[-1]] (look-ahead bias)
                     closed_bar_ts = bars.iloc[-2].get("timestamp", "unknown") if len(bars) >= 2 else "unknown"
                     self._log(f"{symbol}: Predicting on CLOSED bar (ts={closed_bar_ts})")
+                    
+                    if self._is_bar_stale(closed_bar_ts):
+                        self._log(f"{symbol}: Skipping prediction - CLOSED bar is stale.")
+                        continue
                     Xk = self._align_for_king(X_all, self.king_obj)
 
                     # ── Feature 7: Win Rate Adaptive Threshold ──

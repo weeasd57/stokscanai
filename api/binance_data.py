@@ -138,6 +138,14 @@ def fetch_binance_bars_df(symbol: str, timeframe: str, limit: int) -> pd.DataFra
     if df.empty:
         return df
     df = df.dropna(subset=["timestamp"]).sort_values("timestamp")
+
+    if not df.empty:
+        latest_ts = df["timestamp"].iloc[-1]
+        now = pd.Timestamp.now(tz="UTC")
+        diff_h = (now - latest_ts).total_seconds() / 3600
+        if diff_h > 24:
+            print(f"DEBUG: Binance data for {bn_symbol} is stale. Latest: {latest_ts}, Now: {now}, Gap: {diff_h:.1f}h")
+
     return df
 
 def fetch_all_binance_symbols(quote_asset: Optional[str] = "USDT", limit: int = 0) -> List[str]:
