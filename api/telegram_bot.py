@@ -219,7 +219,9 @@ class TelegramBot:
             pass
 
     def send_notification(self, message: str):
-        """Synchronous bridge to send a notification. Returns Future if loop running."""
+        """Send a notification using requests (bypasses httpx entirely)."""
+        import requests as req
+        
         # Refresh chat_id from bot config if available
         if self.bot_instance and getattr(self.bot_instance.config, "telegram_chat_id", None):
             self.chat_id = self.bot_instance.config.telegram_chat_id
@@ -228,66 +230,49 @@ class TelegramBot:
             self._log("Cannot send notification: No chat_id or token.")
             return None
 
-        async def _send():
-            try:
-                # IMPORTANT: Reuse the application's bot which already has a
-                # working connection (DNS fix applied). Creating a new Bot()
-                # opens a fresh httpx client that bypasses /etc/hosts.
-                if self.application and self.application.running:
-                    await self.application.bot.send_message(
-                        chat_id=self.chat_id, text=message, parse_mode='Markdown'
-                    )
-                else:
-                    # Fallback only if application isn't running yet
-                    bot = Bot(token=self.token)
-                    await bot.send_message(
-                        chat_id=self.chat_id, text=message, parse_mode='Markdown'
-                    )
-            except Exception as e:
-                self._log(f"Error sending notification: {e}")
-                raise e
-
-        if self.loop and self.loop.is_running():
-            return asyncio.run_coroutine_threadsafe(_send(), self.loop)
-        else:
-            # Fallback if loop is not running yet
-            try:
-                loop = asyncio.new_event_loop()
-                loop.run_until_complete(_send())
-                loop.close()
-                return None # Completed synchronously
-            except Exception as e:
-                self._log(f"Error in sync fallback: {e}")
-                raise e
+        try:
+            url = f"https://api.telegram.org/bot{self.token}/sendMessage"
+            payload = {
+                "chat_id": self.chat_id,
+                "text": message,
+                "parse_mode": "Markdown"
+            }
+            resp = req.post(url, json=payload, timeout=30)
+            if resp.status_code == 200:
+                self._log(f"Notification sent to {self.chat_id}")
+            else:
+                self._log(f"Telegram API error {resp.status_code}: {resp.text}")
+        except Exception as e:
+            self._log(f"Error sending notification: {e}")
 
     async def post_init(self, application: Application):
         """Register commands with Telegram so they show up in the UI."""
-        from telegram import BotCommand
+        # Use requests instead of application.bot to avoid httpx
+        import requests as req
+        url = f"https://api.telegram.org/bot{self.token}/setMyCommands"
         commands = [
-            BotCommand("start", "Start the bot and get chat ID"),
-            BotCommand("status", "Current bot status & balance"),
-            BotCommand("positions", "View open positions"),
-            BotCommand("trades", "Show last 5 trades"),
-            BotCommand("help", "Show help message"),
+            {"command": "start", "description": "Start the bot and get chat ID"},
+            {"command": "status", "description": "Current bot status & balance"},
+            {"command": "positions", "description": "View open positions"},
+            {"command": "trades", "description": "Show last 5 trades"},
+            {"command": "help", "description": "Show help message"},
         ]
-        await application.bot.set_my_commands(commands)
-        self._log("Bot commands registered.")
+        try:
+            resp = req.post(url, json={"commands": commands}, timeout=15)
+            if resp.ok:
+                self._log("Bot commands registered.")
+            else:
+                self._log(f"Commands registration failed: {resp.text}")
+        except Exception as e:
+            self._log(f"Commands registration error: {e}")
 
     def run(self):
         """Start the bot in a background thread."""
+        import requests as req
+        
         try:
             self.loop = asyncio.new_event_loop()
             asyncio.set_event_loop(self.loop)
-            
-            # === Force IPv4 globally ===
-            # httpx tries IPv6 first on HF, which is blocked.
-            # Monkeypatch socket.getaddrinfo to only return IPv4 results.
-            import socket
-            _orig_getaddrinfo = socket.getaddrinfo
-            def _ipv4_only(host, port, family=0, type=0, proto=0, flags=0):
-                return _orig_getaddrinfo(host, port, socket.AF_INET, type, proto, flags)
-            socket.getaddrinfo = _ipv4_only
-            self._log("IPv4-only mode enabled (socket monkeypatch)")
             
             self.application = Application.builder().token(self.token).post_init(self.post_init).build()
             
@@ -310,23 +295,34 @@ class TelegramBot:
                 hook_path = f"{webhook_url.rstrip('/')}/tg-webhook/{self.token}"
                 self._log(f"Setting webhook to: {hook_path}")
                 
-                async def _set_hook():
-                    max_retries = 15
-                    for attempt in range(1, max_retries + 1):
-                        try:
-                            self._log(f"Telegram init attempt {attempt}/{max_retries}...")
-                            if not getattr(self.application, "_initialized", False):
-                                await self.application.initialize()
-                            await self.application.start()
-                            await self.application.bot.set_webhook(url=hook_path)
-                            self._log("SUCCESS: Telegram Bot initialized with Webhook.")
-                            return
-                        except Exception as e:
-                            self._log(f"Attempt {attempt} failed: {e}")
-                            if attempt == max_retries: raise
-                            await asyncio.sleep(min(attempt * 5, 30))
+                # === Use requests to set webhook (bypasses httpx) ===
+                max_retries = 10
+                for attempt in range(1, max_retries + 1):
+                    try:
+                        self._log(f"Telegram init attempt {attempt}/{max_retries}...")
+                        
+                        # Initialize application for processing incoming updates
+                        if not getattr(self.application, "_initialized", False):
+                            self.loop.run_until_complete(self.application.initialize())
+                        self.loop.run_until_complete(self.application.start())
+                        
+                        # Set webhook via requests (NOT httpx)
+                        api_url = f"https://api.telegram.org/bot{self.token}/setWebhook"
+                        resp = req.post(api_url, json={"url": hook_path}, timeout=30)
+                        
+                        if resp.status_code == 200 and resp.json().get("ok"):
+                            self._log("SUCCESS: Telegram Bot initialized with Webhook!")
+                            break
+                        else:
+                            raise Exception(f"setWebhook failed: {resp.text}")
+                    except Exception as e:
+                        self._log(f"Attempt {attempt} failed: {e}")
+                        if attempt == max_retries:
+                            self._log("WARNING: All init attempts failed. Bot will run without Telegram.")
+                            break
+                        import time
+                        time.sleep(min(attempt * 5, 30))
                 
-                self.loop.run_until_complete(_set_hook())
                 self.loop.run_forever()
             else:
                 self._log("Starting Telegram Bot poll...")
