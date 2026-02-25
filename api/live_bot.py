@@ -536,8 +536,8 @@ class LiveBot:
             }
         elif mode == "aggressive":
             return {
-                "king_offset": -0.10,       # Easier to pass KING
-                "council_offset": -0.05,    # Easier to pass COUNCIL
+                "king_offset": 0.0,         # Respected exact user setting
+                "council_offset": 0.0,      # Respected exact user setting
                 "volume_mult": 0.3,         # Relaxed volume (30% of config)
                 "skip_trend_filter": True,   # Skip SMA20 trend filter
                 "min_quality": 50,

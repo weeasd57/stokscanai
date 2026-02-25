@@ -59,8 +59,6 @@ class TelegramBot:
             import traceback
             traceback.print_exc()
 
-            traceback.print_exc()
-
     async def start_handler(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handles /start command."""
         chat_id = update.effective_chat.id
