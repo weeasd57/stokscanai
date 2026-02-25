@@ -1233,6 +1233,14 @@ class LiveBot:
             if sl >= lowest_entry:
                 sl = round(lowest_entry - (10**-precision), precision)
 
+        # ✅ Signal Sync Safety: Cornix will reject if SL is too close to (or above) current price
+        # This happens due to exchange price discrepancies (e.g. Binance vs Huobi).
+        # We enforce a mandatory 1.5% buffer below the signal price.
+        max_allowed_sl = round(price * 0.985, precision)
+        if sl > max_allowed_sl:
+            self._log(f"SIGNAL SAFETY: Adjusting SL for {symbol} from {sl:.4f} to {max_allowed_sl:.4f} (1.5% safety buffer)")
+            sl = max_allowed_sl
+
         # Show exit mode in signal
         exit_mode = getattr(self.config, 'exit_mode', 'hybrid').upper()
         mode_label = f" [{exit_mode}]" if exit_mode != "MANUAL" else ""
@@ -1252,25 +1260,29 @@ class LiveBot:
         )
         return msg
 
-    def _send_telegram_signal(self, symbol: str, price: float, notional: float, king_conf: float, council_conf: Optional[float] = None, bars: pd.DataFrame = None):
-        """Send a trade signal to Telegram in Cornix-compatible format.
-        
-        When exit_mode is 'atr_smart' or 'hybrid' and bars are provided,
-        uses ATR-calculated TP/SL prices in the signal.
-        """
+    def _format_cornix_close_signal(self, symbol: str) -> str:
+        """Build a Cornix-compatible CLOSE signal message."""
+        # Standard Cornix format to close all entries for a symbol
+        return f"CLOSE #{symbol}"
+
+    def _send_telegram_signal(self, symbol: str, price: float, notional: float = 0, king_conf: float = 0, council_conf: Optional[float] = None, bars: pd.DataFrame = None, action: str = "BUY"):
+        """Send a trade signal to Telegram in Cornix-compatible format."""
         if not self.telegram_bridge or self.config.execution_mode not in ["TELEGRAM", "BOTH"]:
             return
 
-        tp_price = None
-        sl_price = None
-        mode = getattr(self.config, 'exit_mode', 'hybrid').lower()
-        if mode != "manual" and bars is not None and not bars.empty:
-            try:
-                tp_price, sl_price = self._calculate_atr_exits(bars, price)
-            except Exception as e:
-                self._log(f"ATR signal calc error: {e}")
-
-        msg = self._format_cornix_signal(symbol, price, tp_price=tp_price, sl_price=sl_price)
+        if action.upper() == "SELL":
+            msg = self._format_cornix_close_signal(symbol)
+        else:
+            tp_price = None
+            sl_price = None
+            mode = getattr(self.config, 'exit_mode', 'hybrid').lower()
+            if mode != "manual" and bars is not None and not bars.empty:
+                try:
+                    tp_price, sl_price = self._calculate_atr_exits(bars, price)
+                except Exception as e:
+                    self._log(f"ATR signal calc error: {e}")
+            msg = self._format_cornix_signal(symbol, price, tp_price=tp_price, sl_price=sl_price)
+        
         self.telegram_bridge.send_notification(msg)
 
     def _save_signal_record(self, symbol: str, price: float, notional: float, king_conf: float, council_conf: Optional[float] = None, action: str = "BUY", entry_price: Optional[float] = None, pnl: Optional[float] = None, reason: str = "SIGNAL"):
@@ -2173,6 +2185,7 @@ class LiveBot:
             if self.config.execution_mode == "TELEGRAM":
                 sell_pnl = (close - float(entry_price)) * qty
                 self._save_signal_record(symbol, close, qty * close, 0, None, action="SELL", entry_price=float(entry_price), pnl=sell_pnl, reason="SMART")
+                self._send_telegram_signal(symbol, close, action="SELL")
                 self._pos_state.pop(_normalize_symbol(symbol), None)
                 self._save_bot_state()
                 return True
@@ -2187,6 +2200,7 @@ class LiveBot:
             if self.config.execution_mode == "TELEGRAM":
                 sell_pnl = (float(current_stop) - float(entry_price)) * qty
                 self._save_signal_record(symbol, current_stop, qty * current_stop, 0, None, action="SELL", entry_price=float(entry_price), pnl=sell_pnl, reason="STOP")
+                self._send_telegram_signal(symbol, current_stop, action="SELL")
                 self._pos_state.pop(_normalize_symbol(symbol), None)
                 self._save_bot_state()
                 self._log(f"SKIPPING Virtual Sell (Telegram-Only Mode)")
@@ -2199,6 +2213,7 @@ class LiveBot:
             if self.config.execution_mode == "TELEGRAM":
                 sell_pnl = (float(take_profit) - float(entry_price)) * qty
                 self._save_signal_record(symbol, take_profit, qty * take_profit, 0, None, action="SELL", entry_price=float(entry_price), pnl=sell_pnl, reason="TARGET")
+                self._send_telegram_signal(symbol, take_profit, action="SELL")
                 self._pos_state.pop(_normalize_symbol(symbol), None)
                 self._save_bot_state()
                 self._log(f"SKIPPING Virtual Sell (Telegram-Only Mode)")
@@ -2231,6 +2246,7 @@ class LiveBot:
             if self.config.execution_mode == "TELEGRAM":
                 sell_pnl = (close - float(entry_price)) * qty
                 self._save_signal_record(symbol, close, qty * close, 0, None, action="SELL", entry_price=float(entry_price), pnl=sell_pnl, reason="TIME")
+                self._send_telegram_signal(symbol, close, action="SELL")
                 self._pos_state.pop(_normalize_symbol(symbol), None)
                 self._save_bot_state()
                 self._log(f"SKIPPING Virtual Sell (Telegram-Only Mode)")
