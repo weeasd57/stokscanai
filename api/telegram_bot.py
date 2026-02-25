@@ -30,7 +30,8 @@ class TelegramBot:
     * Incoming webhook updates are parsed as plain JSON — no httpx needed.
     """
 
-    API = "https://api.telegram.org"
+    # Use Cloudflare Worker relay if set, otherwise direct (fails on HF)
+    API = os.getenv("TELEGRAM_RELAY_URL", "https://api.telegram.org").rstrip("/")
 
     def __init__(self, token: str, bot_instance=None):
         self.token = token
@@ -249,6 +250,7 @@ class TelegramBot:
             self.loop = asyncio.new_event_loop()
             asyncio.set_event_loop(self.loop)
             self._log("Starting Telegram Bot bridge...")
+            self._log(f"API endpoint: {self.API}")
 
             # 1. DNS
             self._fix_telegram_dns()
