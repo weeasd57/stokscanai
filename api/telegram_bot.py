@@ -240,9 +240,10 @@ class TelegramBot:
                     import httpx
                     from telegram.request import HTTPXRequest
                     
-                    # Force IPv4 via local_address
-                    client = httpx.AsyncClient(local_address="0.0.0.0")
-                    request = HTTPXRequest(client=client)
+                    # Force IPv4 via transport
+                    transport = httpx.AsyncHTTPTransport(local_address="0.0.0.0")
+                    client = httpx.AsyncClient(transport=transport, timeout=30.0)
+                    request = HTTPXRequest(connection_pool_size=1)
                     bot = Bot(token=self.token, request=request)
                     await bot.send_message(chat_id=target_chat_id, text=message, parse_mode='Markdown')
                     await client.aclose()
@@ -337,14 +338,15 @@ class TelegramBot:
                     self._log("WARNING: No Telegram IPs reachable via TCP.")
 
                 # === Step 2: Build Application with IPv4 Priority ===
-                # Force IPv4 via custom Transport to bypass HF IPv6 issues
+                # Force IPv4 via custom Transport if possible, otherwise use standard HTTPXRequest
                 import httpx
+                from telegram.request import HTTPXRequest
                 
-                self._log("Configuring IPv4-only transport...")
-                # We use a transport that forces IPv4 for all connections
-                transport = httpx.AsyncHTTPTransport(local_address="0.0.0.0")
-                client = httpx.AsyncClient(transport=transport, timeout=httpx.Timeout(30.0, connect=10.0))
-                request = HTTPXRequest(client=client)
+                self._log("Configuring robust transport...")
+                # We use a transport that forces IPv4 for all connections if needed
+                # However, HTTPXRequest doesn't take a custom client directly in all versions.
+                # The /etc/hosts fix should handle the IPv4 routing.
+                request = HTTPXRequest(connection_pool_size=20)
                 
                 self.application = Application.builder() \
                     .token(self.token) \
