@@ -65,6 +65,7 @@ class TelegramBot:
 
     async def start_handler(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handles /start command."""
+        self._log(f"Handling /start from {update.effective_chat.id}")
         chat_id = update.effective_chat.id
         self._save_chat_id(chat_id)
         await update.message.reply_text(
@@ -80,6 +81,7 @@ class TelegramBot:
 
     async def status_handler(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handles /status command."""
+        self._log(f"Handling /status from {update.effective_chat.id}")
         if not self.bot_instance:
             await update.message.reply_text("Bot instance not available.")
             return
@@ -217,6 +219,46 @@ class TelegramBot:
         await application.bot.set_my_commands(commands)
         self._log("Bot commands registered.")
 
+    def send_notification(self, message: str):
+        """Synchronous bridge to send a notification."""
+        # Fallback to config if not set locally
+        target_chat_id = self.chat_id
+        if not target_chat_id and self.bot_instance and self.bot_instance.config:
+            target_chat_id = self.bot_instance.config.telegram_chat_id
+            
+        if not target_chat_id:
+            self._log("Skipping notification: Missing chat_id (neither local nor in config).")
+            return
+
+        async def _send_async():
+            try:
+                # Reuse the application's bot if it's running (it has the IPv4 fix client)
+                if self.application and self.application.running:
+                    await self.application.bot.send_message(chat_id=target_chat_id, text=message, parse_mode='Markdown')
+                else:
+                    # Fallback to standalone bot with IPv4 fix
+                    import httpx
+                    from telegram.request import HTTPXRequest
+                    
+                    # Force IPv4 via local_address
+                    client = httpx.AsyncClient(local_address="0.0.0.0")
+                    request = HTTPXRequest(client=client)
+                    bot = Bot(token=self.token, request=request)
+                    await bot.send_message(chat_id=target_chat_id, text=message, parse_mode='Markdown')
+                    await client.aclose()
+            except Exception as e:
+                self._log(f"Error sending notification: {e}")
+
+        if self.loop and self.loop.is_running():
+            asyncio.run_coroutine_threadsafe(_send_async(), self.loop)
+        else:
+            try:
+                loop = asyncio.new_event_loop()
+                loop.run_until_complete(_send_async())
+                loop.close()
+            except Exception as e:
+                self._log(f"Fallback notification loop failed: {e}")
+
     def run(self):
         """Start the bot in a background thread."""
         try:
@@ -232,6 +274,7 @@ class TelegramBot:
                 import socket
                 import urllib.request
                 import json as _json
+                import httpx
                 from telegram.request import HTTPXRequest
 
                 # === Step 1: DNS & Network Fix ===
@@ -293,8 +336,16 @@ class TelegramBot:
                 else:
                     self._log("WARNING: No Telegram IPs reachable via TCP.")
 
-                # === Step 2: Build Application ===
-                request = HTTPXRequest(connection_pool_size=10)
+                # === Step 2: Build Application with IPv4 Priority ===
+                # Force IPv4 via custom Transport to bypass HF IPv6 issues
+                import httpx
+                
+                self._log("Configuring IPv4-only transport...")
+                # We use a transport that forces IPv4 for all connections
+                transport = httpx.AsyncHTTPTransport(local_address="0.0.0.0")
+                client = httpx.AsyncClient(transport=transport, timeout=httpx.Timeout(30.0, connect=10.0))
+                request = HTTPXRequest(client=client)
+                
                 self.application = Application.builder() \
                     .token(self.token) \
                     .post_init(self.post_init) \
@@ -310,11 +361,17 @@ class TelegramBot:
                 self.application.add_error_handler(self.error_handler)
 
                 # === Step 3: Initialization Loop ===
+                # During init, we also check bot info to verify connection
                 max_retries = 15
                 for attempt in range(1, max_retries + 1):
                     try:
                         self._log(f"Telegram init attempt {attempt}/{max_retries}...")
                         await self.application.initialize()
+                        
+                        # Verify we can actually talk to Telegram
+                        me = await self.application.bot.get_me()
+                        self._log(f"Connection verified! Bot is @{me.username}")
+                        
                         await self.application.start()
                         
                         if webhook_url:
