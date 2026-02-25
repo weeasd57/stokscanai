@@ -29,21 +29,25 @@ class TelegramBot:
         self._load_chat_id()
 
     def _load_chat_id(self):
-        if self.bot_instance and getattr(self.bot_instance.config, "telegram_chat_id", None):
-            self.chat_id = self.bot_instance.config.telegram_chat_id
-            self._log(f"Loaded chat_id from bot config: {self.chat_id}")
+        """Load chat_id from a local file if exists."""
+        p = Path("state/telegram_chat_id.json")
+        if p.exists():
+            try:
+                with open(p, "r") as f:
+                    self.chat_id = json.load(f).get("chat_id")
+            except:
+                pass
 
     def _save_chat_id(self, chat_id: int):
+        """Save chat_id to keep it across restarts."""
         self.chat_id = chat_id
-        if self.bot_instance:
-            self.bot_instance.config.telegram_chat_id = chat_id
-            from api.live_bot import bot_manager
-            bot_manager.save_bots()
-            self._log(f"Saved chat_id to bot config and Supabase: {chat_id}")
+        os.makedirs("state", exist_ok=True)
+        with open("state/telegram_chat_id.json", "w") as f:
+            json.dump({"chat_id": chat_id}, f)
 
     async def handle_webhook_update(self, data: dict):
         """Processes an update received via webhook."""
-        if not self.application or not getattr(self.application, "_initialized", False):
+        if not self.application or not getattr(self.application, "_initialized", False) or not self.application.running:
             self._log("Webhook received but application is not fully initialized. Ignoring update.")
             return
         
@@ -83,7 +87,7 @@ class TelegramBot:
         status = self.bot_instance.get_status()
         state = status.get("status", "unknown").upper()
         
-        # Get balance from Broker
+        # Get balance from Alpaca
         balance_text = "N/A"
         try:
             account = self.bot_instance.api.get_account()
@@ -178,14 +182,9 @@ class TelegramBot:
             pass
 
     def send_notification(self, message: str):
-        """Synchronous bridge to send a notification. Returns Future if loop running."""
-        # Refresh chat_id from bot config if available
-        if self.bot_instance and getattr(self.bot_instance.config, "telegram_chat_id", None):
-            self.chat_id = self.bot_instance.config.telegram_chat_id
-
+        """Synchronous bridge to send a notification."""
         if not self.chat_id or not self.token:
-            self._log("Cannot send notification: No chat_id or token.")
-            return None
+            return
 
         async def _send():
             try:
@@ -193,20 +192,17 @@ class TelegramBot:
                 await bot.send_message(chat_id=self.chat_id, text=message, parse_mode='Markdown')
             except Exception as e:
                 self._log(f"Error sending notification: {e}")
-                raise e
 
         if self.loop and self.loop.is_running():
-            return asyncio.run_coroutine_threadsafe(_send(), self.loop)
+            asyncio.run_coroutine_threadsafe(_send(), self.loop)
         else:
             # Fallback if loop is not running yet
             try:
                 loop = asyncio.new_event_loop()
                 loop.run_until_complete(_send())
                 loop.close()
-                return None # Completed synchronously
-            except Exception as e:
-                self._log(f"Error in sync fallback: {e}")
-                raise e
+            except:
+                pass
 
     async def post_init(self, application: Application):
         """Register commands with Telegram so they show up in the UI."""
@@ -227,7 +223,8 @@ class TelegramBot:
             self.loop = asyncio.new_event_loop()
             asyncio.set_event_loop(self.loop)
             
-            self._log("Starting Telegram Bot poll...")
+            # Start the Bot bridge
+            self._log("Starting Telegram Bot bridge...")
             
             webhook_url = os.getenv("WEBHOOK_URL")
             
@@ -236,63 +233,74 @@ class TelegramBot:
                 import urllib.request
                 import json as _json
                 from telegram.request import HTTPXRequest
-                from telegram.ext import CommandHandler
-                import httpx
 
-                # === Step 1: DNS Fix ===
-                self._log("Waiting 5s for network baseline...")
-                await asyncio.sleep(5)
+                # === Step 1: DNS & Network Fix ===
+                self._log("Waiting 10s for network baseline...")
+                await asyncio.sleep(10)
 
                 def _resolve_via_doh(hostname):
                     apis = [
                         f"https://cloudflare-dns.com/dns-query?name={hostname}&type=A",
                         f"https://dns.google/resolve?name={hostname}&type=A"
                     ]
+                    ips = set()
                     for api_url in apis:
                         try:
                             req = urllib.request.Request(api_url, headers={"Accept": "application/dns-json"})
                             with urllib.request.urlopen(req, timeout=10) as resp:
                                 data = _json.loads(resp.read().decode())
                                 for ans in data.get("Answer", []):
-                                    if ans.get("type") == 1: return ans["data"]
+                                    if ans.get("type") == 1: ips.add(ans["data"])
                         except Exception: pass
-                    return None
+                    return list(ips)
+
+                def _test_ip(ip, port=443):
+                    try:
+                        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                        sock.settimeout(3)
+                        sock.connect((ip, port))
+                        sock.close()
+                        return True
+                    except Exception:
+                        return False
 
                 def _inject_hosts_entry(hostname, ip):
                     hosts_path = "/etc/hosts"
                     try:
-                        # Try to write to /etc/hosts if possible
                         with open(hosts_path, "r") as f:
-                            if hostname in f.read(): return True
+                            if f"{ip} {hostname}" in f.read(): return True
                         with open(hosts_path, "a") as f:
                             f.write(f"\n{ip} {hostname}\n")
-                        self._log(f"Wrote to /etc/hosts: {ip} {hostname}")
                         return True
-                    except Exception as ex:
-                        self._log(f"Cannot write to /etc/hosts (expected on some systems): {ex}")
-                        return False
+                    except Exception: return False
 
-                ip = None
-                try:
-                    ip = socket.gethostbyname("api.telegram.org")
-                    self._log(f"DNS resolved api.telegram.org to {ip}")
-                except Exception:
-                    self._log("Local DNS failed — trying DoH...")
-                    ip = _resolve_via_doh("api.telegram.org")
-                    if ip:
-                        self._log(f"DoH resolved api.telegram.org -> {ip}")
-                        _inject_hosts_entry("api.telegram.org", ip)
+                # Auto-select the best IP
+                candidates = ["149.154.167.220", "149.154.166.110", "149.154.167.99", "91.108.4.110"]
+                doh_ips = _resolve_via_doh("api.telegram.org")
+                targets = list(set(candidates + (doh_ips or [])))
                 
-                # === Step 2: Build Application with IPv4 Priority ===
-                # We create a custom client that enforces IPv4 to avoid HF IPv6 routing issues
-                request = HTTPXRequest(connection_pool_size=8)
+                self._log(f"Testing {len(targets)} candidate IPs for api.telegram.org...")
+                best_ip = None
+                for ip in targets:
+                    if _test_ip(ip):
+                        best_ip = ip
+                        self._log(f"REACHABLE: {ip} responds on port 443")
+                        break
                 
+                if best_ip:
+                    _inject_hosts_entry("api.telegram.org", best_ip)
+                    self._log(f"Using {best_ip} for api.telegram.org")
+                else:
+                    self._log("WARNING: No Telegram IPs reachable via TCP.")
+
+                # === Step 2: Build Application ===
+                request = HTTPXRequest(connection_pool_size=10)
                 self.application = Application.builder() \
                     .token(self.token) \
                     .post_init(self.post_init) \
                     .request(request) \
                     .build()
-
+                
                 # Add handlers
                 self.application.add_handler(CommandHandler("start", self.start_handler))
                 self.application.add_handler(CommandHandler("help", self.start_handler))
@@ -301,7 +309,7 @@ class TelegramBot:
                 self.application.add_handler(CommandHandler("trades", self.trades_handler))
                 self.application.add_error_handler(self.error_handler)
 
-                # === Step 3: Init & Set Webhook/Polling ===
+                # === Step 3: Initialization Loop ===
                 max_retries = 15
                 for attempt in range(1, max_retries + 1):
                     try:
@@ -323,8 +331,8 @@ class TelegramBot:
                         self._log(f"Attempt {attempt} failed: {e}")
                         if attempt == max_retries: raise
                         await asyncio.sleep(min(attempt * 5, 30))
-            
-            self.loop.create_task(_set_hook())
+                
+            self.loop.run_until_complete(_set_hook())
             self.loop.run_forever()
         except Exception as e:
             self._log(f"Fatal error in Telegram thread: {e}")
