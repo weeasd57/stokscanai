@@ -230,8 +230,19 @@ class TelegramBot:
 
         async def _send():
             try:
-                bot = Bot(token=self.token)
-                await bot.send_message(chat_id=self.chat_id, text=message, parse_mode='Markdown')
+                # IMPORTANT: Reuse the application's bot which already has a
+                # working connection (DNS fix applied). Creating a new Bot()
+                # opens a fresh httpx client that bypasses /etc/hosts.
+                if self.application and self.application.running:
+                    await self.application.bot.send_message(
+                        chat_id=self.chat_id, text=message, parse_mode='Markdown'
+                    )
+                else:
+                    # Fallback only if application isn't running yet
+                    bot = Bot(token=self.token)
+                    await bot.send_message(
+                        chat_id=self.chat_id, text=message, parse_mode='Markdown'
+                    )
             except Exception as e:
                 self._log(f"Error sending notification: {e}")
                 raise e
