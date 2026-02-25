@@ -935,7 +935,7 @@ def get_candles(symbol: str, bot_id: str = "primary", limit: int = 150):
                 stop_price = safe_float(pos.get("current_stop"))
 
             # Fallback: if entry wasn't stored yet, read from live virtual position
-            if entry_price <= 0:
+            if entry_price is None or entry_price <= 0:
                 try:
                     live_pos = bot._get_open_position(symbol)
                     if live_pos is not None:
