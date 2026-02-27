@@ -22,21 +22,21 @@ TEST SELL EXECUTED
 === CORNIX RAW SIGNAL ===
 
 SIGNAL Message:
-🦁 ### #ARTORO_SIGNAL: TEST/USD ###
+🦁 *#ARTORO_SIGNAL: TEST/USD*
 Signal Type: Regular (Long) [HYBRID]
 
 📊 Regime: BULL
 🎯 Quality: 85
 
-Entry Targets:
+*Entry Targets:*
 1) 1232.1
 2) 1224.7
 3) 1216.0
 4) 1203.7
 
-Take-Profit Targets:
+*Take-Profit Targets:*
 1) 1419.7
 
-Stop Targets:
+*Stop Targets:*
 1) 1135.8
 

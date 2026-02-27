@@ -1300,17 +1300,17 @@ class LiveBot:
         except: pass
 
         msg = (
-            f"🦁 ### #ARTORO_SIGNAL: {symbol} ###\n"
+            f"🦁 *#ARTORO_SIGNAL: {symbol}*\n"
             f"Signal Type: Regular (Long){mode_label}\n"
             f"{meta_info}\n"
             f"\n"
-            f"Entry Targets:\n"
+            f"*Entry Targets:*\n"
             f"{entry_lines}\n"
             f"\n"
-            f"Take-Profit Targets:\n"
+            f"*Take-Profit Targets:*\n"
             f"1) {tp}\n"
             f"\n"
-            f"Stop Targets:\n"
+            f"*Stop Targets:*\n"
             f"1) {sl}\n"
         )
         return msg

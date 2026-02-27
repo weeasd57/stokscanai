@@ -943,7 +943,7 @@ def get_candles(symbol: str, bot_id: str = "primary", limit: int = 150):
                 except Exception:
                     pass
 
-            if entry_price > 0 and (target_price <= 0 or stop_price <= 0):
+            if entry_price and entry_price > 0 and (target_price is None or target_price <= 0 or stop_price is None or stop_price <= 0):
                 bars_limit = getattr(bot.config, "bars_limit", 200)
                 bars = bot._get_bars(symbol, limit=bars_limit)
                 if not bars.empty:
