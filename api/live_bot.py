@@ -35,7 +35,7 @@ class BotConfig:
     telegram_chat_id: Optional[int] = -1003699330518
     telegram_token: Optional[str] = None
     coins: list[str] = None
-    king_threshold: float = 0.45
+    king_threshold: float = 0.85
     council_threshold: float = 0.25
     max_notional_usd: float = 1000.0
     pct_cash_per_trade: float = 0.15
@@ -48,8 +48,8 @@ class BotConfig:
     # Risk
     max_open_positions: int = 8
     enable_sells: bool = True
-    target_pct: float = 0.15
-    stop_loss_pct: float = 0.07
+    target_pct: float = 0.10
+    stop_loss_pct: float = 0.05
     hold_max_bars: int = 30
     use_trailing: bool = True
     trail_be_pct: float = 0.04
@@ -1244,9 +1244,11 @@ class LiveBot:
         precision = self._get_precision(price)
 
         # Entry zone: 4 ladder entries spread below current price
+        # Tightened entries (0.2%, 0.8%, 1.5%, 2.5%) for better matching with channel fills
+        entry_offsets = [0.002, 0.008, 0.015, 0.025]
         entries = []
-        for i in range(4):
-            val = round(price * (1 - (i * 0.01)), precision)
+        for i, offset in enumerate(entry_offsets):
+            val = round(price * (1 - offset), precision)
             if i > 0 and val >= entries[i-1]:
                 val = round(entries[i-1] - (10**-precision), precision)
             entries.append(val)
@@ -1287,9 +1289,20 @@ class LiveBot:
         exit_mode = getattr(self.config, 'exit_mode', 'hybrid').upper()
         mode_label = f" [{exit_mode}]" if exit_mode != "MANUAL" else ""
 
+        # Meta info for the signal
+        meta_info = ""
+        try:
+            state = self._pos_state.get(_normalize_symbol(symbol), {})
+            regime = state.get("regime", "N/A")
+            quality = state.get("quality_score", 0)
+            if regime != "N/A":
+                meta_info = f"\n📊 Regime: {regime}\n🎯 Quality: {quality:.0f}"
+        except: pass
+
         msg = (
-            f"### #{symbol} ###\n"
+            f"🦁 ### #ARTORO_SIGNAL: {symbol} ###\n"
             f"Signal Type: Regular (Long){mode_label}\n"
+            f"{meta_info}\n"
             f"\n"
             f"Entry Targets:\n"
             f"{entry_lines}\n"
@@ -1362,6 +1375,11 @@ class LiveBot:
         amount = 500.0
         
         if notify_type == "buy":
+             # Simulate state for test
+             self._pos_state[_normalize_symbol(symbol)] = {
+                 "regime": "BULL",
+                 "quality_score": 85
+             }
              msg = (
                 f"TEST BUY EXECUTED\n"
                 f"━━━━━━━━━━━━━━━\n"
@@ -2009,7 +2027,8 @@ class LiveBot:
             # Wait for fill to get accurate entry price
             avg_fill = self._wait_for_fill(order_id)
             
-            self._pos_state[_normalize_symbol(symbol)] = {
+            # Preserve calculations (regime, quality) made in _run_loop
+            self._pos_state[_normalize_symbol(symbol)].update({
                 "symbol": symbol,
                 "entry_price": avg_fill,
                 "entry_time": datetime.now(timezone.utc).isoformat(),
@@ -2019,7 +2038,7 @@ class LiveBot:
                 "trail_mode": "NONE",
                 "order_id": order_id, # Store BUY order_id for future linkage
                 "notional": float(notional_usd),  # USD invested — used to derive qty for P/L
-            }
+            })
             trade = {
                 "timestamp": datetime.now().isoformat(),
                 "symbol": symbol,

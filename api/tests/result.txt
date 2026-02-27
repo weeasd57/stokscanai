@@ -22,15 +22,17 @@ TEST SELL EXECUTED
 === CORNIX RAW SIGNAL ===
 
 SIGNAL Message:
-⚡⚡ #TEST/USD ⚡⚡
-Exchanges: OKX, KuCoin, Huobi.pro, Coinbase Advanced Spot, ByBit Spot, Bitget Spot, BingX Spot, Binance
-Signal Type: Regular (Long)
+🦁 ### #ARTORO_SIGNAL: TEST/USD ###
+Signal Type: Regular (Long) [HYBRID]
+
+📊 Regime: BULL
+🎯 Quality: 85
 
 Entry Targets:
-1) 1234.56
-2) 1222.2
-3) 1209.9
-4) 1197.5
+1) 1232.1
+2) 1224.7
+3) 1216.0
+4) 1203.7
 
 Take-Profit Targets:
 1) 1419.7

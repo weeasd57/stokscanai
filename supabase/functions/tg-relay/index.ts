@@ -1,29 +1,27 @@
 // Supabase Edge Function — Telegram Bot API Relay
-// Proxies requests from HF Spaces to api.telegram.org
+// Proxies requests to api.telegram.org
 //
-// Deploy:
-//   supabase functions deploy tg-relay
-// Or via Supabase Dashboard → Edge Functions → Create → paste this
+// The function receives paths like:
+//   /functions/v1/FUNCTION_NAME/bot<TOKEN>/sendMessage
+// We extract /bot<TOKEN>/sendMessage and forward to api.telegram.org
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 serve(async (req: Request) => {
     const url = new URL(req.url);
+    const path = url.pathname;
 
-    // Health check
-    if (url.pathname === "/" || url.pathname === "/tg-relay") {
+    // Health check - if no /bot in path
+    if (!path.includes("/bot")) {
         return new Response(JSON.stringify({ ok: true, relay: "telegram" }), {
             headers: { "Content-Type": "application/json" },
         });
     }
 
-    // Extract the path after /tg-relay/
-    // e.g. /tg-relay/bot<TOKEN>/sendMessage → /bot<TOKEN>/sendMessage
-    let apiPath = url.pathname;
-    if (apiPath.startsWith("/tg-relay")) {
-        apiPath = apiPath.replace("/tg-relay", "");
-    }
-
+    // Extract everything from /bot onwards
+    // e.g. /functions/v1/dynamic-handler/bot123:ABC/sendMessage → /bot123:ABC/sendMessage
+    const botIndex = path.indexOf("/bot");
+    const apiPath = path.substring(botIndex);
     const telegramUrl = `https://api.telegram.org${apiPath}${url.search}`;
 
     try {
