@@ -1300,7 +1300,7 @@ class LiveBot:
         except: pass
 
         msg = (
-            f"🦁 *#ARTORO_SIGNAL: {symbol}*\n"
+            f"*#ARTORO SIGNAL: {symbol}*\n"
             f"Signal Type: Regular (Long){mode_label}\n"
             f"{meta_info}\n"
             f"\n"

@@ -22,7 +22,7 @@ TEST SELL EXECUTED
 === CORNIX RAW SIGNAL ===
 
 SIGNAL Message:
-🦁 *#ARTORO_SIGNAL: TEST/USD*
+*#ARTORO SIGNAL: TEST/USD*
 Signal Type: Regular (Long) [HYBRID]
 
 📊 Regime: BULL
