@@ -48,8 +48,8 @@ class BotConfig:
     # Risk
     max_open_positions: int = 8
     enable_sells: bool = True
-    target_pct: float = 0.10
-    stop_loss_pct: float = 0.05
+    target_pct: float = 0.04   # 4%
+    stop_loss_pct: float = 0.02  # 2%
     hold_max_bars: int = 30
     use_trailing: bool = True
     trail_be_pct: float = 0.04
@@ -398,18 +398,41 @@ class LiveBot:
     def _save_bot_state(self):
         """Persist internal bot state to Supabase 'bot_states' table."""
         try:
+            # Build a rich snapshot of every open position so a restart can fully recover
+            active_trades_snapshot = {}
+            for norm_sym, s in self._pos_state.items():
+                active_trades_snapshot[norm_sym] = {
+                    "symbol":           s.get("symbol", norm_sym),
+                    "entry_price":      s.get("entry_price"),
+                    "entry_time":       s.get("entry_time"),
+                    "notional":         s.get("notional"),
+                    "bars_held":        s.get("bars_held", 0),
+                    "last_held_ts":     s.get("last_held_ts"),
+                    "current_stop":     s.get("current_stop"),
+                    "target_price":     s.get("target_price"),
+                    "trail_mode":       s.get("trail_mode", "NONE"),
+                    "regime":           s.get("regime"),
+                    "quality_score":    s.get("quality_score"),
+                    "order_id":         s.get("order_id"),
+                    "cornix_status":    s.get("cornix_status", "ACTIVE"),
+                    "last_updated":     datetime.now(timezone.utc).isoformat(),
+                }
             state = {
-                "pos_state": self._pos_state,
-                "daily_loss": self._daily_loss,
-                "consecutive_losses": self._consecutive_losses,
-                "last_scan_time": self._last_scan_time
+                "pos_state":            active_trades_snapshot,
+                "daily_loss":           self._daily_loss,
+                "consecutive_losses":   self._consecutive_losses,
+                "last_scan_time":       self._last_scan_time,
+                "saved_at":             datetime.now(timezone.utc).isoformat(),
+                "bot_version":          "2.1",
+                "total_open_positions": len(active_trades_snapshot),
             }
             record = {
-                "bot_id": self.bot_id,
-                "state": state,
+                "bot_id":     self.bot_id,
+                "state":      state,
                 "updated_at": datetime.now(timezone.utc).isoformat()
             }
             _supabase_upsert_with_retry("bot_states", [record], on_conflict="bot_id")
+            self._log(f"✅ State saved: {len(active_trades_snapshot)} active positions")
         except Exception as e:
             self._log(f"Error saving bot state: {e}")
 
@@ -425,7 +448,19 @@ class LiveBot:
                 self._pos_state = state.get("pos_state", {})
                 self._daily_loss = float(state.get("daily_loss", 0.0))
                 self._consecutive_losses = int(state.get("consecutive_losses", 0))
-                self._log(f"Bot state restored for {self.bot_id}.")
+                saved_at = state.get("saved_at", "unknown")
+                positions_count = len(self._pos_state)
+                self._log(f"✅ State restored from {saved_at} — {positions_count} open positions")
+                for sym, pos_data in self._pos_state.items():
+                    entry = pos_data.get('entry_price', 0) or 0
+                    entry_time = pos_data.get('entry_time', '?')
+                    bars = pos_data.get('bars_held', 0)
+                    self._log(
+                        f"  → {sym}: entry={float(entry):.6f} "
+                        f"time={entry_time} bars={bars}"
+                    )
+            else:
+                self._log(f"No saved state found for bot_id={self.bot_id}")
         except Exception as e:
             self._log(f"Error loading bot state: {e}")
 
@@ -1317,8 +1352,9 @@ class LiveBot:
 
     def _format_cornix_close_signal(self, symbol: str) -> str:
         """Build a Cornix-compatible CLOSE signal message."""
-        # Standard Cornix format to close all entries for a symbol
-        return f"CLOSE #{symbol}"
+        # Cornix expects the symbol WITHOUT a slash (e.g. CLOSE #ALICEUSDT not CLOSE #ALICE/USDT)
+        clean_symbol = (symbol or "").replace("/", "")
+        return f"CLOSE #{clean_symbol}"
 
     def _send_telegram_signal(self, symbol: str, price: float, notional: float = 0, king_conf: float = 0, council_conf: Optional[float] = None, bars: pd.DataFrame = None, action: str = "BUY"):
         """Send a trade signal to Telegram in Cornix-compatible format."""
@@ -1457,8 +1493,8 @@ class LiveBot:
             save_to_supabase=_parse_bool(_read_env("LIVE_SAVE_TO_SUPABASE", "0"), False),
             
             # --- New Advanced Risk & Strategy ---
-            target_pct=_parse_float(_read_env("LIVE_TARGET_PCT", "0.15"), 0.15),
-            stop_loss_pct=_parse_float(_read_env("LIVE_STOP_LOSS_PCT", "0.08"), 0.08),
+            target_pct=_parse_float(_read_env("LIVE_TARGET_PCT", "0.04"), 0.04),        # 4%
+            stop_loss_pct=_parse_float(_read_env("LIVE_STOP_LOSS_PCT", "0.02"), 0.02),  # 2%
             hold_max_bars=int(float(_read_env("LIVE_HOLD_MAX_BARS", "30") or 30)),
             daily_loss_limit=_parse_float(_read_env("DAILY_LOSS_LIMIT", "500"), 500.0),
             max_consecutive_losses=int(float(_read_env("MAX_CONSECUTIVE_LOSSES", "3") or 3)),
@@ -2674,6 +2710,10 @@ class LiveBot:
                         break
                     self._current_activity = f"Idle - Next scan in {self.config.poll_seconds - secs}s"
                     time.sleep(1)
+                    # Periodic heartbeat save every 5 minutes
+                    now_dt = datetime.now(timezone.utc)
+                    if now_dt.minute % 5 == 0 and now_dt.second == 0:
+                        self._save_bot_state()
             
             self._current_activity = "Stopped"
             self._log("Bot loop ended.")
