@@ -1334,6 +1334,12 @@ class LiveBot:
                 meta_info = f"\n📊 Regime: {regime}\n🎯 Quality: {quality:.0f}"
         except: pass
 
+        # Calculate % from entry (first entry price as reference)
+        ref_entry = entries[0]
+        tp_pct = ((tp - ref_entry) / ref_entry * 100) if ref_entry > 0 else 0
+        sl_pct = ((sl - ref_entry) / ref_entry * 100) if ref_entry > 0 else 0
+        rr_ratio = abs(tp_pct / sl_pct) if sl_pct != 0 else 0
+
         msg = (
             f"*#ARTORO SIGNAL: {symbol}*\n"
             f"Signal Type: Regular (Long){mode_label}\n"
@@ -1343,10 +1349,12 @@ class LiveBot:
             f"{entry_lines}\n"
             f"\n"
             f"*Take-Profit Targets:*\n"
-            f"1) {tp}\n"
+            f"1) {tp}  ✅ `+{tp_pct:.2f}%`\n"
             f"\n"
             f"*Stop Targets:*\n"
-            f"1) {sl}\n"
+            f"1) {sl}  🛑 `{sl_pct:.2f}%`\n"
+            f"\n"
+            f"⚖️ *Risk/Reward:* `1 : {rr_ratio:.1f}`\n"
         )
         return msg
 
@@ -1357,7 +1365,13 @@ class LiveBot:
         return f"CLOSE #{clean_symbol}"
 
     def _send_telegram_signal(self, symbol: str, price: float, notional: float = 0, king_conf: float = 0, council_conf: Optional[float] = None, bars: pd.DataFrame = None, action: str = "BUY"):
-        """Send a trade signal to Telegram in Cornix-compatible format."""
+        """Send a trade signal to Telegram in Cornix-compatible format.
+        
+        Exit levels are unified with Artoro AI config:
+        - MANUAL     → uses config target_pct / stop_loss_pct directly
+        - ATR_SMART  → uses ATR-calculated levels
+        - HYBRID     → uses the safer (tighter) of ATR vs config % (mirrors Artoro AI logic)
+        """
         if not self.telegram_bridge or self.config.execution_mode not in ["TELEGRAM", "BOTH"]:
             return
 
@@ -1367,13 +1381,44 @@ class LiveBot:
             tp_price = None
             sl_price = None
             mode = getattr(self.config, 'exit_mode', 'hybrid').lower()
-            if mode != "manual" and bars is not None and not bars.empty:
-                try:
-                    tp_price, sl_price = self._calculate_atr_exits(bars, price)
-                except Exception as e:
-                    self._log(f"ATR signal calc error: {e}")
+
+            # Config-based levels (always computed as baseline)
+            cfg_tp = price * (1 + self.config.target_pct)
+            cfg_sl = price * (1 - self.config.stop_loss_pct)
+
+            if mode == "manual":
+                # Use Artoro AI config % directly → syncs with admin dashboard settings
+                tp_price = cfg_tp
+                sl_price = cfg_sl
+                self._log(f"SIGNAL SYNC [{symbol}]: MANUAL → TP={cfg_tp:.4f} (+{self.config.target_pct*100:.1f}%) SL={cfg_sl:.4f} (-{self.config.stop_loss_pct*100:.1f}%)")
+
+            elif mode == "atr_smart":
+                # Pure ATR levels
+                if bars is not None and not bars.empty:
+                    try:
+                        tp_price, sl_price = self._calculate_atr_exits(bars, price)
+                    except Exception as e:
+                        self._log(f"ATR signal calc error: {e}")
+                        tp_price, sl_price = cfg_tp, cfg_sl
+
+            else:  # HYBRID — safer of ATR vs config (matches Artoro AI HYBRID logic)
+                atr_tp, atr_sl = cfg_tp, cfg_sl
+                if bars is not None and not bars.empty:
+                    try:
+                        atr_tp, atr_sl = self._calculate_atr_exits(bars, price)
+                    except Exception as e:
+                        self._log(f"ATR signal calc error: {e}")
+                # HYBRID: tighter TP (lower) and tighter SL (higher = closer to price) wins
+                tp_price = min(atr_tp, cfg_tp)
+                sl_price = max(atr_sl, cfg_sl)
+                self._log(
+                    f"SIGNAL SYNC [{symbol}]: HYBRID → "
+                    f"TP={tp_price:.4f} (cfg={cfg_tp:.4f} atr={atr_tp:.4f}) | "
+                    f"SL={sl_price:.4f} (cfg={cfg_sl:.4f} atr={atr_sl:.4f})"
+                )
+
             msg = self._format_cornix_signal(symbol, price, tp_price=tp_price, sl_price=sl_price)
-        
+
         self.telegram_bridge.send_notification(msg)
 
     def _save_signal_record(self, symbol: str, price: float, notional: float, king_conf: float, council_conf: Optional[float] = None, action: str = "BUY", entry_price: Optional[float] = None, pnl: Optional[float] = None, reason: str = "SIGNAL"):
