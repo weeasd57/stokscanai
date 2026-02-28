@@ -5,6 +5,7 @@ import urllib.request
 import urllib.error
 import pickle
 import time
+import hashlib
 import warnings
 # Suppress specific FutureWarnings from libraries like 'ta'
 warnings.filterwarnings("ignore", category=FutureWarning)

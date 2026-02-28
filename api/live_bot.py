@@ -48,7 +48,7 @@ class BotConfig:
     # Risk
     max_open_positions: int = 8
     enable_sells: bool = True
-    target_pct: float = 0.04   # 4%
+    target_pct: float = 0.06   # 6%
     stop_loss_pct: float = 0.02  # 2%
     hold_max_bars: int = 30
     use_trailing: bool = True
@@ -1278,9 +1278,9 @@ class LiveBot:
         """
         precision = self._get_precision(price)
 
-        # Entry zone: 4 ladder entries spread below current price
-        # Tightened entries (0.2%, 0.8%, 1.5%, 2.5%) for better matching with channel fills
-        entry_offsets = [0.002, 0.008, 0.015, 0.025]
+        # Entry zone: 2 ladder entries spread below current price
+        # Optimized for RR 1:3 (0.2%, 1.0%)
+        entry_offsets = [0.002, 0.01]
         entries = []
         for i, offset in enumerate(entry_offsets):
             val = round(price * (1 - offset), precision)
@@ -1354,7 +1354,7 @@ class LiveBot:
             f"*Stop Targets:*\n"
             f"1) {sl}  🛑 `{sl_pct:.2f}%`\n"
             f"\n"
-            f"⚖️ *Risk/Reward:* `1 : {rr_ratio:.1f}`\n"
+            f"⚖️ *Risk/Reward:* `1 : {rr_ratio:.1f}` ✅\n"
         )
         return msg
 
@@ -1538,7 +1538,7 @@ class LiveBot:
             save_to_supabase=_parse_bool(_read_env("LIVE_SAVE_TO_SUPABASE", "0"), False),
             
             # --- New Advanced Risk & Strategy ---
-            target_pct=_parse_float(_read_env("LIVE_TARGET_PCT", "0.04"), 0.04),        # 4%
+            target_pct=_parse_float(_read_env("LIVE_TARGET_PCT", "0.06"), 0.06),        # 6%
             stop_loss_pct=_parse_float(_read_env("LIVE_STOP_LOSS_PCT", "0.02"), 0.02),  # 2%
             hold_max_bars=int(float(_read_env("LIVE_HOLD_MAX_BARS", "30") or 30)),
             daily_loss_limit=_parse_float(_read_env("DAILY_LOSS_LIMIT", "500"), 500.0),

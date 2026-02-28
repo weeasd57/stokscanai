@@ -47,17 +47,17 @@ def test_precision_and_laddering():
                 continue
             
             if in_entries and ")" in line:
-                entries.append(float(line.split(")")[1].strip()))
+                entries.append(float(line.split(")")[1].strip().split()[0]))
             if in_tp and ")" in line:
-                tp = float(line.split(")")[1].strip())
+                tp = float(line.split(")")[1].strip().split()[0])
             if in_sl and ")" in line:
-                sl = float(line.split(")")[1].strip())
+                sl = float(line.split(")")[1].strip().split()[0])
         
         # Validations
-        assert len(entries) == 4, f"Expected 4 entries, got {len(entries)}"
-        assert entries[0] > entries[1] > entries[2] > entries[3], f"Entries not strictly decreasing: {entries}"
+        assert len(entries) == 2, f"Expected 2 entries, got {len(entries)}"
+        assert entries[0] > entries[1], f"Entries not strictly decreasing: {entries}"
         assert tp > entries[0], f"TP {tp} must be above first entry {entries[0]}"
-        assert sl < entries[3], f"SL {sl} must be below last entry {entries[3]}"
+        assert sl < entries[1], f"SL {sl} must be below last entry {entries[1]}"
         assert "Exchanges:" not in msg, "Exchanges section should be removed"
         
         print(f"DONE: {symbol} passed validation.")
