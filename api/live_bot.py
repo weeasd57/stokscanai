@@ -134,6 +134,9 @@ class BotConfig:
     king_model_path: str = "api/models/KING_CRYPTO 👑.pkl"
     council_model_path: str = "api/models/COUNCIL_CRYPTO.pkl"
 
+    # Cornix Direct Integration
+    cornix_webhook_url: Optional[str] = None
+
 def _read_env(name: str, default: Optional[str] = None, required: bool = False) -> Optional[str]:
     v = os.getenv(name, default)
     if required and not v:
@@ -1364,6 +1367,31 @@ class LiveBot:
         clean_symbol = (symbol or "").replace("/", "")
         return f"CLOSE #{clean_symbol}"
 
+    def _send_cornix_webhook_signal(self, symbol: str, price: float, action: str, url: str, tp_price: Optional[float] = None, sl_price: Optional[float] = None):
+        """Helper to send JSON payload to Cornix Webhook."""
+        import httpx
+        try:
+            payload = {
+                "action": action, # "buy" or "close"
+                "symbol": symbol,
+                "price": price,
+                "entry": [price],
+                "take_profit": [tp_price] if tp_price else [],
+                "stop_loss": sl_price if sl_price else 0.0,
+                "metadata": {
+                    "source": "Artoro AI",
+                    "bot_name": self.config.name
+                }
+            }
+            with httpx.Client() as client:
+                r = client.post(url, json=payload, timeout=10.0)
+                if r.status_code == 200:
+                    self._log(f"SUCCESS: Direct Cornix Signal sent for {symbol} ✅")
+                else:
+                    self._log(f"ERROR: Cornix Webhook failed ({r.status_code}): {r.text}")
+        except Exception as e:
+            self._log(f"EXCEPTION sending Cornix Webhook: {e}")
+
     def _send_telegram_signal(self, symbol: str, price: float, notional: float = 0, king_conf: float = 0, council_conf: Optional[float] = None, bars: pd.DataFrame = None, action: str = "BUY"):
         """Send a trade signal to Telegram in Cornix-compatible format.
         
@@ -1372,54 +1400,46 @@ class LiveBot:
         - ATR_SMART  → uses ATR-calculated levels
         - HYBRID     → uses the safer (tighter) of ATR vs config % (mirrors Artoro AI logic)
         """
-        if not self.telegram_bridge or self.config.execution_mode not in ["TELEGRAM", "BOTH"]:
-            return
+        tp_price = None
+        sl_price = None
 
-        if action.upper() == "SELL":
-            msg = self._format_cornix_close_signal(symbol)
-        else:
-            tp_price = None
-            sl_price = None
+        if action.upper() == "BUY":
             mode = getattr(self.config, 'exit_mode', 'hybrid').lower()
-
-            # Config-based levels (always computed as baseline)
+            # Config-based levels (baseline)
             cfg_tp = price * (1 + self.config.target_pct)
             cfg_sl = price * (1 - self.config.stop_loss_pct)
 
             if mode == "manual":
-                # Use Artoro AI config % directly → syncs with admin dashboard settings
-                tp_price = cfg_tp
-                sl_price = cfg_sl
-                self._log(f"SIGNAL SYNC [{symbol}]: MANUAL → TP={cfg_tp:.4f} (+{self.config.target_pct*100:.1f}%) SL={cfg_sl:.4f} (-{self.config.stop_loss_pct*100:.1f}%)")
-
-            elif mode == "atr_smart":
-                # Pure ATR levels
-                if bars is not None and not bars.empty:
-                    try:
-                        tp_price, sl_price = self._calculate_atr_exits(bars, price)
-                    except Exception as e:
-                        self._log(f"ATR signal calc error: {e}")
-                        tp_price, sl_price = cfg_tp, cfg_sl
-
-            else:  # HYBRID — safer of ATR vs config (matches Artoro AI HYBRID logic)
+                tp_price, sl_price = cfg_tp, cfg_sl
+                self._log(f"SIGNAL SYNC [{symbol}]: MANUAL → TP={cfg_tp:.4f} SL={cfg_sl:.4f}")
+            elif mode == "atr_smart" and bars is not None and not bars.empty:
+                try:
+                    tp_price, sl_price = self._calculate_atr_exits(bars, price)
+                except Exception as e:
+                    self._log(f"ATR signal calc error: {e}")
+                    tp_price, sl_price = cfg_tp, cfg_sl
+            else: # HYBRID
                 atr_tp, atr_sl = cfg_tp, cfg_sl
                 if bars is not None and not bars.empty:
                     try:
                         atr_tp, atr_sl = self._calculate_atr_exits(bars, price)
-                    except Exception as e:
-                        self._log(f"ATR signal calc error: {e}")
-                # HYBRID: tighter TP (lower) and tighter SL (higher = closer to price) wins
+                    except: pass
                 tp_price = min(atr_tp, cfg_tp)
                 sl_price = max(atr_sl, cfg_sl)
-                self._log(
-                    f"SIGNAL SYNC [{symbol}]: HYBRID → "
-                    f"TP={tp_price:.4f} (cfg={cfg_tp:.4f} atr={atr_tp:.4f}) | "
-                    f"SL={sl_price:.4f} (cfg={cfg_sl:.4f} atr={atr_sl:.4f})"
-                )
+        
+        # 1. Direct Cornix Webhook (New)
+        if hasattr(self.config, "cornix_webhook_url") and self.config.cornix_webhook_url:
+            cornix_action = "close" if action.upper() == "SELL" else "buy"
+            self._send_cornix_webhook_signal(symbol, price, cornix_action, self.config.cornix_webhook_url, tp_price=tp_price, sl_price=sl_price)
 
-            msg = self._format_cornix_signal(symbol, price, tp_price=tp_price, sl_price=sl_price)
-
-        self.telegram_bridge.send_notification(msg)
+        # 2. Telegram (Existing/Fallback)
+        # Even if Cornix Webhook is on, we might still want the TG channel as a log/backup
+        if self.telegram_bridge:
+            if action.upper() == "SELL":
+                msg = self._format_cornix_close_signal(symbol)
+            else:
+                msg = self._format_cornix_signal(symbol, price, tp_price=tp_price, sl_price=sl_price)
+            self.telegram_bridge.send_notification(msg)
 
     def _save_signal_record(self, symbol: str, price: float, notional: float, king_conf: float, council_conf: Optional[float] = None, action: str = "BUY", entry_price: Optional[float] = None, pnl: Optional[float] = None, reason: str = "SIGNAL"):
         """Save a signal as a virtual trade in the history so it shows up in UI."""
@@ -1445,6 +1465,52 @@ class LiveBot:
         self._trades.append(trade)
         self._save_trade_persistent(trade)
         self._log(f"{action} SIGNAL RECORDED: {symbol} @ {price:.4f} Reason: {reason}")
+
+    def handle_cornix_event(self, event_data: dict):
+        """Handle incoming updates from Cornix webhooks."""
+        action = event_data.get("action", "").lower()
+        symbol = event_data.get("symbol", "")
+        price = float(event_data.get("price", 0))
+        amount = float(event_data.get("amount", 0))
+        pnl = float(event_data.get("pnl", 0))
+        
+        norm = _normalize_symbol(symbol)
+        self._log(f"CORNIX EVENT: {action.upper()} for {symbol} @ {price:.4f}")
+
+        with self._lock:
+            if action == "trade_opened":
+                # Update or create position state with actual Cornix data
+                self._pos_state[norm] = {
+                    "entry_price": price,
+                    "entry_time": datetime.now(timezone.utc).isoformat(),
+                    "bars_held": 0,
+                    "amount": amount,
+                    "notional": price * amount if amount > 0 else self.config.max_notional_usd,
+                    "status": "OPEN",
+                    "source": "CORNIX"
+                }
+                self._log(f"Synced {symbol} OPEN with Cornix. Entry: {price:.4f}")
+                
+            elif action in ["target_hit", "stop_loss_hit", "trade_closed"]:
+                state = self._pos_state.get(norm, {})
+                entry_price = state.get("entry_price", price) # Fallback to current price if unknown
+                
+                # Record the sell/close action
+                reason = action.upper()
+                self._save_signal_record(
+                    symbol, price, amount * price if amount > 0 else 0, 
+                    king_conf=0, action="SELL", 
+                    entry_price=entry_price, pnl=pnl, reason=reason
+                )
+                
+                # Remove from active positions if closed
+                if action == "trade_closed" or (action in ["target_hit", "stop_loss_hit"]):
+                    if norm in self._pos_state:
+                        self._pos_state.pop(norm)
+                        self._log(f"Synced {symbol} CLOSE with Cornix. Exit: {price:.4f} PnL: {pnl:.2f}")
+
+            # Save state after update
+            self._save_bot_state()
 
     def send_test_notification(self, notify_type: str):
         """Send a mock notification to Telegram for testing purposes."""

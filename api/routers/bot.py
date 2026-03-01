@@ -48,6 +48,7 @@ class BotConfigUpdate(BaseModel):
     execution_mode: Optional[str] = None
     trading_mode: Optional[str] = None
     use_auto_tune: Optional[bool] = None
+    cornix_webhook_url: Optional[str] = None
     telegram_chat_id: Optional[int] = None
     telegram_token: Optional[str] = None
 
@@ -146,6 +147,31 @@ def update_bot_config(config: BotConfigUpdate, bot_id: str = "primary"):
     except Exception as e:
         import traceback
         print(f"Error in update_bot_config: {e}")
+        print(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=str(e))
+
+class CornixWebhookPayload(BaseModel):
+    action: str
+    symbol: str
+    price: float
+    amount: Optional[float] = 0.0
+    pnl: Optional[float] = 0.0
+
+@router.post("/cornix_webhook")
+async def cornix_webhook(payload: CornixWebhookPayload, bot_id: str = "primary"):
+    """Webhook endpoint for Cornix updates."""
+    try:
+        bot = bot_manager.get_bot(bot_id)
+        if not bot:
+            raise HTTPException(status_code=404, detail=f"Bot {bot_id} not found")
+        
+        # Process event in background or synchronously depending on complexity
+        # For now, synchronous is fine for internal state updates
+        bot.handle_cornix_event(payload.dict())
+        return {"ok": True}
+    except Exception as e:
+        import traceback
+        print(f"Error in cornix_webhook: {e}")
         print(traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
 
