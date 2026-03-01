@@ -136,6 +136,8 @@ class BotConfig:
 
     # Cornix Direct Integration
     cornix_webhook_url: Optional[str] = None
+    cornix_uuid: Optional[str] = None
+    cornix_secret: Optional[str] = None
 
 def _read_env(name: str, default: Optional[str] = None, required: bool = False) -> Optional[str]:
     v = os.getenv(name, default)
@@ -1371,22 +1373,29 @@ class LiveBot:
         """Helper to send JSON payload to Cornix Webhook."""
         import httpx
         try:
+            # Clean symbol for Cornix (e.g. BTC/USDT -> BTCUSDT)
+            clean_sym = symbol.replace("/", "").upper()
+            
+            # Map action to user's specified Cornix actions
+            # User provided: "entry" for opening and "take_profit" for closing
+            cornix_action = "entry" if action == "buy" else "take_profit"
+
             payload = {
-                "action": action, # "buy" or "close"
-                "symbol": symbol,
+                "uuid": getattr(self.config, "cornix_uuid", ""),
+                "source": "tradingview_signal_bot",
+                "secret": getattr(self.config, "cornix_secret", ""),
+                "symbol": clean_sym,
+                "action": cornix_action,
+                # Advanced fields (Cornix will ignore them if not in Advanced mode)
                 "price": price,
                 "entry": [price],
                 "take_profit": [tp_price] if tp_price else [],
-                "stop_loss": sl_price if sl_price else 0.0,
-                "metadata": {
-                    "source": "Artoro AI",
-                    "bot_name": self.config.name
-                }
+                "stop_loss": sl_price if sl_price else 0.0
             }
             with httpx.Client() as client:
                 r = client.post(url, json=payload, timeout=10.0)
                 if r.status_code == 200:
-                    self._log(f"SUCCESS: Direct Cornix Signal sent for {symbol} ✅")
+                    self._log(f"SUCCESS: Direct Cornix Signal ({cornix_action}) sent for {symbol} ✅")
                 else:
                     self._log(f"ERROR: Cornix Webhook failed ({r.status_code}): {r.text}")
         except Exception as e:
@@ -1620,6 +1629,9 @@ class LiveBot:
             king_model_path=str(_read_env("LIVE_KING_MODEL_PATH", "api/models/KING_CRYPTO 👑.pkl")),
             council_model_path=str(_read_env("LIVE_COUNCIL_MODEL_PATH", "api/models/COUNCIL_CRYPTO.pkl")),
             max_open_positions=int(float(_read_env("LIVE_MAX_OPEN_POSITIONS", "5") or 5)),
+            cornix_webhook_url=_read_env("CORNIX_WEBHOOK_URL"),
+            cornix_uuid=_read_env("CORNIX_UUID"),
+            cornix_secret=_read_env("CORNIX_SECRET"),
         )
 
     def update_config(self, updates: Dict[str, Any]):

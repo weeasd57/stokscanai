@@ -49,6 +49,8 @@ class BotConfigUpdate(BaseModel):
     trading_mode: Optional[str] = None
     use_auto_tune: Optional[bool] = None
     cornix_webhook_url: Optional[str] = None
+    cornix_uuid: Optional[str] = None
+    cornix_secret: Optional[str] = None
     telegram_chat_id: Optional[int] = None
     telegram_token: Optional[str] = None
 
