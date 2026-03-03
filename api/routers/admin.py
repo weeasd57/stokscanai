@@ -1502,6 +1502,69 @@ async def stop_ppo_training():
         PPO_TRAINING_STATE["version"] += 1
         return {"status": "success", "message": "PPO training stop signal sent"}
 
+@router.get("/ppo/models")
+async def get_ppo_models():
+    """List all saved PPO models in api/models/ppo."""
+    try:
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        ppo_dir = os.path.join(base_dir, "models", "ppo")
+        if not os.path.exists(ppo_dir):
+            return {"models": []}
+            
+        models = []
+        for f in os.listdir(ppo_dir):
+            if f.endswith(".zip"):
+                path = os.path.join(ppo_dir, f)
+                stat = os.stat(path)
+                models.append({
+                    "name": f,
+                    "size_mb": round(stat.st_size / (1024 * 1024), 2),
+                    "created_at": datetime.fromtimestamp(stat.st_ctime).isoformat()
+                })
+        
+        # Sort by creation time descending
+        models.sort(key=lambda x: x["created_at"], reverse=True)
+        return {"models": models}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.delete("/ppo/delete/{filename}")
+async def delete_ppo_model(filename: str):
+    """Delete a saved PPO model."""
+    try:
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        ppo_dir = os.path.join(base_dir, "models", "ppo")
+        # Sanitize filename to prevent directory traversal
+        filename = os.path.basename(filename)
+        path = os.path.join(ppo_dir, filename)
+        
+        if not filename.endswith(".zip"):
+            raise HTTPException(status_code=400, detail="Invalid filename")
+            
+        if os.path.exists(path):
+            os.remove(path)
+            return {"status": "success", "message": f"Deleted {filename}"}
+        else:
+            raise HTTPException(status_code=404, detail="Model not found")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/ppo/download/{filename}")
+async def download_ppo_model(filename: str):
+    """Download a saved PPO model."""
+    try:
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        ppo_dir = os.path.join(base_dir, "models", "ppo")
+        filename = os.path.basename(filename)
+        path = os.path.join(ppo_dir, filename)
+        
+        if not os.path.exists(path):
+            raise HTTPException(status_code=404, detail="Model not found")
+            
+        return FileResponse(path, filename=filename, media_type='application/zip')
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 @router.get("/train/summary")
 async def get_last_training_summary():

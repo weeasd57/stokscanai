@@ -198,7 +198,7 @@ def train_ppo(
 
         # 4. Save
         base_dir = os.path.dirname(os.path.abspath(__file__))
-        models_dir = os.path.join(base_dir, "models")
+        models_dir = os.path.join(base_dir, "models", "ppo")
         os.makedirs(models_dir, exist_ok=True)
         
         save_path = os.path.join(models_dir, f"{model_name}.zip")
