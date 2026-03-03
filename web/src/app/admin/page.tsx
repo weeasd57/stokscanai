@@ -17,6 +17,7 @@ import BacktestTab from "./components/BacktestTab";
 import SymbolDrillDownModal from "./components/SymbolDrillDownModal";
 import RecalculateDialog from "./components/RecalculateDialog";
 import LiveBotTab from "./components/LiveBotTab";
+import PPOTrainingTab from "./components/PPOTrainingTab";
 
 export default function AdminPage() {
     const { t } = useLanguage();
@@ -43,7 +44,7 @@ export default function AdminPage() {
     const [currentPage, setCurrentPage] = useState(1);
     const [pageSize, setPageSize] = useState(100);
 
-    const [activeMainTab, setActiveMainTab] = useState<"data" | "ai" | "test" | "scan" | "backtest" | "bot">("data");
+    const [activeMainTab, setActiveMainTab] = useState<"data" | "ai" | "test" | "scan" | "backtest" | "bot" | "ppo">("data");
     const [dataSourcesTab, setDataSourcesTab] = useState<"prices" | "funds">("prices");
 
     // State restoration
@@ -666,6 +667,16 @@ export default function AdminPage() {
                         loadingModels={loadingModels}
                         trainedModels={trainedModels}
                         handleDownloadModel={handleDownloadModel}
+                        setIsTraining={setIsTraining}
+                    />
+                ) : activeMainTab === "ppo" ? (
+                    <PPOTrainingTab
+                        dbInventory={dbInventory}
+                        trainingExchange={trainingExchange}
+                        setTrainingExchange={setTrainingExchange}
+                        isExchangeDropdownOpen={isExchangeDropdownOpen}
+                        setIsExchangeDropdownOpen={setIsExchangeDropdownOpen}
+                        isTraining={isTraining}
                         setIsTraining={setIsTraining}
                     />
                 ) : activeMainTab === "scan" ? (

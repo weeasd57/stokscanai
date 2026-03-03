@@ -100,4 +100,18 @@ body {
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
     background: rgba(99, 102, 241, 0.4);
   }
+
+  @keyframes ppo-flow {
+    from {
+      stroke-dashoffset: 20;
+    }
+    to {
+      stroke-dashoffset: 0;
+    }
+  }
+
+  .ppo-animate-flow {
+    stroke-dasharray: 4 4;
+    animation: ppo-flow 0.5s linear infinite;
+  }
 }

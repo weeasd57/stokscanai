@@ -1522,51 +1522,25 @@ class LiveBot:
             self._save_bot_state()
 
     def send_test_notification(self, notify_type: str):
-        """Send a mock notification to Telegram for testing purposes."""
-        if not self.telegram_bridge:
-            return False, "Telegram bridge not initialized"
+        """Send a mock notification for testing purposes (Telegram + Webhooks)."""
+        symbol = "BTC/USDT"
+        price = 65432.10
         
-        symbol = "TEST/USD"
-        price = 1234.56
-        amount = 500.0
-        
-        if notify_type == "buy":
-             # Simulate state for test
-             self._pos_state[_normalize_symbol(symbol)] = {
-                 "regime": "BULL",
-                 "quality_score": 85
-             }
-             msg = (
-                f"TEST BUY EXECUTED\n"
-                f"━━━━━━━━━━━━━━━\n"
-                f"💎 Symbol: {symbol}\n"
-                f"💰 Price: ${price:,.2f}\n"
-                f"💵 Amount: ${amount:,.2f}\n"
-                f"📊 Regime: BULL\n"
-                f"🎯 Quality: 85\n"
-                f"━━━━━━━━━━━━━━━\n"
-                f"🤖 Bot: {self.config.name} (TEST)"
-            )
-        elif notify_type == "sell":
-            pnl = 25.50
-            pnl_pct = 5.10
-            msg = (
-                f"TEST SELL EXECUTED\n"
-                f"━━━━━━━━━━━━━━━\n"
-                f"💎 Symbol: {symbol}\n"
-                f"💰 Exit Price: ${price:,.2f} ({pnl_pct:+.2f}%)\n"
-                f"💵 PnL: ${pnl:,.2f}\n"
-                f"📈 Daily PnL: $125.00\n"
-                f"━━━━━━━━━━━━━━━\n"
-                f"🤖 Bot: {self.config.name} (TEST)"
-            )
-        elif notify_type == "signal":
-            msg = self._format_cornix_signal(symbol, price)
-        else:
-            return False, f"Unknown notification type: {notify_type}"
+        has_tg = self.telegram_bridge is not None
+        has_webhook = hasattr(self.config, "cornix_webhook_url") and self.config.cornix_webhook_url
+
+        if notify_type in ["buy", "sell", "signal"]:
+            action = "SELL" if notify_type == "sell" else "BUY"
+            # This triggers both Telegram (if available) and Cornix Webhook (if available)
+            self._send_telegram_signal(symbol, price, action=action)
+            return True, f"Test {notify_type.upper()} sent (TG={has_tg}, Webhook={has_webhook})"
             
-        self.telegram_bridge.send_notification(msg)
-        return True, "Notification sent"
+        # Generic message test (Telegram only)
+        if has_tg:
+            self.telegram_bridge.send_notification(f"🔔 TEST: {notify_type.upper()} notification from {self.config.name}")
+            return True, "Test notification sent to Telegram"
+            
+        return False, "No notification delivery method configured (Telegram or Webhook)"
 
     def _build_default_config(self) -> BotConfig:
         # Load default coins from CRYPTO.json to avoid hardcoded lists
@@ -2880,9 +2854,24 @@ class BotManager:
                         if "coins" in config_dict and isinstance(config_dict["coins"], str):
                             config_dict["coins"] = _parse_coins(config_dict["coins"])
                         
+                        # Merge environment variables if missing or None in loaded config
+                        for env_key, config_key in [
+                            ("CORNIX_WEBHOOK_URL", "cornix_webhook_url"),
+                            ("CORNIX_UUID", "cornix_uuid"),
+                            ("CORNIX_SECRET", "cornix_secret")
+                        ]:
+                            if config_dict.get(config_key) is None:
+                                config_dict[config_key] = _read_env(env_key)
+
                         cfg = BotConfig(**config_dict)
                         self._bots[bot_id] = LiveBot(bot_id=bot_id, config=cfg)
                         loaded_ids.add(bot_id)
+                        
+                        # Debug log for webhook detection
+                        if cfg.cornix_webhook_url:
+                            print(f"[BotManager] ✅ Bot '{bot_id}' config using Webhook: {cfg.cornix_webhook_url[:20]}...")
+                        else:
+                            print(f"[BotManager] ❌ Bot '{bot_id}' config has NO Webhook URL")
                 if loaded_ids:
                     print(f"Loaded {len(loaded_ids)} bot(s) from Supabase.")
         except Exception as e:

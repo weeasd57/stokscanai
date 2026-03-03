@@ -1,7 +1,7 @@
 import os
 import json
 import requests
-from typing import List, Optional, Dict, Literal, Tuple
+from typing import List, Optional, Dict, Literal, Tuple, Any
 from collections import defaultdict
 from fastapi import APIRouter, BackgroundTasks, HTTPException
 from fastapi.responses import JSONResponse, StreamingResponse, FileResponse
@@ -100,6 +100,21 @@ LOCAL_TRAINING_STATE = {
     "last_update": None,
 }
 _local_training_lock = threading.RLock()
+
+PPO_TRAINING_STATE = {
+    "running": False,
+    "exchange": None,
+    "started_at": None,
+    "completed_at": None,
+    "error": None,
+    "last_message": None,
+    "phase": None,
+    "stats": {},
+    "logs": [],
+    "version": 0,
+    "last_update": None,
+}
+_ppo_training_lock = threading.RLock()
 
 def list_local_models() -> List[str]:
     base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -1101,6 +1116,23 @@ class TrainTriggerRequest(BaseModel):
     useIntraday: bool = False
     timeframe: Literal["1m", "1h", "1d"] = "1h"
 
+class PPOTrainRequest(BaseModel):
+    exchange: str
+    model_name: Optional[str] = None
+    net_arch: List[int] = [64, 64]
+    total_timesteps: int = 50000
+    learning_rate: float = 3e-4
+    n_steps: int = 2048
+    batch_size: int = 64
+    n_epochs: int = 10
+    gamma: float = 0.99
+    clip_range: float = 0.2
+    ent_coef: float = 0.0
+    vf_coef: float = 0.5
+    initial_balance: float = 10000.0
+    max_steps: int = 1000
+    reward_mode: str = "simple"
+
 @router.post("/train/trigger")
 async def trigger_training(req: TrainTriggerRequest):
     _reload_env()
@@ -1271,6 +1303,204 @@ async def trigger_local_training(req: TrainTriggerRequest, background_tasks: Bac
         n_trials=req.optunaTrials
     )
     return {"status": "success", "message": f"Local training started for {req.exchange}. Check server logs for progress."}
+
+@router.post("/ppo/train")
+async def trigger_ppo_training(req: PPOTrainRequest, background_tasks: BackgroundTasks):
+    try:
+        from api.ppo_training import train_ppo
+        from api.stock_ai import get_stock_data_eodhd, add_technical_indicators
+    except ImportError as e:
+        raise HTTPException(status_code=500, detail=f"Failed to import PPO modules: {e}")
+
+    _init_supabase()
+    api_key = os.getenv("EODHD_API_KEY")
+    client = APIClient(api_key) if api_key else None
+
+    with _ppo_training_lock:
+        if PPO_TRAINING_STATE["running"]:
+             raise HTTPException(status_code=400, detail="A PPO training task is already running")
+        
+        PPO_TRAINING_STATE.update({
+            "running": True,
+            "exchange": req.exchange,
+            "started_at": datetime.utcnow().isoformat(),
+            "completed_at": None,
+            "error": None,
+            "last_message": f"Initializing PPO training for {req.exchange}",
+            "phase": "initializing",
+            "stats": {},
+            "logs": [],
+            "version": PPO_TRAINING_STATE["version"] + 1,
+            "last_update": datetime.utcnow().isoformat(),
+        })
+
+    def _ppo_worker():
+        try:
+            _init_supabase()
+            # 1. Fetch Data
+            # Note: We need 11 features. StockTradingEnv in ppo_training.py expects them.
+            # For now, let's fetch enough data and process it.
+            # We'll use a representative symbol for the exchange or a basket.
+            # Simplified: Use one main symbol for training as placeholder or handle basket logic.
+            # The Admin UI currently sends an exchange string.
+            
+            # Map common exchanges to a default symbol for training
+            exchange_to_symbol = {
+                "EGX": "EGX30.INDX",
+                "US": "AAPL.US",
+                "BINANCE": "BTC-USD",  # Unified for intraday crypto
+                "CRYPTO": "BTC-USD"
+            }
+            symbol = exchange_to_symbol.get(req.exchange.upper(), f"{req.exchange}.INDEX")
+
+            # For CRYPTO, try to get a real symbol from the DB if user has many
+            if req.exchange.upper() == "CRYPTO":
+                try:
+                    # Look specifically for a symbol that HAS 1h data
+                    c_sym_res = stock_ai.supabase.table("stock_bars_intraday")\
+                        .select("symbol")\
+                        .eq("exchange", "CRYPTO")\
+                        .eq("timeframe", "1h")\
+                        .limit(1)\
+                        .execute()
+                    if c_sym_res.data:
+                        symbol = c_sym_res.data[0]["symbol"]
+                    else:
+                        # Fallback to just scanning anything in CRYPTO if no 1h specifically found
+                        c_sym_res_any = stock_ai.supabase.table("stock_bars_intraday")\
+                            .select("symbol")\
+                            .eq("exchange", "CRYPTO")\
+                            .limit(1)\
+                            .execute()
+                        if c_sym_res_any.data:
+                            symbol = c_sym_res_any.data[0]["symbol"]
+                except Exception as e:
+                    with _ppo_training_lock:
+                         PPO_TRAINING_STATE["logs"].append(f"[{datetime.now().strftime('%H:%M:%S')}] Symbol scan warning: {str(e)}")
+            
+            with _ppo_training_lock:
+                PPO_TRAINING_STATE["last_message"] = f"Using {symbol} for {req.exchange} training..."
+                PPO_TRAINING_STATE["logs"].append(f"[{datetime.now().strftime('%H:%M:%S')}] Selected symbol: {symbol}")
+
+            if req.exchange.upper() == "CRYPTO":
+                # Fetch 1h data from stock_bars_intraday as requested
+                with _ppo_training_lock:
+                    PPO_TRAINING_STATE["last_message"] = f"Fetching 1h intraday data for {symbol}..."
+                
+                try:
+                    res = stock_ai.supabase.table("stock_bars_intraday")\
+                        .select("ts, open, high, low, close, volume")\
+                        .eq("symbol", symbol)\
+                        .eq("exchange", "CRYPTO")\
+                        .eq("timeframe", "1h")\
+                        .order("ts", desc=False)\
+                        .execute()
+                    
+                    if not res.data:
+                        raise ValueError(f"No 1h data found for {symbol} in stock_bars_intraday. Please ensure crypto data is synced.")
+                    
+                    df = pd.DataFrame(res.data)
+                    
+                    # Filter out zero-volume rows for CRYPTO (removes noise) as seen in train_exchange_model.py
+                    if "volume" in df.columns:
+                        try:
+                            df["volume"] = pd.to_numeric(df["volume"], errors="coerce").fillna(0)
+                            before = len(df)
+                            df = df[df["volume"] > 0].copy()
+                            removed = before - len(df)
+                            if removed > 0:
+                                with _ppo_training_lock:
+                                    PPO_TRAINING_STATE["logs"].append(f"[{datetime.now().strftime('%H:%M:%S')}] Filtered {removed} zero-volume rows for {symbol}.")
+                        except: pass
+
+                    df = df.rename(columns={"ts": "date", "open": "Open", "high": "High", "low": "Low", "close": "Close", "volume": "Volume"})
+                    df['date'] = pd.to_datetime(df['date'])
+                    df = df.set_index('date')
+                    # Ensure lowercase columns for engine consistency
+                    df.columns = [c.lower() for c in df.columns]
+                except Exception as e:
+                    raise ValueError(f"Failed to fetch intraday crypto data: {str(e)}")
+            else:
+                df = get_stock_data_eodhd(client, symbol, from_date="2020-01-01", exchange=req.exchange)
+                if df is not None and not df.empty:
+                    df.columns = [c.lower() for c in df.columns]
+            
+            if df is None or df.empty:
+                raise ValueError(f"No data found for {symbol}")
+
+            # 2. Add Indicators
+            df_full = add_technical_indicators(df)
+            
+            # 3. Select 11 features as defined in StockTradingEnv
+            # Close, RSI, MACD, MACD_Signal, SMA_50, SMA_200, Dist_From_High, Dist_From_Low, RSI_Diff, Volume_SMA20, Day_Of_Week
+            features = [
+                'Close', 'RSI', 'MACD', 'MACD_Signal', 'SMA_50', 'SMA_200', 
+                'Dist_From_High', 'Dist_From_Low', 'RSI_Diff', 'VOL_SMA20', 'Day_Of_Week'
+            ]
+            
+            # Ensure all features exist
+            for f in features:
+                if f not in df_full.columns:
+                    df_full[f] = 0.0
+            
+            df_train = df_full[features].fillna(0).astype(float)
+            df_train.columns = [c.lower() for c in df_train.columns]
+
+            def _progress_cb(data):
+                with _ppo_training_lock:
+                    PPO_TRAINING_STATE["phase"] = data.get("phase", "training")
+                    PPO_TRAINING_STATE["last_message"] = data.get("message", "")
+                    if "stats" in data:
+                        PPO_TRAINING_STATE["stats"] = data["stats"]
+                    if data.get("phase") == "completed":
+                        PPO_TRAINING_STATE["running"] = False
+                        PPO_TRAINING_STATE["completed_at"] = datetime.utcnow().isoformat()
+                    
+                    log_entry = f"[{datetime.now().strftime('%H:%M:%S')}] {data.get('message', '')}"
+                    PPO_TRAINING_STATE["logs"].append(log_entry)
+                    if len(PPO_TRAINING_STATE["logs"]) > 100:
+                        PPO_TRAINING_STATE["logs"].pop(0)
+
+                    PPO_TRAINING_STATE["version"] += 1
+                    PPO_TRAINING_STATE["last_update"] = datetime.utcnow().isoformat()
+
+            train_ppo(
+                req.exchange,
+                df_train,
+                req.dict(),
+                progress_cb=_progress_cb
+            )
+
+        except Exception as e:
+            with _ppo_training_lock:
+                PPO_TRAINING_STATE["running"] = False
+                PPO_TRAINING_STATE["error"] = str(e)
+                PPO_TRAINING_STATE["last_message"] = f"Error: {str(e)}"
+                PPO_TRAINING_STATE["logs"].append(f"[{datetime.now().strftime('%H:%M:%S')}] ERROR: {str(e)}")
+                PPO_TRAINING_STATE["version"] += 1
+
+    background_tasks.add_task(_ppo_worker)
+    return {"status": "success", "message": f"PPO training started for {req.exchange}"}
+
+@router.get("/ppo/status")
+async def get_ppo_training_status():
+    with _ppo_training_lock:
+        return dict(PPO_TRAINING_STATE)
+
+@router.post("/ppo/stop")
+async def stop_ppo_training():
+    with _ppo_training_lock:
+        if not PPO_TRAINING_STATE["running"]:
+            return {"status": "success", "message": "No PPO training is running"}
+        
+        # In a real SB3 scenario, stopping mid-learn requires a callback to return False
+        # For simplicity, we just mark it as stopped in state. 
+        # The thread will still finish but won't update UI further or we can use a flag.
+        PPO_TRAINING_STATE["running"] = False
+        PPO_TRAINING_STATE["last_message"] = "Training stopped by user"
+        PPO_TRAINING_STATE["logs"].append(f"[{datetime.now().strftime('%H:%M:%S')}] STOPPED BY USER")
+        PPO_TRAINING_STATE["version"] += 1
+        return {"status": "success", "message": "PPO training stop signal sent"}
 
 
 @router.get("/train/summary")

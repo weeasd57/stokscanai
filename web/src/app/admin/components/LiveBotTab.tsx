@@ -43,6 +43,9 @@ interface BotConfig {
     use_atr_exits: boolean;
     atr_tp_multiplier: number;
     atr_sl_multiplier: number;
+    cornix_webhook_url?: string;
+    cornix_uuid?: string;
+    cornix_secret?: string;
     atr_period: number;
     use_smart_exit: boolean;
 }
@@ -812,6 +815,13 @@ export default function LiveBotTab() {
                             >
                                 <Zap className="w-3.5 h-3.5" />
                             </button>
+                            <button
+                                onClick={() => handleTestNotification("signal")}
+                                className="px-3 py-2 rounded-xl text-[10px] font-black text-orange-500 hover:bg-orange-500/10 transition-all border-l border-white/5"
+                                title="Test Cornix Webhook"
+                            >
+                                <Globe className="w-3.5 h-3.5" />
+                            </button>
                         </div>
                     </div>
 
@@ -834,10 +844,10 @@ export default function LiveBotTab() {
                             </button>
                             <button
                                 onClick={() => handleTestNotification("signal")}
-                                className="flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black text-indigo-500 hover:bg-indigo-500/10 hover:text-indigo-400 transition-all group/test"
+                                className="flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black text-orange-400 hover:bg-orange-500/10 hover:text-orange-300 transition-all group/test"
                             >
-                                <Zap className="w-3.5 h-3.5 group-hover/test:scale-110 transition-transform" />
-                                SIGNAL
+                                <Globe className="w-3.5 h-3.5 group-hover/test:scale-110 transition-transform" />
+                                CORNIX
                             </button>
                         </div>
                     </div>

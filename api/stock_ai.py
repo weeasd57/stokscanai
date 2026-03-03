@@ -1104,6 +1104,23 @@ def get_supabase_inventory() -> List[Dict[str, Any]]:
     except Exception as e:
         print(f"Warning: Primary inventory stats RPC failed: {e}. Falling back to Fundamentals + Local stats.")
 
+    # 1b. Check CRYPTO exchange in stock_bars_intraday specifically (User has 200+ symbols)
+    try:
+        crypto_exists = any(s.get('exchange') == 'CRYPTO' and s.get('price_count', 0) > 0 for s in stats)
+        if not crypto_exists:
+            # Query unique symbols from intraday table for CRYPTO
+            c_res = supabase.table("stock_bars_intraday").select("symbol", count="exact").eq("exchange", "CRYPTO").limit(1).execute()
+            if c_res.count and c_res.count > 0:
+                stats.append({
+                    "exchange": "CRYPTO",
+                    "price_count": c_res.count,
+                    "fund_count": 0,
+                    "last_update": None
+                })
+                mapping["CRYPTO"] = "Crypto"
+    except Exception as e:
+        print(f"Warning: CRYPTO intraday inventory check failed: {e}")
+
     # 2. Get exchange-to-country mapping from fundamentals if possible (Shared)
     mapping = {}
     meta_res = None
